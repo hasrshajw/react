@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar";
@@ -7,20 +7,41 @@ import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 
 function App() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
     <BrowserRouter>
       <div className="app">
-        <Sidebar />
 
-        <main className="main-content">
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
+        />
+
+        <main
+          className={`main-content ${
+            sidebarCollapsed
+              ? "content-collapsed"
+              : "content-expanded"
+          }`}
+        >
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/analytics" element={<Analytics />} />
+            <Route
+              path="/"
+              element={<Dashboard />}
+            />
+
+            <Route
+              path="/analytics"
+              element={<Analytics />}
+            />
           </Routes>
         </main>
+
       </div>
 
       <style>{`
+
         * {
           box-sizing: border-box;
         }
@@ -41,7 +62,9 @@ function App() {
             BlinkMacSystemFont,
             "Segoe UI",
             sans-serif;
+
           background: #f8f8f8;
+
           color: #171717;
         }
 
@@ -49,19 +72,51 @@ function App() {
           min-height: 100vh;
         }
 
-.main-content {
-  min-height: 100vh;
-  margin-left: 250px;
-  padding: 104px 32px 32px;
-}
+        /* =========================================
+           MAIN CONTENT
+        ========================================== */
+
+        .main-content {
+          min-height: 100vh;
+
+          padding-top: 104px;
+          padding-right: 32px;
+          padding-bottom: 32px;
+          padding-left: 32px;
+
+          transition:
+            margin-left 0.25s ease;
+
+          margin-left: 250px;
+        }
+
+        .main-content.content-expanded {
+          margin-left: 250px;
+        }
+
+        .main-content.content-collapsed {
+          margin-left: 72px;
+        }
+
+        /* =========================================
+           MOBILE
+        ========================================== */
 
         @media (max-width: 768px) {
-          .main-content {
+
+          .main-content,
+          .main-content.content-expanded,
+          .main-content.content-collapsed {
             margin-left: 0;
-            padding: 20px;
-            padding-top: 72px;
+
+            padding-top: 84px;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 20px;
           }
+
         }
+
       `}</style>
     </BrowserRouter>
   );
