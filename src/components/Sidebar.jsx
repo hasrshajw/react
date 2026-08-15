@@ -8,7 +8,6 @@ import {
   Menu,
   Search,
   Bell,
-  User,
 } from "lucide-react";
 
 const menuItems = [
@@ -32,9 +31,9 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ================================
+      {/* =========================================
           MOBILE MENU BUTTON
-      ================================= */}
+      ========================================== */}
 
       <button
         className="sidebar-mobile-button"
@@ -44,9 +43,9 @@ export default function Sidebar() {
         <Menu size={22} />
       </button>
 
-      {/* ================================
-          LEFT SIDEBAR
-      ================================= */}
+      {/* =========================================
+          SIDEBAR
+      ========================================== */}
 
       <aside
         className={`sidebar ${
@@ -98,7 +97,7 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Sidebar Navigation */}
+        {/* Navigation */}
 
         <nav className="sidebar-navigation">
           {isExpanded && (
@@ -166,16 +165,18 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* ================================
-          TOP NAVIGATION
-      ================================= */}
+      {/* =========================================
+          TOP NAVBAR
+      ========================================== */}
 
       <header
         className={`top-nav ${
-          isExpanded ? "top-nav-expanded" : "top-nav-collapsed"
+          isExpanded
+            ? "top-nav-expanded"
+            : "top-nav-collapsed"
         }`}
       >
-        {/* Left Side */}
+        {/* Left */}
 
         <div className="top-nav-left">
           <div className="breadcrumb">
@@ -193,7 +194,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Right Side */}
+        {/* Right */}
 
         <div className="top-nav-right">
           {/* Search */}
@@ -240,9 +241,9 @@ export default function Sidebar() {
         </div>
       </header>
 
-      {/* ================================
+      {/* =========================================
           STYLES
-      ================================= */}
+      ========================================== */}
 
       <style>{`
 
@@ -250,12 +251,13 @@ export default function Sidebar() {
           box-sizing: border-box;
         }
 
-        /* =================================
+        /* =========================================
            SIDEBAR
-        ================================= */
+        ========================================== */
 
         .sidebar {
           position: fixed;
+
           top: 0;
           left: 0;
 
@@ -286,9 +288,9 @@ export default function Sidebar() {
           width: 72px;
         }
 
-        /* =================================
+        /* =========================================
            SIDEBAR HEADER
-        ================================= */
+        ========================================== */
 
         .sidebar-header {
           height: 72px;
@@ -332,6 +334,7 @@ export default function Sidebar() {
 
         .brand-name {
           font-size: 16px;
+
           font-weight: 700;
 
           color: #171717;
@@ -339,9 +342,9 @@ export default function Sidebar() {
           white-space: nowrap;
         }
 
-        /* =================================
+        /* =========================================
            COLLAPSE BUTTON
-        ================================= */
+        ========================================== */
 
         .collapse-button {
           width: 30px;
@@ -368,12 +371,13 @@ export default function Sidebar() {
 
         .collapse-button:hover {
           background: #f2f2f2;
+
           color: #111111;
         }
 
-        /* =================================
+        /* =========================================
            SIDEBAR NAVIGATION
-        ================================= */
+        ========================================== */
 
         .sidebar-navigation {
           flex: 1;
@@ -430,16 +434,19 @@ export default function Sidebar() {
 
         .sidebar-link:hover {
           background: #f5f5f5;
+
           color: #111111;
         }
 
         .sidebar-link.active {
           background: #111111;
+
           color: #ffffff;
         }
 
         .sidebar-link.active:hover {
           background: #111111;
+
           color: #ffffff;
         }
 
@@ -447,9 +454,9 @@ export default function Sidebar() {
           flex-shrink: 0;
         }
 
-        /* =================================
+        /* =========================================
            TOOLTIP
-        ================================= */
+        ========================================== */
 
         .sidebar-tooltip {
           position: absolute;
@@ -485,12 +492,13 @@ export default function Sidebar() {
 
         .sidebar-link:hover .sidebar-tooltip {
           opacity: 1;
+
           visibility: visible;
         }
 
-        /* =================================
+        /* =========================================
            SIDEBAR BOTTOM
-        ================================= */
+        ========================================== */
 
         .sidebar-bottom {
           padding: 10px;
@@ -538,6 +546,7 @@ export default function Sidebar() {
 
         .profile-info {
           display: flex;
+
           flex-direction: column;
 
           min-width: 0;
@@ -559,9 +568,16 @@ export default function Sidebar() {
           margin-top: 2px;
         }
 
-        /* =================================
-           TOP NAVIGATION
-        ================================= */
+        /* =========================================
+           TOP NAVBAR
+        ========================================== */
+
+        /*
+          IMPORTANT:
+          The navbar starts AFTER the sidebar.
+          Therefore its border-bottom can NEVER
+          appear over the sidebar.
+        */
 
         .top-nav {
           position: fixed;
@@ -590,20 +606,31 @@ export default function Sidebar() {
 
           z-index: 900;
 
-          transition: left 0.25s ease;
+          transition:
+            left 0.25s ease;
         }
+
+        /*
+          Expanded sidebar:
+          Navbar begins at 250px.
+        */
 
         .top-nav-expanded {
           left: 250px;
         }
 
+        /*
+          Collapsed sidebar:
+          Navbar begins at 72px.
+        */
+
         .top-nav-collapsed {
           left: 72px;
         }
 
-        /* =================================
+        /* =========================================
            TOP NAV LEFT
-        ================================= */
+        ========================================== */
 
         .top-nav-left {
           display: flex;
@@ -635,9 +662,9 @@ export default function Sidebar() {
           font-weight: 600;
         }
 
-        /* =================================
+        /* =========================================
            TOP NAV RIGHT
-        ================================= */
+        ========================================== */
 
         .top-nav-right {
           display: flex;
@@ -679,6 +706,10 @@ export default function Sidebar() {
           color: #111111;
         }
 
+        /* =========================================
+           NOTIFICATION
+        ========================================== */
+
         .notification-button {
           position: relative;
         }
@@ -699,6 +730,10 @@ export default function Sidebar() {
           border: 1px solid #ffffff;
         }
 
+        /* =========================================
+           DIVIDER
+        ========================================== */
+
         .top-nav-divider {
           width: 1px;
 
@@ -709,9 +744,9 @@ export default function Sidebar() {
           margin: 0 8px;
         }
 
-        /* =================================
+        /* =========================================
            TOP USER
-        ================================= */
+        ========================================== */
 
         .top-user {
           border: none;
@@ -779,9 +814,9 @@ export default function Sidebar() {
           color: #999999;
         }
 
-        /* =================================
+        /* =========================================
            MOBILE BUTTON
-        ================================= */
+        ========================================== */
 
         .sidebar-mobile-button {
           display: none;
@@ -808,9 +843,9 @@ export default function Sidebar() {
           z-index: 1100;
         }
 
-        /* =================================
+        /* =========================================
            MOBILE
-        ================================= */
+        ========================================== */
 
         @media (max-width: 768px) {
 
@@ -838,12 +873,17 @@ export default function Sidebar() {
             transform: translateX(-100%);
           }
 
+          /*
+            On mobile the navbar spans the
+            entire screen.
+          */
+
           .top-nav {
             left: 0 !important;
 
-            padding-left: 70px;
-
             height: 64px;
+
+            padding-left: 70px;
           }
 
           .top-nav-left {
@@ -857,15 +897,11 @@ export default function Sidebar() {
           .top-nav-divider {
             display: none;
           }
-
-          .main-content {
-            padding-top: 84px;
-          }
         }
 
-        /* =================================
+        /* =========================================
            SMALL MOBILE
-        ================================= */
+        ========================================== */
 
         @media (max-width: 480px) {
 
