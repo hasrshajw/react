@@ -213,6 +213,8 @@ function MenuIcon({
   return (
     <span className="menu-icon">
 
+      {/* NORMAL */}
+
       <img
         src={iconSet.normal}
         alt=""
@@ -223,11 +225,17 @@ function MenuIcon({
         }
       />
 
+
+      {/* HOVER */}
+
       <img
         src={iconSet.hover}
         alt=""
         className="icon-hover"
       />
+
+
+      {/* ACTIVE */}
 
       <img
         src={iconSet.active}
@@ -258,12 +266,15 @@ export default function Sidebar({
 
 
   /*
-   * IMPORTANT:
+   * IMPORTANT
    *
-   * We intentionally DO NOT expand the sidebar
-   * when the mouse enters.
+   * The sidebar NEVER expands on hover.
    *
-   * Collapsed = always collapsed.
+   * collapsed = true
+   *     → always 90px
+   *
+   * collapsed = false
+   *     → always 260px
    */
 
   const isExpanded = !collapsed;
@@ -289,8 +300,8 @@ export default function Sidebar({
     if (collapsed) {
 
       /*
-       * When collapsed, clicking Customize Site
-       * expands the sidebar and opens the submenu.
+       * Clicking Customize Site while collapsed
+       * will expand the sidebar.
        */
 
       setCollapsed(false);
@@ -537,7 +548,17 @@ export default function Sidebar({
                       active={isActive}
                     />
 
+
+                    {/* NORMAL LABEL */}
+
                     <span className="nav-label">
+                      {item.name}
+                    </span>
+
+
+                    {/* COLLAPSED TOOLTIP */}
+
+                    <span className="collapsed-tooltip">
                       {item.name}
                     </span>
 
@@ -571,10 +592,22 @@ export default function Sidebar({
                 active={siteOpen}
               />
 
+
+              {/* NORMAL LABEL */}
+
               <span className="nav-label">
                 Customize Site
               </span>
 
+
+              {/* COLLAPSED TOOLTIP */}
+
+              <span className="collapsed-tooltip">
+                Customize Site
+              </span>
+
+
+              {/* CHEVRON */}
 
               {isExpanded && (
 
@@ -769,14 +802,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           NAVBAR POSITION
-
-           Expanded  = 260px
-           Collapsed = 90px
-
-           IMPORTANT:
-           Uses actual collapsed state,
-           NOT mouse hover.
+           NAVBAR INNER
         ================================================= */
 
         .top-navbar-inner {
@@ -1539,10 +1565,18 @@ export default function Sidebar({
 
 
         /* =================================================
-           COLLAPSED SIDEBAR
+           NORMAL LABEL
+        ================================================= */
 
-           IMPORTANT:
-           Sidebar stays collapsed on hover.
+        .nav-label {
+
+          display: inline-block;
+
+        }
+
+
+        /* =================================================
+           COLLAPSED SIDEBAR
         ================================================= */
 
         .d-sidebar.collapsed
@@ -1557,7 +1591,7 @@ export default function Sidebar({
         .d-sidebar.collapsed
         .nav-submenu {
 
-          display: none !important;
+          display: none;
 
         }
 
@@ -1583,15 +1617,16 @@ export default function Sidebar({
         /* =================================================
            COLLAPSED TOOLTIP
 
-           Hovering DOES NOT expand sidebar.
-           It only shows the label.
+           THIS IS THE IMPORTANT FIX.
+
+           The tooltip is a SEPARATE element from
+           .nav-label, so display:none on .nav-label
+           cannot affect it.
         ================================================= */
 
-        .d-sidebar.collapsed
-        .nav-item:hover
-        .nav-label {
+        .collapsed-tooltip {
 
-          display: block;
+          display: none;
 
           position: absolute;
 
@@ -1618,9 +1653,11 @@ export default function Sidebar({
 
           font-weight: 500;
 
+          line-height: 1.2;
+
           white-space: nowrap;
 
-          z-index: 5000;
+          z-index: 99999;
 
           box-shadow:
             0 4px 12px
@@ -1636,11 +1673,24 @@ export default function Sidebar({
         }
 
 
-        /* Tooltip arrow */
+        /* =================================================
+           SHOW LABEL WHEN COLLAPSED + HOVER
+        ================================================= */
 
         .d-sidebar.collapsed
         .nav-item:hover
-        .nav-label::before {
+        .collapsed-tooltip {
+
+          display: block;
+
+        }
+
+
+        /* =================================================
+           TOOLTIP ARROW
+        ================================================= */
+
+        .collapsed-tooltip::before {
 
           content: "";
 
@@ -1652,6 +1702,10 @@ export default function Sidebar({
 
           transform:
             translateY(-50%);
+
+          width: 0;
+
+          height: 0;
 
           border-top:
             6px solid transparent;
@@ -1749,7 +1803,8 @@ export default function Sidebar({
 
           font-size: 13px;
 
-          color: #6b7280;
+          color:
+            #6b7280;
 
           white-space: nowrap;
 
