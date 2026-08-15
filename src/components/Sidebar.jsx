@@ -29,6 +29,12 @@ export default function Sidebar({
 }) {
   const [hovered, setHovered] = useState(false);
 
+  /*
+   * Sidebar is expanded when:
+   * 1. It is not collapsed
+   * OR
+   * 2. User is hovering over the collapsed sidebar
+   */
   const isExpanded = !collapsed || hovered;
 
   return (
@@ -38,12 +44,23 @@ export default function Sidebar({
       ================================================== */}
 
       <header className="top-nav">
-        <div className="top-nav-content">
 
-          {/* LEFT */}
+        <div
+          className={`top-nav-content ${
+            isExpanded
+              ? "nav-expanded"
+              : "nav-collapsed"
+          }`}
+        >
+
+          {/* ==================================================
+              TOP NAV LEFT
+          ================================================== */}
 
           <div className="top-nav-left">
+
             <div className="breadcrumb">
+
               <span className="breadcrumb-muted">
                 Dashboard
               </span>
@@ -55,10 +72,15 @@ export default function Sidebar({
               <span className="breadcrumb-current">
                 Overview
               </span>
+
             </div>
+
           </div>
 
-          {/* RIGHT */}
+
+          {/* ==================================================
+              TOP NAV RIGHT
+          ================================================== */}
 
           <div className="top-nav-right">
 
@@ -71,20 +93,25 @@ export default function Sidebar({
               <Search size={19} />
             </button>
 
+
             {/* Notifications */}
 
             <button
               className="top-nav-button notification-button"
               aria-label="Notifications"
             >
+
               <Bell size={19} />
 
               <span className="notification-dot"></span>
+
             </button>
+
 
             {/* Divider */}
 
             <div className="top-nav-divider"></div>
+
 
             {/* User */}
 
@@ -109,7 +136,9 @@ export default function Sidebar({
             </button>
 
           </div>
+
         </div>
+
       </header>
 
 
@@ -132,13 +161,17 @@ export default function Sidebar({
 
       <aside
         className={`sidebar ${
-          isExpanded ? "expanded" : "collapsed"
+          isExpanded
+            ? "expanded"
+            : "collapsed"
         }`}
+
         onMouseEnter={() => {
           if (collapsed) {
             setHovered(true);
           }
         }}
+
         onMouseLeave={() => {
           if (collapsed) {
             setHovered(false);
@@ -166,25 +199,30 @@ export default function Sidebar({
 
           </div>
 
+
           {/* Collapse Button */}
 
           <button
             className="collapse-button"
+
             onClick={() => {
               setCollapsed(!collapsed);
               setHovered(false);
             }}
+
             aria-label={
               collapsed
                 ? "Expand sidebar"
                 : "Collapse sidebar"
             }
           >
+
             {collapsed ? (
               <ChevronRight size={18} />
             ) : (
               <ChevronLeft size={18} />
             )}
+
           </button>
 
         </div>
@@ -202,6 +240,7 @@ export default function Sidebar({
             </div>
           )}
 
+
           {menuItems.map((item) => {
 
             const Icon = item.icon;
@@ -209,11 +248,16 @@ export default function Sidebar({
             return (
               <NavLink
                 key={item.path}
+
                 to={item.path}
+
                 end={item.path === "/"}
+
                 className={({ isActive }) =>
                   `sidebar-link ${
-                    isActive ? "active" : ""
+                    isActive
+                      ? "active"
+                      : ""
                   }`
                 }
               >
@@ -224,11 +268,13 @@ export default function Sidebar({
                   strokeWidth={2}
                 />
 
+
                 {isExpanded && (
                   <span className="sidebar-link-text">
                     {item.name}
                   </span>
                 )}
+
 
                 {!isExpanded && (
                   <span className="sidebar-tooltip">
@@ -255,6 +301,7 @@ export default function Sidebar({
             <div className="profile-avatar">
               H
             </div>
+
 
             {isExpanded && (
               <div className="profile-info">
@@ -293,6 +340,7 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar {
+
           position: fixed;
 
           top: 0;
@@ -314,11 +362,14 @@ export default function Sidebar({
 
           transition:
             width 0.25s ease;
+
         }
+
 
         .sidebar.expanded {
           width: 250px;
         }
+
 
         .sidebar.collapsed {
           width: 72px;
@@ -330,6 +381,7 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar-header {
+
           height: 72px;
 
           display: flex;
@@ -345,6 +397,7 @@ export default function Sidebar({
           background: #ffffff;
 
           flex-shrink: 0;
+
         }
 
 
@@ -353,6 +406,7 @@ export default function Sidebar({
         ================================================== */
 
         .brand {
+
           display: flex;
 
           align-items: center;
@@ -360,9 +414,12 @@ export default function Sidebar({
           gap: 11px;
 
           min-width: 0;
+
         }
 
+
         .brand-logo {
+
           width: 40px;
           height: 40px;
 
@@ -383,9 +440,12 @@ export default function Sidebar({
           font-size: 18px;
 
           font-weight: 700;
+
         }
 
+
         .brand-name {
+
           font-size: 16px;
 
           font-weight: 700;
@@ -393,6 +453,7 @@ export default function Sidebar({
           color: #171717;
 
           white-space: nowrap;
+
         }
 
 
@@ -401,6 +462,7 @@ export default function Sidebar({
         ================================================== */
 
         .collapse-button {
+
           width: 30px;
           height: 30px;
 
@@ -423,12 +485,16 @@ export default function Sidebar({
           transition:
             background 0.15s ease,
             color 0.15s ease;
+
         }
 
+
         .collapse-button:hover {
+
           background: #f2f2f2;
 
           color: #111111;
+
         }
 
 
@@ -437,14 +503,18 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar-navigation {
+
           flex: 1;
 
           padding: 20px 8px;
 
           overflow-y: auto;
+
         }
 
+
         .navigation-title {
+
           font-size: 10px;
 
           font-weight: 700;
@@ -456,6 +526,7 @@ export default function Sidebar({
           padding: 0 12px;
 
           margin-bottom: 8px;
+
         }
 
 
@@ -464,11 +535,12 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar-link {
+
           position: relative;
 
-          height: 44px;
-
           width: 100%;
+
+          height: 44px;
 
           display: flex;
 
@@ -495,46 +567,61 @@ export default function Sidebar({
           transition:
             background 0.15s ease,
             color 0.15s ease;
+
         }
 
+
         .sidebar-link:hover {
+
           background: #f5f5f5;
 
           color: #111111;
+
         }
+
 
         .sidebar-link.active {
+
           background: #111111;
 
           color: #ffffff;
+
         }
+
 
         .sidebar-link.active:hover {
+
           background: #111111;
 
           color: #ffffff;
+
         }
 
+
         .sidebar-icon {
+
           flex-shrink: 0;
+
         }
 
 
         /* ==================================================
            COLLAPSED SIDEBAR
-           
-           CHANGE SIZE HERE
-           
-           Current size: 48 × 48 px
+
+           ACTIVE SQUARE = 48 × 48 PX
         ================================================== */
 
         .sidebar.collapsed .sidebar-navigation {
+
           padding-left: 8px;
 
           padding-right: 8px;
+
         }
 
+
         .sidebar.collapsed .sidebar-link {
+
           width: 48px;
 
           height: 48px;
@@ -554,9 +641,12 @@ export default function Sidebar({
           justify-content: center;
 
           gap: 0;
+
         }
 
+
         .sidebar.collapsed .sidebar-link.active {
+
           width: 48px;
 
           height: 48px;
@@ -572,14 +662,18 @@ export default function Sidebar({
           background: #111111;
 
           color: #ffffff;
+
         }
 
+
         .sidebar.collapsed .sidebar-icon {
+
           width: 22px;
 
           height: 22px;
 
           margin: 0;
+
         }
 
 
@@ -588,6 +682,7 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar.expanded .sidebar-link {
+
           width: 100%;
 
           height: 44px;
@@ -597,6 +692,7 @@ export default function Sidebar({
           margin: 3px 0;
 
           gap: 12px;
+
         }
 
 
@@ -605,6 +701,7 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar-tooltip {
+
           position: absolute;
 
           left: calc(100% + 12px);
@@ -631,15 +728,20 @@ export default function Sidebar({
 
           visibility: hidden;
 
-          transition: opacity 0.15s ease;
+          transition:
+            opacity 0.15s ease;
 
           z-index: 3000;
+
         }
 
+
         .sidebar-link:hover .sidebar-tooltip {
+
           opacity: 1;
 
           visibility: visible;
+
         }
 
 
@@ -648,14 +750,18 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar-bottom {
+
           padding: 10px;
 
           border-top: 1px solid #eeeeee;
 
           flex-shrink: 0;
+
         }
 
+
         .sidebar-profile {
+
           height: 52px;
 
           display: flex;
@@ -667,13 +773,19 @@ export default function Sidebar({
           padding: 5px 7px;
 
           border-radius: 9px;
+
         }
+
 
         .sidebar-profile:hover {
+
           background: #f7f7f7;
+
         }
 
+
         .profile-avatar {
+
           width: 36px;
           height: 36px;
 
@@ -694,30 +806,40 @@ export default function Sidebar({
           font-size: 13px;
 
           font-weight: 700;
+
         }
 
+
         .profile-info {
+
           display: flex;
 
           flex-direction: column;
 
           min-width: 0;
+
         }
 
+
         .profile-name {
+
           font-size: 13px;
 
           font-weight: 600;
 
           color: #222222;
+
         }
 
+
         .profile-role {
+
           font-size: 11px;
 
           color: #999999;
 
           margin-top: 2px;
+
         }
 
 
@@ -726,6 +848,7 @@ export default function Sidebar({
         ================================================== */
 
         .top-nav {
+
           position: fixed;
 
           top: 0;
@@ -736,7 +859,12 @@ export default function Sidebar({
 
           height: 72px;
 
-          background: rgba(255, 255, 255, 0.97);
+          background: rgba(
+            255,
+            255,
+            255,
+            0.97
+          );
 
           backdrop-filter: blur(12px);
 
@@ -745,12 +873,20 @@ export default function Sidebar({
           border-bottom: 1px solid #e8e8e8;
 
           z-index: 1000;
+
         }
 
-        .top-nav-content {
-          height: 72px;
 
-          margin-left: 250px;
+        /* ==================================================
+           IMPORTANT FIX
+
+           250px when expanded
+           72px when collapsed
+        ================================================== */
+
+        .top-nav-content {
+
+          height: 72px;
 
           display: flex;
 
@@ -762,6 +898,21 @@ export default function Sidebar({
 
           transition:
             margin-left 0.25s ease;
+
+        }
+
+
+        .top-nav-content.nav-expanded {
+
+          margin-left: 250px;
+
+        }
+
+
+        .top-nav-content.nav-collapsed {
+
+          margin-left: 72px;
+
         }
 
 
@@ -770,12 +921,16 @@ export default function Sidebar({
         ================================================== */
 
         .top-nav-left {
+
           display: flex;
 
           align-items: center;
+
         }
 
+
         .breadcrumb {
+
           display: flex;
 
           align-items: center;
@@ -783,20 +938,30 @@ export default function Sidebar({
           gap: 9px;
 
           font-size: 13px;
+
         }
+
 
         .breadcrumb-muted {
+
           color: #999999;
+
         }
+
 
         .breadcrumb-separator {
+
           color: #cccccc;
+
         }
 
+
         .breadcrumb-current {
+
           color: #222222;
 
           font-weight: 600;
+
         }
 
 
@@ -805,14 +970,18 @@ export default function Sidebar({
         ================================================== */
 
         .top-nav-right {
+
           display: flex;
 
           align-items: center;
 
           gap: 8px;
+
         }
 
+
         .top-nav-button {
+
           width: 38px;
           height: 38px;
 
@@ -837,19 +1006,28 @@ export default function Sidebar({
           transition:
             background 0.15s ease,
             color 0.15s ease;
+
         }
 
+
         .top-nav-button:hover {
+
           background: #f3f3f3;
 
           color: #111111;
+
         }
+
 
         .notification-button {
+
           position: relative;
+
         }
 
+
         .notification-dot {
+
           position: absolute;
 
           top: 8px;
@@ -865,9 +1043,12 @@ export default function Sidebar({
           background: #111111;
 
           border: 1px solid #ffffff;
+
         }
 
+
         .top-nav-divider {
+
           width: 1px;
 
           height: 30px;
@@ -875,6 +1056,7 @@ export default function Sidebar({
           background: #e5e5e5;
 
           margin: 0 8px;
+
         }
 
 
@@ -883,6 +1065,7 @@ export default function Sidebar({
         ================================================== */
 
         .top-user {
+
           border: none;
 
           background: transparent;
@@ -900,13 +1083,19 @@ export default function Sidebar({
           cursor: pointer;
 
           text-align: left;
+
         }
+
 
         .top-user:hover {
+
           background: #f6f6f6;
+
         }
 
+
         .top-user-avatar {
+
           width: 34px;
           height: 34px;
 
@@ -925,28 +1114,38 @@ export default function Sidebar({
           font-size: 12px;
 
           font-weight: 700;
+
         }
 
+
         .top-user-info {
+
           display: flex;
 
           flex-direction: column;
 
           gap: 2px;
+
         }
 
+
         .top-user-name {
+
           font-size: 13px;
 
           font-weight: 600;
 
           color: #222222;
+
         }
 
+
         .top-user-role {
+
           font-size: 11px;
 
           color: #999999;
+
         }
 
 
@@ -955,6 +1154,7 @@ export default function Sidebar({
         ================================================== */
 
         .sidebar-mobile-button {
+
           display: none;
 
           position: fixed;
@@ -980,6 +1180,7 @@ export default function Sidebar({
           cursor: pointer;
 
           z-index: 3000;
+
         }
 
 
@@ -990,46 +1191,70 @@ export default function Sidebar({
         @media (max-width: 768px) {
 
           .sidebar-mobile-button {
+
             display: flex;
+
           }
+
 
           .sidebar {
+
             transform: translateX(-100%);
+
           }
 
+
           .sidebar.expanded {
+
             width: 250px;
 
             transform: translateX(0);
+
           }
 
+
           .sidebar.collapsed {
+
             width: 250px;
 
             transform: translateX(-100%);
+
           }
 
-          .top-nav-content {
+
+          .top-nav-content.nav-expanded,
+          .top-nav-content.nav-collapsed {
+
             margin-left: 0;
 
             padding-left: 70px;
+
           }
+
 
           .top-nav-left {
+
             display: none;
+
           }
+
 
           .top-user-info {
+
             display: none;
+
           }
+
 
           .top-nav-divider {
+
             display: none;
+
           }
 
-          /* Mobile uses normal menu size */
 
           .sidebar.collapsed .sidebar-link {
+
             width: 100%;
 
             height: 44px;
@@ -1041,6 +1266,7 @@ export default function Sidebar({
             justify-content: flex-start;
 
             gap: 12px;
+
           }
 
         }
@@ -1052,24 +1278,36 @@ export default function Sidebar({
 
         @media (max-width: 480px) {
 
-          .top-nav-content {
+          .top-nav-content.nav-expanded,
+          .top-nav-content.nav-collapsed {
+
             padding-left: 65px;
 
             padding-right: 12px;
+
           }
+
 
           .top-nav-right {
+
             gap: 2px;
+
           }
 
+
           .top-nav-button {
+
             width: 36px;
 
             height: 36px;
+
           }
 
+
           .top-user {
+
             padding: 3px;
+
           }
 
         }
