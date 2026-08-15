@@ -1,5 +1,15 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
+import {
+  Search,
+  Bell,
+  ChevronRight,
+} from "lucide-react";
+
+
+/* =========================================================
+   MAIN MENU
+========================================================= */
 
 const menuItems = [
   {
@@ -18,6 +28,11 @@ const menuItems = [
     icon: "coupons",
   },
 ];
+
+
+/* =========================================================
+   CUSTOMIZE SITE SUBMENU
+========================================================= */
 
 const submenuItems = [
   {
@@ -42,9 +57,19 @@ const submenuItems = [
   },
 ];
 
-function CustomIcon({ type, state = "normal" }) {
+
+/* =========================================================
+   ICON COMPONENT
+========================================================= */
+
+function CustomIcon({
+  type,
+  state = "normal",
+}) {
   return (
-    <span className={`icon icon-custom icon-${type}`}>
+    <span
+      className={`icon icon-${type}`}
+    >
       <span
         className={`icon-state icon-${state}`}
       />
@@ -52,96 +77,252 @@ function CustomIcon({ type, state = "normal" }) {
   );
 }
 
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
 export default function Sidebar({
   collapsed,
   setCollapsed,
 }) {
-  const [siteOpen, setSiteOpen] = useState(false);
-  const [hovered, setHovered] = useState(false);
+
+  const [siteOpen, setSiteOpen] =
+    useState(false);
+
+  const [hovered, setHovered] =
+    useState(false);
+
 
   /*
-   * When the sidebar is collapsed:
-   * hovering over it temporarily expands it.
+   * Sidebar temporarily expands when
+   * the mouse enters while collapsed.
    */
-  const isExpanded = !collapsed || hovered;
+
+  const isExpanded =
+    !collapsed || hovered;
+
+
+  /* =======================================================
+     TOGGLE SIDEBAR
+  ======================================================= */
 
   const handleToggle = () => {
+
     setCollapsed(!collapsed);
+
     setHovered(false);
+
   };
 
+
+  /* =======================================================
+     CUSTOMIZE SITE
+  ======================================================= */
+
   const handleCustomizeClick = () => {
+
     if (collapsed) {
+
       setCollapsed(false);
 
       setTimeout(() => {
         setSiteOpen(true);
-      }, 300);
+      }, 250);
 
       return;
+
     }
 
     setSiteOpen(!siteOpen);
+
   };
+
 
   return (
     <>
-      {/* ==================================================
+
+      {/* ===================================================
+          TOP NAVBAR
+      =================================================== */}
+
+      <header className="top-navbar">
+
+        <div
+          className={`top-navbar-inner ${
+            isExpanded
+              ? "navbar-expanded"
+              : "navbar-collapsed"
+          }`}
+        >
+
+          {/* ===============================================
+              LEFT SIDE
+          =============================================== */}
+
+          <div className="navbar-left">
+
+            <div className="breadcrumb">
+
+              <span className="breadcrumb-muted">
+                Dashboard
+              </span>
+
+              <span className="breadcrumb-divider">
+                /
+              </span>
+
+              <span className="breadcrumb-current">
+                Overview
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {/* ===============================================
+              RIGHT SIDE
+          =============================================== */}
+
+          <div className="navbar-right">
+
+            {/* SEARCH */}
+
+            <button
+              className="navbar-icon-button"
+              aria-label="Search"
+            >
+
+              <Search
+                size={19}
+                strokeWidth={2}
+              />
+
+            </button>
+
+
+            {/* NOTIFICATION */}
+
+            <button
+              className="navbar-icon-button notification-button"
+              aria-label="Notifications"
+            >
+
+              <Bell
+                size={19}
+                strokeWidth={2}
+              />
+
+              <span className="notification-dot" />
+
+            </button>
+
+
+            {/* DIVIDER */}
+
+            <div className="navbar-divider" />
+
+
+            {/* USER */}
+
+            <button className="navbar-user">
+
+              <div className="navbar-avatar">
+                H
+              </div>
+
+              <div className="navbar-user-info">
+
+                <span className="navbar-user-name">
+                  Harsha
+                </span>
+
+                <span className="navbar-user-role">
+                  Administrator
+                </span>
+
+              </div>
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </header>
+
+
+      {/* ===================================================
           SIDEBAR
-      ================================================== */}
+      =================================================== */}
 
       <aside
         className={`d-sidebar ${
-          isExpanded ? "" : "collapsed"
+          isExpanded
+            ? "expanded"
+            : "collapsed"
         }`}
 
         onMouseEnter={() => {
+
           if (collapsed) {
             setHovered(true);
           }
+
         }}
 
         onMouseLeave={() => {
+
           if (collapsed) {
             setHovered(false);
           }
+
         }}
       >
 
-        {/* ==================================================
+        {/* =================================================
             SIDEBAR HEADER
-        ================================================== */}
+        ================================================= */}
 
         <div className="d-sidebar-header">
 
-          {/* Full Logo */}
+          {/* FULL LOGO */}
 
           {isExpanded && (
+
             <NavLink
               to="/"
               className="brand-logo"
             >
+
               <img
                 src="/assets/logo.png"
                 alt="Logo"
               />
+
             </NavLink>
+
           )}
 
 
-          {/* Small Logo */}
+          {/* SMALL LOGO */}
 
           {!isExpanded && (
+
             <span className="mini-logo">
+
               <img
                 src="/assets/logo-small.png"
                 alt="Logo"
               />
+
             </span>
+
           )}
 
 
-          {/* Toggle */}
+          {/* TOGGLE BUTTON */}
 
           <button
             className="sidebar-toggle"
@@ -154,21 +335,23 @@ export default function Sidebar({
           >
 
             {isExpanded ? (
+
               <img
-                className="btn-close-svg"
                 src="/assets/panel_close.svg"
                 alt="Close sidebar"
                 width="24"
                 height="24"
               />
+
             ) : (
+
               <img
-                className="btn-open-svg"
                 src="/assets/panel_open.svg"
                 alt="Open sidebar"
                 width="24"
                 height="24"
               />
+
             )}
 
           </button>
@@ -176,32 +359,37 @@ export default function Sidebar({
         </div>
 
 
-        {/* ==================================================
+        {/* =================================================
             SIDEBAR CONTENT
-        ================================================== */}
+        ================================================= */}
 
         <div className="d-sidebar-inner">
 
           <nav>
 
-            {/* ==================================================
+            {/* =============================================
                 MAIN MENU
-            ================================================== */}
+            ============================================= */}
 
             {menuItems.map((item) => (
+
               <NavLink
                 key={item.path}
                 to={item.path}
                 end={item.path === "/"}
                 className={({ isActive }) =>
                   `nav-item ${
-                    isActive ? "active" : ""
+                    isActive
+                      ? "active"
+                      : ""
                   }`
                 }
               >
 
                 {({ isActive }) => (
+
                   <>
+
                     <CustomIcon
                       type={item.icon}
                       state={
@@ -216,23 +404,32 @@ export default function Sidebar({
                     </span>
 
                   </>
+
                 )}
 
               </NavLink>
+
             ))}
 
 
-            {/* ==================================================
+            {/* =============================================
                 CUSTOMIZE SITE
-            ================================================== */}
+            ============================================= */}
 
             <div
               className={`nav-item ${
-                siteOpen ? "dropdown-open" : ""
+                siteOpen
+                  ? "dropdown-open"
+                  : ""
               } ${
-                siteOpen ? "active" : ""
+                siteOpen
+                  ? "active"
+                  : ""
               }`}
-              onClick={handleCustomizeClick}
+
+              onClick={
+                handleCustomizeClick
+              }
             >
 
               <CustomIcon
@@ -249,50 +446,51 @@ export default function Sidebar({
               </span>
 
 
-              {/* Chevron */}
-
               {isExpanded && (
-                <svg
+
+                <ChevronRight
                   className="nav-chevron"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
+                  size={17}
+                  strokeWidth={2}
+                />
+
               )}
 
             </div>
 
 
-            {/* ==================================================
+            {/* =============================================
                 SUBMENU
-            ================================================== */}
+            ============================================= */}
 
             {isExpanded && (
+
               <div
                 className={`nav-submenu ${
-                  siteOpen ? "open" : ""
+                  siteOpen
+                    ? "open"
+                    : ""
                 }`}
               >
 
                 {submenuItems.map((item) => (
+
                   <NavLink
                     key={item.path}
                     to={item.path}
                     className={({ isActive }) =>
                       `nav-submenu-item ${
-                        isActive ? "active" : ""
+                        isActive
+                          ? "active"
+                          : ""
                       }`
                     }
                   >
 
                     {({ isActive }) => (
+
                       <>
+
                         <CustomIcon
                           type={item.icon}
                           state={
@@ -305,41 +503,39 @@ export default function Sidebar({
                         <span>
                           {item.name}
                         </span>
+
                       </>
+
                     )}
 
                   </NavLink>
+
                 ))}
 
               </div>
+
             )}
 
           </nav>
 
 
-          {/* ==================================================
+          {/* =================================================
               ACCOUNT
-          ================================================== */}
+          ================================================= */}
 
           <div className="d-account-section">
 
             <div className="account-card">
 
-              <img
-                className="account-avatar"
-                src="/assets/profile.png"
-                alt="User"
-                onError={(e) => {
-                  e.currentTarget.style.display =
-                    "none";
-                }}
-              />
+              <div className="account-avatar">
 
-              <div className="account-avatar-fallback">
                 H
+
               </div>
 
+
               {isExpanded && (
+
                 <div className="account-text">
 
                   <div className="account-name">
@@ -351,6 +547,7 @@ export default function Sidebar({
                   </div>
 
                 </div>
+
               )}
 
             </div>
@@ -362,61 +559,413 @@ export default function Sidebar({
       </aside>
 
 
-      {/* ==================================================
+      {/* ===================================================
           STYLES
-      ================================================== */}
+      =================================================== */}
 
       <style>{`
 
-        /* ==================================================
+        /* =================================================
            VARIABLES
-        ================================================== */
+        ================================================= */
 
         :root {
-
-          --text-sub: #6b7280;
 
           --sidebar-width: 260px;
 
           --sidebar-collapsed-width: 90px;
 
+          --navbar-height: 72px;
+
           --row-height: 52px;
 
           --sidebar-bg: #ffffff;
 
-          --text-color: rgb(24, 24, 26);
+          --text-color: #000000;
 
           --icon-color: #6b7280;
 
-          --brand-primary: #673DE6;
+          --brand-primary: #643DE4;
 
-          --active-bg: #f4f0fa;
+          --active-bg: #F5F0FA;
 
           --hover-bg: #f3f4f6;
 
-          --border-subtle: #e5e7eb;
-
-          --radius-md: 10px;
-
-          --tooltip-bg: #1f2937;
+          --border: #e5e7eb;
 
         }
 
 
-        /* ==================================================
+        /* =================================================
+           GLOBAL FONT
+        ================================================= */
+
+        .d-sidebar,
+        .top-navbar {
+
+          font-family:
+            "DM Sans",
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+
+        }
+
+
+        /* =================================================
+           TOP NAVBAR
+        ================================================= */
+
+        .top-navbar {
+
+          position: fixed;
+
+          top: 0;
+
+          left: 0;
+
+          right: 0;
+
+          height:
+            var(--navbar-height);
+
+          background:
+            rgba(
+              255,
+              255,
+              255,
+              0.97
+            );
+
+          backdrop-filter:
+            blur(12px);
+
+          -webkit-backdrop-filter:
+            blur(12px);
+
+          border-bottom:
+            1px solid var(--border);
+
+          z-index: 1500;
+
+        }
+
+
+        /* =================================================
+           NAVBAR INNER
+
+           260px expanded
+           90px collapsed
+        ================================================= */
+
+        .top-navbar-inner {
+
+          height:
+            var(--navbar-height);
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content:
+            space-between;
+
+          padding:
+            0 28px;
+
+          transition:
+            margin-left
+            0.3s
+            cubic-bezier(
+              0.4,
+              0,
+              0.2,
+              1
+            );
+
+        }
+
+
+        .top-navbar-inner.navbar-expanded {
+
+          margin-left:
+            var(--sidebar-width);
+
+        }
+
+
+        .top-navbar-inner.navbar-collapsed {
+
+          margin-left:
+            var(--sidebar-collapsed-width);
+
+        }
+
+
+        /* =================================================
+           NAVBAR LEFT
+        ================================================= */
+
+        .navbar-left {
+
+          display: flex;
+
+          align-items: center;
+
+        }
+
+
+        .breadcrumb {
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 9px;
+
+          font-size: 13px;
+
+        }
+
+
+        .breadcrumb-muted {
+
+          color: #9ca3af;
+
+        }
+
+
+        .breadcrumb-divider {
+
+          color: #d1d5db;
+
+        }
+
+
+        .breadcrumb-current {
+
+          color: #111827;
+
+          font-weight: 600;
+
+        }
+
+
+        /* =================================================
+           NAVBAR RIGHT
+        ================================================= */
+
+        .navbar-right {
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 8px;
+
+        }
+
+
+        .navbar-icon-button {
+
+          width: 38px;
+
+          height: 38px;
+
+          border: none;
+
+          background:
+            transparent;
+
+          border-radius: 9px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          cursor: pointer;
+
+          color: #555555;
+
+          position: relative;
+
+          transition:
+            background 0.15s ease,
+            color 0.15s ease;
+
+        }
+
+
+        .navbar-icon-button:hover {
+
+          background:
+            var(--hover-bg);
+
+          color:
+            var(--brand-primary);
+
+        }
+
+
+        .notification-button {
+
+          position: relative;
+
+        }
+
+
+        .notification-dot {
+
+          position: absolute;
+
+          top: 8px;
+
+          right: 8px;
+
+          width: 6px;
+
+          height: 6px;
+
+          border-radius: 50%;
+
+          background:
+            var(--brand-primary);
+
+          border:
+            1px solid #ffffff;
+
+        }
+
+
+        .navbar-divider {
+
+          width: 1px;
+
+          height: 30px;
+
+          background:
+            var(--border);
+
+          margin:
+            0 8px;
+
+        }
+
+
+        /* =================================================
+           NAVBAR USER
+        ================================================= */
+
+        .navbar-user {
+
+          border: none;
+
+          background:
+            transparent;
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 10px;
+
+          padding:
+            4px 6px;
+
+          border-radius: 9px;
+
+          cursor: pointer;
+
+          text-align: left;
+
+        }
+
+
+        .navbar-user:hover {
+
+          background:
+            var(--hover-bg);
+
+        }
+
+
+        .navbar-avatar {
+
+          width: 34px;
+
+          height: 34px;
+
+          border-radius: 50%;
+
+          background:
+            var(--brand-primary);
+
+          color:
+            #ffffff;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          font-size: 12px;
+
+          font-weight: 700;
+
+        }
+
+
+        .navbar-user-info {
+
+          display: flex;
+
+          flex-direction: column;
+
+          gap: 2px;
+
+        }
+
+
+        .navbar-user-name {
+
+          font-size: 13px;
+
+          font-weight: 600;
+
+          color: #222222;
+
+        }
+
+
+        .navbar-user-role {
+
+          font-size: 11px;
+
+          color: #999999;
+
+        }
+
+
+        /* =================================================
            SIDEBAR
-        ================================================== */
+        ================================================= */
 
         .d-sidebar {
 
-          width: var(--sidebar-width);
+          width:
+            var(--sidebar-width);
 
           height: 100vh;
 
-          background: var(--sidebar-bg);
+          background:
+            var(--sidebar-bg);
 
           border-right:
-            1px solid var(--border-subtle);
+            1px solid var(--border);
 
           display: flex;
 
@@ -425,7 +974,8 @@ export default function Sidebar({
           flex-shrink: 0;
 
           transition:
-            width 0.3s
+            width
+            0.3s
             cubic-bezier(
               0.4,
               0,
@@ -443,17 +993,8 @@ export default function Sidebar({
 
           overflow: visible;
 
-          font-family:
-            "DM Sans",
-            Roboto,
-            sans-serif;
-
         }
 
-
-        /* ==================================================
-           COLLAPSED
-        ================================================== */
 
         .d-sidebar.collapsed {
 
@@ -463,9 +1004,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
-           HEADER
-        ================================================== */
+        /* =================================================
+           SIDEBAR HEADER
+        ================================================= */
 
         .d-sidebar-header {
 
@@ -475,22 +1016,20 @@ export default function Sidebar({
 
           align-items: center;
 
-          justify-content: space-between;
+          justify-content:
+            space-between;
 
           padding:
             30px 24px;
-
-          transition:
-            all 0.3s;
 
           flex-shrink: 0;
 
         }
 
 
-        /* ==================================================
+        /* =================================================
            LOGO
-        ================================================== */
+        ================================================= */
 
         .brand-logo {
 
@@ -499,9 +1038,6 @@ export default function Sidebar({
           align-items: center;
 
           text-decoration: none;
-
-          transition:
-            all 0.3s;
 
         }
 
@@ -539,9 +1075,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
-           TOGGLE
-        ================================================== */
+        /* =================================================
+           SIDEBAR TOGGLE
+        ================================================= */
 
         .sidebar-toggle {
 
@@ -551,7 +1087,8 @@ export default function Sidebar({
 
           cursor: pointer;
 
-          color: var(--icon-color);
+          color:
+            var(--icon-color);
 
           display: flex;
 
@@ -564,7 +1101,8 @@ export default function Sidebar({
           border-radius: 8px;
 
           transition:
-            0.2s;
+            background 0.2s,
+            color 0.2s;
 
         }
 
@@ -580,17 +1118,9 @@ export default function Sidebar({
         }
 
 
-        .btn-close-svg,
-        .btn-open-svg {
-
-          display: block;
-
-        }
-
-
-        /* ==================================================
+        /* =================================================
            COLLAPSED HEADER
-        ================================================== */
+        ================================================= */
 
         .d-sidebar.collapsed
         .d-sidebar-header {
@@ -607,9 +1137,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
-           INNER
-        ================================================== */
+        /* =================================================
+           SIDEBAR INNER
+        ================================================= */
 
         .d-sidebar-inner {
 
@@ -629,9 +1159,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            NAV ITEM
-        ================================================== */
+        ================================================= */
 
         .nav-item {
 
@@ -651,7 +1181,7 @@ export default function Sidebar({
             2px 0;
 
           border-radius:
-            var(--radius-md);
+            10px;
 
           gap: 14px;
 
@@ -677,9 +1207,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            HOVER
-        ================================================== */
+        ================================================= */
 
         .nav-item:hover {
 
@@ -689,9 +1219,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            ACTIVE
-        ================================================== */
+        ================================================= */
 
         .nav-item.active {
 
@@ -701,14 +1231,14 @@ export default function Sidebar({
           color:
             var(--brand-primary);
 
-          font-weight: 700;
+          font-weight: 600;
 
         }
 
 
-        /* ==================================================
+        /* =================================================
            ICON
-        ================================================== */
+        ================================================= */
 
         .icon {
 
@@ -759,9 +1289,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            ICON STATES
-        ================================================== */
+        ================================================= */
 
         .icon-normal {
 
@@ -812,9 +1342,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            ICON MAPPINGS
-        ================================================== */
+        ================================================= */
 
         .icon-dashboard
         .icon-normal {
@@ -924,10 +1454,6 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
-           SUBMENU ICONS
-        ================================================== */
-
         .icon-herosection
         .icon-normal {
 
@@ -1036,19 +1562,15 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            CHEVRON
-        ================================================== */
+        ================================================= */
 
         .nav-chevron {
 
           margin-left: auto;
 
-          width: 16px;
-
-          height: 16px;
-
-          stroke:
+          color:
             currentColor;
 
           flex-shrink: 0;
@@ -1068,9 +1590,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            SUBMENU
-        ================================================== */
+        ================================================= */
 
         .nav-submenu {
 
@@ -1083,7 +1605,7 @@ export default function Sidebar({
 
           border-left:
             2px solid
-            var(--border-subtle);
+            var(--border);
 
           flex-direction: column;
 
@@ -1122,7 +1644,7 @@ export default function Sidebar({
 
           font-size: 15px;
 
-          font-weight: 600;
+          font-weight: 500;
 
           text-decoration: none;
 
@@ -1154,14 +1676,14 @@ export default function Sidebar({
           color:
             var(--brand-primary);
 
-          font-weight: 700;
+          font-weight: 600;
 
         }
 
 
-        /* ==================================================
-           COLLAPSED MENU
-        ================================================== */
+        /* =================================================
+           COLLAPSED SIDEBAR
+        ================================================= */
 
         .d-sidebar.collapsed
         .brand-logo,
@@ -1198,9 +1720,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
+        /* =================================================
            COLLAPSED TOOLTIP
-        ================================================== */
+        ================================================= */
 
         .d-sidebar.collapsed
         .nav-item:hover
@@ -1217,10 +1739,11 @@ export default function Sidebar({
           transform:
             translateY(-50%);
 
-          background-color:
-            var(--tooltip-bg);
+          background:
+            #1f2937;
 
-          color: #ffffff;
+          color:
+            #ffffff;
 
           padding:
             8px 12px;
@@ -1251,38 +1774,9 @@ export default function Sidebar({
         }
 
 
-        .d-sidebar.collapsed
-        .nav-item:hover
-        .nav-label::before {
-
-          content: "";
-
-          position: absolute;
-
-          left: -6px;
-
-          top: 50%;
-
-          transform:
-            translateY(-50%);
-
-          border-width:
-            6px 6px 6px 0;
-
-          border-style: solid;
-
-          border-color:
-            transparent
-            var(--tooltip-bg)
-            transparent
-            transparent;
-
-        }
-
-
-        /* ==================================================
+        /* =================================================
            ACCOUNT
-        ================================================== */
+        ================================================= */
 
         .d-account-section {
 
@@ -1293,9 +1787,7 @@ export default function Sidebar({
 
           border-top:
             1px solid
-            var(--border-subtle);
-
-          cursor: pointer;
+            var(--border);
 
         }
 
@@ -1319,28 +1811,11 @@ export default function Sidebar({
 
           border-radius: 50%;
 
-          border:
-            1px solid
-            var(--border-subtle);
+          background:
+            var(--active-bg);
 
-          object-fit: cover;
-
-          flex-shrink: 0;
-
-        }
-
-
-        .account-avatar-fallback {
-
-          width: 44px;
-
-          height: 44px;
-
-          border-radius: 50%;
-
-          border:
-            1px solid
-            var(--border-subtle);
+          color:
+            var(--brand-primary);
 
           display: flex;
 
@@ -1348,11 +1823,7 @@ export default function Sidebar({
 
           justify-content: center;
 
-          background:
-            var(--active-bg);
-
-          color:
-            var(--brand-primary);
+          font-size: 15px;
 
           font-weight: 700;
 
@@ -1376,13 +1847,13 @@ export default function Sidebar({
 
           font-size: 15px;
 
-          font-weight: 700;
+          font-weight: 600;
 
           white-space: nowrap;
 
-          text-overflow: ellipsis;
-
           overflow: hidden;
+
+          text-overflow: ellipsis;
 
         }
 
@@ -1396,16 +1867,16 @@ export default function Sidebar({
 
           white-space: nowrap;
 
-          text-overflow: ellipsis;
-
           overflow: hidden;
+
+          text-overflow: ellipsis;
 
         }
 
 
-        /* ==================================================
+        /* =================================================
            COLLAPSED ACCOUNT
-        ================================================== */
+        ================================================= */
 
         .d-sidebar.collapsed
         .account-text {
@@ -1428,9 +1899,9 @@ export default function Sidebar({
         }
 
 
-        /* ==================================================
-           RESPONSIVE
-        ================================================== */
+        /* =================================================
+           MOBILE
+        ================================================= */
 
         @media (max-width: 768px) {
 
@@ -1440,9 +1911,81 @@ export default function Sidebar({
 
           }
 
+
+          .top-navbar {
+
+            height: 64px;
+
+          }
+
+
+          .top-navbar-inner {
+
+            margin-left: 0 !important;
+
+            height: 64px;
+
+            padding:
+              0 16px;
+
+          }
+
+
+          .breadcrumb {
+
+            display: none;
+
+          }
+
+
+          .navbar-user-info {
+
+            display: none;
+
+          }
+
+
+          .navbar-divider {
+
+            display: none;
+
+          }
+
+        }
+
+
+        /* =================================================
+           SMALL MOBILE
+        ================================================= */
+
+        @media (max-width: 480px) {
+
+          .navbar-right {
+
+            gap: 2px;
+
+          }
+
+
+          .navbar-icon-button {
+
+            width: 36px;
+
+            height: 36px;
+
+          }
+
+
+          .navbar-user {
+
+            padding: 3px;
+
+          }
+
         }
 
       `}</style>
+
     </>
   );
 }
