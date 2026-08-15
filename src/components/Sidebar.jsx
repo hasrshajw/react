@@ -523,10 +523,9 @@ export default function Sidebar({
         /* ==================================================
            COLLAPSED SIDEBAR
            
-           THIS IS THE IMPORTANT FIX
+           CHANGE SIZE HERE
            
-           Every menu item becomes a perfect
-           centered square when collapsed.
+           Current size: 48 × 48 px
         ================================================== */
 
         .sidebar.collapsed .sidebar-navigation {
@@ -536,17 +535,17 @@ export default function Sidebar({
         }
 
         .sidebar.collapsed .sidebar-link {
-          width: 56px;
+          width: 48px;
 
-          height: 56px;
+          height: 48px;
 
-          min-width: 56px;
+          min-width: 48px;
 
           padding: 0;
 
           margin: 6px auto;
 
-          border-radius: 12px;
+          border-radius: 11px;
 
           display: flex;
 
@@ -558,11 +557,11 @@ export default function Sidebar({
         }
 
         .sidebar.collapsed .sidebar-link.active {
-          width: 56px;
+          width: 48px;
 
-          height: 56px;
+          height: 48px;
 
-          min-width: 56px;
+          min-width: 48px;
 
           padding: 0;
 
@@ -585,10 +584,7 @@ export default function Sidebar({
 
 
         /* ==================================================
-           HOVERED COLLAPSED SIDEBAR
-           
-           When the collapsed sidebar expands on hover,
-           restore the normal menu layout.
+           EXPANDED SIDEBAR
         ================================================== */
 
         .sidebar.expanded .sidebar-link {
@@ -1030,6 +1026,8 @@ export default function Sidebar({
           .top-nav-divider {
             display: none;
           }
+
+          /* Mobile uses normal menu size */
 
           .sidebar.collapsed .sidebar-link {
             width: 100%;
