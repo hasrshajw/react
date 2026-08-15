@@ -1,258 +1,364 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  LayoutDashboard,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  Search,
-  Bell,
-} from "lucide-react";
 
 const menuItems = [
   {
     name: "Dashboard",
     path: "/",
-    icon: LayoutDashboard,
+    icon: "dashboard",
   },
   {
-    name: "Analytics",
-    path: "/analytics",
-    icon: BarChart3,
+    name: "Inventory",
+    path: "/inventory",
+    icon: "inventory",
+  },
+  {
+    name: "Manage Coupons",
+    path: "/coupons",
+    icon: "coupons",
   },
 ];
+
+const submenuItems = [
+  {
+    name: "Hero Section",
+    path: "/customize/hero-section",
+    icon: "herosection",
+  },
+  {
+    name: "Sections",
+    path: "/customize/sections",
+    icon: "sections",
+  },
+  {
+    name: "Popup",
+    path: "/customize/popup",
+    icon: "popup",
+  },
+  {
+    name: "Combo Offer",
+    path: "/customize/combo",
+    icon: "combo",
+  },
+];
+
+function CustomIcon({ type, state = "normal" }) {
+  return (
+    <span className={`icon icon-custom icon-${type}`}>
+      <span
+        className={`icon-state icon-${state}`}
+      />
+    </span>
+  );
+}
 
 export default function Sidebar({
   collapsed,
   setCollapsed,
 }) {
+  const [siteOpen, setSiteOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
 
+  /*
+   * When the sidebar is collapsed:
+   * hovering over it temporarily expands it.
+   */
   const isExpanded = !collapsed || hovered;
+
+  const handleToggle = () => {
+    setCollapsed(!collapsed);
+    setHovered(false);
+  };
+
+  const handleCustomizeClick = () => {
+    if (collapsed) {
+      setCollapsed(false);
+
+      setTimeout(() => {
+        setSiteOpen(true);
+      }, 300);
+
+      return;
+    }
+
+    setSiteOpen(!siteOpen);
+  };
 
   return (
     <>
-      {/* ==================================================
-          TOP NAVIGATION
-      ================================================== */}
-
-      <header className="top-nav">
-        <div
-          className={`top-nav-content ${
-            isExpanded ? "nav-expanded" : "nav-collapsed"
-          }`}
-        >
-          {/* LEFT */}
-
-          <div className="top-nav-left">
-            <div className="breadcrumb">
-              <span className="breadcrumb-muted">
-                Dashboard
-              </span>
-
-              <span className="breadcrumb-separator">
-                /
-              </span>
-
-              <span className="breadcrumb-current">
-                Overview
-              </span>
-            </div>
-          </div>
-
-          {/* RIGHT */}
-
-          <div className="top-nav-right">
-            {/* Search */}
-
-            <button
-              className="top-nav-button"
-              aria-label="Search"
-            >
-              <Search size={19} />
-            </button>
-
-            {/* Notifications */}
-
-            <button
-              className="top-nav-button notification-button"
-              aria-label="Notifications"
-            >
-              <Bell size={19} />
-
-              <span className="notification-dot"></span>
-            </button>
-
-            {/* Divider */}
-
-            <div className="top-nav-divider"></div>
-
-            {/* User */}
-
-            <button className="top-user">
-              <div className="top-user-avatar">
-                H
-              </div>
-
-              <div className="top-user-info">
-                <span className="top-user-name">
-                  Harsha
-                </span>
-
-                <span className="top-user-role">
-                  Administrator
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </header>
-
-
-      {/* ==================================================
-          MOBILE MENU BUTTON
-      ================================================== */}
-
-      <button
-        className="sidebar-mobile-button"
-        onClick={() => setCollapsed(false)}
-        aria-label="Open sidebar"
-      >
-        <Menu size={22} />
-      </button>
-
-
       {/* ==================================================
           SIDEBAR
       ================================================== */}
 
       <aside
-        className={`sidebar ${
-          isExpanded ? "expanded" : "collapsed"
+        className={`d-sidebar ${
+          isExpanded ? "" : "collapsed"
         }`}
+
         onMouseEnter={() => {
           if (collapsed) {
             setHovered(true);
           }
         }}
+
         onMouseLeave={() => {
           if (collapsed) {
             setHovered(false);
           }
         }}
       >
+
         {/* ==================================================
             SIDEBAR HEADER
         ================================================== */}
 
-        <div className="sidebar-header">
-          <div className="brand">
-            <div className="brand-logo">
-              S
-            </div>
+        <div className="d-sidebar-header">
 
-            {isExpanded && (
-              <span className="brand-name">
-                Dashboard
-              </span>
-            )}
-          </div>
+          {/* Full Logo */}
 
-          {/* Collapse Button */}
+          {isExpanded && (
+            <NavLink
+              to="/"
+              className="brand-logo"
+            >
+              <img
+                src="/assets/logo.png"
+                alt="Logo"
+              />
+            </NavLink>
+          )}
+
+
+          {/* Small Logo */}
+
+          {!isExpanded && (
+            <span className="mini-logo">
+              <img
+                src="/assets/logo-small.png"
+                alt="Logo"
+              />
+            </span>
+          )}
+
+
+          {/* Toggle */}
 
           <button
-            className="collapse-button"
-            onClick={() => {
-              setCollapsed(!collapsed);
-              setHovered(false);
-            }}
+            className="sidebar-toggle"
+            onClick={handleToggle}
             aria-label={
               collapsed
-                ? "Expand sidebar"
-                : "Collapse sidebar"
+                ? "Open sidebar"
+                : "Close sidebar"
             }
           >
-            {collapsed ? (
-              <ChevronRight size={18} />
+
+            {isExpanded ? (
+              <img
+                className="btn-close-svg"
+                src="/assets/panel_close.svg"
+                alt="Close sidebar"
+                width="24"
+                height="24"
+              />
             ) : (
-              <ChevronLeft size={18} />
+              <img
+                className="btn-open-svg"
+                src="/assets/panel_open.svg"
+                alt="Open sidebar"
+                width="24"
+                height="24"
+              />
             )}
+
           </button>
+
         </div>
 
 
         {/* ==================================================
-            SIDEBAR NAVIGATION
+            SIDEBAR CONTENT
         ================================================== */}
 
-        <nav className="sidebar-navigation">
-          {isExpanded && (
-            <div className="navigation-title">
-              MENU
-            </div>
-          )}
+        <div className="d-sidebar-inner">
 
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+          <nav>
 
-            return (
+            {/* ==================================================
+                MAIN MENU
+            ================================================== */}
+
+            {menuItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
                 end={item.path === "/"}
                 className={({ isActive }) =>
-                  `sidebar-link ${
+                  `nav-item ${
                     isActive ? "active" : ""
                   }`
                 }
               >
-                <Icon
-                  className="sidebar-icon"
-                  size={22}
-                  strokeWidth={2}
-                />
 
-                {isExpanded && (
-                  <span className="sidebar-link-text">
-                    {item.name}
-                  </span>
+                {({ isActive }) => (
+                  <>
+                    <CustomIcon
+                      type={item.icon}
+                      state={
+                        isActive
+                          ? "active"
+                          : "normal"
+                      }
+                    />
+
+                    <span className="nav-label">
+                      {item.name}
+                    </span>
+
+                  </>
                 )}
 
-                {!isExpanded && (
-                  <span className="sidebar-tooltip">
-                    {item.name}
-                  </span>
-                )}
               </NavLink>
-            );
-          })}
-        </nav>
+            ))}
 
 
-        {/* ==================================================
-            SIDEBAR BOTTOM
-        ================================================== */}
+            {/* ==================================================
+                CUSTOMIZE SITE
+            ================================================== */}
 
-        <div className="sidebar-bottom">
-          <div className="sidebar-profile">
-            <div className="profile-avatar">
-              H
+            <div
+              className={`nav-item ${
+                siteOpen ? "dropdown-open" : ""
+              } ${
+                siteOpen ? "active" : ""
+              }`}
+              onClick={handleCustomizeClick}
+            >
+
+              <CustomIcon
+                type="site"
+                state={
+                  siteOpen
+                    ? "active"
+                    : "normal"
+                }
+              />
+
+              <span className="nav-label">
+                Customize Site
+              </span>
+
+
+              {/* Chevron */}
+
+              {isExpanded && (
+                <svg
+                  className="nav-chevron"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              )}
+
             </div>
 
-            {isExpanded && (
-              <div className="profile-info">
-                <span className="profile-name">
-                  Harsha
-                </span>
 
-                <span className="profile-role">
-                  Administrator
-                </span>
+            {/* ==================================================
+                SUBMENU
+            ================================================== */}
+
+            {isExpanded && (
+              <div
+                className={`nav-submenu ${
+                  siteOpen ? "open" : ""
+                }`}
+              >
+
+                {submenuItems.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `nav-submenu-item ${
+                        isActive ? "active" : ""
+                      }`
+                    }
+                  >
+
+                    {({ isActive }) => (
+                      <>
+                        <CustomIcon
+                          type={item.icon}
+                          state={
+                            isActive
+                              ? "active"
+                              : "normal"
+                          }
+                        />
+
+                        <span>
+                          {item.name}
+                        </span>
+                      </>
+                    )}
+
+                  </NavLink>
+                ))}
+
               </div>
             )}
+
+          </nav>
+
+
+          {/* ==================================================
+              ACCOUNT
+          ================================================== */}
+
+          <div className="d-account-section">
+
+            <div className="account-card">
+
+              <img
+                className="account-avatar"
+                src="/assets/profile.png"
+                alt="User"
+                onError={(e) => {
+                  e.currentTarget.style.display =
+                    "none";
+                }}
+              />
+
+              <div className="account-avatar-fallback">
+                H
+              </div>
+
+              {isExpanded && (
+                <div className="account-text">
+
+                  <div className="account-name">
+                    Harsha
+                  </div>
+
+                  <div className="account-email">
+                    Administrator
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
           </div>
+
         </div>
+
       </aside>
 
 
@@ -263,31 +369,37 @@ export default function Sidebar({
       <style>{`
 
         /* ==================================================
-           COLORS
+           VARIABLES
         ================================================== */
 
         :root {
-          --primary: #643DE4;
-          --active-background: #F5F0FA;
-          --inactive-text: #000000;
-          --hover-background: #f3f4f6;
-          --border: #e8e8e8;
-        }
 
+          --text-sub: #6b7280;
 
-        /* ==================================================
-           FONT
-        ================================================== */
+          --sidebar-width: 260px;
 
-        .sidebar,
-        .top-nav,
-        .sidebar-mobile-button {
-          font-family:
-            "DM Sans",
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif;
+          --sidebar-collapsed-width: 90px;
+
+          --row-height: 52px;
+
+          --sidebar-bg: #ffffff;
+
+          --text-color: rgb(24, 24, 26);
+
+          --icon-color: #6b7280;
+
+          --brand-primary: #673DE6;
+
+          --active-bg: #f4f0fa;
+
+          --hover-bg: #f3f4f6;
+
+          --border-subtle: #e5e7eb;
+
+          --radius-md: 10px;
+
+          --tooltip-bg: #1f2937;
+
         }
 
 
@@ -295,47 +407,69 @@ export default function Sidebar({
            SIDEBAR
         ================================================== */
 
-        .sidebar {
-          position: fixed;
+        .d-sidebar {
 
-          top: 0;
-          left: 0;
+          width: var(--sidebar-width);
 
-          width: 250px;
           height: 100vh;
 
-          background: #ffffff;
+          background: var(--sidebar-bg);
 
-          border-right: 1px solid var(--border);
+          border-right:
+            1px solid var(--border-subtle);
 
           display: flex;
+
           flex-direction: column;
+
+          flex-shrink: 0;
+
+          transition:
+            width 0.3s
+            cubic-bezier(
+              0.4,
+              0,
+              0.2,
+              1
+            );
 
           z-index: 2000;
 
+          position: fixed;
+
+          top: 0;
+
+          left: 0;
+
           overflow: visible;
 
-          transition:
-            width 0.25s ease;
-        }
+          font-family:
+            "DM Sans",
+            Roboto,
+            sans-serif;
 
-
-        .sidebar.expanded {
-          width: 250px;
-        }
-
-
-        .sidebar.collapsed {
-          width: 72px;
         }
 
 
         /* ==================================================
-           SIDEBAR HEADER
+           COLLAPSED
         ================================================== */
 
-        .sidebar-header {
-          height: 72px;
+        .d-sidebar.collapsed {
+
+          width:
+            var(--sidebar-collapsed-width);
+
+        }
+
+
+        /* ==================================================
+           HEADER
+        ================================================== */
+
+        .d-sidebar-header {
+
+          min-height: 70px;
 
           display: flex;
 
@@ -343,225 +477,232 @@ export default function Sidebar({
 
           justify-content: space-between;
 
-          padding: 0 14px;
-
-          border-bottom: none;
-
-          background: #ffffff;
-
-          flex-shrink: 0;
-        }
-
-
-        /* ==================================================
-           BRAND
-        ================================================== */
-
-        .brand {
-          display: flex;
-
-          align-items: center;
-
-          gap: 11px;
-
-          min-width: 0;
-        }
-
-
-        .brand-logo {
-          width: 40px;
-          height: 40px;
-
-          min-width: 40px;
-
-          border-radius: 11px;
-
-          background: #643DE4;
-
-          color: #ffffff;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          font-size: 18px;
-
-          font-weight: 700;
-        }
-
-
-        .brand-name {
-          font-size: 16px;
-
-          font-weight: 700;
-
-          color: #171717;
-
-          white-space: nowrap;
-        }
-
-
-        /* ==================================================
-           COLLAPSE BUTTON
-        ================================================== */
-
-        .collapse-button {
-          width: 30px;
-          height: 30px;
-
-          border: none;
-
-          background: transparent;
-
-          border-radius: 7px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          cursor: pointer;
-
-          color: #777777;
+          padding:
+            30px 24px;
 
           transition:
-            background 0.15s ease,
-            color 0.15s ease;
-        }
+            all 0.3s;
 
+          flex-shrink: 0;
 
-        .collapse-button:hover {
-          background: #f2f2f2;
-
-          color: #111111;
         }
 
 
         /* ==================================================
-           SIDEBAR NAVIGATION
+           LOGO
         ================================================== */
 
-        .sidebar-navigation {
-          flex: 1;
-
-          padding: 24px 8px;
-
-          overflow-y: auto;
-        }
-
-
-        .navigation-title {
-          font-size: 10px;
-
-          font-weight: 700;
-
-          color: #999999;
-
-          letter-spacing: 0.08em;
-
-          padding: 0 12px;
-
-          margin-bottom: 12px;
-        }
-
-
-        /* ==================================================
-           SIDEBAR LINKS
-        ================================================== */
-
-        .sidebar-link {
-          position: relative;
-
-          width: 100%;
-
-          height: 44px;
+        .brand-logo {
 
           display: flex;
 
           align-items: center;
-
-          gap: 12px;
-
-          padding: 0 12px;
-
-          /*
-           * Reduced gap between links
-           * from 12px to 8px.
-           */
-          margin: 0 0 8px 0;
-
-          border-radius: 10px;
-
-          color: var(--inactive-text);
 
           text-decoration: none;
 
-          font-size: 14px;
+          transition:
+            all 0.3s;
 
-          /*
-           * Normal/inactive weight
-           */
-          font-weight: 500;
+        }
+
+
+        .brand-logo img {
+
+          height: 45px;
+
+          width: auto;
+
+          display: block;
+
+        }
+
+
+        .mini-logo {
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+        }
+
+
+        .mini-logo img {
+
+          height: 45px;
+
+          width: auto;
+
+          display: block;
+
+        }
+
+
+        /* ==================================================
+           TOGGLE
+        ================================================== */
+
+        .sidebar-toggle {
+
+          background: none;
+
+          border: none;
+
+          cursor: pointer;
+
+          color: var(--icon-color);
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          padding: 6px;
+
+          border-radius: 8px;
+
+          transition:
+            0.2s;
+
+        }
+
+
+        .sidebar-toggle:hover {
+
+          background:
+            var(--hover-bg);
+
+          color:
+            var(--text-color);
+
+        }
+
+
+        .btn-close-svg,
+        .btn-open-svg {
+
+          display: block;
+
+        }
+
+
+        /* ==================================================
+           COLLAPSED HEADER
+        ================================================== */
+
+        .d-sidebar.collapsed
+        .d-sidebar-header {
+
+          flex-direction: column;
+
+          height: auto;
+
+          padding:
+            30px 0 20px;
+
+          gap: 30px;
+
+        }
+
+
+        /* ==================================================
+           INNER
+        ================================================== */
+
+        .d-sidebar-inner {
+
+          flex: 1;
+
+          padding:
+            10px 16px;
+
+          display: flex;
+
+          flex-direction: column;
+
+          overflow-y: auto;
+
+          overflow-x: hidden;
+
+        }
+
+
+        /* ==================================================
+           NAV ITEM
+        ================================================== */
+
+        .nav-item {
+
+          position: relative;
+
+          display: flex;
+
+          align-items: center;
+
+          height:
+            var(--row-height);
+
+          padding:
+            0 16px;
+
+          margin:
+            2px 0;
+
+          border-radius:
+            var(--radius-md);
+
+          gap: 14px;
+
+          cursor: pointer;
+
+          color:
+            var(--text-color);
+
+          text-decoration: none;
+
+          transition:
+            background 0.2s,
+            color 0.2s;
 
           white-space: nowrap;
 
-          transition:
-            background 0.15s ease,
-            color 0.15s ease,
-            font-weight 0.15s ease;
-        }
+          user-select: none;
 
+          font-size: 15px;
 
-        .sidebar-link:last-child {
-          margin-bottom: 0;
-        }
+          font-weight: 500;
 
-
-        /* ==================================================
-           INACTIVE HOVER
-
-           Background:
-           #f3f4f6
-
-           Text remains black
-        ================================================== */
-
-        .sidebar-link:not(.active):hover {
-          background: #f3f4f6;
-
-          color: #000000;
         }
 
 
         /* ==================================================
-           ACTIVE LINK
-
-           Background:
-           #F5F0FA
-
-           Text + Icon:
-           #643DE4
-
-           Slightly heavier:
-           600
+           HOVER
         ================================================== */
 
-        .sidebar-link.active {
-          background: #F5F0FA;
+        .nav-item:hover {
 
-          color: #643DE4;
+          background:
+            var(--hover-bg);
 
-          font-weight: 600;
         }
 
 
-        .sidebar-link.active:hover {
-          background: #F5F0FA;
+        /* ==================================================
+           ACTIVE
+        ================================================== */
 
-          color: #643DE4;
+        .nav-item.active {
+
+          background:
+            var(--active-bg);
+
+          color:
+            var(--brand-primary);
+
+          font-weight: 700;
+
         }
 
 
@@ -569,53 +710,7 @@ export default function Sidebar({
            ICON
         ================================================== */
 
-        .sidebar-icon {
-          flex-shrink: 0;
-
-          color: currentColor;
-
-          transition:
-            color 0.15s ease;
-        }
-
-
-        .sidebar-link-text {
-          color: currentColor;
-
-          transition:
-            color 0.15s ease;
-        }
-
-
-        /* ==================================================
-           COLLAPSED SIDEBAR
-           
-           ACTIVE SQUARE:
-           48 × 48 PX
-        ================================================== */
-
-        .sidebar.collapsed .sidebar-navigation {
-          padding-left: 8px;
-
-          padding-right: 8px;
-        }
-
-
-        .sidebar.collapsed .sidebar-link {
-          width: 48px;
-
-          height: 48px;
-
-          min-width: 48px;
-
-          padding: 0;
-
-          /*
-           * Reduced gap between collapsed items
-           */
-          margin: 0 auto 8px auto;
-
-          border-radius: 11px;
+        .icon {
 
           display: flex;
 
@@ -623,589 +718,726 @@ export default function Sidebar({
 
           justify-content: center;
 
-          gap: 0;
+          width: 24px;
+
+          height: 24px;
+
+          flex-shrink: 0;
+
         }
 
 
-        .sidebar.collapsed .sidebar-link:last-child {
-          margin-bottom: 0;
+        .icon-custom {
+
+          position: relative;
+
+          width: 24px;
+
+          height: 24px;
+
+        }
+
+
+        .icon-custom > span {
+
+          position: absolute;
+
+          top: 0;
+
+          left: 0;
+
+          width: 100%;
+
+          height: 100%;
+
+          background-size: contain;
+
+          background-repeat: no-repeat;
+
+          background-position: center;
+
         }
 
 
         /* ==================================================
-           COLLAPSED ACTIVE SQUARE
+           ICON STATES
         ================================================== */
 
-        .sidebar.collapsed .sidebar-link.active {
-          width: 48px;
+        .icon-normal {
 
-          height: 48px;
+          display: block;
 
-          min-width: 48px;
+        }
 
-          padding: 0;
+
+        .icon-hover,
+        .icon-active {
+
+          display: none;
+
+        }
+
+
+        .nav-item:hover:not(.active)
+        .icon-hover {
+
+          display: block;
+
+        }
+
+
+        .nav-item:hover:not(.active)
+        .icon-normal {
+
+          display: none;
+
+        }
+
+
+        .nav-item.active
+        .icon-normal,
+        .nav-item.active
+        .icon-hover {
+
+          display: none;
+
+        }
+
+
+        .nav-item.active
+        .icon-active {
+
+          display: block;
+
+        }
+
+
+        /* ==================================================
+           ICON MAPPINGS
+        ================================================== */
+
+        .icon-dashboard
+        .icon-normal {
+
+          background-image:
+            url("/assets/dashboard.svg");
+
+        }
+
+
+        .icon-dashboard
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_dashboard.svg");
+
+        }
+
+
+        .icon-dashboard
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_dashboard.svg");
+
+        }
+
+
+        .icon-inventory
+        .icon-normal {
+
+          background-image:
+            url("/assets/inventory.svg");
+
+        }
+
+
+        .icon-inventory
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_inventory.svg");
+
+        }
+
+
+        .icon-inventory
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_inventory.svg");
+
+        }
+
+
+        .icon-coupons
+        .icon-normal {
+
+          background-image:
+            url("/assets/coupons.svg");
+
+        }
+
+
+        .icon-coupons
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_coupons.svg");
+
+        }
+
+
+        .icon-coupons
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_coupons.svg");
+
+        }
+
+
+        .icon-site
+        .icon-normal {
+
+          background-image:
+            url("/assets/site.svg");
+
+        }
+
+
+        .icon-site
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_site.svg");
+
+        }
+
+
+        .icon-site
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_site.svg");
+
+        }
+
+
+        /* ==================================================
+           SUBMENU ICONS
+        ================================================== */
+
+        .icon-herosection
+        .icon-normal {
+
+          background-image:
+            url("/assets/herosection.svg");
+
+        }
+
+
+        .icon-herosection
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_herosection.svg");
+
+        }
+
+
+        .icon-herosection
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_herosection.svg");
+
+        }
+
+
+        .icon-sections
+        .icon-normal {
+
+          background-image:
+            url("/assets/sections.svg");
+
+        }
+
+
+        .icon-sections
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_sections.svg");
+
+        }
+
+
+        .icon-sections
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_sections.svg");
+
+        }
+
+
+        .icon-popup
+        .icon-normal {
+
+          background-image:
+            url("/assets/popup.svg");
+
+        }
+
+
+        .icon-popup
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_popup.svg");
+
+        }
+
+
+        .icon-popup
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_popup.svg");
+
+        }
+
+
+        .icon-combo
+        .icon-normal {
+
+          background-image:
+            url("/assets/combo.svg");
+
+        }
+
+
+        .icon-combo
+        .icon-hover {
+
+          background-image:
+            url("/assets/hover_combo.svg");
+
+        }
+
+
+        .icon-combo
+        .icon-active {
+
+          background-image:
+            url("/assets/fill_combo.svg");
+
+        }
+
+
+        /* ==================================================
+           CHEVRON
+        ================================================== */
+
+        .nav-chevron {
 
           margin-left: auto;
 
-          margin-right: auto;
+          width: 16px;
 
-          background: #F5F0FA;
+          height: 16px;
 
-          color: #643DE4;
+          stroke:
+            currentColor;
 
-          font-weight: 600;
+          flex-shrink: 0;
+
+          transition:
+            transform 0.25s ease;
+
         }
 
 
-        .sidebar.collapsed .sidebar-link.active:hover {
-          background: #F5F0FA;
+        .nav-item.dropdown-open
+        .nav-chevron {
 
-          color: #643DE4;
-        }
+          transform:
+            rotate(90deg);
 
-
-        .sidebar.collapsed .sidebar-icon {
-          width: 22px;
-
-          height: 22px;
-
-          margin: 0;
         }
 
 
         /* ==================================================
-           EXPANDED SIDEBAR
+           SUBMENU
         ================================================== */
 
-        .sidebar.expanded .sidebar-link {
-          width: 100%;
+        .nav-submenu {
 
-          height: 44px;
+          display: none;
 
-          padding: 0 12px;
+          margin:
+            2px 0 4px 20px;
+
+          padding-left: 16px;
+
+          border-left:
+            2px solid
+            var(--border-subtle);
+
+          flex-direction: column;
+
+        }
+
+
+        .nav-submenu.open {
+
+          display: flex;
+
+        }
+
+
+        .nav-submenu-item {
+
+          display: flex;
+
+          align-items: center;
+
+          height: 50px;
+
+          padding:
+            0 14px;
+
+          border-radius: 8px;
+
+          margin:
+            1px 0;
 
           gap: 12px;
-        }
 
+          cursor: pointer;
 
-        /* ==================================================
-           TOOLTIP
-        ================================================== */
+          color:
+            var(--text-color);
 
-        .sidebar-tooltip {
-          position: absolute;
+          font-size: 15px;
 
-          left: calc(100% + 12px);
+          font-weight: 600;
 
-          top: 50%;
+          text-decoration: none;
 
-          transform: translateY(-50%);
-
-          background: #111111;
-
-          color: #ffffff;
-
-          padding: 7px 10px;
-
-          border-radius: 6px;
-
-          font-size: 12px;
+          transition:
+            background 0.15s,
+            color 0.15s;
 
           white-space: nowrap;
 
-          pointer-events: none;
-
-          opacity: 0;
-
-          visibility: hidden;
-
-          transition:
-            opacity 0.15s ease;
-
-          z-index: 3000;
         }
 
 
-        .sidebar-link:hover .sidebar-tooltip {
-          opacity: 1;
+        .nav-submenu-item:hover {
 
-          visibility: visible;
+          background:
+            var(--hover-bg);
+
+          color:
+            var(--brand-primary);
+
         }
 
 
-        /* ==================================================
-           SIDEBAR BOTTOM
-        ================================================== */
+        .nav-submenu-item.active {
 
-        .sidebar-bottom {
-          padding: 10px;
+          background:
+            var(--active-bg);
 
-          border-top: 1px solid #eeeeee;
-
-          flex-shrink: 0;
-        }
-
-
-        .sidebar-profile {
-          height: 52px;
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 11px;
-
-          padding: 5px 7px;
-
-          border-radius: 9px;
-        }
-
-
-        .sidebar-profile:hover {
-          background: #f7f7f7;
-        }
-
-
-        .profile-avatar {
-          width: 36px;
-          height: 36px;
-
-          min-width: 36px;
-
-          border-radius: 50%;
-
-          background: #e9e9e9;
-
-          color: #333333;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          font-size: 13px;
+          color:
+            var(--brand-primary);
 
           font-weight: 700;
-        }
 
-
-        .profile-info {
-          display: flex;
-
-          flex-direction: column;
-
-          min-width: 0;
-        }
-
-
-        .profile-name {
-          font-size: 13px;
-
-          font-weight: 600;
-
-          color: #222222;
-        }
-
-
-        .profile-role {
-          font-size: 11px;
-
-          color: #999999;
-
-          margin-top: 2px;
         }
 
 
         /* ==================================================
-           TOP NAVIGATION
+           COLLAPSED MENU
         ================================================== */
 
-        .top-nav {
-          position: fixed;
+        .d-sidebar.collapsed
+        .brand-logo,
 
-          top: 0;
-          left: 0;
-          right: 0;
+        .d-sidebar.collapsed
+        .nav-label,
 
-          height: 72px;
+        .d-sidebar.collapsed
+        .nav-chevron,
 
-          background: rgba(
-            255,
-            255,
-            255,
-            0.97
-          );
+        .d-sidebar.collapsed
+        .nav-submenu {
 
-          backdrop-filter: blur(12px);
+          display: none !important;
 
-          -webkit-backdrop-filter: blur(12px);
-
-          border-bottom: 1px solid var(--border);
-
-          z-index: 1000;
         }
 
 
-        .top-nav-content {
-          height: 72px;
+        .d-sidebar.collapsed
+        .d-sidebar-inner {
 
-          display: flex;
+          overflow: visible;
 
-          align-items: center;
-
-          justify-content: space-between;
-
-          padding: 0 28px;
-
-          transition:
-            margin-left 0.25s ease;
         }
 
 
-        .top-nav-content.nav-expanded {
-          margin-left: 250px;
-        }
-
-
-        .top-nav-content.nav-collapsed {
-          margin-left: 72px;
-        }
-
-
-        /* ==================================================
-           TOP NAV LEFT
-        ================================================== */
-
-        .top-nav-left {
-          display: flex;
-
-          align-items: center;
-        }
-
-
-        .breadcrumb {
-          display: flex;
-
-          align-items: center;
-
-          gap: 9px;
-
-          font-size: 13px;
-        }
-
-
-        .breadcrumb-muted {
-          color: #999999;
-        }
-
-
-        .breadcrumb-separator {
-          color: #cccccc;
-        }
-
-
-        .breadcrumb-current {
-          color: #222222;
-
-          font-weight: 600;
-        }
-
-
-        /* ==================================================
-           TOP NAV RIGHT
-        ================================================== */
-
-        .top-nav-right {
-          display: flex;
-
-          align-items: center;
-
-          gap: 8px;
-        }
-
-
-        .top-nav-button {
-          width: 38px;
-          height: 38px;
-
-          border: none;
-
-          background: transparent;
-
-          border-radius: 9px;
-
-          display: flex;
-
-          align-items: center;
+        .d-sidebar.collapsed
+        .nav-item {
 
           justify-content: center;
 
-          cursor: pointer;
+          padding: 0;
 
-          color: #555555;
-
-          position: relative;
-
-          transition:
-            background 0.15s ease,
-            color 0.15s ease;
-        }
-
-
-        .top-nav-button:hover {
-          background: #f3f4f6;
-
-          color: #643DE4;
-        }
-
-
-        .notification-button {
-          position: relative;
-        }
-
-
-        .notification-dot {
-          position: absolute;
-
-          top: 8px;
-          right: 8px;
-
-          width: 6px;
-          height: 6px;
-
-          border-radius: 50%;
-
-          background: #643DE4;
-
-          border: 1px solid #ffffff;
-        }
-
-
-        .top-nav-divider {
-          width: 1px;
-
-          height: 30px;
-
-          background: #e5e5e5;
-
-          margin: 0 8px;
         }
 
 
         /* ==================================================
-           TOP USER
+           COLLAPSED TOOLTIP
         ================================================== */
 
-        .top-user {
-          border: none;
+        .d-sidebar.collapsed
+        .nav-item:hover
+        .nav-label {
 
-          background: transparent;
+          display: block;
 
-          display: flex;
+          position: absolute;
 
-          align-items: center;
+          left: 100%;
 
-          gap: 10px;
+          top: 50%;
 
-          padding: 4px 6px;
+          transform:
+            translateY(-50%);
 
-          border-radius: 9px;
-
-          cursor: pointer;
-
-          text-align: left;
-        }
-
-
-        .top-user:hover {
-          background: #f3f4f6;
-        }
-
-
-        .top-user-avatar {
-          width: 34px;
-          height: 34px;
-
-          border-radius: 50%;
-
-          background: #643DE4;
+          background-color:
+            var(--tooltip-bg);
 
           color: #ffffff;
 
+          padding:
+            8px 12px;
+
+          border-radius: 6px;
+
+          font-size: 13px;
+
+          font-weight: 500;
+
+          white-space: nowrap;
+
+          z-index: 5000;
+
+          margin-left: 12px;
+
+          box-shadow:
+            0 4px 12px
+            rgba(
+              0,
+              0,
+              0,
+              0.15
+            );
+
+          pointer-events: none;
+
+        }
+
+
+        .d-sidebar.collapsed
+        .nav-item:hover
+        .nav-label::before {
+
+          content: "";
+
+          position: absolute;
+
+          left: -6px;
+
+          top: 50%;
+
+          transform:
+            translateY(-50%);
+
+          border-width:
+            6px 6px 6px 0;
+
+          border-style: solid;
+
+          border-color:
+            transparent
+            var(--tooltip-bg)
+            transparent
+            transparent;
+
+        }
+
+
+        /* ==================================================
+           ACCOUNT
+        ================================================== */
+
+        .d-account-section {
+
+          margin-top: auto;
+
+          padding:
+            24px 16px;
+
+          border-top:
+            1px solid
+            var(--border-subtle);
+
+          cursor: pointer;
+
+        }
+
+
+        .account-card {
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 12px;
+
+        }
+
+
+        .account-avatar {
+
+          width: 44px;
+
+          height: 44px;
+
+          border-radius: 50%;
+
+          border:
+            1px solid
+            var(--border-subtle);
+
+          object-fit: cover;
+
+          flex-shrink: 0;
+
+        }
+
+
+        .account-avatar-fallback {
+
+          width: 44px;
+
+          height: 44px;
+
+          border-radius: 50%;
+
+          border:
+            1px solid
+            var(--border-subtle);
+
           display: flex;
 
           align-items: center;
 
           justify-content: center;
 
-          font-size: 12px;
+          background:
+            var(--active-bg);
+
+          color:
+            var(--brand-primary);
 
           font-weight: 700;
+
+          flex-shrink: 0;
+
         }
 
 
-        .top-user-info {
+        .account-text {
+
           display: flex;
 
           flex-direction: column;
 
-          gap: 2px;
+          overflow: hidden;
+
         }
 
 
-        .top-user-name {
+        .account-name {
+
+          font-size: 15px;
+
+          font-weight: 700;
+
+          white-space: nowrap;
+
+          text-overflow: ellipsis;
+
+          overflow: hidden;
+
+        }
+
+
+        .account-email {
+
           font-size: 13px;
 
-          font-weight: 600;
+          color:
+            var(--text-sub);
 
-          color: #222222;
-        }
+          white-space: nowrap;
 
+          text-overflow: ellipsis;
 
-        .top-user-role {
-          font-size: 11px;
+          overflow: hidden;
 
-          color: #999999;
         }
 
 
         /* ==================================================
-           MOBILE MENU BUTTON
+           COLLAPSED ACCOUNT
         ================================================== */
 
-        .sidebar-mobile-button {
+        .d-sidebar.collapsed
+        .account-text {
+
           display: none;
 
-          position: fixed;
+        }
 
-          top: 15px;
-          left: 15px;
 
-          width: 40px;
-          height: 40px;
+        .d-sidebar.collapsed
+        .d-account-section {
 
-          border: 1px solid #e5e5e5;
-
-          border-radius: 9px;
-
-          background: #ffffff;
-
-          align-items: center;
+          display: flex;
 
           justify-content: center;
 
-          cursor: pointer;
+          padding:
+            24px 0;
 
-          z-index: 3000;
-
-          font-family:
-            "DM Sans",
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif;
         }
 
 
         /* ==================================================
-           MOBILE
+           RESPONSIVE
         ================================================== */
 
         @media (max-width: 768px) {
 
-          .sidebar-mobile-button {
-            display: flex;
-          }
+          .d-sidebar {
 
-
-          .sidebar {
-            transform: translateX(-100%);
-          }
-
-
-          .sidebar.expanded {
-            width: 250px;
-
-            transform: translateX(0);
-          }
-
-
-          .sidebar.collapsed {
-            width: 250px;
-
-            transform: translateX(-100%);
-          }
-
-
-          .top-nav-content.nav-expanded,
-          .top-nav-content.nav-collapsed {
-            margin-left: 0;
-
-            padding-left: 70px;
-          }
-
-
-          .top-nav-left {
             display: none;
-          }
 
-
-          .top-user-info {
-            display: none;
-          }
-
-
-          .top-nav-divider {
-            display: none;
-          }
-
-
-          .sidebar.collapsed .sidebar-link {
-            width: 100%;
-
-            height: 44px;
-
-            padding: 0 12px;
-
-            margin: 0 0 8px 0;
-
-            justify-content: flex-start;
-
-            gap: 12px;
-          }
-
-        }
-
-
-        /* ==================================================
-           SMALL MOBILE
-        ================================================== */
-
-        @media (max-width: 480px) {
-
-          .top-nav-content.nav-expanded,
-          .top-nav-content.nav-collapsed {
-            padding-left: 65px;
-
-            padding-right: 12px;
-          }
-
-
-          .top-nav-right {
-            gap: 2px;
-          }
-
-
-          .top-nav-button {
-            width: 36px;
-
-            height: 36px;
-          }
-
-
-          .top-user {
-            padding: 3px;
           }
 
         }
