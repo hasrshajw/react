@@ -321,7 +321,20 @@ export default function Sidebar({
       <style>{`
 
         /* ==================================================
-           GLOBAL FONT
+           COLORS
+        ================================================== */
+
+        :root {
+          --primary: #643DE4;
+          --active-background: #F5F0FA;
+          --text: #686868;
+          --dark-text: #222222;
+          --border: #e8e8e8;
+        }
+
+
+        /* ==================================================
+           FONT
         ================================================== */
 
         .sidebar,
@@ -354,7 +367,7 @@ export default function Sidebar({
 
           background: #ffffff;
 
-          border-right: 1px solid #e8e8e8;
+          border-right: 1px solid var(--border);
 
           display: flex;
           flex-direction: column;
@@ -430,7 +443,7 @@ export default function Sidebar({
 
           border-radius: 11px;
 
-          background: #111111;
+          background: #643DE4;
 
           color: #ffffff;
 
@@ -509,7 +522,10 @@ export default function Sidebar({
 
           flex: 1;
 
-          padding: 20px 8px;
+          /*
+           * Increased spacing around the menu.
+           */
+          padding: 24px 8px;
 
           overflow-y: auto;
 
@@ -528,7 +544,7 @@ export default function Sidebar({
 
           padding: 0 12px;
 
-          margin-bottom: 8px;
+          margin-bottom: 12px;
 
         }
 
@@ -553,11 +569,14 @@ export default function Sidebar({
 
           padding: 0 12px;
 
-          margin: 3px 0;
+          /*
+           * Increased gap between menu items.
+           */
+          margin: 0 0 12px 0;
 
-          border-radius: 9px;
+          border-radius: 10px;
 
-          color: #686868;
+          color: var(--text);
 
           text-decoration: none;
 
@@ -574,29 +593,54 @@ export default function Sidebar({
         }
 
 
+        /* Last item doesn't need extra bottom space */
+
+        .sidebar-link:last-child {
+          margin-bottom: 0;
+        }
+
+
+        /* ==================================================
+           HOVER
+        ================================================== */
+
         .sidebar-link:hover {
 
-          background: #f5f5f5;
+          background: #faf8fd;
 
-          color: #111111;
+          color: var(--primary);
 
         }
 
 
+        /* ==================================================
+           ACTIVE
+
+           ICON + TEXT = #643DE4
+           BACKGROUND = #F5F0FA
+        ================================================== */
+
         .sidebar-link.active {
 
-          background: #111111;
+          background: var(--active-background);
 
-          color: #ffffff;
+          color: var(--primary);
 
         }
 
 
         .sidebar-link.active:hover {
 
-          background: #111111;
+          background: var(--active-background);
 
-          color: #ffffff;
+          color: var(--primary);
+
+        }
+
+
+        .sidebar-link.active .sidebar-icon {
+
+          color: var(--primary);
 
         }
 
@@ -605,12 +649,27 @@ export default function Sidebar({
 
           flex-shrink: 0;
 
+          color: currentColor;
+
+          transition:
+            color 0.15s ease;
+
+        }
+
+
+        .sidebar-link-text {
+
+          color: currentColor;
+
+          transition:
+            color 0.15s ease;
+
         }
 
 
         /* ==================================================
            COLLAPSED SIDEBAR
-
+           
            ACTIVE SQUARE = 48 × 48 PX
         ================================================== */
 
@@ -633,7 +692,10 @@ export default function Sidebar({
 
           padding: 0;
 
-          margin: 6px auto;
+          /*
+           * Increased vertical gap in collapsed mode.
+           */
+          margin: 0 auto 12px auto;
 
           border-radius: 11px;
 
@@ -647,6 +709,17 @@ export default function Sidebar({
 
         }
 
+
+        .sidebar.collapsed .sidebar-link:last-child {
+
+          margin-bottom: 0;
+
+        }
+
+
+        /* ==================================================
+           COLLAPSED ACTIVE SQUARE
+        ================================================== */
 
         .sidebar.collapsed .sidebar-link.active {
 
@@ -662,9 +735,16 @@ export default function Sidebar({
 
           margin-right: auto;
 
-          background: #111111;
+          background: var(--active-background);
 
-          color: #ffffff;
+          color: var(--primary);
+
+        }
+
+
+        .sidebar.collapsed .sidebar-link.active .sidebar-icon {
+
+          color: var(--primary);
 
         }
 
@@ -691,8 +771,6 @@ export default function Sidebar({
           height: 44px;
 
           padding: 0 12px;
-
-          margin: 3px 0;
 
           gap: 12px;
 
@@ -873,7 +951,7 @@ export default function Sidebar({
 
           -webkit-backdrop-filter: blur(12px);
 
-          border-bottom: 1px solid #e8e8e8;
+          border-bottom: 1px solid var(--border);
 
           z-index: 1000;
 
@@ -882,7 +960,7 @@ export default function Sidebar({
 
         /* ==================================================
            NAV CONTENT
-
+           
            250px EXPANDED
            72px COLLAPSED
         ================================================== */
@@ -1017,7 +1095,7 @@ export default function Sidebar({
 
           background: #f3f3f3;
 
-          color: #111111;
+          color: var(--primary);
 
         }
 
@@ -1043,7 +1121,7 @@ export default function Sidebar({
 
           border-radius: 50%;
 
-          background: #111111;
+          background: var(--primary);
 
           border: 1px solid #ffffff;
 
@@ -1104,7 +1182,7 @@ export default function Sidebar({
 
           border-radius: 50%;
 
-          background: #111111;
+          background: var(--primary);
 
           color: #ffffff;
 
@@ -1271,7 +1349,7 @@ export default function Sidebar({
 
             padding: 0 12px;
 
-            margin: 3px 0;
+            margin: 0 0 12px 0;
 
             justify-content: flex-start;
 
