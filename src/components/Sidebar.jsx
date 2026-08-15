@@ -1,25 +1,147 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import dashboard from "../assets/dashboard.svg";
-import hoverDashboard from "../assets/hover_dashboard.svg";
-import fillDashboard from "../assets/fill_dashboard.svg";
-
-import inventory from "../assets/inventory.svg";
-import hoverInventory from "../assets/hover_inventory.svg";
-import fillInventory from "../assets/fill_inventory.svg";
-
-import coupons from "../assets/coupons.svg";
-import hoverCoupons from "../assets/hover_coupons.svg";
-import fillCoupons from "../assets/fill_coupons.svg";
-
-import site from "../assets/site.svg";
-import hoverSite from "../assets/hover_site.svg";
-import fillSite from "../assets/fill_site.svg";
 import {
   Search,
   Bell,
   ChevronRight,
 } from "lucide-react";
+
+/* =========================================================
+   LOGO ASSETS
+========================================================= */
+
+import logo from "../assets/logo.png";
+import logoSmall from "../assets/logo-small.png";
+
+import panelClose from "../assets/panel_close.svg";
+import panelOpen from "../assets/panel_open.svg";
+
+
+/* =========================================================
+   DASHBOARD ICONS
+========================================================= */
+
+import dashboardIcon from "../assets/dashboard.svg";
+import dashboardHover from "../assets/hover_dashboard.svg";
+import dashboardActive from "../assets/fill_dashboard.svg";
+
+
+/* =========================================================
+   INVENTORY ICONS
+========================================================= */
+
+import inventoryIcon from "../assets/inventory.svg";
+import inventoryHover from "../assets/hover_inventory.svg";
+import inventoryActive from "../assets/fill_inventory.svg";
+
+
+/* =========================================================
+   COUPONS ICONS
+========================================================= */
+
+import couponsIcon from "../assets/coupons.svg";
+import couponsHover from "../assets/hover_coupons.svg";
+import couponsActive from "../assets/fill_coupons.svg";
+
+
+/* =========================================================
+   SITE ICONS
+========================================================= */
+
+import siteIcon from "../assets/site.svg";
+import siteHover from "../assets/hover_site.svg";
+import siteActive from "../assets/fill_site.svg";
+
+
+/* =========================================================
+   HERO SECTION ICONS
+========================================================= */
+
+import heroIcon from "../assets/herosection.svg";
+import heroHover from "../assets/hover_herosection.svg";
+import heroActive from "../assets/fill_herosection.svg";
+
+
+/* =========================================================
+   SECTIONS ICONS
+========================================================= */
+
+import sectionsIcon from "../assets/sections.svg";
+import sectionsHover from "../assets/hover_sections.svg";
+import sectionsActive from "../assets/fill_sections.svg";
+
+
+/* =========================================================
+   POPUP ICONS
+========================================================= */
+
+import popupIcon from "../assets/popup.svg";
+import popupHover from "../assets/hover_popup.svg";
+import popupActive from "../assets/fill_popup.svg";
+
+
+/* =========================================================
+   COMBO ICONS
+========================================================= */
+
+import comboIcon from "../assets/combo.svg";
+import comboHover from "../assets/hover_combo.svg";
+import comboActive from "../assets/fill_combo.svg";
+
+
+/* =========================================================
+   ICON MAP
+========================================================= */
+
+const icons = {
+  dashboard: {
+    normal: dashboardIcon,
+    hover: dashboardHover,
+    active: dashboardActive,
+  },
+
+  inventory: {
+    normal: inventoryIcon,
+    hover: inventoryHover,
+    active: inventoryActive,
+  },
+
+  coupons: {
+    normal: couponsIcon,
+    hover: couponsHover,
+    active: couponsActive,
+  },
+
+  site: {
+    normal: siteIcon,
+    hover: siteHover,
+    active: siteActive,
+  },
+
+  herosection: {
+    normal: heroIcon,
+    hover: heroHover,
+    active: heroActive,
+  },
+
+  sections: {
+    normal: sectionsIcon,
+    hover: sectionsHover,
+    active: sectionsActive,
+  },
+
+  popup: {
+    normal: popupIcon,
+    hover: popupHover,
+    active: popupActive,
+  },
+
+  combo: {
+    normal: comboIcon,
+    hover: comboHover,
+    active: comboActive,
+  },
+};
 
 
 /* =========================================================
@@ -32,11 +154,13 @@ const menuItems = [
     path: "/",
     icon: "dashboard",
   },
+
   {
     name: "Inventory",
     path: "/inventory",
     icon: "inventory",
   },
+
   {
     name: "Manage Coupons",
     path: "/coupons",
@@ -46,7 +170,7 @@ const menuItems = [
 
 
 /* =========================================================
-   CUSTOMIZE SITE SUBMENU
+   CUSTOMIZE SITE MENU
 ========================================================= */
 
 const submenuItems = [
@@ -55,16 +179,19 @@ const submenuItems = [
     path: "/customize/hero-section",
     icon: "herosection",
   },
+
   {
     name: "Sections",
     path: "/customize/sections",
     icon: "sections",
   },
+
   {
     name: "Popup",
     path: "/customize/popup",
     icon: "popup",
   },
+
   {
     name: "Combo Offer",
     path: "/customize/combo",
@@ -77,17 +204,41 @@ const submenuItems = [
    ICON COMPONENT
 ========================================================= */
 
-function CustomIcon({
+function MenuIcon({
   type,
-  state = "normal",
+  active = false,
 }) {
+  const iconSet = icons[type];
+
   return (
-    <span
-      className={`icon icon-${type}`}
-    >
-      <span
-        className={`icon-state icon-${state}`}
+    <span className="menu-icon">
+
+      <img
+        src={iconSet.normal}
+        alt=""
+        className={
+          active
+            ? "icon-hidden"
+            : "icon-visible"
+        }
       />
+
+      <img
+        src={iconSet.hover}
+        alt=""
+        className="icon-hover"
+      />
+
+      <img
+        src={iconSet.active}
+        alt=""
+        className={
+          active
+            ? "icon-visible"
+            : "icon-hidden"
+        }
+      />
+
     </span>
   );
 }
@@ -110,8 +261,11 @@ export default function Sidebar({
 
 
   /*
-   * Sidebar temporarily expands when
-   * the mouse enters while collapsed.
+   * Expanded when:
+   *
+   * 1. Sidebar isn't collapsed
+   * OR
+   * 2. Mouse is hovering while collapsed
    */
 
   const isExpanded =
@@ -143,7 +297,7 @@ export default function Sidebar({
 
       setTimeout(() => {
         setSiteOpen(true);
-      }, 250);
+      }, 300);
 
       return;
 
@@ -171,9 +325,7 @@ export default function Sidebar({
           }`}
         >
 
-          {/* ===============================================
-              LEFT SIDE
-          =============================================== */}
+          {/* LEFT */}
 
           <div className="navbar-left">
 
@@ -196,13 +348,11 @@ export default function Sidebar({
           </div>
 
 
-          {/* ===============================================
-              RIGHT SIDE
-          =============================================== */}
+          {/* RIGHT */}
 
           <div className="navbar-right">
 
-            {/* SEARCH */}
+            {/* Search */}
 
             <button
               className="navbar-icon-button"
@@ -217,7 +367,7 @@ export default function Sidebar({
             </button>
 
 
-            {/* NOTIFICATION */}
+            {/* Notification */}
 
             <button
               className="navbar-icon-button notification-button"
@@ -234,12 +384,12 @@ export default function Sidebar({
             </button>
 
 
-            {/* DIVIDER */}
+            {/* Divider */}
 
             <div className="navbar-divider" />
 
 
-            {/* USER */}
+            {/* User */}
 
             <button className="navbar-user">
 
@@ -297,12 +447,12 @@ export default function Sidebar({
       >
 
         {/* =================================================
-            SIDEBAR HEADER
+            HEADER
         ================================================= */}
 
         <div className="d-sidebar-header">
 
-          {/* FULL LOGO */}
+          {/* Full logo */}
 
           {isExpanded && (
 
@@ -312,7 +462,7 @@ export default function Sidebar({
             >
 
               <img
-                src="/assets/logo.png"
+                src={logo}
                 alt="Logo"
               />
 
@@ -321,14 +471,14 @@ export default function Sidebar({
           )}
 
 
-          {/* SMALL LOGO */}
+          {/* Small logo */}
 
           {!isExpanded && (
 
             <span className="mini-logo">
 
               <img
-                src="/assets/logo-small.png"
+                src={logoSmall}
                 alt="Logo"
               />
 
@@ -337,7 +487,7 @@ export default function Sidebar({
           )}
 
 
-          {/* TOGGLE BUTTON */}
+          {/* Toggle */}
 
           <button
             className="sidebar-toggle"
@@ -349,25 +499,16 @@ export default function Sidebar({
             }
           >
 
-            {isExpanded ? (
-
-              <img
-                src="/assets/panel_close.svg"
-                alt="Close sidebar"
-                width="24"
-                height="24"
-              />
-
-            ) : (
-
-              <img
-                src="/assets/panel_open.svg"
-                alt="Open sidebar"
-                width="24"
-                height="24"
-              />
-
-            )}
+            <img
+              src={
+                isExpanded
+                  ? panelClose
+                  : panelOpen
+              }
+              alt=""
+              width="24"
+              height="24"
+            />
 
           </button>
 
@@ -405,13 +546,9 @@ export default function Sidebar({
 
                   <>
 
-                    <CustomIcon
+                    <MenuIcon
                       type={item.icon}
-                      state={
-                        isActive
-                          ? "active"
-                          : "normal"
-                      }
+                      active={isActive}
                     />
 
                     <span className="nav-label">
@@ -434,11 +571,7 @@ export default function Sidebar({
             <div
               className={`nav-item ${
                 siteOpen
-                  ? "dropdown-open"
-                  : ""
-              } ${
-                siteOpen
-                  ? "active"
+                  ? "dropdown-open active"
                   : ""
               }`}
 
@@ -447,13 +580,9 @@ export default function Sidebar({
               }
             >
 
-              <CustomIcon
+              <MenuIcon
                 type="site"
-                state={
-                  siteOpen
-                    ? "active"
-                    : "normal"
-                }
+                active={siteOpen}
               />
 
               <span className="nav-label">
@@ -506,13 +635,9 @@ export default function Sidebar({
 
                       <>
 
-                        <CustomIcon
+                        <MenuIcon
                           type={item.icon}
-                          state={
-                            isActive
-                              ? "active"
-                              : "normal"
-                          }
+                          active={isActive}
                         />
 
                         <span>
@@ -543,11 +668,8 @@ export default function Sidebar({
             <div className="account-card">
 
               <div className="account-avatar">
-
                 H
-
               </div>
-
 
               {isExpanded && (
 
@@ -594,12 +716,6 @@ export default function Sidebar({
 
           --row-height: 52px;
 
-          --sidebar-bg: #ffffff;
-
-          --text-color: #000000;
-
-          --icon-color: #6b7280;
-
           --brand-primary: #643DE4;
 
           --active-bg: #F5F0FA;
@@ -612,7 +728,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           GLOBAL FONT
+           FONT
         ================================================= */
 
         .d-sidebar,
@@ -660,19 +776,13 @@ export default function Sidebar({
             blur(12px);
 
           border-bottom:
-            1px solid var(--border);
+            1px solid
+            var(--border);
 
           z-index: 1500;
 
         }
 
-
-        /* =================================================
-           NAVBAR INNER
-
-           260px expanded
-           90px collapsed
-        ================================================= */
 
         .top-navbar-inner {
 
@@ -702,7 +812,7 @@ export default function Sidebar({
         }
 
 
-        .top-navbar-inner.navbar-expanded {
+        .navbar-expanded {
 
           margin-left:
             var(--sidebar-width);
@@ -710,7 +820,7 @@ export default function Sidebar({
         }
 
 
-        .top-navbar-inner.navbar-collapsed {
+        .navbar-collapsed {
 
           margin-left:
             var(--sidebar-collapsed-width);
@@ -821,13 +931,6 @@ export default function Sidebar({
 
           color:
             var(--brand-primary);
-
-        }
-
-
-        .notification-button {
-
-          position: relative;
 
         }
 
@@ -976,17 +1079,23 @@ export default function Sidebar({
 
           height: 100vh;
 
-          background:
-            var(--sidebar-bg);
+          background: #ffffff;
 
           border-right:
-            1px solid var(--border);
+            1px solid
+            var(--border);
 
           display: flex;
 
           flex-direction: column;
 
-          flex-shrink: 0;
+          position: fixed;
+
+          top: 0;
+
+          left: 0;
+
+          z-index: 2000;
 
           transition:
             width
@@ -998,15 +1107,9 @@ export default function Sidebar({
               1
             );
 
-          z-index: 2000;
-
-          position: fixed;
-
-          top: 0;
-
-          left: 0;
-
-          overflow: visible;
+          font-family:
+            "DM Sans",
+            sans-serif;
 
         }
 
@@ -1020,7 +1123,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           SIDEBAR HEADER
+           HEADER
         ================================================= */
 
         .d-sidebar-header {
@@ -1041,10 +1144,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           LOGO
-        ================================================= */
 
         .brand-logo {
 
@@ -1091,19 +1190,17 @@ export default function Sidebar({
 
 
         /* =================================================
-           SIDEBAR TOGGLE
+           TOGGLE
         ================================================= */
 
         .sidebar-toggle {
 
-          background: none;
+          background:
+            transparent;
 
           border: none;
 
           cursor: pointer;
-
-          color:
-            var(--icon-color);
 
           display: flex;
 
@@ -1115,10 +1212,6 @@ export default function Sidebar({
 
           border-radius: 8px;
 
-          transition:
-            background 0.2s,
-            color 0.2s;
-
         }
 
 
@@ -1127,8 +1220,12 @@ export default function Sidebar({
           background:
             var(--hover-bg);
 
-          color:
-            var(--text-color);
+        }
+
+
+        .sidebar-toggle img {
+
+          display: block;
 
         }
 
@@ -1153,7 +1250,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           SIDEBAR INNER
+           INNER
         ================================================= */
 
         .d-sidebar-inner {
@@ -1169,7 +1266,7 @@ export default function Sidebar({
 
           overflow-y: auto;
 
-          overflow-x: hidden;
+          overflow-x: visible;
 
         }
 
@@ -1195,21 +1292,19 @@ export default function Sidebar({
           margin:
             2px 0;
 
-          border-radius:
-            10px;
+          border-radius: 10px;
 
           gap: 14px;
 
           cursor: pointer;
 
-          color:
-            var(--text-color);
+          color: #000000;
 
           text-decoration: none;
 
           transition:
-            background 0.2s,
-            color 0.2s;
+            background 0.2s ease,
+            color 0.2s ease;
 
           white-space: nowrap;
 
@@ -1255,24 +1350,7 @@ export default function Sidebar({
            ICON
         ================================================= */
 
-        .icon {
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          width: 24px;
-
-          height: 24px;
-
-          flex-shrink: 0;
-
-        }
-
-
-        .icon-custom {
+        .menu-icon {
 
           position: relative;
 
@@ -1280,299 +1358,83 @@ export default function Sidebar({
 
           height: 24px;
 
+          min-width: 24px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
         }
 
 
-        .icon-custom > span {
+        .menu-icon img {
 
           position: absolute;
 
-          top: 0;
+          width: 24px;
 
-          left: 0;
+          height: 24px;
 
-          width: 100%;
-
-          height: 100%;
-
-          background-size: contain;
-
-          background-repeat: no-repeat;
-
-          background-position: center;
+          object-fit: contain;
 
         }
 
 
-        /* =================================================
-           ICON STATES
-        ================================================= */
+        .icon-visible {
 
-        .icon-normal {
-
-          display: block;
+          opacity: 1;
 
         }
 
 
-        .icon-hover,
-        .icon-active {
+        .icon-hidden {
 
-          display: none;
+          opacity: 0;
+
+        }
+
+
+        .menu-icon .icon-hover {
+
+          opacity: 0;
 
         }
 
 
         .nav-item:hover:not(.active)
+        .menu-icon
         .icon-hover {
 
-          display: block;
+          opacity: 1;
 
         }
 
 
         .nav-item:hover:not(.active)
-        .icon-normal {
+        .menu-icon
+        .icon-visible {
 
-          display: none;
-
-        }
-
-
-        .nav-item.active
-        .icon-normal,
-        .nav-item.active
-        .icon-hover {
-
-          display: none;
+          opacity: 0;
 
         }
 
 
         .nav-item.active
+        .menu-icon
         .icon-active {
 
-          display: block;
+          opacity: 1;
 
         }
 
 
-        /* =================================================
-           ICON MAPPINGS
-        ================================================= */
-
-        .icon-dashboard
+        .nav-item.active
+        .menu-icon
         .icon-normal {
 
-          background-image:
-            url("/assets/dashboard.svg");
-
-        }
-
-
-        .icon-dashboard
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_dashboard.svg");
-
-        }
-
-
-        .icon-dashboard
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_dashboard.svg");
-
-        }
-
-
-        .icon-inventory
-        .icon-normal {
-
-          background-image:
-            url("/assets/inventory.svg");
-
-        }
-
-
-        .icon-inventory
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_inventory.svg");
-
-        }
-
-
-        .icon-inventory
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_inventory.svg");
-
-        }
-
-
-        .icon-coupons
-        .icon-normal {
-
-          background-image:
-            url("/assets/coupons.svg");
-
-        }
-
-
-        .icon-coupons
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_coupons.svg");
-
-        }
-
-
-        .icon-coupons
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_coupons.svg");
-
-        }
-
-
-        .icon-site
-        .icon-normal {
-
-          background-image:
-            url("/assets/site.svg");
-
-        }
-
-
-        .icon-site
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_site.svg");
-
-        }
-
-
-        .icon-site
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_site.svg");
-
-        }
-
-
-        .icon-herosection
-        .icon-normal {
-
-          background-image:
-            url("/assets/herosection.svg");
-
-        }
-
-
-        .icon-herosection
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_herosection.svg");
-
-        }
-
-
-        .icon-herosection
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_herosection.svg");
-
-        }
-
-
-        .icon-sections
-        .icon-normal {
-
-          background-image:
-            url("/assets/sections.svg");
-
-        }
-
-
-        .icon-sections
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_sections.svg");
-
-        }
-
-
-        .icon-sections
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_sections.svg");
-
-        }
-
-
-        .icon-popup
-        .icon-normal {
-
-          background-image:
-            url("/assets/popup.svg");
-
-        }
-
-
-        .icon-popup
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_popup.svg");
-
-        }
-
-
-        .icon-popup
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_popup.svg");
-
-        }
-
-
-        .icon-combo
-        .icon-normal {
-
-          background-image:
-            url("/assets/combo.svg");
-
-        }
-
-
-        .icon-combo
-        .icon-hover {
-
-          background-image:
-            url("/assets/hover_combo.svg");
-
-        }
-
-
-        .icon-combo
-        .icon-active {
-
-          background-image:
-            url("/assets/fill_combo.svg");
+          opacity: 0;
 
         }
 
@@ -1585,18 +1447,13 @@ export default function Sidebar({
 
           margin-left: auto;
 
-          color:
-            currentColor;
-
-          flex-shrink: 0;
-
           transition:
             transform 0.25s ease;
 
         }
 
 
-        .nav-item.dropdown-open
+        .dropdown-open
         .nav-chevron {
 
           transform:
@@ -1652,10 +1509,7 @@ export default function Sidebar({
 
           gap: 12px;
 
-          cursor: pointer;
-
-          color:
-            var(--text-color);
+          color: #000000;
 
           font-size: 15px;
 
@@ -1663,11 +1517,11 @@ export default function Sidebar({
 
           text-decoration: none;
 
-          transition:
-            background 0.15s,
-            color 0.15s;
-
           white-space: nowrap;
+
+          transition:
+            background 0.15s ease,
+            color 0.15s ease;
 
         }
 
@@ -1697,7 +1551,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           COLLAPSED SIDEBAR
+           COLLAPSED
         ================================================= */
 
         .d-sidebar.collapsed
@@ -1747,7 +1601,7 @@ export default function Sidebar({
 
           position: absolute;
 
-          left: 100%;
+          left: calc(100% + 12px);
 
           top: 50%;
 
@@ -1772,8 +1626,6 @@ export default function Sidebar({
           white-space: nowrap;
 
           z-index: 5000;
-
-          margin-left: 12px;
 
           box-shadow:
             0 4px 12px
@@ -1824,6 +1676,8 @@ export default function Sidebar({
 
           height: 44px;
 
+          min-width: 44px;
+
           border-radius: 50%;
 
           background:
@@ -1841,8 +1695,6 @@ export default function Sidebar({
           font-size: 15px;
 
           font-weight: 700;
-
-          flex-shrink: 0;
 
         }
 
@@ -1866,10 +1718,6 @@ export default function Sidebar({
 
           white-space: nowrap;
 
-          overflow: hidden;
-
-          text-overflow: ellipsis;
-
         }
 
 
@@ -1877,21 +1725,12 @@ export default function Sidebar({
 
           font-size: 13px;
 
-          color:
-            var(--text-sub);
+          color: #6b7280;
 
           white-space: nowrap;
 
-          overflow: hidden;
-
-          text-overflow: ellipsis;
-
         }
 
-
-        /* =================================================
-           COLLAPSED ACCOUNT
-        ================================================= */
 
         .d-sidebar.collapsed
         .account-text {
@@ -1927,13 +1766,6 @@ export default function Sidebar({
           }
 
 
-          .top-navbar {
-
-            height: 64px;
-
-          }
-
-
           .top-navbar-inner {
 
             margin-left: 0 !important;
@@ -1946,7 +1778,14 @@ export default function Sidebar({
           }
 
 
-          .breadcrumb {
+          .top-navbar {
+
+            height: 64px;
+
+          }
+
+
+          .navbar-left {
 
             display: none;
 
@@ -1968,10 +1807,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           SMALL MOBILE
-        ================================================= */
 
         @media (max-width: 480px) {
 
