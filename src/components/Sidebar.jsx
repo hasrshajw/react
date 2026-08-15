@@ -4,316 +4,112 @@ import {
   Search,
   Bell,
   ChevronRight,
+  LayoutDashboard,
+  Package,
+  TicketPercent,
+  Palette,
+  Image,
+  Layers,
+  MessageSquare,
+  Gift,
 } from "lucide-react";
-
-/* =========================================================
-   LOGO ASSETS
-========================================================= */
-
-import logo from "../assets/logo.png";
-import logoSmall from "../assets/logo-small.png";
-
-import panelClose from "../assets/panel_close.svg";
-import panelOpen from "../assets/panel_open.svg";
-
-
-/* =========================================================
-   DASHBOARD ICONS
-========================================================= */
-
-import dashboardIcon from "../assets/dashboard.svg";
-import dashboardHover from "../assets/hover_dashboard.svg";
-import dashboardActive from "../assets/fill_dashboard.svg";
-
-
-/* =========================================================
-   INVENTORY ICONS
-========================================================= */
-
-import inventoryIcon from "../assets/inventory.svg";
-import inventoryHover from "../assets/hover_inventory.svg";
-import inventoryActive from "../assets/fill_inventory.svg";
-
-
-/* =========================================================
-   COUPONS ICONS
-========================================================= */
-
-import couponsIcon from "../assets/coupons.svg";
-import couponsHover from "../assets/hover_coupons.svg";
-import couponsActive from "../assets/fill_coupons.svg";
-
-
-/* =========================================================
-   SITE ICONS
-========================================================= */
-
-import siteIcon from "../assets/site.svg";
-import siteHover from "../assets/hover_site.svg";
-import siteActive from "../assets/fill_site.svg";
-
-
-/* =========================================================
-   HERO SECTION ICONS
-========================================================= */
-
-import heroIcon from "../assets/herosection.svg";
-import heroHover from "../assets/hover_herosection.svg";
-import heroActive from "../assets/fill_herosection.svg";
-
-
-/* =========================================================
-   SECTIONS ICONS
-========================================================= */
-
-import sectionsIcon from "../assets/sections.svg";
-import sectionsHover from "../assets/hover_sections.svg";
-import sectionsActive from "../assets/fill_sections.svg";
-
-
-/* =========================================================
-   POPUP ICONS
-========================================================= */
-
-import popupIcon from "../assets/popup.svg";
-import popupHover from "../assets/hover_popup.svg";
-import popupActive from "../assets/fill_popup.svg";
-
-
-/* =========================================================
-   COMBO ICONS
-========================================================= */
-
-import comboIcon from "../assets/combo.svg";
-import comboHover from "../assets/hover_combo.svg";
-import comboActive from "../assets/fill_combo.svg";
-
-
-/* =========================================================
-   ICON MAP
-========================================================= */
-
-const icons = {
-  dashboard: {
-    normal: dashboardIcon,
-    hover: dashboardHover,
-    active: dashboardActive,
-  },
-
-  inventory: {
-    normal: inventoryIcon,
-    hover: inventoryHover,
-    active: inventoryActive,
-  },
-
-  coupons: {
-    normal: couponsIcon,
-    hover: couponsHover,
-    active: couponsActive,
-  },
-
-  site: {
-    normal: siteIcon,
-    hover: siteHover,
-    active: siteActive,
-  },
-
-  herosection: {
-    normal: heroIcon,
-    hover: heroHover,
-    active: heroActive,
-  },
-
-  sections: {
-    normal: sectionsIcon,
-    hover: sectionsHover,
-    active: sectionsActive,
-  },
-
-  popup: {
-    normal: popupIcon,
-    hover: popupHover,
-    active: popupActive,
-  },
-
-  combo: {
-    normal: comboIcon,
-    hover: comboHover,
-    active: comboActive,
-  },
-};
-
-
-/* =========================================================
-   MAIN MENU
-========================================================= */
 
 const menuItems = [
   {
     name: "Dashboard",
     path: "/",
-    icon: "dashboard",
+    icon: LayoutDashboard,
   },
-
   {
     name: "Inventory",
     path: "/inventory",
-    icon: "inventory",
+    icon: Package,
   },
-
   {
     name: "Manage Coupons",
     path: "/coupons",
-    icon: "coupons",
+    icon: TicketPercent,
   },
 ];
-
-
-/* =========================================================
-   CUSTOMIZE SITE MENU
-========================================================= */
 
 const submenuItems = [
   {
     name: "Hero Section",
     path: "/customize/hero-section",
-    icon: "herosection",
+    icon: Image,
   },
-
   {
     name: "Sections",
     path: "/customize/sections",
-    icon: "sections",
+    icon: Layers,
   },
-
   {
     name: "Popup",
     path: "/customize/popup",
-    icon: "popup",
+    icon: MessageSquare,
   },
-
   {
     name: "Combo Offer",
     path: "/customize/combo",
-    icon: "combo",
+    icon: Gift,
   },
 ];
-
-
-/* =========================================================
-   ICON COMPONENT
-========================================================= */
-
-function MenuIcon({
-  type,
-  active = false,
-}) {
-  const iconSet = icons[type];
-
-  return (
-    <span className="menu-icon">
-
-      <img
-        src={iconSet.normal}
-        alt=""
-        className={
-          active
-            ? "icon-hidden"
-            : "icon-visible"
-        }
-      />
-
-      <img
-        src={iconSet.hover}
-        alt=""
-        className="icon-hover"
-      />
-
-      <img
-        src={iconSet.active}
-        alt=""
-        className={
-          active
-            ? "icon-visible"
-            : "icon-hidden"
-        }
-      />
-
-    </span>
-  );
-}
-
-
-/* =========================================================
-   SIDEBAR
-========================================================= */
 
 export default function Sidebar({
   collapsed,
   setCollapsed,
 }) {
-
-  const [siteOpen, setSiteOpen] =
-    useState(false);
-
-  const [hovered, setHovered] =
-    useState(false);
-
+  const [siteOpen, setSiteOpen] = useState(false);
 
   /*
-   * Expanded when:
+   * IMPORTANT:
    *
-   * 1. Sidebar isn't collapsed
-   * OR
-   * 2. Mouse is hovering while collapsed
+   * The sidebar NEVER expands on hover.
+   *
+   * collapsed = true  -> 90px
+   * collapsed = false -> 260px
    */
 
-  const isExpanded =
-    !collapsed || hovered;
+  const isExpanded = !collapsed;
 
 
-  /* =======================================================
+  /* ========================================================
      TOGGLE SIDEBAR
-  ======================================================= */
+  ======================================================== */
 
   const handleToggle = () => {
-
     setCollapsed(!collapsed);
-
-    setHovered(false);
-
   };
 
 
-  /* =======================================================
+  /* ========================================================
      CUSTOMIZE SITE
-  ======================================================= */
+  ======================================================== */
 
   const handleCustomizeClick = () => {
-
     if (collapsed) {
-
+      /*
+       * When collapsed, clicking Customize Site
+       * expands the sidebar first.
+       */
       setCollapsed(false);
 
       setTimeout(() => {
         setSiteOpen(true);
-      }, 300);
+      }, 250);
 
       return;
-
     }
 
     setSiteOpen(!siteOpen);
-
   };
 
 
   return (
     <>
-
-      {/* ===================================================
+      {/* ====================================================
           TOP NAVBAR
-      =================================================== */}
+      ==================================================== */}
 
       <header className="top-navbar">
 
@@ -358,16 +154,14 @@ export default function Sidebar({
               className="navbar-icon-button"
               aria-label="Search"
             >
-
               <Search
                 size={19}
                 strokeWidth={2}
               />
-
             </button>
 
 
-            {/* Notification */}
+            {/* Notifications */}
 
             <button
               className="navbar-icon-button notification-button"
@@ -418,72 +212,47 @@ export default function Sidebar({
       </header>
 
 
-      {/* ===================================================
+      {/* ====================================================
           SIDEBAR
-      =================================================== */}
+      ==================================================== */}
 
       <aside
-        className={`d-sidebar ${
+        className={`sidebar ${
           isExpanded
             ? "expanded"
             : "collapsed"
         }`}
-
-        onMouseEnter={() => {
-
-          if (collapsed) {
-            setHovered(true);
-          }
-
-        }}
-
-        onMouseLeave={() => {
-
-          if (collapsed) {
-            setHovered(false);
-          }
-
-        }}
       >
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
+        {/* ==================================================
+            SIDEBAR HEADER
+        ================================================== */}
 
-        <div className="d-sidebar-header">
+        <div className="sidebar-header">
 
-          {/* Full logo */}
+          {/* Expanded Logo */}
 
           {isExpanded && (
+            <div className="brand">
 
-            <NavLink
-              to="/"
-              className="brand-logo"
-            >
+              <div className="brand-logo">
+                D
+              </div>
 
-              <img
-                src={logo}
-                alt="Logo"
-              />
+              <span className="brand-name">
+                Dashboard
+              </span>
 
-            </NavLink>
-
+            </div>
           )}
 
 
-          {/* Small logo */}
+          {/* Collapsed Logo */}
 
           {!isExpanded && (
-
-            <span className="mini-logo">
-
-              <img
-                src={logoSmall}
-                alt="Logo"
-              />
-
-            </span>
-
+            <div className="brand-logo collapsed-logo">
+              D
+            </div>
           )}
 
 
@@ -494,163 +263,193 @@ export default function Sidebar({
             onClick={handleToggle}
             aria-label={
               collapsed
-                ? "Open sidebar"
-                : "Close sidebar"
+                ? "Expand sidebar"
+                : "Collapse sidebar"
             }
           >
 
-            <img
-              src={
-                isExpanded
-                  ? panelClose
-                  : panelOpen
-              }
-              alt=""
-              width="24"
-              height="24"
-            />
+            {isExpanded ? (
+              <ChevronRight
+                size={19}
+                style={{
+                  transform:
+                    "rotate(180deg)",
+                }}
+              />
+            ) : (
+              <ChevronRight size={19} />
+            )}
 
           </button>
 
         </div>
 
 
-        {/* =================================================
-            SIDEBAR CONTENT
-        ================================================= */}
+        {/* ==================================================
+            SIDEBAR MENU
+        ================================================== */}
 
-        <div className="d-sidebar-inner">
+        <div className="sidebar-inner">
 
           <nav>
 
-            {/* =============================================
+            {/* =================================================
                 MAIN MENU
-            ============================================= */}
+            ================================================= */}
 
-            {menuItems.map((item) => (
+            {menuItems.map((item) => {
 
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === "/"}
-                className={({ isActive }) =>
-                  `nav-item ${
-                    isActive
-                      ? "active"
-                      : ""
-                  }`
-                }
-              >
+              const Icon = item.icon;
 
-                {({ isActive }) => (
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === "/"}
+                  className={({ isActive }) =>
+                    `nav-item ${
+                      isActive
+                        ? "active"
+                        : ""
+                    }`
+                  }
+                >
 
-                  <>
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        className="menu-icon"
+                        size={22}
+                        strokeWidth={
+                          isActive
+                            ? 2.2
+                            : 2
+                        }
+                      />
 
-                    <MenuIcon
-                      type={item.icon}
-                      active={isActive}
-                    />
+                      {isExpanded && (
+                        <span className="nav-label">
+                          {item.name}
+                        </span>
+                      )}
 
-                    <span className="nav-label">
-                      {item.name}
-                    </span>
+                      {/* Tooltip */}
 
-                  </>
+                      {!isExpanded && (
+                        <span className="tooltip">
+                          {item.name}
+                        </span>
+                      )}
+                    </>
+                  )}
 
-                )}
+                </NavLink>
+              );
 
-              </NavLink>
-
-            ))}
+            })}
 
 
-            {/* =============================================
+            {/* =================================================
                 CUSTOMIZE SITE
-            ============================================= */}
+            ================================================= */}
 
             <div
               className={`nav-item ${
                 siteOpen
-                  ? "dropdown-open active"
+                  ? "active"
                   : ""
               }`}
-
               onClick={
                 handleCustomizeClick
               }
             >
 
-              <MenuIcon
-                type="site"
-                active={siteOpen}
+              <Palette
+                className="menu-icon"
+                size={22}
+                strokeWidth={
+                  siteOpen
+                    ? 2.2
+                    : 2
+                }
               />
 
-              <span className="nav-label">
-                Customize Site
-              </span>
+              {isExpanded && (
+                <span className="nav-label">
+                  Customize Site
+                </span>
+              )}
 
 
               {isExpanded && (
-
                 <ChevronRight
-                  className="nav-chevron"
+                  className={`nav-chevron ${
+                    siteOpen
+                      ? "rotate"
+                      : ""
+                  }`}
                   size={17}
-                  strokeWidth={2}
                 />
+              )}
 
+
+              {/* Collapsed Tooltip */}
+
+              {!isExpanded && (
+                <span className="tooltip">
+                  Customize Site
+                </span>
               )}
 
             </div>
 
 
-            {/* =============================================
+            {/* =================================================
                 SUBMENU
-            ============================================= */}
+            ================================================= */}
 
-            {isExpanded && (
+            {isExpanded && siteOpen && (
 
-              <div
-                className={`nav-submenu ${
-                  siteOpen
-                    ? "open"
-                    : ""
-                }`}
-              >
+              <div className="submenu">
 
-                {submenuItems.map((item) => (
+                {submenuItems.map((item) => {
 
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) =>
-                      `nav-submenu-item ${
-                        isActive
-                          ? "active"
-                          : ""
-                      }`
-                    }
-                  >
+                  const Icon = item.icon;
 
-                    {({ isActive }) => (
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      className={({ isActive }) =>
+                        `submenu-item ${
+                          isActive
+                            ? "active"
+                            : ""
+                        }`
+                      }
+                    >
 
-                      <>
+                      {({ isActive }) => (
+                        <>
+                          <Icon
+                            size={19}
+                            strokeWidth={
+                              isActive
+                                ? 2.2
+                                : 2
+                            }
+                          />
 
-                        <MenuIcon
-                          type={item.icon}
-                          active={isActive}
-                        />
+                          <span>
+                            {item.name}
+                          </span>
+                        </>
+                      )}
 
-                        <span>
-                          {item.name}
-                        </span>
+                    </NavLink>
+                  );
 
-                      </>
-
-                    )}
-
-                  </NavLink>
-
-                ))}
+                })}
 
               </div>
 
@@ -663,9 +462,9 @@ export default function Sidebar({
               ACCOUNT
           ================================================= */}
 
-          <div className="d-account-section">
+          <div className="account-section">
 
-            <div className="account-card">
+            <div className="account">
 
               <div className="account-avatar">
                 H
@@ -673,18 +472,24 @@ export default function Sidebar({
 
               {isExpanded && (
 
-                <div className="account-text">
+                <div className="account-info">
 
-                  <div className="account-name">
+                  <span className="account-name">
                     Harsha
-                  </div>
+                  </span>
 
-                  <div className="account-email">
+                  <span className="account-role">
                     Administrator
-                  </div>
+                  </span>
 
                 </div>
 
+              )}
+
+              {!isExpanded && (
+                <span className="tooltip account-tooltip">
+                  Harsha
+                </span>
               )}
 
             </div>
@@ -696,15 +501,15 @@ export default function Sidebar({
       </aside>
 
 
-      {/* ===================================================
+      {/* ====================================================
           STYLES
-      =================================================== */}
+      ==================================================== */}
 
       <style>{`
 
-        /* =================================================
+        /* ==================================================
            VARIABLES
-        ================================================= */
+        ================================================== */
 
         :root {
 
@@ -714,9 +519,7 @@ export default function Sidebar({
 
           --navbar-height: 72px;
 
-          --row-height: 52px;
-
-          --brand-primary: #643DE4;
+          --primary: #643DE4;
 
           --active-bg: #F5F0FA;
 
@@ -727,11 +530,11 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
+        /* ==================================================
            FONT
-        ================================================= */
+        ================================================== */
 
-        .d-sidebar,
+        .sidebar,
         .top-navbar {
 
           font-family:
@@ -744,9 +547,9 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
+        /* ==================================================
            TOP NAVBAR
-        ================================================= */
+        ================================================== */
 
         .top-navbar {
 
@@ -779,7 +582,7 @@ export default function Sidebar({
             1px solid
             var(--border);
 
-          z-index: 1500;
+          z-index: 1000;
 
         }
 
@@ -812,6 +615,8 @@ export default function Sidebar({
         }
 
 
+        /* EXPANDED */
+
         .navbar-expanded {
 
           margin-left:
@@ -819,6 +624,8 @@ export default function Sidebar({
 
         }
 
+
+        /* COLLAPSED */
 
         .navbar-collapsed {
 
@@ -828,9 +635,9 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
+        /* ==================================================
            NAVBAR LEFT
-        ================================================= */
+        ================================================== */
 
         .navbar-left {
 
@@ -877,9 +684,9 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
+        /* ==================================================
            NAVBAR RIGHT
-        ================================================= */
+        ================================================== */
 
         .navbar-right {
 
@@ -913,7 +720,7 @@ export default function Sidebar({
 
           cursor: pointer;
 
-          color: #555555;
+          color: #555;
 
           position: relative;
 
@@ -930,7 +737,7 @@ export default function Sidebar({
             var(--hover-bg);
 
           color:
-            var(--brand-primary);
+            var(--primary);
 
         }
 
@@ -950,10 +757,10 @@ export default function Sidebar({
           border-radius: 50%;
 
           background:
-            var(--brand-primary);
+            var(--primary);
 
           border:
-            1px solid #ffffff;
+            1px solid white;
 
         }
 
@@ -973,9 +780,9 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
-           NAVBAR USER
-        ================================================= */
+        /* ==================================================
+           USER
+        ================================================== */
 
         .navbar-user {
 
@@ -997,8 +804,6 @@ export default function Sidebar({
 
           cursor: pointer;
 
-          text-align: left;
-
         }
 
 
@@ -1019,10 +824,9 @@ export default function Sidebar({
           border-radius: 50%;
 
           background:
-            var(--brand-primary);
+            var(--primary);
 
-          color:
-            #ffffff;
+          color: white;
 
           display: flex;
 
@@ -1045,6 +849,8 @@ export default function Sidebar({
 
           gap: 2px;
 
+          text-align: left;
+
         }
 
 
@@ -1054,7 +860,7 @@ export default function Sidebar({
 
           font-weight: 600;
 
-          color: #222222;
+          color: #222;
 
         }
 
@@ -1063,31 +869,16 @@ export default function Sidebar({
 
           font-size: 11px;
 
-          color: #999999;
+          color: #999;
 
         }
 
 
-        /* =================================================
+        /* ==================================================
            SIDEBAR
-        ================================================= */
+        ================================================== */
 
-        .d-sidebar {
-
-          width:
-            var(--sidebar-width);
-
-          height: 100vh;
-
-          background: #ffffff;
-
-          border-right:
-            1px solid
-            var(--border);
-
-          display: flex;
-
-          flex-direction: column;
+        .sidebar {
 
           position: fixed;
 
@@ -1095,7 +886,24 @@ export default function Sidebar({
 
           left: 0;
 
+          width:
+            var(--sidebar-width);
+
+          height: 100vh;
+
+          background: #fff;
+
+          border-right:
+            1px solid
+            var(--border);
+
           z-index: 2000;
+
+          display: flex;
+
+          flex-direction: column;
+
+          overflow: visible;
 
           transition:
             width
@@ -1107,14 +915,10 @@ export default function Sidebar({
               1
             );
 
-          font-family:
-            "DM Sans",
-            sans-serif;
-
         }
 
 
-        .d-sidebar.collapsed {
+        .sidebar.collapsed {
 
           width:
             var(--sidebar-collapsed-width);
@@ -1122,13 +926,16 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
+        /* ==================================================
            HEADER
-        ================================================= */
+        ================================================== */
 
-        .d-sidebar-header {
+        .sidebar-header {
 
-          min-height: 70px;
+          height: 92px;
+
+          padding:
+            22px 18px;
 
           display: flex;
 
@@ -1137,37 +944,34 @@ export default function Sidebar({
           justify-content:
             space-between;
 
-          padding:
-            30px 24px;
-
           flex-shrink: 0;
+
+        }
+
+
+        .brand {
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 10px;
 
         }
 
 
         .brand-logo {
 
-          display: flex;
+          width: 42px;
 
-          align-items: center;
+          height: 42px;
 
-          text-decoration: none;
+          border-radius: 11px;
 
-        }
+          background:
+            var(--primary);
 
-
-        .brand-logo img {
-
-          height: 45px;
-
-          width: auto;
-
-          display: block;
-
-        }
-
-
-        .mini-logo {
+          color: white;
 
           display: flex;
 
@@ -1175,32 +979,56 @@ export default function Sidebar({
 
           justify-content: center;
 
-        }
+          font-size: 18px;
 
+          font-weight: 700;
 
-        .mini-logo img {
-
-          height: 45px;
-
-          width: auto;
-
-          display: block;
+          flex-shrink: 0;
 
         }
 
 
-        /* =================================================
-           TOGGLE
-        ================================================= */
+        .brand-name {
+
+          font-size: 16px;
+
+          font-weight: 700;
+
+          color: #111;
+
+          white-space: nowrap;
+
+        }
+
+
+        .collapsed-logo {
+
+          margin:
+            0 auto;
+
+          width: 42px;
+
+          height: 42px;
+
+        }
+
+
+        /* ==================================================
+           SIDEBAR TOGGLE
+        ================================================== */
 
         .sidebar-toggle {
+
+          width: 32px;
+
+          height: 32px;
+
+          border: none;
 
           background:
             transparent;
 
-          border: none;
-
-          cursor: pointer;
+          border-radius: 8px;
 
           display: flex;
 
@@ -1208,9 +1036,15 @@ export default function Sidebar({
 
           justify-content: center;
 
-          padding: 6px;
+          cursor: pointer;
 
-          border-radius: 8px;
+          color: #6b7280;
+
+          flex-shrink: 0;
+
+          transition:
+            background 0.15s ease,
+            color 0.15s ease;
 
         }
 
@@ -1220,45 +1054,41 @@ export default function Sidebar({
           background:
             var(--hover-bg);
 
-        }
-
-
-        .sidebar-toggle img {
-
-          display: block;
+          color:
+            #000;
 
         }
 
 
-        /* =================================================
+        /* ==================================================
            COLLAPSED HEADER
-        ================================================= */
+        ================================================== */
 
-        .d-sidebar.collapsed
-        .d-sidebar-header {
+        .sidebar.collapsed
+        .sidebar-header {
+
+          height: 92px;
+
+          padding:
+            20px 0;
 
           flex-direction: column;
 
-          height: auto;
-
-          padding:
-            30px 0 20px;
-
-          gap: 30px;
+          gap: 10px;
 
         }
 
 
-        /* =================================================
-           INNER
-        ================================================= */
+        /* ==================================================
+           SIDEBAR INNER
+        ================================================== */
 
-        .d-sidebar-inner {
+        .sidebar-inner {
 
           flex: 1;
 
           padding:
-            10px 16px;
+            12px 16px;
 
           display: flex;
 
@@ -1271,251 +1101,39 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
+        /* ==================================================
            NAV ITEM
-        ================================================= */
+        ================================================== */
 
         .nav-item {
 
           position: relative;
 
+          height: 52px;
+
           display: flex;
 
           align-items: center;
 
-          height:
-            var(--row-height);
+          gap: 14px;
 
           padding:
             0 16px;
 
           margin:
-            2px 0;
+            3px 0;
 
           border-radius: 10px;
 
-          gap: 14px;
+          color: #000;
+
+          text-decoration: none;
 
           cursor: pointer;
 
-          color: #000000;
-
-          text-decoration: none;
-
-          transition:
-            background 0.2s ease,
-            color 0.2s ease;
-
-          white-space: nowrap;
-
-          user-select: none;
-
           font-size: 15px;
 
           font-weight: 500;
-
-        }
-
-
-        /* =================================================
-           HOVER
-        ================================================= */
-
-        .nav-item:hover {
-
-          background:
-            var(--hover-bg);
-
-        }
-
-
-        /* =================================================
-           ACTIVE
-        ================================================= */
-
-        .nav-item.active {
-
-          background:
-            var(--active-bg);
-
-          color:
-            var(--brand-primary);
-
-          font-weight: 600;
-
-        }
-
-
-        /* =================================================
-           ICON
-        ================================================= */
-
-        .menu-icon {
-
-          position: relative;
-
-          width: 24px;
-
-          height: 24px;
-
-          min-width: 24px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-        }
-
-
-        .menu-icon img {
-
-          position: absolute;
-
-          width: 24px;
-
-          height: 24px;
-
-          object-fit: contain;
-
-        }
-
-
-        .icon-visible {
-
-          opacity: 1;
-
-        }
-
-
-        .icon-hidden {
-
-          opacity: 0;
-
-        }
-
-
-        .menu-icon .icon-hover {
-
-          opacity: 0;
-
-        }
-
-
-        .nav-item:hover:not(.active)
-        .menu-icon
-        .icon-hover {
-
-          opacity: 1;
-
-        }
-
-
-        .nav-item:hover:not(.active)
-        .menu-icon
-        .icon-visible {
-
-          opacity: 0;
-
-        }
-
-
-        .nav-item.active
-        .menu-icon
-        .icon-active {
-
-          opacity: 1;
-
-        }
-
-
-        .nav-item.active
-        .menu-icon
-        .icon-normal {
-
-          opacity: 0;
-
-        }
-
-
-        /* =================================================
-           CHEVRON
-        ================================================= */
-
-        .nav-chevron {
-
-          margin-left: auto;
-
-          transition:
-            transform 0.25s ease;
-
-        }
-
-
-        .dropdown-open
-        .nav-chevron {
-
-          transform:
-            rotate(90deg);
-
-        }
-
-
-        /* =================================================
-           SUBMENU
-        ================================================= */
-
-        .nav-submenu {
-
-          display: none;
-
-          margin:
-            2px 0 4px 20px;
-
-          padding-left: 16px;
-
-          border-left:
-            2px solid
-            var(--border);
-
-          flex-direction: column;
-
-        }
-
-
-        .nav-submenu.open {
-
-          display: flex;
-
-        }
-
-
-        .nav-submenu-item {
-
-          display: flex;
-
-          align-items: center;
-
-          height: 50px;
-
-          padding:
-            0 14px;
-
-          border-radius: 8px;
-
-          margin:
-            1px 0;
-
-          gap: 12px;
-
-          color: #000000;
-
-          font-size: 15px;
-
-          font-weight: 500;
-
-          text-decoration: none;
 
           white-space: nowrap;
 
@@ -1526,82 +1144,251 @@ export default function Sidebar({
         }
 
 
-        .nav-submenu-item:hover {
+        /* ==================================================
+           INACTIVE HOVER
+        ================================================== */
+
+        .nav-item:hover {
 
           background:
             var(--hover-bg);
 
-          color:
-            var(--brand-primary);
+          color: #000;
 
         }
 
 
-        .nav-submenu-item.active {
+        /* ==================================================
+           ACTIVE
+        ================================================== */
+
+        .nav-item.active {
 
           background:
             var(--active-bg);
 
           color:
-            var(--brand-primary);
+            var(--primary);
 
           font-weight: 600;
 
         }
 
 
-        /* =================================================
-           COLLAPSED
-        ================================================= */
+        .nav-item.active:hover {
 
-        .d-sidebar.collapsed
-        .brand-logo,
+          background:
+            var(--active-bg);
 
-        .d-sidebar.collapsed
-        .nav-label,
-
-        .d-sidebar.collapsed
-        .nav-chevron,
-
-        .d-sidebar.collapsed
-        .nav-submenu {
-
-          display: none !important;
+          color:
+            var(--primary);
 
         }
 
 
-        .d-sidebar.collapsed
-        .d-sidebar-inner {
+        /* ==================================================
+           ICON
+        ================================================== */
 
-          overflow: visible;
+        .menu-icon {
+
+          flex-shrink: 0;
+
+          color:
+            currentColor;
 
         }
 
 
-        .d-sidebar.collapsed
+        /* ==================================================
+           CHEVRON
+        ================================================== */
+
+        .nav-chevron {
+
+          margin-left: auto;
+
+          transition:
+            transform 0.2s ease;
+
+        }
+
+
+        .nav-chevron.rotate {
+
+          transform:
+            rotate(90deg);
+
+        }
+
+
+        /* ==================================================
+           SUBMENU
+        ================================================== */
+
+        .submenu {
+
+          margin:
+            2px 0 5px 20px;
+
+          padding-left:
+            14px;
+
+          border-left:
+            2px solid
+            var(--border);
+
+        }
+
+
+        .submenu-item {
+
+          height: 46px;
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 12px;
+
+          padding:
+            0 14px;
+
+          border-radius: 8px;
+
+          color: #000;
+
+          text-decoration: none;
+
+          font-size: 14px;
+
+          font-weight: 500;
+
+          transition:
+            background 0.15s ease,
+            color 0.15s ease;
+
+        }
+
+
+        .submenu-item:hover {
+
+          background:
+            var(--hover-bg);
+
+          color:
+            var(--primary);
+
+        }
+
+
+        .submenu-item.active {
+
+          background:
+            var(--active-bg);
+
+          color:
+            var(--primary);
+
+          font-weight: 600;
+
+        }
+
+
+        /* ==================================================
+           COLLAPSED MENU
+           
+           IMPORTANT:
+           It STAYS collapsed on hover.
+        ================================================== */
+
+        .sidebar.collapsed
         .nav-item {
 
-          justify-content: center;
+          width: 52px;
+
+          height: 52px;
 
           padding: 0;
 
+          margin:
+            4px auto;
+
+          justify-content: center;
+
+          border-radius: 11px;
+
         }
 
 
-        /* =================================================
-           COLLAPSED TOOLTIP
-        ================================================= */
+        .sidebar.collapsed
+        .nav-item.active {
 
-        .d-sidebar.collapsed
-        .nav-item:hover
+          width: 52px;
+
+          height: 52px;
+
+          background:
+            var(--active-bg);
+
+          color:
+            var(--primary);
+
+        }
+
+
+        .sidebar.collapsed
+        .nav-item:hover {
+
+          background:
+            var(--hover-bg);
+
+        }
+
+
+        .sidebar.collapsed
+        .nav-item.active:hover {
+
+          background:
+            var(--active-bg);
+
+        }
+
+
+        /* ==================================================
+           HIDE TEXT WHEN COLLAPSED
+        ================================================== */
+
+        .sidebar.collapsed
         .nav-label {
 
-          display: block;
+          display: none;
+
+        }
+
+
+        .sidebar.collapsed
+        .nav-chevron {
+
+          display: none;
+
+        }
+
+
+        /* ==================================================
+           TOOLTIP
+           
+           Hover = label only.
+           
+           Sidebar DOES NOT expand.
+        ================================================== */
+
+        .tooltip {
 
           position: absolute;
 
-          left: calc(100% + 12px);
+          left:
+            calc(100% + 12px);
 
           top: 50%;
 
@@ -1611,21 +1398,28 @@ export default function Sidebar({
           background:
             #1f2937;
 
-          color:
-            #ffffff;
+          color: white;
 
           padding:
             8px 12px;
 
-          border-radius: 6px;
+          border-radius: 7px;
 
           font-size: 13px;
 
           font-weight: 500;
 
+          line-height: 1;
+
           white-space: nowrap;
 
-          z-index: 5000;
+          opacity: 0;
+
+          visibility: hidden;
+
+          pointer-events: none;
+
+          z-index: 9999;
 
           box-shadow:
             0 4px 12px
@@ -1636,21 +1430,62 @@ export default function Sidebar({
               0.15
             );
 
-          pointer-events: none;
+          transition:
+            opacity 0.12s ease;
 
         }
 
 
-        /* =================================================
-           ACCOUNT
-        ================================================= */
+        .sidebar.collapsed
+        .nav-item:hover
+        .tooltip {
 
-        .d-account-section {
+          opacity: 1;
+
+          visibility: visible;
+
+        }
+
+
+        /* ==================================================
+           TOOLTIP ARROW
+        ================================================== */
+
+        .tooltip::before {
+
+          content: "";
+
+          position: absolute;
+
+          left: -6px;
+
+          top: 50%;
+
+          transform:
+            translateY(-50%);
+
+          border-top:
+            6px solid transparent;
+
+          border-bottom:
+            6px solid transparent;
+
+          border-right:
+            6px solid #1f2937;
+
+        }
+
+
+        /* ==================================================
+           ACCOUNT
+        ================================================== */
+
+        .account-section {
 
           margin-top: auto;
 
           padding:
-            24px 16px;
+            20px 16px;
 
           border-top:
             1px solid
@@ -1659,24 +1494,26 @@ export default function Sidebar({
         }
 
 
-        .account-card {
+        .account {
+
+          position: relative;
 
           display: flex;
 
           align-items: center;
 
-          gap: 12px;
+          gap: 11px;
 
         }
 
 
         .account-avatar {
 
-          width: 44px;
+          width: 42px;
 
-          height: 44px;
+          height: 42px;
 
-          min-width: 44px;
+          min-width: 42px;
 
           border-radius: 50%;
 
@@ -1684,7 +1521,7 @@ export default function Sidebar({
             var(--active-bg);
 
           color:
-            var(--brand-primary);
+            var(--primary);
 
           display: flex;
 
@@ -1692,83 +1529,125 @@ export default function Sidebar({
 
           justify-content: center;
 
-          font-size: 15px;
+          font-size: 14px;
 
           font-weight: 700;
 
         }
 
 
-        .account-text {
+        .account-info {
 
           display: flex;
 
           flex-direction: column;
 
-          overflow: hidden;
+          gap: 2px;
 
         }
 
 
         .account-name {
 
-          font-size: 15px;
+          font-size: 14px;
 
           font-weight: 600;
 
-          white-space: nowrap;
+          color: #111;
 
         }
 
 
-        .account-email {
+        .account-role {
 
-          font-size: 13px;
+          font-size: 11px;
 
           color: #6b7280;
 
-          white-space: nowrap;
+        }
+
+
+        /* ==================================================
+           COLLAPSED ACCOUNT
+        ================================================== */
+
+        .sidebar.collapsed
+        .account-section {
+
+          padding:
+            20px 0;
+
+          display: flex;
+
+          justify-content: center;
 
         }
 
 
-        .d-sidebar.collapsed
-        .account-text {
+        .sidebar.collapsed
+        .account-info {
 
           display: none;
 
         }
 
 
-        .d-sidebar.collapsed
-        .d-account-section {
+        .account-tooltip {
 
-          display: flex;
-
-          justify-content: center;
-
-          padding:
-            24px 0;
+          left:
+            calc(100% + 12px);
 
         }
 
 
-        /* =================================================
+        .sidebar.collapsed
+        .account:hover
+        .account-tooltip {
+
+          opacity: 1;
+
+          visibility: visible;
+
+        }
+
+
+        /* ==================================================
            MOBILE
-        ================================================= */
+        ================================================== */
 
         @media (max-width: 768px) {
 
-          .d-sidebar {
+          .sidebar {
 
-            display: none;
+            transform:
+              translateX(-100%);
+
+          }
+
+
+          .sidebar.expanded {
+
+            transform:
+              translateX(0);
+
+            width:
+              var(--sidebar-width);
+
+          }
+
+
+          .sidebar.collapsed {
+
+            transform:
+              translateX(-100%);
 
           }
 
 
           .top-navbar-inner {
 
-            margin-left: 0 !important;
+            margin-left:
+              0 !important;
 
             height: 64px;
 
@@ -1825,17 +1704,9 @@ export default function Sidebar({
 
           }
 
-
-          .navbar-user {
-
-            padding: 3px;
-
-          }
-
         }
 
       `}</style>
-
     </>
   );
 }
