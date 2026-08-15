@@ -8,7 +8,6 @@ import {
   Menu,
   Search,
   Bell,
-  User,
 } from "lucide-react";
 
 const menuItems = [
@@ -77,6 +76,8 @@ export default function Sidebar() {
               </span>
             )}
           </div>
+
+          {/* Collapse Button */}
 
           <button
             className="collapse-button"
@@ -172,10 +173,12 @@ export default function Sidebar() {
 
       <header
         className={`top-nav ${
-          isExpanded ? "top-nav-expanded" : "top-nav-collapsed"
+          isExpanded
+            ? "top-nav-expanded"
+            : "top-nav-collapsed"
         }`}
       >
-        {/* Left Side */}
+        {/* Top Left */}
 
         <div className="top-nav-left">
           <div className="breadcrumb">
@@ -193,7 +196,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Right Side */}
+        {/* Top Right */}
 
         <div className="top-nav-right">
           {/* Search */}
@@ -215,10 +218,6 @@ export default function Sidebar() {
 
             <span className="notification-dot"></span>
           </button>
-
-          {/* Divider */}
-
-          <div className="top-nav-divider"></div>
 
           {/* User */}
 
@@ -256,6 +255,7 @@ export default function Sidebar() {
 
         .sidebar {
           position: fixed;
+
           top: 0;
           left: 0;
 
@@ -264,7 +264,8 @@ export default function Sidebar() {
 
           background: #ffffff;
 
-          border-right: 1px solid #e8e8e8;
+          /* Border removed */
+          border-right: none;
 
           display: flex;
           flex-direction: column;
@@ -299,7 +300,8 @@ export default function Sidebar() {
 
           padding: 0 14px;
 
-          border-bottom: 1px solid #eeeeee;
+          /* Border removed */
+          border-bottom: none;
         }
 
         .brand {
@@ -332,6 +334,7 @@ export default function Sidebar() {
 
         .brand-name {
           font-size: 16px;
+
           font-weight: 700;
 
           color: #171717;
@@ -368,6 +371,7 @@ export default function Sidebar() {
 
         .collapse-button:hover {
           background: #f2f2f2;
+
           color: #111111;
         }
 
@@ -430,16 +434,19 @@ export default function Sidebar() {
 
         .sidebar-link:hover {
           background: #f5f5f5;
+
           color: #111111;
         }
 
         .sidebar-link.active {
           background: #111111;
+
           color: #ffffff;
         }
 
         .sidebar-link.active:hover {
           background: #111111;
+
           color: #ffffff;
         }
 
@@ -485,6 +492,7 @@ export default function Sidebar() {
 
         .sidebar-link:hover .sidebar-tooltip {
           opacity: 1;
+
           visibility: visible;
         }
 
@@ -495,7 +503,8 @@ export default function Sidebar() {
         .sidebar-bottom {
           padding: 10px;
 
-          border-top: 1px solid #eeeeee;
+          /* Border removed */
+          border-top: none;
         }
 
         .sidebar-profile {
@@ -538,6 +547,7 @@ export default function Sidebar() {
 
         .profile-info {
           display: flex;
+
           flex-direction: column;
 
           min-width: 0;
@@ -578,7 +588,8 @@ export default function Sidebar() {
 
           -webkit-backdrop-filter: blur(12px);
 
-          border-bottom: 1px solid #e8e8e8;
+          /* Border removed */
+          border-bottom: none;
 
           display: flex;
 
@@ -699,16 +710,6 @@ export default function Sidebar() {
           border: 1px solid #ffffff;
         }
 
-        .top-nav-divider {
-          width: 1px;
-
-          height: 30px;
-
-          background: #e5e5e5;
-
-          margin: 0 8px;
-        }
-
         /* =================================
            TOP USER
         ================================= */
@@ -780,7 +781,7 @@ export default function Sidebar() {
         }
 
         /* =================================
-           MOBILE BUTTON
+           MOBILE MENU BUTTON
         ================================= */
 
         .sidebar-mobile-button {
@@ -794,7 +795,7 @@ export default function Sidebar() {
           width: 40px;
           height: 40px;
 
-          border: 1px solid #e5e5e5;
+          border: none;
 
           border-radius: 9px;
 
@@ -854,10 +855,6 @@ export default function Sidebar() {
             display: none;
           }
 
-          .top-nav-divider {
-            display: none;
-          }
-
           .main-content {
             padding-top: 84px;
           }
@@ -883,6 +880,7 @@ export default function Sidebar() {
 
           .top-nav-button {
             width: 36px;
+
             height: 36px;
           }
         }
