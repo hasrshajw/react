@@ -53,7 +53,6 @@ function App() {
   min-height: 100vh;
   margin-left: 250px;
   padding: 104px 32px 32px;
-  transition: margin-left 0.25s ease;
 }
 
         @media (max-width: 768px) {
