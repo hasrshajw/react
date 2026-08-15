@@ -31,16 +31,18 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* =========================================
+      {/* ==================================================
           TOP NAVIGATION
-      ========================================== */}
+      ================================================== */}
 
       <header className="top-nav">
         <div className="top-nav-content">
 
-          {/* Left */}
+          {/* LEFT */}
+
           <div className="top-nav-left">
             <div className="breadcrumb">
+
               <span className="breadcrumb-muted">
                 Dashboard
               </span>
@@ -52,13 +54,16 @@ export default function Sidebar() {
               <span className="breadcrumb-current">
                 Overview
               </span>
+
             </div>
           </div>
 
-          {/* Right */}
+          {/* RIGHT */}
+
           <div className="top-nav-right">
 
             {/* Search */}
+
             <button
               className="top-nav-button"
               aria-label="Search"
@@ -67,6 +72,7 @@ export default function Sidebar() {
             </button>
 
             {/* Notifications */}
+
             <button
               className="top-nav-button notification-button"
               aria-label="Notifications"
@@ -76,15 +82,20 @@ export default function Sidebar() {
               <span className="notification-dot"></span>
             </button>
 
+            {/* Divider */}
+
             <div className="top-nav-divider"></div>
 
             {/* User */}
+
             <button className="top-user">
+
               <div className="top-user-avatar">
                 H
               </div>
 
               <div className="top-user-info">
+
                 <span className="top-user-name">
                   Harsha
                 </span>
@@ -92,28 +103,19 @@ export default function Sidebar() {
                 <span className="top-user-role">
                   Administrator
                 </span>
+
               </div>
+
             </button>
 
           </div>
         </div>
-
-        {/* =====================================
-            HIDE NAVBAR BORDER OVER SIDEBAR
-        ====================================== */}
-
-        <div
-          className={`navbar-sidebar-cover ${
-            isExpanded
-              ? "cover-expanded"
-              : "cover-collapsed"
-          }`}
-        />
       </header>
 
-      {/* =========================================
+
+      {/* ==================================================
           MOBILE MENU BUTTON
-      ========================================== */}
+      ================================================== */}
 
       <button
         className="sidebar-mobile-button"
@@ -123,9 +125,10 @@ export default function Sidebar() {
         <Menu size={22} />
       </button>
 
-      {/* =========================================
+
+      {/* ==================================================
           SIDEBAR
-      ========================================== */}
+      ================================================== */}
 
       <aside
         className={`sidebar ${
@@ -143,7 +146,9 @@ export default function Sidebar() {
         }}
       >
 
-        {/* Sidebar Header */}
+        {/* ==================================================
+            SIDEBAR HEADER
+        ================================================== */}
 
         <div className="sidebar-header">
 
@@ -161,7 +166,8 @@ export default function Sidebar() {
 
           </div>
 
-          {/* Collapse */}
+
+          {/* Collapse Button */}
 
           <button
             className="collapse-button"
@@ -184,7 +190,10 @@ export default function Sidebar() {
 
         </div>
 
-        {/* Navigation */}
+
+        {/* ==================================================
+            SIDEBAR NAVIGATION
+        ================================================== */}
 
         <nav className="sidebar-navigation">
 
@@ -230,11 +239,15 @@ export default function Sidebar() {
 
               </NavLink>
             );
+
           })}
 
         </nav>
 
-        {/* Bottom Profile */}
+
+        {/* ==================================================
+            SIDEBAR BOTTOM
+        ================================================== */}
 
         <div className="sidebar-bottom">
 
@@ -264,9 +277,10 @@ export default function Sidebar() {
 
       </aside>
 
-      {/* =========================================
+
+      {/* ==================================================
           STYLES
-      ========================================== */}
+      ================================================== */}
 
       <style>{`
 
@@ -274,9 +288,10 @@ export default function Sidebar() {
           box-sizing: border-box;
         }
 
-        /* =========================================
+
+        /* ==================================================
            SIDEBAR
-        ========================================== */
+        ================================================== */
 
         .sidebar {
           position: fixed;
@@ -294,13 +309,12 @@ export default function Sidebar() {
           display: flex;
           flex-direction: column;
 
-          z-index: 1000;
+          z-index: 2000;
 
           overflow: visible;
 
           transition:
-            width 0.25s ease,
-            box-shadow 0.25s ease;
+            width 0.25s ease;
         }
 
         .sidebar.expanded {
@@ -311,28 +325,40 @@ export default function Sidebar() {
           width: 72px;
         }
 
-        /* =========================================
+
+        /* ==================================================
            SIDEBAR HEADER
-        ========================================== */
+
+           IMPORTANT:
+           NO BORDER HERE
+        ================================================== */
 
         .sidebar-header {
           height: 72px;
 
           display: flex;
+
           align-items: center;
+
           justify-content: space-between;
 
           padding: 0 14px;
 
-          border-bottom: 1px solid #eeeeee;
+          border-bottom: none;
 
-          position: relative;
+          background: #ffffff;
 
-          z-index: 2;
+          flex-shrink: 0;
         }
+
+
+        /* ==================================================
+           BRAND
+        ================================================== */
 
         .brand {
           display: flex;
+
           align-items: center;
 
           gap: 11px;
@@ -349,18 +375,23 @@ export default function Sidebar() {
           border-radius: 11px;
 
           background: #111111;
+
           color: #ffffff;
 
           display: flex;
+
           align-items: center;
+
           justify-content: center;
 
           font-size: 18px;
+
           font-weight: 700;
         }
 
         .brand-name {
           font-size: 16px;
+
           font-weight: 700;
 
           color: #171717;
@@ -368,9 +399,10 @@ export default function Sidebar() {
           white-space: nowrap;
         }
 
-        /* =========================================
+
+        /* ==================================================
            COLLAPSE BUTTON
-        ========================================== */
+        ================================================== */
 
         .collapse-button {
           width: 30px;
@@ -383,7 +415,9 @@ export default function Sidebar() {
           border-radius: 7px;
 
           display: flex;
+
           align-items: center;
+
           justify-content: center;
 
           cursor: pointer;
@@ -397,12 +431,14 @@ export default function Sidebar() {
 
         .collapse-button:hover {
           background: #f2f2f2;
+
           color: #111111;
         }
 
-        /* =========================================
+
+        /* ==================================================
            SIDEBAR NAVIGATION
-        ========================================== */
+        ================================================== */
 
         .sidebar-navigation {
           flex: 1;
@@ -432,6 +468,7 @@ export default function Sidebar() {
           height: 44px;
 
           display: flex;
+
           align-items: center;
 
           gap: 12px;
@@ -459,16 +496,19 @@ export default function Sidebar() {
 
         .sidebar-link:hover {
           background: #f5f5f5;
+
           color: #111111;
         }
 
         .sidebar-link.active {
           background: #111111;
+
           color: #ffffff;
         }
 
         .sidebar-link.active:hover {
           background: #111111;
+
           color: #ffffff;
         }
 
@@ -476,9 +516,10 @@ export default function Sidebar() {
           flex-shrink: 0;
         }
 
-        /* =========================================
-           TOOLTIP
-        ========================================== */
+
+        /* ==================================================
+           COLLAPSED TOOLTIP
+        ================================================== */
 
         .sidebar-tooltip {
           position: absolute;
@@ -509,28 +550,33 @@ export default function Sidebar() {
 
           transition: opacity 0.15s ease;
 
-          z-index: 2000;
+          z-index: 3000;
         }
 
         .sidebar-link:hover .sidebar-tooltip {
           opacity: 1;
+
           visibility: visible;
         }
 
-        /* =========================================
+
+        /* ==================================================
            SIDEBAR BOTTOM
-        ========================================== */
+        ================================================== */
 
         .sidebar-bottom {
           padding: 10px;
 
           border-top: 1px solid #eeeeee;
+
+          flex-shrink: 0;
         }
 
         .sidebar-profile {
           height: 52px;
 
           display: flex;
+
           align-items: center;
 
           gap: 11px;
@@ -557,7 +603,9 @@ export default function Sidebar() {
           color: #333333;
 
           display: flex;
+
           align-items: center;
+
           justify-content: center;
 
           font-size: 13px;
@@ -567,6 +615,7 @@ export default function Sidebar() {
 
         .profile-info {
           display: flex;
+
           flex-direction: column;
 
           min-width: 0;
@@ -588,31 +637,35 @@ export default function Sidebar() {
           margin-top: 2px;
         }
 
-        /* =========================================
-           TOP NAV
-        ========================================== */
+
+        /* ==================================================
+           TOP NAVIGATION
+        ================================================== */
 
         .top-nav {
           position: fixed;
 
           top: 0;
+
           left: 0;
+
           right: 0;
 
           height: 72px;
 
-          background: rgba(255, 255, 255, 0.96);
+          background: rgba(255, 255, 255, 0.97);
 
           backdrop-filter: blur(12px);
+
           -webkit-backdrop-filter: blur(12px);
 
           border-bottom: 1px solid #e8e8e8;
 
-          z-index: 900;
+          z-index: 1000;
         }
 
         .top-nav-content {
-          height: 100%;
+          height: 72px;
 
           margin-left: 250px;
 
@@ -624,42 +677,14 @@ export default function Sidebar() {
 
           padding: 0 28px;
 
-          transition: margin-left 0.25s ease;
+          transition:
+            margin-left 0.25s ease;
         }
 
-        /* =========================================
-           IMPORTANT:
-           COVER HIDES BORDER ONLY ABOVE SIDEBAR
-        ========================================== */
 
-        .navbar-sidebar-cover {
-          position: absolute;
-
-          top: 0;
-          left: 0;
-
-          height: 72px;
-
-          background: #ffffff;
-
-          z-index: 10;
-
-          pointer-events: none;
-
-          transition: width 0.25s ease;
-        }
-
-        .cover-expanded {
-          width: 250px;
-        }
-
-        .cover-collapsed {
-          width: 72px;
-        }
-
-        /* =========================================
+        /* ==================================================
            TOP NAV LEFT
-        ========================================== */
+        ================================================== */
 
         .top-nav-left {
           display: flex;
@@ -691,9 +716,10 @@ export default function Sidebar() {
           font-weight: 600;
         }
 
-        /* =========================================
+
+        /* ==================================================
            TOP NAV RIGHT
-        ========================================== */
+        ================================================== */
 
         .top-nav-right {
           display: flex;
@@ -716,6 +742,7 @@ export default function Sidebar() {
           display: flex;
 
           align-items: center;
+
           justify-content: center;
 
           cursor: pointer;
@@ -743,9 +770,11 @@ export default function Sidebar() {
           position: absolute;
 
           top: 8px;
+
           right: 8px;
 
           width: 6px;
+
           height: 6px;
 
           border-radius: 50%;
@@ -765,9 +794,10 @@ export default function Sidebar() {
           margin: 0 8px;
         }
 
-        /* =========================================
+
+        /* ==================================================
            TOP USER
-        ========================================== */
+        ================================================== */
 
         .top-user {
           border: none;
@@ -806,6 +836,7 @@ export default function Sidebar() {
           display: flex;
 
           align-items: center;
+
           justify-content: center;
 
           font-size: 12px;
@@ -835,9 +866,10 @@ export default function Sidebar() {
           color: #999999;
         }
 
-        /* =========================================
-           MOBILE BUTTON
-        ========================================== */
+
+        /* ==================================================
+           MOBILE MENU BUTTON
+        ================================================== */
 
         .sidebar-mobile-button {
           display: none;
@@ -845,9 +877,11 @@ export default function Sidebar() {
           position: fixed;
 
           top: 15px;
+
           left: 15px;
 
           width: 40px;
+
           height: 40px;
 
           border: 1px solid #e5e5e5;
@@ -857,16 +891,18 @@ export default function Sidebar() {
           background: #ffffff;
 
           align-items: center;
+
           justify-content: center;
 
           cursor: pointer;
 
-          z-index: 1100;
+          z-index: 3000;
         }
 
-        /* =========================================
+
+        /* ==================================================
            MOBILE
-        ========================================== */
+        ================================================== */
 
         @media (max-width: 768px) {
 
@@ -896,10 +932,6 @@ export default function Sidebar() {
             padding-left: 70px;
           }
 
-          .navbar-sidebar-cover {
-            display: none;
-          }
-
           .top-nav-left {
             display: none;
           }
@@ -914,14 +946,16 @@ export default function Sidebar() {
 
         }
 
-        /* =========================================
+
+        /* ==================================================
            SMALL MOBILE
-        ========================================== */
+        ================================================== */
 
         @media (max-width: 480px) {
 
           .top-nav-content {
             padding-left: 65px;
+
             padding-right: 12px;
           }
 
@@ -931,6 +965,7 @@ export default function Sidebar() {
 
           .top-nav-button {
             width: 36px;
+
             height: 36px;
           }
 
