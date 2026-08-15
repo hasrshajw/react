@@ -44,7 +44,6 @@ export default function Sidebar({
 
           <div className="top-nav-left">
             <div className="breadcrumb">
-
               <span className="breadcrumb-muted">
                 Dashboard
               </span>
@@ -56,7 +55,6 @@ export default function Sidebar({
               <span className="breadcrumb-current">
                 Overview
               </span>
-
             </div>
           </div>
 
@@ -168,7 +166,6 @@ export default function Sidebar({
 
           </div>
 
-
           {/* Collapse Button */}
 
           <button
@@ -223,7 +220,7 @@ export default function Sidebar({
 
                 <Icon
                   className="sidebar-icon"
-                  size={20}
+                  size={22}
                   strokeWidth={2}
                 />
 
@@ -330,9 +327,6 @@ export default function Sidebar({
 
         /* ==================================================
            SIDEBAR HEADER
-
-           IMPORTANT:
-           NO BORDER HERE
         ================================================== */
 
         .sidebar-header {
@@ -445,7 +439,7 @@ export default function Sidebar({
         .sidebar-navigation {
           flex: 1;
 
-          padding: 20px 10px;
+          padding: 20px 8px;
 
           overflow-y: auto;
         }
@@ -464,10 +458,17 @@ export default function Sidebar({
           margin-bottom: 8px;
         }
 
+
+        /* ==================================================
+           NORMAL SIDEBAR LINK
+        ================================================== */
+
         .sidebar-link {
           position: relative;
 
           height: 44px;
+
+          width: 100%;
 
           display: flex;
 
@@ -520,7 +521,91 @@ export default function Sidebar({
 
 
         /* ==================================================
-           COLLAPSED TOOLTIP
+           COLLAPSED SIDEBAR
+           
+           THIS IS THE IMPORTANT FIX
+           
+           Every menu item becomes a perfect
+           centered square when collapsed.
+        ================================================== */
+
+        .sidebar.collapsed .sidebar-navigation {
+          padding-left: 8px;
+
+          padding-right: 8px;
+        }
+
+        .sidebar.collapsed .sidebar-link {
+          width: 56px;
+
+          height: 56px;
+
+          min-width: 56px;
+
+          padding: 0;
+
+          margin: 6px auto;
+
+          border-radius: 12px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          gap: 0;
+        }
+
+        .sidebar.collapsed .sidebar-link.active {
+          width: 56px;
+
+          height: 56px;
+
+          min-width: 56px;
+
+          padding: 0;
+
+          margin-left: auto;
+
+          margin-right: auto;
+
+          background: #111111;
+
+          color: #ffffff;
+        }
+
+        .sidebar.collapsed .sidebar-icon {
+          width: 22px;
+
+          height: 22px;
+
+          margin: 0;
+        }
+
+
+        /* ==================================================
+           HOVERED COLLAPSED SIDEBAR
+           
+           When the collapsed sidebar expands on hover,
+           restore the normal menu layout.
+        ================================================== */
+
+        .sidebar.expanded .sidebar-link {
+          width: 100%;
+
+          height: 44px;
+
+          padding: 0 12px;
+
+          margin: 3px 0;
+
+          gap: 12px;
+        }
+
+
+        /* ==================================================
+           TOOLTIP
         ================================================== */
 
         .sidebar-tooltip {
@@ -944,6 +1029,20 @@ export default function Sidebar({
 
           .top-nav-divider {
             display: none;
+          }
+
+          .sidebar.collapsed .sidebar-link {
+            width: 100%;
+
+            height: 44px;
+
+            padding: 0 12px;
+
+            margin: 3px 0;
+
+            justify-content: flex-start;
+
+            gap: 12px;
           }
 
         }
