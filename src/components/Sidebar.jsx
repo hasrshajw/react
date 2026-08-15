@@ -1,5 +1,20 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
+import dashboard from "../assets/dashboard.svg";
+import hoverDashboard from "../assets/hover_dashboard.svg";
+import fillDashboard from "../assets/fill_dashboard.svg";
+
+import inventory from "../assets/inventory.svg";
+import hoverInventory from "../assets/hover_inventory.svg";
+import fillInventory from "../assets/fill_inventory.svg";
+
+import coupons from "../assets/coupons.svg";
+import hoverCoupons from "../assets/hover_coupons.svg";
+import fillCoupons from "../assets/fill_coupons.svg";
+
+import site from "../assets/site.svg";
+import hoverSite from "../assets/hover_site.svg";
+import fillSite from "../assets/fill_site.svg";
 import {
   Search,
   Bell,
