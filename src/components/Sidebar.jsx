@@ -23,8 +23,10 @@ const menuItems = [
   },
 ];
 
-export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({
+  collapsed,
+  setCollapsed,
+}) {
   const [hovered, setHovered] = useState(false);
 
   const isExpanded = !collapsed || hovered;
