@@ -32,6 +32,86 @@ export default function Sidebar() {
   return (
     <>
       {/* =========================================
+          TOP NAVIGATION
+      ========================================== */}
+
+      <header className="top-nav">
+        <div className="top-nav-content">
+
+          {/* Left */}
+          <div className="top-nav-left">
+            <div className="breadcrumb">
+              <span className="breadcrumb-muted">
+                Dashboard
+              </span>
+
+              <span className="breadcrumb-separator">
+                /
+              </span>
+
+              <span className="breadcrumb-current">
+                Overview
+              </span>
+            </div>
+          </div>
+
+          {/* Right */}
+          <div className="top-nav-right">
+
+            {/* Search */}
+            <button
+              className="top-nav-button"
+              aria-label="Search"
+            >
+              <Search size={19} />
+            </button>
+
+            {/* Notifications */}
+            <button
+              className="top-nav-button notification-button"
+              aria-label="Notifications"
+            >
+              <Bell size={19} />
+
+              <span className="notification-dot"></span>
+            </button>
+
+            <div className="top-nav-divider"></div>
+
+            {/* User */}
+            <button className="top-user">
+              <div className="top-user-avatar">
+                H
+              </div>
+
+              <div className="top-user-info">
+                <span className="top-user-name">
+                  Harsha
+                </span>
+
+                <span className="top-user-role">
+                  Administrator
+                </span>
+              </div>
+            </button>
+
+          </div>
+        </div>
+
+        {/* =====================================
+            HIDE NAVBAR BORDER OVER SIDEBAR
+        ====================================== */}
+
+        <div
+          className={`navbar-sidebar-cover ${
+            isExpanded
+              ? "cover-expanded"
+              : "cover-collapsed"
+          }`}
+        />
+      </header>
+
+      {/* =========================================
           MOBILE MENU BUTTON
       ========================================== */}
 
@@ -62,10 +142,13 @@ export default function Sidebar() {
           }
         }}
       >
+
         {/* Sidebar Header */}
 
         <div className="sidebar-header">
+
           <div className="brand">
+
             <div className="brand-logo">
               S
             </div>
@@ -75,7 +158,10 @@ export default function Sidebar() {
                 Dashboard
               </span>
             )}
+
           </div>
+
+          {/* Collapse */}
 
           <button
             className="collapse-button"
@@ -95,11 +181,13 @@ export default function Sidebar() {
               <ChevronLeft size={18} />
             )}
           </button>
+
         </div>
 
         {/* Navigation */}
 
         <nav className="sidebar-navigation">
+
           {isExpanded && (
             <div className="navigation-title">
               MENU
@@ -107,6 +195,7 @@ export default function Sidebar() {
           )}
 
           {menuItems.map((item) => {
+
             const Icon = item.icon;
 
             return (
@@ -120,6 +209,7 @@ export default function Sidebar() {
                   }`
                 }
               >
+
                 <Icon
                   className="sidebar-icon"
                   size={20}
@@ -137,21 +227,26 @@ export default function Sidebar() {
                     {item.name}
                   </span>
                 )}
+
               </NavLink>
             );
           })}
+
         </nav>
 
-        {/* Sidebar Bottom */}
+        {/* Bottom Profile */}
 
         <div className="sidebar-bottom">
+
           <div className="sidebar-profile">
+
             <div className="profile-avatar">
               H
             </div>
 
             {isExpanded && (
               <div className="profile-info">
+
                 <span className="profile-name">
                   Harsha
                 </span>
@@ -159,87 +254,15 @@ export default function Sidebar() {
                 <span className="profile-role">
                   Administrator
                 </span>
+
               </div>
             )}
+
           </div>
+
         </div>
+
       </aside>
-
-      {/* =========================================
-          TOP NAVBAR
-      ========================================== */}
-
-      <header
-        className={`top-nav ${
-          isExpanded
-            ? "top-nav-expanded"
-            : "top-nav-collapsed"
-        }`}
-      >
-        {/* Left */}
-
-        <div className="top-nav-left">
-          <div className="breadcrumb">
-            <span className="breadcrumb-muted">
-              Dashboard
-            </span>
-
-            <span className="breadcrumb-separator">
-              /
-            </span>
-
-            <span className="breadcrumb-current">
-              Overview
-            </span>
-          </div>
-        </div>
-
-        {/* Right */}
-
-        <div className="top-nav-right">
-          {/* Search */}
-
-          <button
-            className="top-nav-button"
-            aria-label="Search"
-          >
-            <Search size={19} />
-          </button>
-
-          {/* Notifications */}
-
-          <button
-            className="top-nav-button notification-button"
-            aria-label="Notifications"
-          >
-            <Bell size={19} />
-
-            <span className="notification-dot"></span>
-          </button>
-
-          {/* Divider */}
-
-          <div className="top-nav-divider"></div>
-
-          {/* User */}
-
-          <button className="top-user">
-            <div className="top-user-avatar">
-              H
-            </div>
-
-            <div className="top-user-info">
-              <span className="top-user-name">
-                Harsha
-              </span>
-
-              <span className="top-user-role">
-                Administrator
-              </span>
-            </div>
-          </button>
-        </div>
-      </header>
 
       {/* =========================================
           STYLES
@@ -302,6 +325,10 @@ export default function Sidebar() {
           padding: 0 14px;
 
           border-bottom: 1px solid #eeeeee;
+
+          position: relative;
+
+          z-index: 2;
         }
 
         .brand {
@@ -334,7 +361,6 @@ export default function Sidebar() {
 
         .brand-name {
           font-size: 16px;
-
           font-weight: 700;
 
           color: #171717;
@@ -371,7 +397,6 @@ export default function Sidebar() {
 
         .collapse-button:hover {
           background: #f2f2f2;
-
           color: #111111;
         }
 
@@ -434,19 +459,16 @@ export default function Sidebar() {
 
         .sidebar-link:hover {
           background: #f5f5f5;
-
           color: #111111;
         }
 
         .sidebar-link.active {
           background: #111111;
-
           color: #ffffff;
         }
 
         .sidebar-link.active:hover {
           background: #111111;
-
           color: #ffffff;
         }
 
@@ -492,7 +514,6 @@ export default function Sidebar() {
 
         .sidebar-link:hover .sidebar-tooltip {
           opacity: 1;
-
           visibility: visible;
         }
 
@@ -546,7 +567,6 @@ export default function Sidebar() {
 
         .profile-info {
           display: flex;
-
           flex-direction: column;
 
           min-width: 0;
@@ -569,21 +589,14 @@ export default function Sidebar() {
         }
 
         /* =========================================
-           TOP NAVBAR
+           TOP NAV
         ========================================== */
-
-        /*
-          IMPORTANT:
-          The navbar starts AFTER the sidebar.
-          Therefore its border-bottom can NEVER
-          appear over the sidebar.
-        */
 
         .top-nav {
           position: fixed;
 
           top: 0;
-
+          left: 0;
           right: 0;
 
           height: 72px;
@@ -591,10 +604,17 @@ export default function Sidebar() {
           background: rgba(255, 255, 255, 0.96);
 
           backdrop-filter: blur(12px);
-
           -webkit-backdrop-filter: blur(12px);
 
           border-bottom: 1px solid #e8e8e8;
+
+          z-index: 900;
+        }
+
+        .top-nav-content {
+          height: 100%;
+
+          margin-left: 250px;
 
           display: flex;
 
@@ -604,28 +624,37 @@ export default function Sidebar() {
 
           padding: 0 28px;
 
-          z-index: 900;
-
-          transition:
-            left 0.25s ease;
+          transition: margin-left 0.25s ease;
         }
 
-        /*
-          Expanded sidebar:
-          Navbar begins at 250px.
-        */
+        /* =========================================
+           IMPORTANT:
+           COVER HIDES BORDER ONLY ABOVE SIDEBAR
+        ========================================== */
 
-        .top-nav-expanded {
-          left: 250px;
+        .navbar-sidebar-cover {
+          position: absolute;
+
+          top: 0;
+          left: 0;
+
+          height: 72px;
+
+          background: #ffffff;
+
+          z-index: 10;
+
+          pointer-events: none;
+
+          transition: width 0.25s ease;
         }
 
-        /*
-          Collapsed sidebar:
-          Navbar begins at 72px.
-        */
+        .cover-expanded {
+          width: 250px;
+        }
 
-        .top-nav-collapsed {
-          left: 72px;
+        .cover-collapsed {
+          width: 72px;
         }
 
         /* =========================================
@@ -706,10 +735,6 @@ export default function Sidebar() {
           color: #111111;
         }
 
-        /* =========================================
-           NOTIFICATION
-        ========================================== */
-
         .notification-button {
           position: relative;
         }
@@ -729,10 +754,6 @@ export default function Sidebar() {
 
           border: 1px solid #ffffff;
         }
-
-        /* =========================================
-           DIVIDER
-        ========================================== */
 
         .top-nav-divider {
           width: 1px;
@@ -855,10 +876,6 @@ export default function Sidebar() {
 
           .sidebar {
             transform: translateX(-100%);
-
-            transition:
-              transform 0.25s ease,
-              width 0.25s ease;
           }
 
           .sidebar.expanded {
@@ -873,17 +890,14 @@ export default function Sidebar() {
             transform: translateX(-100%);
           }
 
-          /*
-            On mobile the navbar spans the
-            entire screen.
-          */
-
-          .top-nav {
-            left: 0 !important;
-
-            height: 64px;
+          .top-nav-content {
+            margin-left: 0;
 
             padding-left: 70px;
+          }
+
+          .navbar-sidebar-cover {
+            display: none;
           }
 
           .top-nav-left {
@@ -897,6 +911,7 @@ export default function Sidebar() {
           .top-nav-divider {
             display: none;
           }
+
         }
 
         /* =========================================
@@ -905,7 +920,8 @@ export default function Sidebar() {
 
         @media (max-width: 480px) {
 
-          .top-nav {
+          .top-nav-content {
+            padding-left: 65px;
             padding-right: 12px;
           }
 
@@ -913,14 +929,15 @@ export default function Sidebar() {
             gap: 2px;
           }
 
-          .top-user {
-            padding: 3px;
-          }
-
           .top-nav-button {
             width: 36px;
             height: 36px;
           }
+
+          .top-user {
+            padding: 3px;
+          }
+
         }
 
       `}</style>
