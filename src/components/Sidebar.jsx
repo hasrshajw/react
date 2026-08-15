@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import {
-  Search,
-  Bell,
-  ChevronRight,
-} from "lucide-react";
+import { Search, Bell, ChevronRight } from "lucide-react";
 
 /* =========================================================
    LOGO ASSETS
@@ -16,7 +12,6 @@ import logoSmall from "../assets/logo-small.png";
 import panelClose from "../assets/panel_close.svg";
 import panelOpen from "../assets/panel_open.svg";
 
-
 /* =========================================================
    DASHBOARD ICONS
 ========================================================= */
@@ -24,7 +19,6 @@ import panelOpen from "../assets/panel_open.svg";
 import dashboardIcon from "../assets/dashboard.svg";
 import dashboardHover from "../assets/hover_dashboard.svg";
 import dashboardActive from "../assets/fill_dashboard.svg";
-
 
 /* =========================================================
    INVENTORY ICONS
@@ -34,7 +28,6 @@ import inventoryIcon from "../assets/inventory.svg";
 import inventoryHover from "../assets/hover_inventory.svg";
 import inventoryActive from "../assets/fill_inventory.svg";
 
-
 /* =========================================================
    COUPONS ICONS
 ========================================================= */
@@ -42,7 +35,6 @@ import inventoryActive from "../assets/fill_inventory.svg";
 import couponsIcon from "../assets/coupons.svg";
 import couponsHover from "../assets/hover_coupons.svg";
 import couponsActive from "../assets/fill_coupons.svg";
-
 
 /* =========================================================
    SITE ICONS
@@ -52,7 +44,6 @@ import siteIcon from "../assets/site.svg";
 import siteHover from "../assets/hover_site.svg";
 import siteActive from "../assets/fill_site.svg";
 
-
 /* =========================================================
    HERO SECTION ICONS
 ========================================================= */
@@ -60,7 +51,6 @@ import siteActive from "../assets/fill_site.svg";
 import heroIcon from "../assets/herosection.svg";
 import heroHover from "../assets/hover_herosection.svg";
 import heroActive from "../assets/fill_herosection.svg";
-
 
 /* =========================================================
    SECTIONS ICONS
@@ -70,7 +60,6 @@ import sectionsIcon from "../assets/sections.svg";
 import sectionsHover from "../assets/hover_sections.svg";
 import sectionsActive from "../assets/fill_sections.svg";
 
-
 /* =========================================================
    POPUP ICONS
 ========================================================= */
@@ -79,7 +68,6 @@ import popupIcon from "../assets/popup.svg";
 import popupHover from "../assets/hover_popup.svg";
 import popupActive from "../assets/fill_popup.svg";
 
-
 /* =========================================================
    COMBO ICONS
 ========================================================= */
@@ -87,7 +75,6 @@ import popupActive from "../assets/fill_popup.svg";
 import comboIcon from "../assets/combo.svg";
 import comboHover from "../assets/hover_combo.svg";
 import comboActive from "../assets/fill_combo.svg";
-
 
 /* =========================================================
    ICON MAP
@@ -143,7 +130,6 @@ const icons = {
   },
 };
 
-
 /* =========================================================
    MAIN MENU
 ========================================================= */
@@ -167,7 +153,6 @@ const menuItems = [
     icon: "coupons",
   },
 ];
-
 
 /* =========================================================
    CUSTOMIZE SITE SUBMENU
@@ -199,34 +184,21 @@ const submenuItems = [
   },
 ];
 
-
 /* =========================================================
    ICON COMPONENT
 ========================================================= */
 
-function MenuIcon({
-  type,
-  active = false,
-}) {
+function MenuIcon({ type, active = false }) {
   const iconSet = icons[type];
 
   return (
     <span className="menu-icon">
 
-      {/* NORMAL */}
-
       <img
         src={iconSet.normal}
         alt=""
-        className={
-          active
-            ? "icon-hidden"
-            : "icon-visible"
-        }
+        className={active ? "icon-hidden" : "icon-visible"}
       />
-
-
-      {/* HOVER */}
 
       <img
         src={iconSet.hover}
@@ -234,23 +206,15 @@ function MenuIcon({
         className="icon-hover"
       />
 
-
-      {/* ACTIVE */}
-
       <img
         src={iconSet.active}
         alt=""
-        className={
-          active
-            ? "icon-visible"
-            : "icon-hidden"
-        }
+        className={active ? "icon-visible" : "icon-hidden"}
       />
 
     </span>
   );
 }
-
 
 /* =========================================================
    SIDEBAR
@@ -260,68 +224,62 @@ export default function Sidebar({
   collapsed,
   setCollapsed,
 }) {
+  const [siteOpen, setSiteOpen] = useState(false);
 
-  const [siteOpen, setSiteOpen] =
-    useState(false);
-
-
-  /*
-   * IMPORTANT
-   *
-   * The sidebar NEVER expands on hover.
-   *
-   * collapsed = true
-   *     → always 90px
-   *
-   * collapsed = false
-   *     → always 260px
-   */
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const isExpanded = !collapsed;
 
-
   /* =======================================================
-     TOGGLE SIDEBAR
+     DESKTOP SIDEBAR TOGGLE
   ======================================================= */
 
   const handleToggle = () => {
-
     setCollapsed(!collapsed);
-
   };
-
 
   /* =======================================================
      CUSTOMIZE SITE
   ======================================================= */
 
   const handleCustomizeClick = () => {
-
     if (collapsed) {
-
-      /*
-       * Clicking Customize Site while collapsed
-       * will expand the sidebar.
-       */
-
       setCollapsed(false);
-
       setSiteOpen(true);
-
       return;
-
     }
 
     setSiteOpen(!siteOpen);
-
   };
 
+  /* =======================================================
+     MOBILE CUSTOMIZE SITE
+  ======================================================= */
+
+  const handleMobileCustomize = () => {
+    setSiteOpen(!siteOpen);
+  };
+
+  /* =======================================================
+     CLOSE MOBILE DRAWER
+  ======================================================= */
+
+  const closeMobileDrawer = () => {
+    setMobileOpen(false);
+  };
+
+  /* =======================================================
+     MOBILE MENU ITEM CLICK
+  ======================================================= */
+
+  const handleMobileNavigation = () => {
+    setMobileOpen(false);
+  };
 
   return (
     <>
-
       {/* ===================================================
-          TOP NAVBAR
+          DESKTOP TOP NAVBAR
       =================================================== */}
 
       <header className="top-navbar">
@@ -333,10 +291,6 @@ export default function Sidebar({
               : "navbar-collapsed"
           }`}
         >
-
-          {/* ===============================================
-              LEFT
-          =============================================== */}
 
           <div className="navbar-left">
 
@@ -358,29 +312,17 @@ export default function Sidebar({
 
           </div>
 
-
-          {/* ===============================================
-              RIGHT
-          =============================================== */}
-
           <div className="navbar-right">
-
-            {/* SEARCH */}
 
             <button
               className="navbar-icon-button"
               aria-label="Search"
             >
-
               <Search
                 size={19}
                 strokeWidth={2}
               />
-
             </button>
-
-
-            {/* NOTIFICATION */}
 
             <button
               className="navbar-icon-button notification-button"
@@ -396,13 +338,7 @@ export default function Sidebar({
 
             </button>
 
-
-            {/* DIVIDER */}
-
             <div className="navbar-divider" />
-
-
-            {/* USER */}
 
             <button className="navbar-user">
 
@@ -430,9 +366,8 @@ export default function Sidebar({
 
       </header>
 
-
       {/* ===================================================
-          SIDEBAR
+          DESKTOP SIDEBAR
       =================================================== */}
 
       <aside
@@ -444,12 +379,10 @@ export default function Sidebar({
       >
 
         {/* =================================================
-            HEADER
+            SIDEBAR HEADER
         ================================================= */}
 
         <div className="d-sidebar-header">
-
-          {/* FULL LOGO */}
 
           {isExpanded && (
 
@@ -467,9 +400,6 @@ export default function Sidebar({
 
           )}
 
-
-          {/* SMALL LOGO */}
-
           {!isExpanded && (
 
             <span className="mini-logo">
@@ -482,9 +412,6 @@ export default function Sidebar({
             </span>
 
           )}
-
-
-          {/* TOGGLE */}
 
           <button
             className="sidebar-toggle"
@@ -510,7 +437,6 @@ export default function Sidebar({
           </button>
 
         </div>
-
 
         {/* =================================================
             SIDEBAR CONTENT
@@ -540,36 +466,25 @@ export default function Sidebar({
               >
 
                 {({ isActive }) => (
-
                   <>
-
                     <MenuIcon
                       type={item.icon}
                       active={isActive}
                     />
 
-
-                    {/* NORMAL LABEL */}
-
                     <span className="nav-label">
                       {item.name}
                     </span>
 
-
-                    {/* COLLAPSED TOOLTIP */}
-
                     <span className="collapsed-tooltip">
                       {item.name}
                     </span>
-
                   </>
-
                 )}
 
               </NavLink>
 
             ))}
-
 
             {/* =============================================
                 CUSTOMIZE SITE
@@ -581,10 +496,7 @@ export default function Sidebar({
                   ? "dropdown-open active"
                   : ""
               }`}
-
-              onClick={
-                handleCustomizeClick
-              }
+              onClick={handleCustomizeClick}
             >
 
               <MenuIcon
@@ -592,22 +504,13 @@ export default function Sidebar({
                 active={siteOpen}
               />
 
-
-              {/* NORMAL LABEL */}
-
               <span className="nav-label">
                 Customize Site
               </span>
 
-
-              {/* COLLAPSED TOOLTIP */}
-
               <span className="collapsed-tooltip">
                 Customize Site
               </span>
-
-
-              {/* CHEVRON */}
 
               {isExpanded && (
 
@@ -621,9 +524,8 @@ export default function Sidebar({
 
             </div>
 
-
             {/* =============================================
-                SUBMENU
+                DESKTOP SUBMENU
             ============================================= */}
 
             {isExpanded && (
@@ -651,9 +553,7 @@ export default function Sidebar({
                   >
 
                     {({ isActive }) => (
-
                       <>
-
                         <MenuIcon
                           type={item.icon}
                           active={isActive}
@@ -662,9 +562,7 @@ export default function Sidebar({
                         <span>
                           {item.name}
                         </span>
-
                       </>
-
                     )}
 
                   </NavLink>
@@ -676,7 +574,6 @@ export default function Sidebar({
             )}
 
           </nav>
-
 
           {/* =================================================
               ACCOUNT
@@ -714,16 +611,264 @@ export default function Sidebar({
 
       </aside>
 
+      {/* ===================================================
+          MOBILE HEADER
+      =================================================== */}
+
+      <header className="m-header">
+
+        <button
+          className="m-menu-btn"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open menu"
+        >
+
+          <div className="m-menu-lines">
+
+            <span />
+
+          </div>
+
+        </button>
+
+        <NavLink
+          to="/"
+          className="mobile-brand-logo"
+        >
+
+          <img
+            src={logo}
+            alt="Logo"
+          />
+
+        </NavLink>
+
+        <div className="mobile-header-spacer" />
+
+      </header>
+
+      {/* ===================================================
+          MOBILE DRAWER OVERLAY
+      =================================================== */}
+
+      <div
+        className={`m-overlay ${
+          mobileOpen
+            ? "open"
+            : ""
+        }`}
+        onClick={(e) => {
+
+          if (
+            e.target === e.currentTarget
+          ) {
+            closeMobileDrawer();
+          }
+
+        }}
+      >
+
+        {/* =================================================
+            MOBILE DRAWER
+        ================================================= */}
+
+        <div className="m-drawer">
+
+          {/* ===============================================
+              DRAWER HEADER
+          =============================================== */}
+
+          <div className="m-drawer-header">
+
+            <NavLink
+              to="/"
+              className="brand-logo"
+              onClick={
+                closeMobileDrawer
+              }
+            >
+
+              <img
+                src={logo}
+                alt="Logo"
+              />
+
+            </NavLink>
+
+            <button
+              className="m-drawer-close"
+              onClick={
+                closeMobileDrawer
+              }
+              aria-label="Close menu"
+            >
+
+              <span className="m-drawer-close-icon" />
+
+            </button>
+
+          </div>
+
+          {/* ===============================================
+              MOBILE NAVIGATION
+          =============================================== */}
+
+          <nav className="m-drawer-nav">
+
+            {menuItems.map((item) => (
+
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === "/"}
+                onClick={
+                  handleMobileNavigation
+                }
+                className={({ isActive }) =>
+                  `nav-item ${
+                    isActive
+                      ? "active"
+                      : ""
+                  }`
+                }
+              >
+
+                {({ isActive }) => (
+                  <>
+                    <MenuIcon
+                      type={item.icon}
+                      active={isActive}
+                    />
+
+                    <span className="nav-label">
+                      {item.name}
+                    </span>
+                  </>
+                )}
+
+              </NavLink>
+
+            ))}
+
+            {/* =============================================
+                MOBILE CUSTOMIZE SITE
+            ============================================= */}
+
+            <div
+              className={`nav-item ${
+                siteOpen
+                  ? "dropdown-open active"
+                  : ""
+              }`}
+              onClick={
+                handleMobileCustomize
+              }
+            >
+
+              <MenuIcon
+                type="site"
+                active={siteOpen}
+              />
+
+              <span className="nav-label">
+                Customize Site
+              </span>
+
+              <ChevronRight
+                className="nav-chevron"
+                size={17}
+                strokeWidth={2}
+              />
+
+            </div>
+
+            {/* =============================================
+                MOBILE SUBMENU
+            ============================================= */}
+
+            <div
+              className={`nav-submenu ${
+                siteOpen
+                  ? "open"
+                  : ""
+              }`}
+            >
+
+              {submenuItems.map((item) => (
+
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={
+                    handleMobileNavigation
+                  }
+                  className={({ isActive }) =>
+                    `nav-submenu-item ${
+                      isActive
+                        ? "active"
+                        : ""
+                    }`
+                  }
+                >
+
+                  {({ isActive }) => (
+                    <>
+                      <MenuIcon
+                        type={item.icon}
+                        active={isActive}
+                      />
+
+                      <span>
+                        {item.name}
+                      </span>
+                    </>
+                  )}
+
+                </NavLink>
+
+              ))}
+
+            </div>
+
+          </nav>
+
+          {/* ===============================================
+              MOBILE ACCOUNT
+          =============================================== */}
+
+          <div className="m-account-section">
+
+            <div className="account-card">
+
+              <div className="account-avatar">
+                H
+              </div>
+
+              <div className="account-text">
+
+                <div className="account-name">
+                  Harsha
+                </div>
+
+                <div className="account-email">
+                  Administrator
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
 
       {/* ===================================================
           STYLES
       =================================================== */}
 
       <style>{`
-
-        /* =================================================
-           VARIABLES
-        ================================================= */
 
         :root {
 
@@ -743,15 +888,19 @@ export default function Sidebar({
 
           --border: #e5e7eb;
 
+          --tooltip-bg: #1f2937;
+
         }
 
 
         /* =================================================
-           FONT
+           GLOBAL
         ================================================= */
 
         .d-sidebar,
-        .top-navbar {
+        .top-navbar,
+        .m-header,
+        .m-drawer {
 
           font-family:
             "DM Sans",
@@ -764,7 +913,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           TOP NAVBAR
+           DESKTOP TOP NAVBAR
         ================================================= */
 
         .top-navbar {
@@ -801,10 +950,6 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
-           NAVBAR INNER
-        ================================================= */
-
         .top-navbar-inner {
 
           height:
@@ -821,8 +966,7 @@ export default function Sidebar({
             0 28px;
 
           transition:
-            margin-left
-            0.3s
+            margin-left 0.3s
             cubic-bezier(
               0.4,
               0,
@@ -848,10 +992,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           NAVBAR LEFT
-        ================================================= */
 
         .navbar-left {
 
@@ -897,10 +1037,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           NAVBAR RIGHT
-        ================================================= */
 
         .navbar-right {
 
@@ -991,10 +1127,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           NAVBAR USER
-        ================================================= */
 
         .navbar-user {
 
@@ -1088,7 +1220,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           SIDEBAR
+           DESKTOP SIDEBAR
         ================================================= */
 
         .d-sidebar {
@@ -1117,8 +1249,7 @@ export default function Sidebar({
           z-index: 2000;
 
           transition:
-            width
-            0.3s
+            width 0.3s
             cubic-bezier(
               0.4,
               0,
@@ -1138,7 +1269,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           HEADER
+           SIDEBAR HEADER
         ================================================= */
 
         .d-sidebar-header {
@@ -1204,10 +1335,6 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
-           TOGGLE
-        ================================================= */
-
         .sidebar-toggle {
 
           background:
@@ -1244,10 +1371,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           COLLAPSED HEADER
-        ================================================= */
 
         .d-sidebar.collapsed
         .d-sidebar-header {
@@ -1287,7 +1410,7 @@ export default function Sidebar({
 
 
         /* =================================================
-           NAV ITEM
+           NAV ITEMS
         ================================================= */
 
         .nav-item {
@@ -1334,10 +1457,6 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
-           HOVER
-        ================================================= */
-
         .nav-item:hover {
 
           background:
@@ -1345,10 +1464,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           ACTIVE
-        ================================================= */
 
         .nav-item.active {
 
@@ -1358,7 +1473,7 @@ export default function Sidebar({
           color:
             var(--brand-primary);
 
-          font-weight: 600;
+          font-weight: 700;
 
         }
 
@@ -1436,22 +1551,6 @@ export default function Sidebar({
         }
 
 
-        .nav-item.active
-        .menu-icon .icon-active {
-
-          opacity: 1;
-
-        }
-
-
-        .nav-item.active
-        .menu-icon .icon-normal {
-
-          opacity: 0;
-
-        }
-
-
         /* =================================================
            CHEVRON
         ================================================= */
@@ -1460,13 +1559,15 @@ export default function Sidebar({
 
           margin-left: auto;
 
+          flex-shrink: 0;
+
           transition:
             transform 0.25s ease;
 
         }
 
 
-        .dropdown-open
+        .nav-item.dropdown-open
         .nav-chevron {
 
           transform:
@@ -1527,7 +1628,7 @@ export default function Sidebar({
 
           font-size: 15px;
 
-          font-weight: 500;
+          font-weight: 600;
 
           text-decoration: none;
 
@@ -1559,24 +1660,13 @@ export default function Sidebar({
           color:
             var(--brand-primary);
 
-          font-weight: 600;
+          font-weight: 700;
 
         }
 
 
         /* =================================================
-           NORMAL LABEL
-        ================================================= */
-
-        .nav-label {
-
-          display: inline-block;
-
-        }
-
-
-        /* =================================================
-           COLLAPSED SIDEBAR
+           COLLAPSED DESKTOP
         ================================================= */
 
         .d-sidebar.collapsed
@@ -1616,12 +1706,6 @@ export default function Sidebar({
 
         /* =================================================
            COLLAPSED TOOLTIP
-
-           THIS IS THE IMPORTANT FIX.
-
-           The tooltip is a SEPARATE element from
-           .nav-label, so display:none on .nav-label
-           cannot affect it.
         ================================================= */
 
         .collapsed-tooltip {
@@ -1639,7 +1723,7 @@ export default function Sidebar({
             translateY(-50%);
 
           background:
-            #1f2937;
+            var(--tooltip-bg);
 
           color:
             #ffffff;
@@ -1673,10 +1757,6 @@ export default function Sidebar({
         }
 
 
-        /* =================================================
-           SHOW LABEL WHEN COLLAPSED + HOVER
-        ================================================= */
-
         .d-sidebar.collapsed
         .nav-item:hover
         .collapsed-tooltip {
@@ -1685,10 +1765,6 @@ export default function Sidebar({
 
         }
 
-
-        /* =================================================
-           TOOLTIP ARROW
-        ================================================= */
 
         .collapsed-tooltip::before {
 
@@ -1703,10 +1779,6 @@ export default function Sidebar({
           transform:
             translateY(-50%);
 
-          width: 0;
-
-          height: 0;
-
           border-top:
             6px solid transparent;
 
@@ -1714,7 +1786,8 @@ export default function Sidebar({
             6px solid transparent;
 
           border-right:
-            6px solid #1f2937;
+            6px solid
+            var(--tooltip-bg);
 
         }
 
@@ -1792,7 +1865,7 @@ export default function Sidebar({
 
           font-size: 15px;
 
-          font-weight: 600;
+          font-weight: 700;
 
           white-space: nowrap;
 
@@ -1803,8 +1876,7 @@ export default function Sidebar({
 
           font-size: 13px;
 
-          color:
-            #6b7280;
+          color: #6b7280;
 
           white-space: nowrap;
 
@@ -1833,10 +1905,436 @@ export default function Sidebar({
 
 
         /* =================================================
-           MOBILE
+           MOBILE HEADER
+           Based on uploaded HTML
+        ================================================= */
+
+        .m-header {
+
+          display: none;
+
+          height: 72px;
+
+          background:
+            #ffffff;
+
+          border-bottom:
+            1px solid
+            var(--border);
+
+          align-items: center;
+
+          justify-content:
+            space-between;
+
+          padding:
+            0 16px;
+
+          position: fixed;
+
+          top: 0;
+          left: 0;
+
+          width: 100%;
+
+          z-index: 1000;
+
+        }
+
+
+        .m-menu-btn {
+
+          width: 40px;
+
+          height: 40px;
+
+          border-radius: 10px;
+
+          border:
+            1px solid #e5e7eb;
+
+          background:
+            #f9fafb;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          cursor: pointer;
+
+        }
+
+
+        .m-menu-lines {
+
+          width: 18px;
+
+          height: 14px;
+
+          position: relative;
+
+        }
+
+
+        .m-menu-lines::before,
+        .m-menu-lines::after,
+        .m-menu-lines span {
+
+          content: "";
+
+          position: absolute;
+
+          left: 0;
+          right: 0;
+
+          height: 2px;
+
+          background:
+            #111827;
+
+          border-radius: 10px;
+
+        }
+
+
+        .m-menu-lines::before {
+
+          top: 0;
+
+        }
+
+
+        .m-menu-lines span {
+
+          top: 6px;
+
+        }
+
+
+        .m-menu-lines::after {
+
+          bottom: 0;
+
+        }
+
+
+        .mobile-brand-logo {
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+        }
+
+
+        .mobile-brand-logo img {
+
+          height: 45px;
+
+          width: auto;
+
+          display: block;
+
+        }
+
+
+        .mobile-header-spacer {
+
+          width: 40px;
+
+        }
+
+
+        /* =================================================
+           MOBILE OVERLAY
+        ================================================= */
+
+        .m-overlay {
+
+          position: fixed;
+
+          inset: 0;
+
+          background:
+            rgba(
+              15,
+              23,
+              42,
+              0.45
+            );
+
+          opacity: 0;
+
+          pointer-events: none;
+
+          transition:
+            opacity 0.25s ease;
+
+          z-index: 4000;
+
+        }
+
+
+        .m-overlay.open {
+
+          opacity: 1;
+
+          pointer-events: auto;
+
+        }
+
+
+        /* =================================================
+           MOBILE DRAWER
+        ================================================= */
+
+        .m-drawer {
+
+          position: absolute;
+
+          left: 0;
+          top: 0;
+
+          width: 300px;
+
+          max-width: 85vw;
+
+          height: 100%;
+
+          background:
+            #ffffff;
+
+          transform:
+            translateX(-100%);
+
+          transition:
+            transform 0.25s ease;
+
+          display: flex;
+
+          flex-direction: column;
+
+          overflow-y: auto;
+
+          overflow-x: hidden;
+
+          box-shadow:
+            8px 0 30px
+            rgba(
+              0,
+              0,
+              0,
+              0.08
+            );
+
+        }
+
+
+        .m-overlay.open
+        .m-drawer {
+
+          transform:
+            translateX(0);
+
+        }
+
+
+        /* =================================================
+           MOBILE DRAWER HEADER
+        ================================================= */
+
+        .m-drawer-header {
+
+          height: 80px;
+
+          min-height: 80px;
+
+          padding:
+            0 20px;
+
+          border-bottom:
+            1px solid
+            var(--border);
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content:
+            space-between;
+
+          flex-shrink: 0;
+
+        }
+
+
+        .m-drawer-header
+        .brand-logo img {
+
+          height: 45px;
+
+        }
+
+
+        .m-drawer-close {
+
+          width: 40px;
+
+          height: 40px;
+
+          border-radius: 10px;
+
+          border:
+            1px solid #e5e7eb;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          background:
+            #f9fafb;
+
+          cursor: pointer;
+
+        }
+
+
+        .m-drawer-close:hover {
+
+          background:
+            var(--hover-bg);
+
+        }
+
+
+        .m-drawer-close-icon {
+
+          width: 14px;
+
+          height: 14px;
+
+          position: relative;
+
+        }
+
+
+        .m-drawer-close-icon::before,
+        .m-drawer-close-icon::after {
+
+          content: "";
+
+          position: absolute;
+
+          inset: 0;
+
+          margin: auto;
+
+          width: 14px;
+
+          height: 2px;
+
+          background:
+            #111827;
+
+          border-radius: 2px;
+
+        }
+
+
+        .m-drawer-close-icon::before {
+
+          transform:
+            rotate(45deg);
+
+        }
+
+
+        .m-drawer-close-icon::after {
+
+          transform:
+            rotate(-45deg);
+
+        }
+
+
+        /* =================================================
+           MOBILE NAV
+        ================================================= */
+
+        .m-drawer-nav {
+
+          padding:
+            20px 12px;
+
+          flex: 1;
+
+          overflow-y: auto;
+
+        }
+
+
+        .m-drawer-nav .nav-item {
+
+          width: 100%;
+
+        }
+
+
+        /* =================================================
+           MOBILE ACCOUNT
+        ================================================= */
+
+        .m-account-section {
+
+          padding:
+            20px;
+
+          border-top:
+            1px solid
+            var(--border);
+
+          background:
+            #ffffff;
+
+          flex-shrink: 0;
+
+        }
+
+
+        .m-account-section
+        .account-avatar {
+
+          border:
+            1px solid
+            var(--border);
+
+        }
+
+
+        /* =================================================
+           MOBILE SUBMENU
+        ================================================= */
+
+        .m-drawer .nav-submenu {
+
+          margin-left: 20px;
+
+        }
+
+
+        /* =================================================
+           MOBILE RESPONSIVE
         ================================================= */
 
         @media (max-width: 768px) {
+
+          /* Hide desktop */
 
           .d-sidebar {
 
@@ -1847,74 +2345,72 @@ export default function Sidebar({
 
           .top-navbar {
 
-            height: 64px;
-
-          }
-
-
-          .top-navbar-inner {
-
-            margin-left: 0 !important;
-
-            height: 64px;
-
-            padding:
-              0 16px;
-
-          }
-
-
-          .navbar-left {
-
             display: none;
 
           }
 
 
-          .navbar-user-info {
+          /* Show mobile header */
 
-            display: none;
+          .m-header {
+
+            display: flex;
 
           }
 
 
-          .navbar-divider {
+          /* Mobile page space */
 
-            display: none;
+          body {
+
+            overflow-x: hidden;
 
           }
 
         }
 
 
-        @media (max-width: 480px) {
+        /* =================================================
+           DESKTOP ONLY
+        ================================================= */
 
-          .navbar-right {
+        @media (min-width: 769px) {
 
-            gap: 2px;
+          .m-header,
+          .m-overlay {
+
+            display: none !important;
+
+          }
+
+        }
+
+
+        /* =================================================
+           SMALL MOBILE
+        ================================================= */
+
+        @media (max-width: 380px) {
+
+          .m-drawer {
+
+            width: 300px;
+
+            max-width: 88vw;
 
           }
 
 
-          .navbar-icon-button {
+          .m-header {
 
-            width: 36px;
-
-            height: 36px;
-
-          }
-
-
-          .navbar-user {
-
-            padding: 3px;
+            padding:
+              0 12px;
 
           }
 
         }
 
       `}</style>
-
     </>
   );
 }
