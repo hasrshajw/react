@@ -60,6 +60,67 @@ export default function Create(){
  <section><h2>Additional Events</h2>{data.events.map((event,index)=><div className="repeat" key={event.id}><button type="button" className="del" onClick={()=>remove("events",event.id)}><Trash2 size={15}/></button><div className="sub">Event {index+1}</div><div className="grid two"><Input label="Event Name EN" value={event.name} onFocus={()=>focus(`event-${index+1}-name-te`)} onChange={v=>patch("events",event.id,{name:v})}/><TeluguInput label="Event Name తెలుగు" value={event.nameTe} onFocus={()=>focus(`event-${index+1}-name-te`)} onChange={v=>patch("events",event.id,{nameTe:v})}/></div><div className="grid three"><Input label="Date" type="date" value={event.date} onFocus={()=>focus(`event-${index+1}-date`)} onChange={v=>patch("events",event.id,{date:v})}/><Input label="Time" type="time" value={event.time} onFocus={()=>focus(`event-${index+1}-time`)} onChange={v=>patch("events",event.id,{time:v})}/><Input label="Venue EN" value={event.venue} onFocus={()=>focus(`event-${index+1}-venue-te`)} onChange={v=>patch("events",event.id,{venue:v})}/></div><TeluguInput label="Venue తెలుగు" value={event.venueTe} onFocus={()=>focus(`event-${index+1}-venue-te`)} onChange={v=>patch("events",event.id,{venueTe:v})}/><Input label="Google Maps Link" value={event.maps} onChange={v=>patch("events",event.id,{maps:v})}/></div>)}{data.events.length<2?<button type="button" className="outline" onClick={()=>add("events",newEvent)}><Plus size={15}/> Add event</button>:<div className="hint">This template supports two additional event slots.</div>}</section>
  </form>
  <aside className={`preview ${previewOpen?"mobile-open":""}`}><div className="preview-head"><div><b>Live Preview</b><small>{selected?.name||selected?.title||"Select a template"}</small></div><button type="button" onClick={()=>setPreviewOpen(false)}><X size={18}/></button></div><div className="preview-body">{selected?<iframe key={selected.id} ref={frameRef} title="Invitation preview" srcDoc={source} sandbox="allow-scripts allow-same-origin allow-forms allow-popups"/>:<div className="empty"><Eye size={28}/><b>Select a template</b><span>Your live invitation appears here.</span></div>}</div></aside></div>
- <style>{`.create{font-family:"DM Sans",Inter,system-ui,sans-serif;color:#18181a}.create *{box-sizing:border-box}.create header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:18px}.create header small{color:#643DE4;font-size:11px;font-weight:700;letter-spacing:.1em}.create h1{margin:5px 0;font-size:28px}.create header p{margin:0;color:#71717a;font-size:13px}.actions{display:flex;gap:9px}.primary,.secondary,.outline{min-height:40px;border-radius:9px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;font-weight:600}.primary{border:0;background:#643DE4;color:#fff}.primary:disabled{opacity:.65}.secondary,.outline{background:#fff;border:1px solid #e4e4e7;color:#3f3f46}.msg{background:#F5F0FA;color:#643DE4;border-radius:9px;padding:11px 13px;font-size:13px;margin-bottom:14px}.layout{display:grid;grid-template-columns:minmax(480px,720px) minmax(420px,1fr);gap:18px;align-items:start}.form{display:flex;flex-direction:column;gap:13px}.form section{background:#fff;border:1px solid #e5e7eb;border-radius:13px;padding:18px}.form h2{margin:0 0 15px;font-size:16px}.sub{font-size:12px;font-weight:700;color:#52525b;margin:8px 0 10px}.hint{font-size:12px;color:#71717a;margin-top:8px}.grid{display:grid;gap:11px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.f{display:flex;flex-direction:column;gap:6px;margin-bottom:11px;min-width:0}.f span{font-size:12px;color:#52525b;font-weight:600}.f input,.f select,.repeat input{width:100%;height:42px;border:1px solid #d4d4d8;border-radius:8px;background:#fff;padding:0 12px;outline:none;font:inherit;color:#18181a}.f input:focus,.f select:focus,.repeat input:focus{border-color:#643DE4;box-shadow:0 0 0 3px rgba(100,61,228,.1)}.te input{font-family:"Noto Sans Telugu","Nirmala UI",sans-serif}.check{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:12px}.check input{accent-color:#643DE4}.repeat{position:relative;border:1px dashed #d4d4d8;border-radius:10px;padding:13px;margin:8px 0}.del{position:absolute;right:8px;top:8px;width:30px;height:30px;border:0;border-radius:7px;background:#fff;color:#71717a;display:grid;place-items:center;cursor:pointer;z-index:2}.del:hover{color:#dc2626;background:#fef2f2}.preview{position:sticky;top:18px;height:calc(100vh - 36px);min-height:620px;background:#fff;border:1px solid #e5e7eb;border-radius:13px;overflow:hidden;display:flex;flex-direction:column}.preview-head{height:58px;flex:0 0 58px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 14px}.preview-head b{display:block;font-size:14px}.preview-head small{display:block;color:#71717a;font-size:11px;margin-top:2px}.preview-head button{display:none;border:0;background:#f4f4f5;border-radius:8px;width:34px;height:34px;place-items:center}.preview-body{position:relative;flex:1;min-height:0;background:#f4f4f5}.preview-body iframe{display:block;width:100%;height:100%;border:0;background:#fff}.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#71717a;font-size:13px}.empty b{color:#27272a}.spin{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.schedy-focus{outline:3px solid rgba(100,61,228,.28);outline-offset:4px;border-radius:4px}@media(max-width:1100px){.layout{grid-template-columns:minmax(420px,1fr) minmax(360px,1fr)}}@media(max-width:900px){.create header{align-items:flex-start}.layout{grid-template-columns:1fr}.preview{position:fixed;inset:0;z-index:1000;height:100vh;min-height:0;border-radius:0;display:none}.preview.mobile-open{display:flex}.preview.mobile-open .preview-head button{display:grid}.grid.three{grid-template-columns:1fr 1fr}}@media(max-width:600px){.create header{flex-direction:column}.actions{width:100%}.actions button{flex:1}.grid.two,.grid.three{grid-template-columns:1fr}}`}</style>
+ <style>{`
+  .create { font-family: "DM Sans", Inter, system-ui, sans-serif; color: var(--dark); }
+  .create * { box-sizing: border-box; }
+  .create header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 18px; }
+  .create header small { color: var(--primary); font-size: 11px; font-weight: 700; letter-spacing: .1em; }
+  .create h1 { margin: 5px 0; font-size: 28px; color: var(--dark); font-weight: 700; }
+  .create header p { margin: 0; color: var(--gray); font-size: 13px; }
+  .actions { display: flex; gap: 9px; }
+  .primary, .secondary, .outline { min-height: 40px; border-radius: 9px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; font-weight: 600; transition: all .2s ease; }
+  .primary { border: 0; background: var(--primary); color: var(--white); }
+  .primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .primary:disabled { opacity: .65; }
+  .secondary, .outline { background: var(--white); border: 1px solid var(--gray-border); color: var(--gray-dark); }
+  .secondary:hover, .outline:hover { background: var(--gray-light); }
+  .msg { background: var(--primary-light); color: var(--primary-dark); border-radius: 9px; padding: 11px 13px; font-size: 13px; margin-bottom: 14px; }
+  .layout { display: grid; grid-template-columns: minmax(480px, 720px) minmax(420px, 1fr); gap: 18px; align-items: start; }
+  .form { display: flex; flex-direction: column; gap: 13px; }
+  .form section { background: var(--white); border: 1px solid var(--gray-border); border-radius: 13px; padding: 18px; }
+  .form h2 { margin: 0 0 15px; font-size: 16px; color: var(--dark); }
+  .sub { font-size: 12px; font-weight: 700; color: var(--gray-dark); margin: 8px 0 10px; }
+  .hint { font-size: 12px; color: var(--gray); margin-top: 8px; }
+  .grid { display: grid; gap: 11px; }
+  .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .f { display: flex; flex-direction: column; gap: 6px; margin-bottom: 11px; min-width: 0; }
+  .f span { font-size: 12px; color: var(--gray-dark); font-weight: 600; }
+  .f input, .f select, .repeat input { width: 100%; height: 42px; border: 1px solid var(--gray-border); border-radius: 8px; background: var(--white); padding: 0 12px; outline: none; font: inherit; color: var(--dark); transition: border-color .2s, box-shadow .2s; }
+  .f input:focus, .f select:focus, .repeat input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
+  .te input { font-family: "Noto Sans Telugu", "Nirmala UI", sans-serif; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 12px; color: var(--dark); }
+  .check input { accent-color: var(--primary); }
+  .repeat { position: relative; border: 1px dashed var(--gray-border); border-radius: 10px; padding: 13px; margin: 8px 0; background: var(--ghost-white); }
+  .del { position: absolute; right: 8px; top: 8px; width: 30px; height: 30px; border: 0; border-radius: 7px; background: var(--white); color: var(--gray); display: grid; place-items: center; cursor: pointer; z-index: 2; transition: all .2s; }
+  .del:hover { color: var(--danger-dark); background: var(--danger-light); }
+  .preview { position: sticky; top: 18px; height: calc(100vh - 36px); min-height: 620px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 13px; overflow: hidden; display: flex; flex-direction: column; }
+  .preview-head { height: 58px; flex: 0 0 58px; border-bottom: 1px solid var(--gray-border); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: var(--white); }
+  .preview-head b { display: block; font-size: 14px; color: var(--dark); }
+  .preview-head small { display: block; color: var(--gray); font-size: 11px; margin-top: 2px; }
+  .preview-head button { display: none; border: 0; background: var(--gray-light); border-radius: 8px; width: 34px; height: 34px; place-items: center; color: var(--gray-dark); }
+  .preview-body { position: relative; flex: 1; min-height: 0; background: var(--gray-light); }
+  .preview-body iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--white); }
+  .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--gray); font-size: 13px; }
+  .empty b { color: var(--dark); }
+  .spin { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .schedy-focus { outline: 3px solid var(--primary-lightest); outline-offset: 4px; border-radius: 4px; }
+  @media(max-width: 1100px) { .layout { grid-template-columns: minmax(420px, 1fr) minmax(360px, 1fr); } }
+  @media(max-width: 900px) {
+    .create header { align-items: flex-start; }
+    .layout { grid-template-columns: 1fr; }
+    .preview { position: fixed; inset: 0; z-index: 1000; height: 100vh; min-height: 0; border-radius: 0; display: none; }
+    .preview.mobile-open { display: flex; }
+    .preview.mobile-open .preview-head button { display: grid; }
+    .grid.three { grid-template-columns: 1fr 1fr; }
+  }
+  @media(max-width: 600px) {
+    .create header { flex-direction: column; }
+    .actions { width: 100%; }
+    .actions button { flex: 1; }
+    .grid.two, .grid.three { grid-template-columns: 1fr; }
+  }
+ `}</style>
  </div>;
 }

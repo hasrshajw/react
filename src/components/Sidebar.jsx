@@ -893,29 +893,29 @@ export default function Sidebar({
 
           --row-height: 52px;
 
-          --sidebar-bg: #ffffff;
+          --sidebar-bg: var(--white);
 
-          --header-bg: #ffffff;
+          --header-bg: var(--white);
 
-          --page-bg: #f4f5f7;
+          --page-bg: var(--gray-light);
 
-          --text-color: rgb(24, 24, 26);
+          --text-color: var(--dark);
 
-          --icon-color: #6b7280;
+          --icon-color: var(--gray);
 
-          --brand-primary: #673DE6;
+          --brand-primary: var(--primary);
 
-          --active-bg: #f4f0fa;
+          --active-bg: var(--primary-light);
 
-          --hover-bg: #f3f4f6;
+          --hover-bg: var(--primary-lightest);
 
-          --border-subtle: #e5e7eb;
+          --border-subtle: var(--gray-border);
 
           --radius-md: 10px;
 
           --radius-lg: 14px;
 
-          --tooltip-bg: #1f2937;
+          --tooltip-bg: var(--gray-dark);
 
         }
 
@@ -1038,14 +1038,14 @@ export default function Sidebar({
 
         .breadcrumb-muted {
 
-          color: #9ca3af;
+          color: var(--gray);
 
         }
 
 
         .breadcrumb-divider {
 
-          color: #d1d5db;
+          color: var(--gray-border);
 
         }
 
@@ -1131,7 +1131,7 @@ export default function Sidebar({
             var(--brand-primary);
 
           border:
-            1px solid #ffffff;
+            1px solid var(--white);
 
         }
 
@@ -1196,7 +1196,7 @@ export default function Sidebar({
             var(--brand-primary);
 
           color:
-            #ffffff;
+            var(--white);
 
           display: flex;
 
@@ -1772,7 +1772,7 @@ export default function Sidebar({
             var(--tooltip-bg);
 
           color:
-            #ffffff;
+            var(--white);
 
           padding:
             8px 12px;
@@ -1934,7 +1934,7 @@ export default function Sidebar({
           font-size: 13px;
 
           color:
-            #6b7280;
+            var(--gray);
 
           white-space: nowrap;
 
@@ -1978,7 +1978,7 @@ export default function Sidebar({
           height: 72px;
 
           background:
-            #ffffff;
+            var(--white);
 
           border-bottom:
             1px solid
@@ -2012,10 +2012,10 @@ export default function Sidebar({
           border-radius: 10px;
 
           border:
-            1px solid #e5e7eb;
+            1px solid var(--gray-border);
 
           background:
-            #f9fafb;
+            var(--gray-light);
 
           display: flex;
 
@@ -2053,7 +2053,7 @@ export default function Sidebar({
           height: 2px;
 
           background:
-            #111827;
+            var(--dark);
 
           border-radius: 10px;
 
@@ -2169,7 +2169,7 @@ export default function Sidebar({
           height: 100%;
 
           background:
-            #ffffff;
+            var(--white);
 
           transform:
             translateX(-100%);
@@ -2232,7 +2232,7 @@ export default function Sidebar({
           border-radius: 10px;
 
           border:
-            1px solid #e5e7eb;
+            1px solid var(--gray-border);
 
           display: flex;
 
@@ -2241,7 +2241,7 @@ export default function Sidebar({
           justify-content: center;
 
           background:
-            #f9fafb;
+            var(--gray-light);
 
           cursor: pointer;
 
@@ -2275,7 +2275,7 @@ export default function Sidebar({
           height: 2px;
 
           background:
-            #111827;
+            var(--dark);
 
         }
 
@@ -2328,7 +2328,7 @@ export default function Sidebar({
             var(--border-subtle);
 
           background:
-            #ffffff;
+            var(--white);
 
         }
 

@@ -34,8 +34,8 @@ function App() {
         html, body, #root { margin: 0; padding: 0; width: 100%; min-height: 100%; }
         body {
           font-family: "DM Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          background: #f8f8f8;
-          color: #18181a;
+          background: var(--page-bg);
+          color: var(--text-color);
         }
         button, input, select, textarea { font: inherit; }
         .app { min-height: 100vh; }
