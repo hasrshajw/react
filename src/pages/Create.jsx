@@ -18,11 +18,13 @@ function Contacts({field,items,add,patch,remove,focus}){return <>{items.map(x=><
 function jsonpTransliterate(){return Promise.resolve("");}
 const TARGETS={surnameEn:"surname-te",surnameTe:"surname-te",groomEn:"groom-te",groomTe:"groom-te",groomFatherEn:"groom-father-te",groomFatherTe:"groom-father-te",groomMotherEn:"groom-mother-te",groomMotherTe:"groom-mother-te",brideEn:"bride-te",brideTe:"bride-te",brideFatherEn:"bride-father-te",brideFatherTe:"bride-father-te",brideMotherEn:"bride-mother-te",brideMotherTe:"bride-mother-te",weddingDate:"event-wedding-date",muhurthamTime:"event-wedding-time",receptionDate:"event-reception-date",receptionTime:"event-reception-time",venueEn:"venue-te",venueTe:"venue-te",venueAddress:"venue-te",venueMaps:"venue-te",groomContacts:"groom-extra-1-phone",brideContacts:"bride-extra-1-phone"};
 
-export default function Create(){
+export default function Create({onPanelChange}){
  const [data,setData]=useState(initial),[categories,setCategories]=useState(demoCategories),[templates,setTemplates]=useState(demoTemplates),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[message,setMessage]=useState(""),[previewOpen,setPreviewOpen]=useState(false),[focusRequest,setFocusRequest]=useState(null),[slot,setSlot]=useState(null);
  const frameRef=useRef(null),translitTimers=useRef(new Map()),translitSeq=useRef(0),editId=useMemo(()=>new URLSearchParams(window.location.search).get("edit"),[]);
  
  useEffect(()=>{setSlot(document.getElementById("preview-slot"))},[]);
+ /* The live preview is a permanent right-side panel on desktop (>900px): tell App so the sidebar becomes a rail + overlay menu. */
+ useEffect(()=>{if(!slot)return;const report=()=>onPanelChange?.(window.innerWidth>900);report();window.addEventListener("resize",report);return()=>{window.removeEventListener("resize",report);onPanelChange?.(false)}},[slot]);
  useEffect(()=>{if(!editId)return;const row=getDemoInvitations().find(x=>x.id===editId);if(!row){setMessage("Demo invitation not found. You can create a new one.");return}const details=row.details||{};setData(prev=>({...prev,...details,templateId:row.template_id||details.templateId||"",brideEn:row.bride_name||details.brideEn||"",groomEn:row.groom_name||details.groomEn||"",weddingDate:row.event_date||details.weddingDate||""}))},[editId]);
  const selected=useMemo(()=>templates.find(t=>String(t.id)===String(data.templateId)),[templates,data.templateId]);
  const filtered=useMemo(()=>data.categoryId==="ALL"?templates:templates.filter(t=>String(t.category_id)===String(data.categoryId)),[templates,data.categoryId]);
