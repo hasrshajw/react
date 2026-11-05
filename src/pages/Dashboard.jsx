@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   FilePlus2, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox, Eye, Pencil, Link2, Check,
   Plus, Search, Smartphone, MoreHorizontal, Trash2, X, MessageCircle, QrCode, Globe, EyeOff,
-  TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
+  TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Phone, Mail, PhoneCall, Clock,
 } from "lucide-react";
 import * as demo from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
@@ -18,14 +18,16 @@ const TRAFFIC = {
   all: { label: "All time", value: 5420, trend: null },
 };
 
-const REQUESTS_EARLIER_DONE = 24; // completed requests not shown in the drawer
-const INITIAL_REQUESTS = [
-  { id: "r1", name: "Ravi Kumar", subject: "Wants to change the muhurtham time", time: "2 hours ago", status: "pending" },
-  { id: "r2", name: "Lakshmi Devi", subject: "Asked for a Telugu-only invitation", time: "Yesterday", status: "done" },
-  { id: "r3", name: "Sai Prasad", subject: "Needs the venue map link updated", time: "2 days ago", status: "done" },
-  { id: "r4", name: "Anitha Reddy", subject: "Requested an extra reception card", time: "3 days ago", status: "done" },
-  { id: "r5", name: "Mahesh Babu", subject: "Asked to add a second contact number", time: "4 days ago", status: "done" },
-  { id: "r6", name: "Priya Varma", subject: "Wants a different template", time: "5 days ago", status: "done" },
+/* Enquiries submitted through the public website's "get a website" form.
+   status: "new" (not handled yet) | "followup" (called, needs follow-up) | "called" (done) */
+const ENQUIRIES_EARLIER = 24; // older enquiries not listed in the panel
+const INITIAL_ENQUIRIES = [
+  { id: "e1", name: "Ravi Kumar", phone: "+91 98765 43210", email: "ravi.kumar@example.com", message: "I run a wedding planning business and want a website with invitation templates and an enquiry form.", time: "2 hours ago", status: "new" },
+  { id: "e2", name: "Lakshmi Devi", phone: "+91 91234 56780", email: "lakshmi.devi@example.com", message: "Need a Telugu and English website for my catering service. What is the price?", time: "5 hours ago", status: "new" },
+  { id: "e3", name: "Sai Prasad", phone: "+91 99887 66554", email: "sai.prasad@example.com", message: "Interested in an online invitation website. Please call after 6 PM.", time: "Yesterday", status: "followup" },
+  { id: "e4", name: "Anitha Reddy", phone: "+91 90000 11223", email: "anitha.reddy@example.com", message: "Looking for a website for my photography studio with a gallery.", time: "2 days ago", status: "called" },
+  { id: "e5", name: "Mahesh Babu", phone: "+91 98480 12345", email: "mahesh.babu@example.com", message: "Want to know the delivery time for a 5 page website.", time: "3 days ago", status: "followup" },
+  { id: "e6", name: "Priya Varma", phone: "+91 97012 34567", email: "priya.varma@example.com", message: "Need a website for my boutique with WhatsApp ordering.", time: "5 days ago", status: "called" },
 ];
 
 /* =========================================================
@@ -171,44 +173,89 @@ function ConfirmDelete({ row, onCancel, onConfirm }) {
   );
 }
 
-function RequestsPanel({ slot, requests, total, pending, onClose, onDone }) {
-  const [tab, setTab] = useState("pending");
+const ENQ_LABEL = { new: "New", followup: "Follow-up", called: "Called" };
+
+function EnquiriesPanel({ slot, enquiries, total, newCount, onClose, onSetStatus }) {
+  const [tab, setTab] = useState("new");
   useEscape(true, onClose);
   if (!slot) return null;
-  const list = tab === "pending" ? requests.filter((r) => r.status === "pending") : requests;
+
+  const pendingCount = enquiries.filter((e) => e.status === "followup").length;
+  const tabs = [
+    { key: "new", label: "New", count: newCount },
+    { key: "pending", label: "Pending", count: pendingCount },
+    { key: "all", label: "All", count: enquiries.length },
+  ];
+  const idx = Math.max(0, tabs.findIndex((t) => t.key === tab));
+  const list =
+    tab === "new" ? enquiries.filter((e) => e.status === "new")
+    : tab === "pending" ? enquiries.filter((e) => e.status === "followup")
+    : enquiries;
+  const empty = {
+    new: ["All caught up", "No new enquiries."],
+    pending: ["Nothing pending", "No enquiries need a follow-up."],
+    all: ["No enquiries yet", "Website enquiries will show up here."],
+  }[tab];
+
   return createPortal(
-    <aside className="dash-side-panel" aria-label="Site requests">
+    <aside className="dash-side-panel" aria-label="Site enquiries">
       <div className="dp-head">
         <div className="dp-title">
-          <b><span className="live-dot red" />Site requests</b>
-          <small><span className="red">{pending} pending</span> of {total} requests</small>
+          <b><span className="live-dot red" />Site enquiries</b>
+          <small><span className="red">{newCount} new</span> of {total} enquiries</small>
         </div>
         <div className="dp-actions">
-          <button type="button" className="icon-btn" aria-label="Close requests" onClick={onClose}><X size={16} /></button>
+          <button type="button" className="icon-btn" aria-label="Close enquiries" onClick={onClose}><X size={16} /></button>
         </div>
       </div>
-      <div className="dx-tabs">
-        <button type="button" className={tab === "pending" ? "on" : ""} onClick={() => setTab("pending")}>Pending <em>{pending}</em></button>
-        <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>Recent <em>{requests.length}</em></button>
+
+      <div className="dx-seg" role="tablist" aria-label="Filter enquiries" style={{ "--i": idx }}>
+        <span className="dx-seg-thumb" aria-hidden="true" />
+        {tabs.map((t) => (
+          <button
+            key={t.key} type="button" role="tab" aria-selected={tab === t.key}
+            className={`t-${t.key}${tab === t.key ? " on" : ""}`} onClick={() => setTab(t.key)}
+          >
+            {t.label} <em>{t.count}</em>
+          </button>
+        ))}
       </div>
+
       <div className="dx-req-list">
         {list.length === 0 && (
-          <div className="dx-empty-mini"><Check size={22} /><b>All caught up</b><span>No pending requests.</span></div>
+          <div className="dx-empty-mini"><Check size={22} /><b>{empty[0]}</b><span>{empty[1]}</span></div>
         )}
-        {list.map((r) => (
-          <div className="dx-req" key={r.id}>
-            <div className="row-avatar">{r.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
-            <div className="dx-req-main">
-              <b>{r.name}</b>
-              <span>{r.subject}</span>
-              <small>{r.time}</small>
+        {list.map((e) => (
+          <div className={`dx-enq ${e.status}`} key={e.id}>
+            <div className="dx-enq-top">
+              <div className="row-avatar">{e.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
+              <div className="dx-req-main">
+                <b>{e.name}</b>
+                <small><Clock size={11} /> {e.time}</small>
+              </div>
+              <span className={`chip enq-${e.status}`}>{ENQ_LABEL[e.status]}</span>
             </div>
-            {r.status === "pending"
-              ? <button type="button" className="act-btn" onClick={() => onDone(r.id)}><Check size={14} /> Mark done</button>
-              : <span className="chip ok">Done</span>}
+            <p className="dx-enq-msg">{e.message}</p>
+            <div className="dx-enq-meta">
+              <a href={`tel:${e.phone.replace(/\s/g, "")}`}><Phone size={13} /> {e.phone}</a>
+              <a href={`mailto:${e.email}`}><Mail size={13} /> {e.email}</a>
+            </div>
+            <div className="dx-enq-actions">
+              {e.status !== "called" && (
+                <button type="button" className="act-btn solid" onClick={() => onSetStatus(e.id, "called")}>
+                  <PhoneCall size={14} /> Mark called
+                </button>
+              )}
+              {e.status !== "followup" && (
+                <button type="button" className="act-btn" onClick={() => onSetStatus(e.id, "followup")}>
+                  <Clock size={14} /> Need follow-up
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
+
       <div className="dx-drawer-foot">
         <Link to="/analytics" className="head-link">Open analytics <ArrowUpRight size={14} /></Link>
       </div>
@@ -235,7 +282,7 @@ export default function Dashboard({ onPanelChange }) {
   const [page, setPage] = useState(1);
 
   const [range, setRange] = useState("30");
-  const [reqs, setReqs] = useState(INITIAL_REQUESTS);
+  const [enquiries, setEnquiries] = useState(INITIAL_ENQUIRIES);
   const [reqOpen, setReqOpen] = useState(false);
 
   const [menu, setMenu] = useState(null);
@@ -275,7 +322,7 @@ export default function Dashboard({ onPanelChange }) {
     return () => ro.disconnect();
   }, []);
 
-  /* Preview and Site requests open in the right-hand slot. The sidebar's own
+  /* Preview and Site enquiries open in the right-hand slot. The sidebar's own
      state is never changed; App switches it to a slim rail + overlay menu. */
   const openPreview = (x) => {
     if (preview?.id === x.id) { closePanel(); return; }
@@ -319,12 +366,12 @@ export default function Dashboard({ onPanelChange }) {
     return visible.reduce((best, x) => (getViews(x) > getViews(best) ? x : best), visible[0]).id;
   }, [visible]);
 
-  /* ---------- requests ---------- */
-  const reqPending = reqs.filter((r) => r.status === "pending").length;
-  const reqTotal = REQUESTS_EARLIER_DONE + reqs.length;
-  const markDone = (id) => {
-    setReqs((p) => p.map((r) => (r.id === id ? { ...r, status: "done" } : r)));
-    notify("Request marked as done");
+  /* ---------- site enquiries (only NEW ones are counted in red) ---------- */
+  const enqNew = enquiries.filter((e) => e.status === "new").length;
+  const enqTotal = ENQUIRIES_EARLIER + enquiries.length;
+  const setEnqStatus = (id, status) => {
+    setEnquiries((p) => p.map((e) => (e.id === id ? { ...e, status } : e)));
+    notify(status === "called" ? "Marked as called" : "Marked for follow-up");
   };
 
   /* ---------- row actions ---------- */
@@ -448,13 +495,13 @@ export default function Dashboard({ onPanelChange }) {
         <div className="stat-card green">
           <div className="stat-icon"><Inbox size={19} /></div>
           <div className="stat-body">
-            <span>Site requests</span>
-            <strong className="req-count" title={`${reqPending} pending of ${reqTotal} requests`}>
-              <span className={reqPending > 0 ? "pending" : "clear"}>{reqPending}</span>
-              <span className="total">/{reqTotal}</span>
+            <span>Site enquiries</span>
+            <strong className="req-count" title={`${enqNew} new of ${enqTotal} enquiries`}>
+              <span className={enqNew > 0 ? "pending" : "clear"}>{enqNew}</span>
+              <span className="total">/{enqTotal}</span>
             </strong>
           </div>
-          <button type="button" className={`round-btn${reqOpen ? " on" : ""}`} aria-label="View site requests" onClick={openRequests}>
+          <button type="button" className={`round-btn${reqOpen ? " on" : ""}`} aria-label="View site enquiries" onClick={openRequests}>
             <ArrowUpRight size={16} />
           </button>
         </div>
@@ -636,7 +683,7 @@ export default function Dashboard({ onPanelChange }) {
       {preview && <PreviewPanel slot={slot} row={preview} published={isPub(preview)} onClose={closePanel} />}
       {qr && <QrModal row={qr} onClose={closeAll} onCopy={copyLink} />}
       {confirm && <ConfirmDelete row={confirm} onCancel={closeAll} onConfirm={doDelete} />}
-      {reqOpen && <RequestsPanel slot={slot} requests={reqs} total={reqTotal} pending={reqPending} onClose={closePanel} onDone={markDone} />}
+      {reqOpen && <EnquiriesPanel slot={slot} enquiries={enquiries} total={enqTotal} newCount={enqNew} onClose={closePanel} onSetStatus={setEnqStatus} />}
       {toast && createPortal(<div className="dx-toast" role="status"><Check size={15} /> {toast}</div>, document.body)}
 
       <style>{`
@@ -762,10 +809,31 @@ export default function Dashboard({ onPanelChange }) {
         .sk-btn { width: 70px; height: 34px; border-radius: 12px; }
         @keyframes dx-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 
-        .dx-tabs { display: flex; gap: 6px; padding: 12px 20px 0; }
-        .dx-tabs button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
-        .dx-tabs button.on { background: var(--primary-light); color: var(--primary); }
-        .dx-tabs em { min-width: 20px; height: 20px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; background: var(--white); font-size: 11px; font-style: normal; }
+        /* sliding pill filter (New / Pending / All) */
+        .dx-seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 14px 16px 2px; padding: 4px; border-radius: 999px; background: var(--gray-light); }
+        .dx-seg-thumb { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 999px; background: var(--white); box-shadow: 0 1px 4px rgba(54, 52, 77, .18); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .28s cubic-bezier(.4, 0, .2, 1); }
+        .dx-seg button { position: relative; z-index: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: color .2s; }
+        .dx-seg button.on { color: var(--primary); }
+        .dx-seg button em { min-width: 20px; height: 20px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; background: var(--white); font-size: 11px; font-style: normal; }
+        .dx-seg button.on em { background: var(--primary-light); }
+        .dx-seg button.t-new em { background: var(--danger-light); color: var(--danger-dark); }
+
+        /* enquiry cards */
+        .dx-enq { margin: 0 0 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--gray-border); border-radius: 18px; background: var(--white); }
+        .dx-enq.new { border-color: var(--danger-light); background: #fffafb; }
+        .dx-enq-top { display: flex; align-items: center; gap: 12px; }
+        .dx-req-main small { display: flex; align-items: center; gap: 5px; }
+        .dx-enq-msg { margin: 0; font-size: 13px; line-height: 1.5; color: var(--gray-dark); }
+        .dx-enq-meta { display: flex; flex-direction: column; gap: 5px; }
+        .dx-enq-meta a { display: inline-flex; align-items: center; gap: 7px; width: fit-content; max-width: 100%; font-size: 12.5px; font-weight: 600; color: var(--primary); text-decoration: none; overflow-wrap: anywhere; }
+        .dx-enq-meta a:hover { text-decoration: underline; }
+        .dx-enq-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .act-btn.solid { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .act-btn.solid:hover:not(:disabled) { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
+        .chip.enq-new { background: var(--danger-light); color: var(--danger-dark); }
+        .chip.enq-followup { background: var(--warning-light); color: #9a6700; }
+        .chip.enq-called { background: var(--success-light); color: var(--success-dark); }
+
         .dx-req-list { flex: 1; overflow-y: auto; padding: 12px 12px 12px; }
         .dx-req { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; }
         .dx-req:hover { background: var(--ghost-white); }
