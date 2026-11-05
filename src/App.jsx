@@ -216,9 +216,14 @@ function App() {
           align-items: center;
           color: #fff;
           font-size: 13px;
-          /* dark edges, violet centre: #101011 -> #471ea7 -> #101011 */
-          background: linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%);
-          border-bottom: 1px solid rgba(255, 255, 255, .07);
+          /* Two layers:
+             1) top layer fades the strip downward into the shell colour (#101011)
+             2) bottom layer fades sideways: dark edges, violet centre
+             No border-bottom, so there is no visible line under the strip. */
+          background:
+            linear-gradient(180deg, rgba(16, 16, 17, 0) 0%, rgba(16, 16, 17, 0) 35%, #101011 100%),
+            linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%);
+          border-bottom: 0;
         }
 
         .promo-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
