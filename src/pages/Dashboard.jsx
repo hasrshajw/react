@@ -79,7 +79,7 @@ const useEscape = (active, fn) => {
    ========================================================= */
 function Modal({ title, subtitle, onClose, children, width = 440, headExtra }) {
   useEscape(true, onClose);
-  return (
+  return createPortal(
     <div className="dx-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="dx-modal" role="dialog" aria-modal="true" aria-label={title} style={{ width }}>
         <div className="dx-modal-head">
@@ -94,7 +94,8 @@ function Modal({ title, subtitle, onClose, children, width = 440, headExtra }) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -117,7 +118,7 @@ function PreviewPanel({ slot, row, published, onClose }) {
 
   if (!slot) return null;
   return createPortal(
-    <aside className="dash-preview-panel" aria-label="Invitation preview">
+    <aside className="dash-side-panel" aria-label="Invitation preview">
       <div className="dp-head">
         <div className="dp-title">
           <b><span className="live-dot" />{coupleName(row)}</b>
@@ -170,47 +171,49 @@ function ConfirmDelete({ row, onCancel, onConfirm }) {
   );
 }
 
-function RequestsDrawer({ requests, total, pending, onClose, onDone }) {
+function RequestsPanel({ slot, requests, total, pending, onClose, onDone }) {
   const [tab, setTab] = useState("pending");
   useEscape(true, onClose);
+  if (!slot) return null;
   const list = tab === "pending" ? requests.filter((r) => r.status === "pending") : requests;
-  return (
-    <div className="dx-overlay drawer" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="dx-drawer" role="dialog" aria-modal="true" aria-label="Site requests">
-        <div className="dx-modal-head">
-          <div>
-            <b>Site requests</b>
-            <small><span className="red">{pending} pending</span> of {total} requests</small>
-          </div>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}><X size={16} /></button>
+  return createPortal(
+    <aside className="dash-side-panel" aria-label="Site requests">
+      <div className="dp-head">
+        <div className="dp-title">
+          <b><span className="live-dot red" />Site requests</b>
+          <small><span className="red">{pending} pending</span> of {total} requests</small>
         </div>
-        <div className="dx-tabs">
-          <button type="button" className={tab === "pending" ? "on" : ""} onClick={() => setTab("pending")}>Pending <em>{pending}</em></button>
-          <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>Recent <em>{requests.length}</em></button>
+        <div className="dp-actions">
+          <button type="button" className="icon-btn" aria-label="Close requests" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="dx-req-list">
-          {list.length === 0 && (
-            <div className="dx-empty-mini"><Check size={22} /><b>All caught up</b><span>No pending requests.</span></div>
-          )}
-          {list.map((r) => (
-            <div className="dx-req" key={r.id}>
-              <div className="row-avatar">{r.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
-              <div className="dx-req-main">
-                <b>{r.name}</b>
-                <span>{r.subject}</span>
-                <small>{r.time}</small>
-              </div>
-              {r.status === "pending"
-                ? <button type="button" className="act-btn" onClick={() => onDone(r.id)}><Check size={14} /> Mark done</button>
-                : <span className="chip ok">Done</span>}
+      </div>
+      <div className="dx-tabs">
+        <button type="button" className={tab === "pending" ? "on" : ""} onClick={() => setTab("pending")}>Pending <em>{pending}</em></button>
+        <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>Recent <em>{requests.length}</em></button>
+      </div>
+      <div className="dx-req-list">
+        {list.length === 0 && (
+          <div className="dx-empty-mini"><Check size={22} /><b>All caught up</b><span>No pending requests.</span></div>
+        )}
+        {list.map((r) => (
+          <div className="dx-req" key={r.id}>
+            <div className="row-avatar">{r.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
+            <div className="dx-req-main">
+              <b>{r.name}</b>
+              <span>{r.subject}</span>
+              <small>{r.time}</small>
             </div>
-          ))}
-        </div>
-        <div className="dx-drawer-foot">
-          <Link to="/analytics" className="head-link">Open analytics <ArrowUpRight size={14} /></Link>
-        </div>
-      </aside>
-    </div>
+            {r.status === "pending"
+              ? <button type="button" className="act-btn" onClick={() => onDone(r.id)}><Check size={14} /> Mark done</button>
+              : <span className="chip ok">Done</span>}
+          </div>
+        ))}
+      </div>
+      <div className="dx-drawer-foot">
+        <Link to="/analytics" className="head-link">Open analytics <ArrowUpRight size={14} /></Link>
+      </div>
+    </aside>,
+    slot
   );
 }
 
@@ -233,7 +236,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
 
   const [range, setRange] = useState("30");
   const [reqs, setReqs] = useState(INITIAL_REQUESTS);
-  const [drawer, setDrawer] = useState(false);
+  const [reqOpen, setReqOpen] = useState(false);
 
   const [menu, setMenu] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -273,15 +276,26 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
     return () => ro.disconnect();
   }, []);
 
-  /* Preview opens in the right-hand slot and collapses the left sidebar; closing restores it. */
-  const openPreview = (x) => {
-    if (preview?.id === x.id) { closePreview(); return; }
+  /* Preview and Site requests open in the right-hand slot, collapse the left sidebar, and restore it on close. */
+  const collapseSidebar = () => {
     if (prevCollapsed.current === null) prevCollapsed.current = !!sidebarCollapsed;
     setSidebarCollapsed?.(true);
+  };
+  const openPreview = (x) => {
+    if (preview?.id === x.id) { closePanel(); return; }
+    collapseSidebar();
+    setReqOpen(false);
     setPreview(x);
   };
-  const closePreview = () => {
+  const openRequests = () => {
+    if (reqOpen) { closePanel(); return; }
+    collapseSidebar();
     setPreview(null);
+    setReqOpen(true);
+  };
+  const closePanel = () => {
+    setPreview(null);
+    setReqOpen(false);
     if (prevCollapsed.current !== null) {
       setSidebarCollapsed?.(prevCollapsed.current);
       prevCollapsed.current = null;
@@ -346,7 +360,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
       setDeleted(ids);
       writeJSON(LS_DEL, ids);
     }
-    if (preview?.id === x.id) closePreview();
+    if (preview?.id === x.id) closePanel();
     setConfirm(null);
     notify("Invitation deleted");
   };
@@ -381,7 +395,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
     };
   }, [menu]);
 
-  const closeAll = () => { setQr(null); setConfirm(null); setDrawer(false); };
+  const closeAll = () => { setQr(null); setConfirm(null); };
   const traffic = TRAFFIC[range];
 
   return (
@@ -447,7 +461,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
               <span className="total">/{reqTotal}</span>
             </strong>
           </div>
-          <button type="button" className="round-btn" aria-label="View site requests" onClick={() => setDrawer(true)}>
+          <button type="button" className={`round-btn${reqOpen ? " on" : ""}`} aria-label="View site requests" onClick={openRequests}>
             <ArrowUpRight size={16} />
           </button>
         </div>
@@ -605,7 +619,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
       {menu && (() => {
         const x = menu.x;
         const live = isPub(x);
-        return (
+        return createPortal(
           <div className="row-menu" style={{ right: menu.right, top: menu.top, bottom: menu.bottom }} role="menu">
             <button type="button" role="menuitem" disabled={!live} onClick={() => { shareWhatsApp(x); setMenu(null); }}>
               <MessageCircle size={15} /> Share on WhatsApp
@@ -620,16 +634,17 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
             <button type="button" role="menuitem" className="danger" onClick={() => { setConfirm(x); setMenu(null); }}>
               <Trash2 size={15} /> Delete
             </button>
-          </div>
+          </div>,
+          document.body
         );
       })()}
 
       {/* ---------- overlays ---------- */}
-      {preview && <PreviewPanel slot={slot} row={preview} published={isPub(preview)} onClose={closePreview} />}
+      {preview && <PreviewPanel slot={slot} row={preview} published={isPub(preview)} onClose={closePanel} />}
       {qr && <QrModal row={qr} onClose={closeAll} onCopy={copyLink} />}
       {confirm && <ConfirmDelete row={confirm} onCancel={closeAll} onConfirm={doDelete} />}
-      {drawer && <RequestsDrawer requests={reqs} total={reqTotal} pending={reqPending} onClose={closeAll} onDone={markDone} />}
-      {toast && <div className="dx-toast" role="status"><Check size={15} /> {toast}</div>}
+      {reqOpen && <RequestsPanel slot={slot} requests={reqs} total={reqTotal} pending={reqPending} onClose={closePanel} onDone={markDone} />}
+      {toast && createPortal(<div className="dx-toast" role="status"><Check size={15} /> {toast}</div>, document.body)}
 
       <style>{`
         .dashboard-page { max-width: 1400px; margin: auto; font-family: "DM Sans", Inter, sans-serif; color: var(--dark); }
@@ -681,7 +696,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .req-count .total { margin-left: 1px; font-size: 20px; font-weight: 600; color: var(--gray); letter-spacing: 0; }
 
         .round-btn { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1px solid var(--gray-border); background: var(--white); color: var(--gray-dark); cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
-        .round-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .round-btn.on, .round-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
 
         /* ---------- recent invitations ---------- */
         .recent-card { margin-top: 14px; overflow: hidden; background: var(--white); border: 1px solid var(--gray-border); border-radius: 22px; }
@@ -754,8 +769,13 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .sk-btn { width: 70px; height: 34px; border-radius: 12px; }
         @keyframes dx-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 
+        /* portaled to <body>, so they need their own base styles */
+        .dx-overlay, .dx-overlay *, .row-menu, .row-menu *, .dx-toast, .dx-toast * { box-sizing: border-box; }
+        .dx-overlay, .row-menu, .dx-toast { font-family: "DM Sans", Inter, sans-serif; }
+        .dx-overlay { color: var(--dark); }
+
         /* ---------- row menu ---------- */
-        .row-menu { position: fixed; z-index: 6000; width: 208px; padding: 6px; display: flex; flex-direction: column; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); box-shadow: 0 16px 40px rgba(24, 28, 45, .18); }
+        .row-menu { position: fixed; z-index: 9500; width: 208px; padding: 6px; display: flex; flex-direction: column; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); box-shadow: 0 16px 40px rgba(24, 28, 45, .18); }
         .row-menu button { height: 38px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 10px; background: transparent; color: var(--gray-dark); font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
         .row-menu button:hover:not(:disabled) { background: var(--gray-light); }
         .row-menu button:disabled { opacity: .45; cursor: not-allowed; }
@@ -764,20 +784,20 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .menu-sep { height: 1px; margin: 4px 6px; background: var(--gray-border); }
 
         /* ---------- modals / drawer ---------- */
-        .dx-overlay { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; padding: 20px; background: rgba(23, 19, 38, .55); backdrop-filter: blur(3px); animation: dx-fade .15s ease; }
-        .dx-overlay.drawer { place-items: stretch end; padding: 0; }
-        .dx-modal { max-width: 100%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: var(--white); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); animation: dx-pop .18s ease; }
+        .dx-overlay { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 20px; background: rgba(23, 19, 38, .55); backdrop-filter: blur(3px); animation: dx-fade .15s ease; }
+                .dx-modal { max-width: 100%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: var(--white); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); animation: dx-pop .18s ease; }
         .dx-modal-head { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--gray-border); }
         .dx-modal-head b { display: block; font-size: 15px; font-weight: 700; }
         .dx-modal-head small { display: block; margin-top: 3px; font-size: 12px; color: var(--gray); }
-        .dx-modal-head .red { color: var(--danger-dark); font-weight: 700; }
-        .dx-modal-actions { display: flex; align-items: center; gap: 8px; }
+                .dx-modal-actions { display: flex; align-items: center; gap: 8px; }
 
-        .dash-preview-panel { position: relative; box-sizing: border-box; height: 100%; width: 390px; min-width: 390px; max-width: 390px; flex: 0 0 390px; display: flex; flex-direction: column; overflow: hidden; border-radius: 26px; background: #fff; animation: dx-slide .22s ease; }
-        .dash-preview-panel * { box-sizing: border-box; }
+        .dash-side-panel { position: relative; box-sizing: border-box; height: 100%; width: 390px; min-width: 390px; max-width: 390px; flex: 0 0 390px; display: flex; flex-direction: column; overflow: hidden; border-radius: 26px; background: #fff; animation: dx-slide .22s ease; }
+        .dash-side-panel * { box-sizing: border-box; }
         .dp-head { height: 64px; flex: 0 0 64px; padding: 0 14px 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--gray-border); }
         .dp-title { min-width: 0; }
         .dp-title b { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dp-title .red { color: var(--danger-dark); font-weight: 700; }
+        .live-dot.red { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-light); }
         .dp-title small { display: block; margin: 3px 0 0 16px; font-size: 12px; color: var(--gray); }
         .live-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-light); }
         .dp-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -795,7 +815,6 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .dx-confirm p { margin: 0 0 18px; font-size: 14px; line-height: 1.55; color: var(--gray-dark); }
         .dx-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
-        .dx-drawer { width: 420px; max-width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--white); box-shadow: -20px 0 50px rgba(0, 0, 0, .25); animation: dx-slide .22s ease; }
         .dx-tabs { display: flex; gap: 6px; padding: 12px 20px 0; }
         .dx-tabs button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
         .dx-tabs button.on { background: var(--primary-light); color: var(--primary); }
@@ -807,9 +826,9 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .dx-req-main b { font-size: 14px; }
         .dx-req-main span { font-size: 12.5px; color: var(--gray-dark); }
         .dx-req-main small { font-size: 11.5px; color: var(--gray); }
-        .dx-drawer-foot { padding: 14px 20px; border-top: 1px solid var(--gray-border); display: flex; justify-content: flex-end; }
+        .dx-drawer-foot { flex: 0 0 auto; padding: 14px 20px; border-top: 1px solid var(--gray-border); display: flex; justify-content: flex-end; }
 
-        .dx-toast { position: fixed; left: 50%; bottom: 28px; z-index: 7000; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 14px; background: var(--dark); color: #fff; font-size: 13px; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, .3); animation: dx-pop .2s ease; }
+        .dx-toast { position: fixed; left: 50%; bottom: 28px; z-index: 9800; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 14px; background: var(--dark); color: #fff; font-size: 13px; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, .3); animation: dx-pop .2s ease; }
         .dx-toast svg { color: #5eead4; }
 
         @keyframes dx-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -822,7 +841,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .narrow .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .narrow .stat-card.blue { grid-column: 1 / -1; order: -1; }
         @media (max-width: 900px) {
-          .dash-preview-panel { position: fixed; inset: 12px; z-index: 4000; width: auto; min-width: 0; max-width: none; height: auto; flex: none; border-radius: 20px; box-shadow: 0 12px 34px rgba(24, 28, 45, .3); }
+          .dash-side-panel { position: fixed; inset: 12px; z-index: 4000; width: auto; min-width: 0; max-width: none; height: auto; flex: none; border-radius: 20px; box-shadow: 0 12px 34px rgba(24, 28, 45, .3); }
         }
         @media (max-width: 700px) {
           .page-head { align-items: flex-start; flex-direction: column; }
@@ -834,8 +853,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
           .search { flex: 1; width: auto; min-width: 140px; }
           .inv-table thead th, .inv-table tbody td { padding-left: 16px; padding-right: 16px; }
           .table-foot { padding: 12px 16px; flex-wrap: wrap; }
-          .dx-drawer { width: 100%; }
-        }
+          }
       `}</style>
     </div>
   );
