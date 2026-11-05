@@ -1335,8 +1335,13 @@ export default function Sidebar({
 
         .d-sidebar-header {
 
-          min-height:
-            var(--header-height-desktop);
+          /* Fixed height in BOTH states (expanded + collapsed) so the menu
+             items never shift vertically when the sidebar expands on hover. */
+          height: 105px;
+
+          min-height: 105px;
+
+          box-sizing: border-box;
 
           display: flex;
 
@@ -1346,7 +1351,7 @@ export default function Sidebar({
             space-between;
 
           padding:
-            30px 24px;
+            0 24px;
 
           flex-shrink: 0;
 
@@ -1489,12 +1494,11 @@ export default function Sidebar({
 
           flex-direction: column;
 
-          height: auto;
+          justify-content: center;
 
-          padding:
-            30px 0 20px;
+          padding: 8px 0;
 
-          gap: 30px;
+          gap: 4px;
 
         }
 
