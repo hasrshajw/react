@@ -1,10 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-
-/* Hover-intent timings: open only when the pointer settles, close with a
-   short grace period so grazing the edge never makes it flicker */
-const HOVER_OPEN_DELAY = 140;
-const HOVER_CLOSE_DELAY = 120;
-import { NavLink, useLocation } from "react-router-dom"; 
+import React, { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, MailPlus, Mails, Ticket, Palette, Image as ImageIcon, LayoutGrid,
   PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, Search, Bell, Plus,
@@ -111,67 +106,35 @@ export default function Sidebar({
     if (customizeActive) setSiteOpen(true);
   }, [customizeActive]);
 
-  const openTimer = useRef(null);
-  const closeTimer = useRef(null);
-
-  const clearTimers = () => {
-    clearTimeout(openTimer.current);
-    clearTimeout(closeTimer.current);
-  };
-  useEffect(() => clearTimers, []);
-
-  /* Pointer entered the sidebar: expand once it settles (mouse/trackpad only,
-     touch has no hover so the edge toggle is used there) */
-  const handleEnter = () => {
-    clearTimeout(closeTimer.current);
-    if (hoverLock || hovering) return;
-    if (!window.matchMedia("(hover: hover)").matches) return;
-    clearTimeout(openTimer.current);
-    openTimer.current = setTimeout(() => setHovering(true), HOVER_OPEN_DELAY);
+  const handleIconEnter = () => {
+    if (!hoverLock) setHovering(true);
   };
 
-  /* Pointer left: cancel a pending open, close after a short grace period */
   const handleMouseLeave = () => {
-    clearTimeout(openTimer.current);
-    clearTimeout(closeTimer.current);
+    setHovering(false);
     setHoverLock(false);
-    closeTimer.current = setTimeout(() => setHovering(false), HOVER_CLOSE_DELAY);
-  };
-
-  /* Keyboard users tabbing into the collapsed rail get it expanded too */
-  const handleFocus = (e) => {
-    if (e.target.matches?.(":focus-visible")) {
-      clearTimeout(closeTimer.current);
-      setHovering(true);
-    }
-  };
-  const handleBlur = (e) => {
-    if (!e.currentTarget.contains(e.relatedTarget)) setHovering(false);
   };
 
   const isExpanded = overlayMode ? overlayOpen || hovering : !collapsed || hovering;
-  const hoverFloating = !overlayMode && collapsed && hovering;
-  /* Hover/overlay expansion floats above the page instead of pushing it */
-  const floating = isExpanded && (overlayMode || hoverFloating);
-  const narrowLayout = overlayMode || collapsed;
+  const floating = isExpanded && overlayMode;
+  const narrowLayout = overlayMode || (collapsed && !hovering);
   const sidebarOpen = overlayMode ? overlayOpen : !collapsed;
+
+  useEffect(() => {
+    onHoverExpand?.(!overlayMode && collapsed && hovering);
+  }, [overlayMode, collapsed, hovering]);
+  useEffect(() => () => onHoverExpand?.(false), []);
 
   useEffect(() => {
     if (!overlayMode) setOverlayOpen(false);
   }, [overlayMode]);
 
-  /* Esc closes an overlay or hover-expanded sidebar */
   useEffect(() => {
-    if (!overlayOpen && !hoverFloating) return;
-    const onKey = (e) => {
-      if (e.key !== "Escape") return;
-      setOverlayOpen(false);
-      setHovering(false);
-      setHoverLock(true);
-    };
+    if (!overlayOpen) return;
+    const onKey = (e) => e.key === "Escape" && setOverlayOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [overlayOpen, hoverFloating]);
+  }, [overlayOpen]);
 
   useEffect(() => {
     if (!onSearch) return;
@@ -192,7 +155,6 @@ export default function Sidebar({
   /* Collapse right away and ignore hover until the pointer leaves the sidebar,
      otherwise the mouse still resting on the link would re-expand it */
   const collapseNow = () => {
-    clearTimers();
     setHovering(false);
     setHoverLock(true);
     if (overlayMode) setOverlayOpen(false);
@@ -200,7 +162,6 @@ export default function Sidebar({
   };
 
   const handleToggle = () => {
-    clearTimers();
     if (overlayMode) {
       if (overlayOpen) {
         setOverlayOpen(false);
@@ -297,10 +258,7 @@ export default function Sidebar({
 
       <aside
         className={`d-sidebar ${isExpanded ? "expanded" : "collapsed"}${floating ? " as-overlay" : ""}`}
-        onMouseEnter={handleEnter}
         onMouseLeave={handleMouseLeave}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
       >
         <div className="d-sidebar-header">
           {isExpanded ? (
@@ -308,7 +266,7 @@ export default function Sidebar({
               <img src={logo} alt="Logo" />
             </NavLink>
           ) : (
-            <span className="mini-logo">
+            <span className="mini-logo" onMouseEnter={handleIconEnter}>
               <img src={logoSmall} alt="Logo" />
             </span>
           )}
@@ -334,6 +292,7 @@ export default function Sidebar({
                 to={path}
                 end={path === "/"}
                 onClick={path === "/create" ? collapseNow : closeOverlay}
+                onMouseEnter={handleIconEnter}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >
                 <MenuIcon Icon={Icon} />
@@ -348,6 +307,7 @@ export default function Sidebar({
               type="button"
               className={`nav-item${siteOpen && isExpanded ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
               onClick={handleCustomizeClick}
+              onMouseEnter={handleIconEnter}
               aria-expanded={isExpanded && siteOpen}
               aria-controls="site-submenu"
             >
@@ -361,7 +321,7 @@ export default function Sidebar({
           </nav>
 
           {/* Footer: a useful action instead of a duplicate of the profile */}
-          <div className="d-footer">
+          <div className="d-footer" onMouseEnter={handleIconEnter}>
             <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer">
               <MenuIcon Icon={ExternalLink} size={18} />
               <span className="nav-label">View live site</span>
