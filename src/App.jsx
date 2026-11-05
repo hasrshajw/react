@@ -1,13 +1,93 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Bell, Sparkles, Gift, ArrowRight } from "lucide-react";
+import {
+  Bell, Sparkles, Gift, ArrowRight, User, Users, CreditCard, ShieldCheck, Activity,
+  Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
+} from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Create from "./pages/Create";
 
+/* =========================================================
+   PROFILE MENU (opens from the top-right profile button)
+   Rendered in a portal so the promo bar's button styles don't leak in.
+   ========================================================= */
+const LS_THEME = "schedy_theme";
+
+function ProfileMenu({ onClose }) {
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem(LS_THEME) || "light"; } catch { return "light"; }
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem(LS_THEME, theme); } catch { /* ignore */ }
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    const down = (e) => {
+      if (!e.target.closest(".pm") && !e.target.closest(".promo-user")) onClose();
+    };
+    const key = (e) => e.key === "Escape" && onClose();
+    document.addEventListener("mousedown", down);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("mousedown", down);
+      document.removeEventListener("keydown", key);
+    };
+  }, [onClose]);
+
+  const Item = ({ icon: Icon, label, value, external }) => (
+    <button type="button" className="pm-item" role="menuitem" onClick={onClose}>
+      <Icon size={20} strokeWidth={1.8} />
+      <span>{label}</span>
+      {value && <em className="pm-val">{value}</em>}
+      {external && <ExternalLink className="pm-val" size={17} strokeWidth={1.8} />}
+    </button>
+  );
+
+  return createPortal(
+    <div className="pm" role="menu" aria-label="Profile menu">
+      <div className="pm-head">
+        <b>Harsha Vardhan</b>
+        <span>schedy.in@gmail.com</span>
+      </div>
+      <i className="pm-sep" />
+      <Item icon={User} label="Account information" />
+      <Item icon={Users} label="Account sharing" />
+      <Item icon={CreditCard} label="Billing" />
+      <i className="pm-sep" />
+      <Item icon={ShieldCheck} label="Security" />
+      <Item icon={Activity} label="Account activity" />
+      <Item icon={Bell} label="Notification settings" />
+      <Item icon={Languages} label="Language" value="English" />
+      <i className="pm-sep" />
+      <Item icon={BookOpen} label="Help center" external />
+      <Item icon={LifeBuoy} label="Contact support" />
+      <i className="pm-sep" />
+      <div className="pm-theme">
+        <span>Theme</span>
+        <div className="pm-seg" role="radiogroup" aria-label="Theme">
+          {[["light", "Light"], ["dark", "Dark"], ["system", "System"]].map(([k, l]) => (
+            <button
+              key={k} type="button" role="radio" aria-checked={theme === k}
+              className={theme === k ? "on" : ""} onClick={() => setTheme(k)}
+            >{l}</button>
+          ))}
+        </div>
+      </div>
+      <i className="pm-sep" />
+      <Item icon={LogOut} label="Log out" />
+    </div>,
+    document.body
+  );
+}
+
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   // True while a right-side panel (preview / requests) is open.
   // The sidebar then becomes a slim rail and its full menu opens as an overlay.
   const [panelOpen, setPanelOpen] = useState(false);
@@ -38,7 +118,11 @@ function App() {
           <div className="promo-actions">
             <span className="promo-agent"><Sparkles size={14} /> Demo mode</span>
             <button type="button" className="promo-bell" aria-label="Notifications"><Bell size={18} /><i /></button>
-            <button type="button" className="promo-user" aria-label="Profile">
+            <button
+              type="button" className="promo-user" aria-label="Profile"
+              aria-haspopup="menu" aria-expanded={profileOpen}
+              onClick={() => setProfileOpen((o) => !o)}
+            >
               <span className="promo-avatar">H</span>
               <span className="promo-user-info">
                 <span className="promo-user-name">Harsha</span>
@@ -75,6 +159,8 @@ function App() {
         <div id="preview-slot" className="preview-slot" />
         </div>
       </div>
+
+      {profileOpen && <ProfileMenu onClose={() => setProfileOpen(false)} />}
 
       <style>{`
         * { box-sizing: border-box; }
@@ -236,6 +322,45 @@ function App() {
           background: #fb4778;
         }
 
+        /* ---------- profile dropdown ---------- */
+        .pm, .pm * { box-sizing: border-box; }
+        .pm {
+          position: fixed;
+          top: 70px;
+          right: 20px;
+          z-index: 5000;
+          width: 304px;
+          max-width: calc(100vw - 16px);
+          max-height: calc(100vh - 82px);
+          overflow-y: auto;
+          padding: 6px 0;
+          border-radius: 24px;
+          background: #fff;
+          color: #202027;
+          font-family: "DM Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          box-shadow: 0 18px 50px rgba(0, 0, 0, .38);
+          animation: pm-in .16s ease;
+        }
+        @keyframes pm-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: none; } }
+        .pm-head { padding: 16px 22px 12px; display: flex; flex-direction: column; gap: 3px; }
+        .pm-head b { font-size: 16px; font-weight: 700; }
+        .pm-head span { font-size: 13px; color: #6d7081; overflow-wrap: anywhere; }
+        .pm-sep { display: block; height: 1px; margin: 6px 16px; background: #e7e8ee; }
+        .pm-item {
+          width: calc(100% - 16px); height: 44px; margin: 0 8px; padding: 0 14px;
+          display: flex; align-items: center; gap: 14px;
+          border: 0; border-radius: 12px; background: transparent;
+          color: #2b2d3a; font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer;
+          transition: background .15s;
+        }
+        .pm-item:hover { background: #f3f1fb; }
+        .pm-item svg { flex-shrink: 0; color: #4a4c5c; }
+        .pm-item .pm-val { margin-left: auto; font-style: normal; font-size: 13px; color: #6d7081; }
+        .pm-theme { padding: 8px 22px 10px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; font-weight: 500; }
+        .pm-seg { display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: #f1f1f4; }
+        .pm-seg button { flex: 1; height: 34px; border: 0; border-radius: 999px; background: transparent; color: #6d7081; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .pm-seg button.on { background: #fff; color: #202027; box-shadow: 0 1px 4px rgba(24, 28, 45, .18); }
+
         .workspace-body {
           width: 100%;
           flex: 1 1 0;
@@ -374,6 +499,8 @@ function App() {
           }
 
           .app .m-overlay { top: 32px !important; }
+
+          .pm { right: 8px; }
         }
       `}</style>
     </BrowserRouter>
