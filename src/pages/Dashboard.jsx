@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   FilePlus2, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox, Eye, Pencil, Link2, Check,
   Plus, Search, Smartphone, MoreHorizontal, Trash2, X, MessageCircle, QrCode, Globe, EyeOff,
-  TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Phone, Mail, PhoneCall, Clock,
+  TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ChevronDown, Phone, Mail, PhoneCall, Clock,
 } from "lucide-react";
 import * as demo from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
@@ -177,6 +177,7 @@ const ENQ_LABEL = { new: "New", followup: "Follow-up", called: "Called" };
 
 function EnquiriesPanel({ slot, enquiries, total, newCount, onClose, onSetStatus }) {
   const [tab, setTab] = useState("new");
+  const [openId, setOpenId] = useState(null);
   useEscape(true, onClose);
   if (!slot) return null;
 
@@ -225,35 +226,50 @@ function EnquiriesPanel({ slot, enquiries, total, newCount, onClose, onSetStatus
         {list.length === 0 && (
           <div className="dx-empty-mini"><Check size={22} /><b>{empty[0]}</b><span>{empty[1]}</span></div>
         )}
-        {list.map((e) => (
-          <div className={`dx-enq ${e.status}`} key={e.id}>
-            <div className="dx-enq-top">
-              <div className="row-avatar">{e.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
-              <div className="dx-req-main">
-                <b>{e.name}</b>
-                <small><Clock size={11} /> {e.time}</small>
+        {list.map((e) => {
+          const open = openId === e.id;
+          return (
+            <div className={`dx-enq ${e.status}${open ? " open" : ""}`} key={e.id}>
+              <button
+                type="button"
+                className="dx-enq-top"
+                aria-expanded={open}
+                aria-controls={`enq-body-${e.id}`}
+                onClick={() => setOpenId(open ? null : e.id)}
+              >
+                <div className="row-avatar">{e.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
+                <b className="dx-enq-name">{e.name}</b>
+                <span className={`chip enq-${e.status}`}>{ENQ_LABEL[e.status]}</span>
+                <ChevronDown size={18} className="dx-chev" />
+              </button>
+
+              <div className="dx-enq-collapse" id={`enq-body-${e.id}`}>
+                <div>
+                  <div className="dx-enq-body">
+                    <small className="dx-enq-time"><Clock size={11} /> {e.time}</small>
+                    <p className="dx-enq-msg">{e.message}</p>
+                    <div className="dx-enq-meta">
+                      <a href={`tel:${e.phone.replace(/\s/g, "")}`}><Phone size={13} /> {e.phone}</a>
+                      <a href={`mailto:${e.email}`}><Mail size={13} /> {e.email}</a>
+                    </div>
+                    <div className="dx-enq-actions">
+                      {e.status !== "called" && (
+                        <button type="button" className="act-btn solid" onClick={() => onSetStatus(e.id, "called")}>
+                          <PhoneCall size={14} /> Mark called
+                        </button>
+                      )}
+                      {e.status !== "followup" && (
+                        <button type="button" className="act-btn" onClick={() => onSetStatus(e.id, "followup")}>
+                          <Clock size={14} /> Need follow-up
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span className={`chip enq-${e.status}`}>{ENQ_LABEL[e.status]}</span>
             </div>
-            <p className="dx-enq-msg">{e.message}</p>
-            <div className="dx-enq-meta">
-              <a href={`tel:${e.phone.replace(/\s/g, "")}`}><Phone size={13} /> {e.phone}</a>
-              <a href={`mailto:${e.email}`}><Mail size={13} /> {e.email}</a>
-            </div>
-            <div className="dx-enq-actions">
-              {e.status !== "called" && (
-                <button type="button" className="act-btn solid" onClick={() => onSetStatus(e.id, "called")}>
-                  <PhoneCall size={14} /> Mark called
-                </button>
-              )}
-              {e.status !== "followup" && (
-                <button type="button" className="act-btn" onClick={() => onSetStatus(e.id, "followup")}>
-                  <Clock size={14} /> Need follow-up
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="dx-drawer-foot">
@@ -818,11 +834,25 @@ export default function Dashboard({ onPanelChange }) {
         .dx-seg button.on em { background: var(--primary-light); }
         .dx-seg button.t-new em { background: var(--danger-light); color: var(--danger-dark); }
 
-        /* enquiry cards */
-        .dx-enq { margin: 0 0 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--gray-border); border-radius: 18px; background: var(--white); }
+        /* enquiry cards (collapsible) */
+        .dx-enq { margin: 0 0 10px; padding: 0; overflow: hidden; border: 1px solid var(--gray-border); border-radius: 18px; background: var(--white); transition: border-color .2s, box-shadow .2s; }
         .dx-enq.new { border-color: var(--danger-light); background: #fffafb; }
-        .dx-enq-top { display: flex; align-items: center; gap: 12px; }
-        .dx-req-main small { display: flex; align-items: center; gap: 5px; }
+        .dx-enq.open { border-color: var(--periwinkle); box-shadow: 0 6px 18px rgba(54, 52, 77, .06); }
+
+        .dx-enq-top { width: 100%; padding: 12px 14px; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background .2s; }
+        .dx-enq-top:hover { background: var(--ghost-white); }
+        .dx-enq-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dx-chev { flex-shrink: 0; color: var(--gray); transition: transform .25s ease, color .2s; }
+        .dx-enq.open .dx-chev { transform: rotate(180deg); color: var(--primary); }
+
+        /* smooth expand / collapse */
+        .dx-enq-collapse { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease; }
+        .dx-enq.open .dx-enq-collapse { grid-template-rows: 1fr; }
+        .dx-enq-collapse > div { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility 0s .25s; }
+        .dx-enq.open .dx-enq-collapse > div { visibility: visible; transition-delay: 0s; }
+
+        .dx-enq-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--gray-border); }
+        .dx-enq-time { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--gray); }
         .dx-enq-msg { margin: 0; font-size: 13px; line-height: 1.5; color: var(--gray-dark); }
         .dx-enq-meta { display: flex; flex-direction: column; gap: 5px; }
         .dx-enq-meta a { display: inline-flex; align-items: center; gap: 7px; width: fit-content; max-width: 100%; font-size: 12.5px; font-weight: 600; color: var(--primary); text-decoration: none; overflow-wrap: anywhere; }
@@ -859,11 +889,11 @@ export default function Dashboard({ onPanelChange }) {
 
         /* ---------- modals / drawer ---------- */
         .dx-overlay { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 20px; background: rgba(23, 19, 38, .55); backdrop-filter: blur(3px); animation: dx-fade .15s ease; }
-                .dx-modal { max-width: 100%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: var(--white); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); animation: dx-pop .18s ease; }
+        .dx-modal { max-width: 100%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: var(--white); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); animation: dx-pop .18s ease; }
         .dx-modal-head { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--gray-border); }
         .dx-modal-head b { display: block; font-size: 15px; font-weight: 700; }
         .dx-modal-head small { display: block; margin-top: 3px; font-size: 12px; color: var(--gray); }
-                .dx-modal-actions { display: flex; align-items: center; gap: 8px; }
+        .dx-modal-actions { display: flex; align-items: center; gap: 8px; }
 
         .dash-side-panel { position: relative; box-sizing: border-box; height: 100%; width: 390px; min-width: 390px; max-width: 390px; flex: 0 0 390px; display: flex; flex-direction: column; overflow: hidden; border-radius: 26px; background: #fff; animation: dx-slide .22s ease; }
         .dash-side-panel * { box-sizing: border-box; }
@@ -889,7 +919,6 @@ export default function Dashboard({ onPanelChange }) {
         .dx-confirm p { margin: 0 0 18px; font-size: 14px; line-height: 1.55; color: var(--gray-dark); }
         .dx-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
-
         .dx-toast { position: fixed; left: 50%; bottom: 28px; z-index: 9800; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 14px; background: var(--dark); color: #fff; font-size: 13px; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, .3); animation: dx-pop .2s ease; }
         .dx-toast svg { color: #5eead4; }
 
@@ -897,6 +926,10 @@ export default function Dashboard({ onPanelChange }) {
         @keyframes dx-pop { from { opacity: 0; transform: translate(var(--tx, 0), 8px) scale(.98); } to { opacity: 1; transform: translate(var(--tx, 0), 0) scale(1); } }
         .dx-toast { --tx: -50%; }
         @keyframes dx-slide { from { transform: translateX(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .dx-enq-collapse, .dx-chev { transition: none; }
+        }
 
         /* ---------- responsive ---------- */
         /* narrow = the page itself is narrow (e.g. preview panel open), not just the screen */
@@ -915,7 +948,7 @@ export default function Dashboard({ onPanelChange }) {
           .search { flex: 1; width: auto; min-width: 140px; }
           .inv-table thead th, .inv-table tbody td { padding-left: 16px; padding-right: 16px; }
           .table-foot { padding: 12px 16px; flex-wrap: wrap; }
-          }
+        }
       `}</style>
     </div>
   );
