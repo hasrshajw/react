@@ -1,213 +1,77 @@
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
-
-/* =========================================================
-   LOGO ASSETS
-========================================================= */
+import { NavLink, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard, Package, Ticket, Palette, Image as ImageIcon, LayoutGrid,
+  PanelTop, Layers, ChevronRight, ChevronLeft, ExternalLink, Search, Bell, Plus,
+} from "lucide-react";
 
 import logo from "../assets/logo.png";
 import logoSmall from "../assets/logo-small.png";
 
-import panelClose from "../assets/panel_close.svg";
-import panelOpen from "../assets/panel_open.svg";
-
 /* =========================================================
-   DASHBOARD ICONS
-========================================================= */
-
-import dashboardIcon from "../assets/dashboard.svg";
-import dashboardHover from "../assets/hover_dashboard.svg";
-import dashboardActive from "../assets/fill_dashboard.svg";
-
-/* =========================================================
-   INVENTORY ICONS
-========================================================= */
-
-import inventoryIcon from "../assets/inventory.svg";
-import inventoryHover from "../assets/hover_inventory.svg";
-import inventoryActive from "../assets/fill_inventory.svg";
-
-/* =========================================================
-   COUPONS ICONS
-========================================================= */
-
-import couponsIcon from "../assets/coupons.svg";
-import couponsHover from "../assets/hover_coupons.svg";
-import couponsActive from "../assets/fill_coupons.svg";
-
-/* =========================================================
-   SITE ICONS
-========================================================= */
-
-import siteIcon from "../assets/site.svg";
-import siteHover from "../assets/hover_site.svg";
-import siteActive from "../assets/fill_site.svg";
-
-/* =========================================================
-   HERO SECTION ICONS
-========================================================= */
-
-import heroIcon from "../assets/herosection.svg";
-import heroHover from "../assets/hover_herosection.svg";
-import heroActive from "../assets/fill_herosection.svg";
-
-/* =========================================================
-   SECTIONS ICONS
-========================================================= */
-
-import sectionsIcon from "../assets/sections.svg";
-import sectionsHover from "../assets/hover_sections.svg";
-import sectionsActive from "../assets/fill_sections.svg";
-
-/* =========================================================
-   POPUP ICONS
-========================================================= */
-
-import popupIcon from "../assets/popup.svg";
-import popupHover from "../assets/hover_popup.svg";
-import popupActive from "../assets/fill_popup.svg";
-
-/* =========================================================
-   COMBO ICONS
-========================================================= */
-
-import comboIcon from "../assets/combo.svg";
-import comboHover from "../assets/hover_combo.svg";
-import comboActive from "../assets/fill_combo.svg";
-
-/* =========================================================
-   ICON MAP
-========================================================= */
-
-const icons = {
-  dashboard: {
-    normal: dashboardIcon,
-    hover: dashboardHover,
-    active: dashboardActive,
-  },
-
-  inventory: {
-    normal: inventoryIcon,
-    hover: inventoryHover,
-    active: inventoryActive,
-  },
-
-  coupons: {
-    normal: couponsIcon,
-    hover: couponsHover,
-    active: couponsActive,
-  },
-
-  site: {
-    normal: siteIcon,
-    hover: siteHover,
-    active: siteActive,
-  },
-
-  herosection: {
-    normal: heroIcon,
-    hover: heroHover,
-    active: heroActive,
-  },
-
-  sections: {
-    normal: sectionsIcon,
-    hover: sectionsHover,
-    active: sectionsActive,
-  },
-
-  popup: {
-    normal: popupIcon,
-    hover: popupHover,
-    active: popupActive,
-  },
-
-  combo: {
-    normal: comboIcon,
-    hover: comboHover,
-    active: comboActive,
-  },
-};
-
-/* =========================================================
-   MAIN MENU
+   NAV DATA  (icons are lucide: one set, follows currentColor,
+   so hover / active / dark theme need no extra image files)
 ========================================================= */
 
 const menuItems = [
-  {
-    name: "Dashboard",
-    path: "/",
-    icon: "dashboard",
-  },
-  {
-    name: "Inventory",
-    path: "/inventory",
-    icon: "inventory",
-  },
-  {
-    name: "Manage Coupons",
-    path: "/coupons",
-    icon: "coupons",
-  },
+  { name: "Dashboard", path: "/", Icon: LayoutDashboard },
+  { name: "Inventory", path: "/inventory", Icon: Package },
+  { name: "Manage Coupons", path: "/coupons", Icon: Ticket },
 ];
-
-/* =========================================================
-   CUSTOMIZE SITE SUBMENU
-========================================================= */
 
 const submenuItems = [
-  {
-    name: "Hero Section",
-    path: "/customize/hero-section",
-    icon: "herosection",
-  },
-  {
-    name: "Sections",
-    path: "/customize/sections",
-    icon: "sections",
-  },
-  {
-    name: "Popup",
-    path: "/customize/popup",
-    icon: "popup",
-  },
-  {
-    name: "Combo Offer",
-    path: "/customize/combo",
-    icon: "combo",
-  },
+  { name: "Hero Section", path: "/customize/hero-section", Icon: ImageIcon },
+  { name: "Sections", path: "/customize/sections", Icon: LayoutGrid },
+  { name: "Popup", path: "/customize/popup", Icon: PanelTop },
+  { name: "Combo Offer", path: "/customize/combo", Icon: Layers },
 ];
 
-/* =========================================================
-   ICON COMPONENT
-========================================================= */
+/* Breadcrumb comes from the route instead of being hardcoded */
+const CRUMBS = {
+  "/": ["Dashboard", "Overview"],
+  "/analytics": ["Dashboard", "Analytics"],
+  "/create": ["Dashboard", "Create"],
+  "/inventory": ["Manage", "Inventory"],
+  "/coupons": ["Manage", "Coupons"],
+  "/customize/hero-section": ["Customize site", "Hero section"],
+  "/customize/sections": ["Customize site", "Sections"],
+  "/customize/popup": ["Customize site", "Popup"],
+  "/customize/combo": ["Customize site", "Combo offer"],
+};
 
-function MenuIcon({ type, active = false }) {
-  const iconSet = icons[type];
+function getCrumbs(pathname) {
+  const clean = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
+  if (CRUMBS[clean]) return CRUMBS[clean];
+  const last = clean.split("/").filter(Boolean).pop() || "Overview";
+  return ["Dashboard", last.charAt(0).toUpperCase() + last.slice(1).replace(/-/g, " ")];
+}
 
+function MenuIcon({ Icon, size = 20 }) {
   return (
-    <span className="menu-icon">
-
-      <img
-        src={iconSet.normal}
-        alt=""
-        className={active ? "icon-hidden" : "icon-visible"}
-      />
-
-      <img
-        src={iconSet.hover}
-        alt=""
-        className="icon-hover"
-      />
-
-      <img
-        src={iconSet.active}
-        alt=""
-        className={active ? "icon-visible" : "icon-hidden"}
-      />
-
+    <span className="menu-icon" aria-hidden="true">
+      <Icon size={size} strokeWidth={1.8} />
     </span>
+  );
+}
+
+/* Always rendered so it can animate; hidden links are not focusable */
+function Submenu({ id, open, onNavigate }) {
+  return (
+    <div id={id} className={`nav-submenu ${open ? "open" : ""}`}>
+      <div className="nav-submenu-inner">
+        {submenuItems.map(({ name, path, Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            onClick={onNavigate}
+            className={({ isActive }) => `nav-submenu-item${isActive ? " active" : ""}`}
+          >
+            <MenuIcon Icon={Icon} size={18} />
+            <span>{name}</span>
+          </NavLink>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -218,30 +82,29 @@ function MenuIcon({ type, active = false }) {
 export default function Sidebar({
   collapsed,
   setCollapsed,
-  panelOpen: rightPanelOpen = false, // renamed: "panelOpen" is already the toggle icon import
+  panelOpen = false,
   onHoverExpand,
+  onProfileClick,
+  profileOpen = false,
+  onSearch, // optional: pass a handler to show the search button + ⌘K shortcut
+  liveSiteUrl = "/",
 }) {
+  const { pathname } = useLocation();
+  const customizeActive = pathname.startsWith("/customize");
 
-  const [siteOpen, setSiteOpen] = useState(false);
-
+  const [siteOpen, setSiteOpen] = useState(customizeActive);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  /* While a right-side panel (preview / requests) is open the sidebar stays a
-     slim rail and the full menu opens as an overlay on top of the page.
-     The user's saved collapsed/expanded preference is never touched. */
   const [overlayOpen, setOverlayOpen] = useState(false);
-
-  const overlayMode = rightPanelOpen;
-
-  /* Hover-peek: a collapsed rail temporarily expands (floating over the page)
-     while the mouse is on it, and collapses again on mouse leave.
-     hoverLock stops it re-opening right after the user clicks "collapse"
-     while the mouse is still over the sidebar. */
   const [hovering, setHovering] = useState(false);
   const [hoverLock, setHoverLock] = useState(false);
 
-  /* Only the icons (menu items, logo, account avatar) open the peek,
-     not the empty areas of the rail. */
+  const overlayMode = panelOpen;
+
+  /* Landing on (or reloading) a /customize page opens its group */
+  useEffect(() => {
+    if (customizeActive) setSiteOpen(true);
+  }, [customizeActive]);
+
   const handleIconEnter = () => {
     if (!hoverLock) setHovering(true);
   };
@@ -251,17 +114,10 @@ export default function Sidebar({
     setHoverLock(false);
   };
 
-  const isExpanded = overlayMode
-    ? overlayOpen || hovering
-    : !collapsed || hovering;
-
-  /* Floating over the page only while a right-side panel is open.
-     Without a panel, a hover-expanded sidebar is a normal expanded one
-     and the page content makes room for it. */
+  const isExpanded = overlayMode ? overlayOpen || hovering : !collapsed || hovering;
   const floating = isExpanded && overlayMode;
-
-  /* narrow = the page content / navbar use the 90px rail layout */
   const narrowLayout = overlayMode || (collapsed && !hovering);
+  const sidebarOpen = overlayMode ? overlayOpen : !collapsed;
 
   useEffect(() => {
     onHoverExpand?.(!overlayMode && collapsed && hovering);
@@ -279,28 +135,33 @@ export default function Sidebar({
     return () => window.removeEventListener("keydown", onKey);
   }, [overlayOpen]);
 
+  useEffect(() => {
+    if (!onSearch) return;
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        onSearch();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onSearch]);
+
   const closeOverlay = () => {
     if (overlayMode) setOverlayOpen(false);
   };
 
-  /* =======================================================
-     DESKTOP TOGGLE
-  ======================================================= */
-
   const handleToggle = () => {
     if (overlayMode) {
       if (overlayOpen) {
-        // closing: collapse right away even though the mouse is still over it
         setOverlayOpen(false);
         setHovering(false);
         setHoverLock(true);
       } else {
-        // clicking expand while hover-peeking pins the overlay open
         setOverlayOpen(true);
       }
       return;
     }
-
     if (!collapsed) {
       setHovering(false);
       setHoverLock(true);
@@ -308,2173 +169,674 @@ export default function Sidebar({
     setCollapsed(!collapsed);
   };
 
-  /* =======================================================
-     DESKTOP CUSTOMIZE SITE
-  ======================================================= */
-
   const handleCustomizeClick = () => {
-
     if (!isExpanded) {
-
       if (overlayMode) setOverlayOpen(true);
       else setCollapsed(false);
-
-      setTimeout(() => {
-        setSiteOpen(true);
-      }, 300);
-
+      setTimeout(() => setSiteOpen(true), 300);
       return;
     }
-
     setSiteOpen(!siteOpen);
   };
 
-  /* =======================================================
-     MOBILE CUSTOMIZE SITE
-  ======================================================= */
+  const closeMobileDrawer = () => setMobileOpen(false);
 
-  const handleMobileCustomize = () => {
-    setSiteOpen(!siteOpen);
-  };
-
-  /* =======================================================
-     CLOSE MOBILE
-  ======================================================= */
-
-  const closeMobileDrawer = () => {
-    setMobileOpen(false);
-  };
-
-  /* =======================================================
-     MOBILE NAVIGATION
-  ======================================================= */
-
-  const handleMobileNavigation = () => {
-    setMobileOpen(false);
-  };
+  const crumbs = getCrumbs(pathname);
 
   return (
     <>
-
       {/* ===================================================
           DESKTOP TOP NAVBAR
       =================================================== */}
-
       <header className="top-navbar">
+        <div className={`top-navbar-inner ${narrowLayout ? "navbar-collapsed" : "navbar-expanded"}`}>
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <span className="breadcrumb-muted">{crumbs[0]}</span>
+            <span className="breadcrumb-divider" aria-hidden="true">/</span>
+            <span className="breadcrumb-current" aria-current="page">{crumbs[1]}</span>
+          </nav>
 
-        <div
-          className={`top-navbar-inner ${
-            narrowLayout
-              ? "navbar-collapsed"
-              : "navbar-expanded"
-          }`}
-        >
+          <div className="navbar-right">
+            {onSearch && (
+              <button type="button" className="nav-search" onClick={onSearch}>
+                <Search size={16} strokeWidth={1.8} />
+                <span>Search</span>
+                <kbd>Ctrl K</kbd>
+              </button>
+            )}
 
-          <div className="navbar-left">
+            {pathname !== "/create" && (
+              <NavLink to="/create" className="nav-cta">
+                <Plus size={16} strokeWidth={2.2} />
+                <span>Create</span>
+              </NavLink>
+            )}
 
-            <div className="breadcrumb">
+            <button type="button" className="navbar-icon-button" aria-label="Notifications">
+              <Bell size={19} strokeWidth={1.8} />
+              <i className="notification-dot" />
+            </button>
 
-              <span className="breadcrumb-muted">
-                Dashboard
+            <i className="navbar-divider" aria-hidden="true" />
+
+            <button
+              type="button"
+              className="navbar-user"
+              data-pm-trigger
+              aria-label="Profile"
+              aria-haspopup="menu"
+              aria-expanded={profileOpen}
+              onClick={onProfileClick}
+            >
+              <span className="navbar-avatar">H</span>
+              <span className="navbar-user-info">
+                <span className="navbar-user-name">Harsha Vardhan</span>
+                <span className="navbar-user-role">Administrator</span>
               </span>
-
-              <span className="breadcrumb-divider">
-                /
-              </span>
-
-              <span className="breadcrumb-current">
-                Overview
-              </span>
-
-            </div>
-
+            </button>
           </div>
-
         </div>
-
       </header>
 
       {/* ===================================================
           DESKTOP SIDEBAR
       =================================================== */}
-
       {overlayMode && overlayOpen && (
-        <div
-          className="d-scrim"
-          onClick={() => setOverlayOpen(false)}
-          aria-hidden="true"
-        />
+        <div className="d-scrim" onClick={() => setOverlayOpen(false)} aria-hidden="true" />
       )}
 
       <aside
-        className={`d-sidebar ${
-          isExpanded
-            ? "expanded"
-            : "collapsed"
-        }${floating ? " as-overlay" : ""}`}
+        className={`d-sidebar ${isExpanded ? "expanded" : "collapsed"}${floating ? " as-overlay" : ""}`}
         onMouseLeave={handleMouseLeave}
       >
-
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
         <div className="d-sidebar-header">
-
-          {isExpanded && (
-
-            <NavLink
-              to="/"
-              className="brand-logo"
-              onClick={closeOverlay}
-            >
-
-              <img
-                src={logo}
-                alt="Logo"
-              />
-
+          {isExpanded ? (
+            <NavLink to="/" className="brand-logo" onClick={closeOverlay}>
+              <img src={logo} alt="Logo" />
             </NavLink>
-
-          )}
-
-          {!isExpanded && (
-
+          ) : (
             <span className="mini-logo" onMouseEnter={handleIconEnter}>
-
-              <img
-                src={logoSmall}
-                alt="Logo"
-              />
-
+              <img src={logoSmall} alt="Logo" />
             </span>
-
           )}
-
-          <button
-            className="sidebar-toggle"
-            onClick={handleToggle}
-            aria-label={
-              (overlayMode ? overlayOpen : !collapsed)
-                ? "Close sidebar"
-                : "Open sidebar"
-            }
-          >
-
-            <img
-              src={
-                (overlayMode ? overlayOpen : !collapsed)
-                  ? panelClose
-                  : panelOpen
-              }
-              alt=""
-              width="24"
-              height="24"
-            />
-
-          </button>
-
         </div>
 
-        {/* =================================================
-            SIDEBAR CONTENT
-        ================================================= */}
+        {/* Collapse chip sits on the sidebar edge, aligned with the logo row */}
+        <button
+          type="button"
+          className="sidebar-edge-toggle"
+          onClick={handleToggle}
+          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+        >
+          {sidebarOpen ? <ChevronLeft size={15} strokeWidth={2.2} /> : <ChevronRight size={15} strokeWidth={2.2} />}
+        </button>
 
         <div className="d-sidebar-inner">
+          <nav aria-label="Main">
+            <div className="nav-section-label">Manage</div>
 
-          <nav>
-
-            {/* =============================================
-                MAIN MENU
-            ============================================= */}
-
-            {menuItems.map((item) => (
-
+            {menuItems.map(({ name, path, Icon }) => (
               <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === "/"}
+                key={path}
+                to={path}
+                end={path === "/"}
                 onClick={closeOverlay}
                 onMouseEnter={handleIconEnter}
-                className={({ isActive }) =>
-                  `nav-item ${
-                    isActive
-                      ? "active"
-                      : ""
-                  }`
-                }
+                className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >
-
-                {({ isActive }) => (
-                  <>
-
-                    <MenuIcon
-                      type={item.icon}
-                      active={isActive}
-                    />
-
-                    <span className="nav-label">
-                      {item.name}
-                    </span>
-
-                    <span className="collapsed-tooltip">
-                      {item.name}
-                    </span>
-
-                  </>
-                )}
-
+                <MenuIcon Icon={Icon} />
+                <span className="nav-label">{name}</span>
+                <span className="collapsed-tooltip">{name}</span>
               </NavLink>
-
             ))}
 
-            {/* =============================================
-                CUSTOMIZE SITE
-            ============================================= */}
+            <div className="nav-section-label">Storefront</div>
 
-            <div
-              className={`nav-item ${
-                siteOpen
-                  ? "dropdown-open active"
-                  : ""
-              }`}
+            <button
+              type="button"
+              className={`nav-item${siteOpen && isExpanded ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
               onClick={handleCustomizeClick}
               onMouseEnter={handleIconEnter}
+              aria-expanded={isExpanded && siteOpen}
+              aria-controls="site-submenu"
             >
+              <MenuIcon Icon={Palette} />
+              <span className="nav-label">Customize Site</span>
+              <span className="collapsed-tooltip">Customize Site</span>
+              {isExpanded && <ChevronRight className="nav-chevron" size={16} strokeWidth={2} />}
+            </button>
 
-              <MenuIcon
-                type="site"
-                active={siteOpen}
-              />
-
-              <span className="nav-label">
-                Customize Site
-              </span>
-
-              <span className="collapsed-tooltip">
-                Customize Site
-              </span>
-
-              {isExpanded && (
-
-                <ChevronRight
-                  className="nav-chevron"
-                  size={16}
-                  strokeWidth={2}
-                />
-
-              )}
-
-            </div>
-
-            {/* =============================================
-                DESKTOP SUBMENU
-            ============================================= */}
-
-            {isExpanded && (
-
-              <div
-                className={`nav-submenu ${
-                  siteOpen
-                    ? "open"
-                    : ""
-                }`}
-              >
-
-                {submenuItems.map((item) => (
-
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={closeOverlay}
-                    className={({ isActive }) =>
-                      `nav-submenu-item ${
-                        isActive
-                          ? "active"
-                          : ""
-                      }`
-                    }
-                  >
-
-                    {({ isActive }) => (
-                      <>
-
-                        <MenuIcon
-                          type={item.icon}
-                          active={isActive}
-                        />
-
-                        <span>
-                          {item.name}
-                        </span>
-
-                      </>
-                    )}
-
-                  </NavLink>
-
-                ))}
-
-              </div>
-
-            )}
-
+            {isExpanded && <Submenu id="site-submenu" open={siteOpen} onNavigate={closeOverlay} />}
           </nav>
 
-          {/* =================================================
-              ACCOUNT
-          ================================================= */}
-
-          <div className="d-account-section" onMouseEnter={handleIconEnter}>
-
-            <div className="account-card">
-
-              <div className="account-avatar">
-                H
-              </div>
-
-              {isExpanded && (
-
-                <div className="account-text">
-
-                  <div className="account-name">
-                    Harsha
-                  </div>
-
-                  <div className="account-email">
-                    Administrator
-                  </div>
-
-                </div>
-
-              )}
-
-            </div>
-
+          {/* Footer: a useful action instead of a duplicate of the profile */}
+          <div className="d-footer" onMouseEnter={handleIconEnter}>
+            <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer">
+              <MenuIcon Icon={ExternalLink} size={18} />
+              <span className="nav-label">View live site</span>
+              <span className="collapsed-tooltip">View live site</span>
+            </a>
           </div>
-
         </div>
-
       </aside>
 
       {/* ===================================================
           MOBILE HEADER
       =================================================== */}
-
       <header className="m-header">
-
-        <button
-          className="m-menu-btn"
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
-        >
-
-          <div className="m-menu-lines">
-            <span />
-          </div>
-
+        <button className="m-menu-btn" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+          <div className="m-menu-lines"><span /></div>
         </button>
 
-        <NavLink
-          to="/"
-          className="mobile-brand-logo"
-        >
-
-          <img
-            src={logo}
-            alt="Logo"
-          />
-
+        <NavLink to="/" className="mobile-brand-logo">
+          <img src={logo} alt="Logo" />
         </NavLink>
 
-        <div className="mobile-header-spacer" />
-
+        <button
+          type="button"
+          className="m-profile-btn"
+          data-pm-trigger
+          aria-label="Profile"
+          aria-haspopup="menu"
+          aria-expanded={profileOpen}
+          onClick={onProfileClick}
+        >
+          H
+        </button>
       </header>
 
       {/* ===================================================
-          MOBILE OVERLAY
+          MOBILE DRAWER
       =================================================== */}
-
       <div
-        className={`m-overlay ${
-          mobileOpen
-            ? "open"
-            : ""
-        }`}
-        onClick={(e) => {
-
-          if (
-            e.target === e.currentTarget
-          ) {
-            closeMobileDrawer();
-          }
-
-        }}
+        className={`m-overlay ${mobileOpen ? "open" : ""}`}
+        onClick={(e) => e.target === e.currentTarget && closeMobileDrawer()}
       >
-
-        {/* =================================================
-            MOBILE DRAWER
-        ================================================= */}
-
         <div className="m-drawer">
-
-          {/* ===============================================
-              DRAWER HEADER
-          =============================================== */}
-
           <div className="m-drawer-header">
-
-            <NavLink
-              to="/"
-              className="brand-logo"
-              onClick={
-                closeMobileDrawer
-              }
-            >
-
-              <img
-                src={logo}
-                alt="Logo"
-              />
-
+            <NavLink to="/" className="brand-logo" onClick={closeMobileDrawer}>
+              <img src={logo} alt="Logo" />
             </NavLink>
-
-            <button
-              className="m-drawer-close"
-              onClick={
-                closeMobileDrawer
-              }
-              aria-label="Close menu"
-            >
-
+            <button className="m-drawer-close" onClick={closeMobileDrawer} aria-label="Close menu">
               <div className="m-drawer-close-icon" />
-
             </button>
-
           </div>
 
-          {/* ===============================================
-              MOBILE NAVIGATION
-          =============================================== */}
+          <nav className="m-drawer-nav" aria-label="Main">
+            <div className="nav-section-label">Manage</div>
 
-          <nav className="m-drawer-nav">
-
-            {menuItems.map((item) => (
-
+            {menuItems.map(({ name, path, Icon }) => (
               <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === "/"}
-                onClick={
-                  handleMobileNavigation
-                }
-                className={({ isActive }) =>
-                  `nav-item ${
-                    isActive
-                      ? "active"
-                      : ""
-                  }`
-                }
+                key={path}
+                to={path}
+                end={path === "/"}
+                onClick={closeMobileDrawer}
+                className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >
-
-                {({ isActive }) => (
-                  <>
-
-                    <MenuIcon
-                      type={item.icon}
-                      active={isActive}
-                    />
-
-                    <span className="nav-label">
-                      {item.name}
-                    </span>
-
-                  </>
-                )}
-
+                <MenuIcon Icon={Icon} />
+                <span className="nav-label">{name}</span>
               </NavLink>
-
             ))}
 
-            {/* =============================================
-                MOBILE CUSTOMIZE SITE
-            ============================================= */}
+            <div className="nav-section-label">Storefront</div>
 
-            <div
-              className={`nav-item ${
-                siteOpen
-                  ? "dropdown-open active"
-                  : ""
-              }`}
-              onClick={
-                handleMobileCustomize
-              }
+            <button
+              type="button"
+              className={`nav-item${siteOpen ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
+              onClick={() => setSiteOpen(!siteOpen)}
+              aria-expanded={siteOpen}
+              aria-controls="m-site-submenu"
             >
+              <MenuIcon Icon={Palette} />
+              <span className="nav-label">Customize Site</span>
+              <ChevronRight className="nav-chevron" size={16} strokeWidth={2} />
+            </button>
 
-              <MenuIcon
-                type="site"
-                active={siteOpen}
-              />
-
-              <span className="nav-label">
-                Customize Site
-              </span>
-
-              <ChevronRight
-                className="nav-chevron"
-                size={16}
-                strokeWidth={2}
-              />
-
-            </div>
-
-            {/* =============================================
-                MOBILE SUBMENU
-            ============================================= */}
-
-            <div
-              className={`nav-submenu ${
-                siteOpen
-                  ? "open"
-                  : ""
-              }`}
-            >
-
-              {submenuItems.map((item) => (
-
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={
-                    handleMobileNavigation
-                  }
-                  className={({ isActive }) =>
-                    `nav-submenu-item ${
-                      isActive
-                        ? "active"
-                        : ""
-                    }`
-                  }
-                >
-
-                  {({ isActive }) => (
-                    <>
-
-                      <MenuIcon
-                        type={item.icon}
-                        active={isActive}
-                      />
-
-                      <span>
-                        {item.name}
-                      </span>
-
-                    </>
-                  )}
-
-                </NavLink>
-
-              ))}
-
-            </div>
-
+            <Submenu id="m-site-submenu" open={siteOpen} onNavigate={closeMobileDrawer} />
           </nav>
 
-          {/* ===============================================
-              MOBILE ACCOUNT
-          =============================================== */}
-
           <div className="m-account-section">
-
-            <div className="account-card">
-
-              <div className="account-avatar">
-                H
-              </div>
-
-              <div className="account-text">
-
-                <div className="account-name">
-                  Harsha
-                </div>
-
-                <div className="account-email">
-                  Administrator
-                </div>
-
-              </div>
-
-            </div>
-
+            <button
+              type="button"
+              className="account-card account-button"
+              data-pm-trigger
+              onClick={() => {
+                closeMobileDrawer();
+                onProfileClick?.();
+              }}
+            >
+              <span className="account-avatar">H</span>
+              <span className="account-text">
+                <span className="account-name">Harsha Vardhan</span>
+                <span className="account-email">Administrator</span>
+              </span>
+            </button>
           </div>
-
         </div>
-
       </div>
 
-      {/* ===================================================
-          STYLES
-      =================================================== */}
-
       <style>{`
-
-        /* =================================================
-           EXACT REFERENCE VARIABLES
-        ================================================= */
-
         :root {
-
           --header-height-desktop: 64px;
-
           --sidebar-width: 260px;
-
           --sidebar-collapsed-width: 90px;
-
-          --row-height: 52px;
-
+          --row-height: 48px;
           --sidebar-bg: var(--white);
-
           --header-bg: var(--white);
-
           --page-bg: var(--gray-light);
-
           --text-color: var(--dark);
-
           --icon-color: var(--gray);
-
           --brand-primary: var(--primary);
-
           --active-bg: var(--primary-light);
-
           --hover-bg: var(--primary-lightest);
-
           --border-subtle: var(--gray-border);
-
           --radius-md: 10px;
-
           --radius-lg: 14px;
-
           --tooltip-bg: var(--gray-dark);
-
         }
 
-
-        /* =================================================
-           GLOBAL FONT
-           
-           EXACTLY LIKE REFERENCE:
-           DM Sans, Roboto, sans-serif
-           font-weight: 500
-        ================================================= */
-
-        .d-sidebar,
-        .top-navbar,
-        .m-header,
-        .m-drawer {
-
-          font-family:
-            "DM Sans",
-            Roboto,
-            sans-serif;
-
+        .d-sidebar, .top-navbar, .m-header, .m-drawer {
+          font-family: "DM Sans", Roboto, sans-serif;
           font-weight: 500;
-
-          color:
-            var(--text-color);
-
+          color: var(--text-color);
         }
 
+        .d-sidebar button, .top-navbar button, .m-header button, .m-drawer button { font-family: inherit; }
 
-        /* =================================================
-           DESKTOP TOP NAVBAR
-        ================================================= */
+        .nav-item:focus-visible,
+        .nav-submenu-item:focus-visible,
+        .sidebar-edge-toggle:focus-visible,
+        .navbar-icon-button:focus-visible,
+        .navbar-user:focus-visible,
+        .nav-cta:focus-visible,
+        .nav-search:focus-visible,
+        .live-site:focus-visible,
+        .account-button:focus-visible,
+        .m-profile-btn:focus-visible {
+          outline: 2px solid var(--brand-primary);
+          outline-offset: 2px;
+        }
+
+        /* ---------- TOP NAVBAR ---------- */
 
         .top-navbar {
-
           position: fixed;
-
-          top: 0;
-          left: 0;
-          right: 0;
-
-          height:
-            var(--header-height-desktop);
-
-          background:
-            var(--header-bg);
-
-          border-bottom:
-            1px solid
-            var(--border-subtle);
-
+          top: 0; left: 0; right: 0;
+          height: var(--header-height-desktop);
+          background: var(--header-bg);
+          border-bottom: 1px solid var(--border-subtle);
           z-index: 1500;
-
         }
-
 
         .top-navbar-inner {
-
-          height:
-            var(--header-height-desktop);
-
+          height: var(--header-height-desktop);
           display: flex;
-
           align-items: center;
-
-          justify-content:
-            space-between;
-
-          padding:
-            0 28px;
-
-          transition:
-            margin-left 0.3s
-            cubic-bezier(
-              0.4,
-              0,
-              0.2,
-              1
-            );
-
+          justify-content: space-between;
+          gap: 16px;
+          padding: 0 24px;
+          transition: margin-left .3s cubic-bezier(.4, 0, .2, 1);
         }
 
+        .navbar-expanded { margin-left: var(--sidebar-width); }
+        .navbar-collapsed { margin-left: var(--sidebar-collapsed-width); }
 
-        .navbar-expanded {
+        .breadcrumb { display: flex; align-items: center; gap: 9px; min-width: 0; font-size: 14px; white-space: nowrap; }
+        .breadcrumb-muted { color: var(--gray); }
+        .breadcrumb-divider { color: var(--gray-border); }
+        .breadcrumb-current { color: var(--text-color); font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 
-          margin-left:
-            var(--sidebar-width);
+        .navbar-right { display: flex; align-items: center; gap: 8px; }
 
-        }
-
-
-        .navbar-collapsed {
-
-          margin-left:
-            var(--sidebar-collapsed-width);
-
-        }
-
-
-        .navbar-left {
-
-          display: flex;
-
-          align-items: center;
-
-        }
-
-
-        .breadcrumb {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 9px;
-
-        }
-
-
-        .breadcrumb-muted {
-
+        .nav-search {
+          height: 38px;
+          display: flex; align-items: center; gap: 8px;
+          padding: 0 8px 0 12px;
+          border: 1px solid var(--border-subtle);
+          border-radius: 10px;
+          background: var(--gray-light);
           color: var(--gray);
-
+          font-size: 13px;
+          cursor: pointer;
+          transition: border-color .15s, color .15s;
+        }
+        .nav-search:hover { color: var(--text-color); border-color: var(--gray); }
+        .nav-search kbd {
+          font: inherit; font-size: 11px; padding: 2px 6px; border-radius: 6px;
+          background: var(--white); border: 1px solid var(--border-subtle);
         }
 
-
-        .breadcrumb-divider {
-
-          color: var(--gray-border);
-
+        .nav-cta {
+          height: 38px;
+          display: flex; align-items: center; gap: 6px;
+          padding: 0 16px 0 12px;
+          border-radius: 10px;
+          background: var(--brand-primary);
+          color: var(--white, #fff);
+          font-size: 14px; font-weight: 600;
+          text-decoration: none;
+          transition: filter .15s, transform .15s;
         }
-
-
-        .breadcrumb-current {
-
-          color:
-            var(--text-color);
-
-          font-weight: 700;
-
-        }
-
-
-        .navbar-right {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 8px;
-
-        }
-
+        .nav-cta:hover { filter: brightness(1.1); }
+        .nav-cta:active { transform: translateY(1px); }
 
         .navbar-icon-button {
-
-          width: 38px;
-
-          height: 38px;
-
-          border: none;
-
-          background:
-            transparent;
-
-          border-radius: 9px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          cursor: pointer;
-
-          color:
-            var(--icon-color);
-
-          position: relative;
-
-          transition:
-            background 0.15s,
-            color 0.15s;
-
+          width: 38px; height: 38px;
+          border: 0; background: transparent; border-radius: 10px;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; color: var(--icon-color); position: relative;
+          transition: background .15s, color .15s;
         }
-
-
-        .navbar-icon-button:hover {
-
-          background:
-            var(--hover-bg);
-
-          color:
-            var(--brand-primary);
-
-        }
-
+        .navbar-icon-button:hover { background: var(--hover-bg); color: var(--brand-primary); }
 
         .notification-dot {
-
-          position: absolute;
-
-          top: 8px;
-          right: 8px;
-
-          width: 6px;
-          height: 6px;
-
-          border-radius: 50%;
-
-          background:
-            var(--brand-primary);
-
-          border:
-            1px solid var(--white);
-
+          position: absolute; top: 9px; right: 10px;
+          width: 7px; height: 7px; border-radius: 50%;
+          background: #fb4778; border: 1.5px solid var(--white);
         }
 
-
-        .navbar-divider {
-
-          width: 1px;
-
-          height: 30px;
-
-          background:
-            var(--border-subtle);
-
-          margin:
-            0 8px;
-
-        }
-
+        .navbar-divider { width: 1px; height: 28px; background: var(--border-subtle); margin: 0 6px; }
 
         .navbar-user {
-
-          border: none;
-
-          background:
-            transparent;
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 10px;
-
-          padding:
-            4px 6px;
-
-          border-radius: 9px;
-
-          cursor: pointer;
-
-          text-align: left;
-
+          border: 0; background: transparent;
+          display: flex; align-items: center; gap: 10px;
+          padding: 4px 10px 4px 4px; border-radius: 999px;
+          cursor: pointer; text-align: left; color: inherit;
+          transition: background .15s;
         }
-
-
-        .navbar-user:hover {
-
-          background:
-            var(--hover-bg);
-
-        }
-
+        .navbar-user:hover, .navbar-user[aria-expanded="true"] { background: var(--hover-bg); }
 
         .navbar-avatar {
-
-          width: 34px;
-
-          height: 34px;
-
-          border-radius: 50%;
-
-          background:
-            var(--brand-primary);
-
-          color:
-            var(--white);
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          font-size: 12px;
-
-          font-weight: 700;
-
+          width: 34px; height: 34px; border-radius: 50%;
+          background: var(--brand-primary); color: var(--white, #fff);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 13px; font-weight: 700;
         }
+        .navbar-user-info { display: flex; flex-direction: column; gap: 2px; line-height: 1.1; }
+        .navbar-user-name { font-size: 13px; font-weight: 700; }
+        .navbar-user-role { font-size: 11px; color: var(--text-sub, var(--gray)); }
 
-
-        .navbar-user-info {
-
-          display: flex;
-
-          flex-direction: column;
-
-          gap: 2px;
-
-        }
-
-
-        .navbar-user-name {
-
-          font-size: 13px;
-
-          font-weight: 700;
-
-        }
-
-
-        .navbar-user-role {
-
-          font-size: 11px;
-
-          color:
-            var(--text-sub);
-
-        }
-
-
-        /* =================================================
-           DESKTOP SIDEBAR
-        ================================================= */
+        /* ---------- SIDEBAR ---------- */
 
         .d-sidebar {
-
-          width:
-            var(--sidebar-width);
-
+          width: var(--sidebar-width);
           height: 100vh;
-
-          background:
-            var(--sidebar-bg);
-
-          border-right:
-            1px solid
-            var(--border-subtle);
-
-          display: flex;
-
-          flex-direction: column;
-
-          position: fixed;
-
-          top: 0;
-          left: 0;
-
+          background: var(--sidebar-bg);
+          border-right: 1px solid var(--border-subtle);
+          display: flex; flex-direction: column;
+          position: fixed; top: 0; left: 0;
           z-index: 2000;
-
-          transition:
-            width 0.3s
-            cubic-bezier(
-              0.4,
-              0,
-              0.2,
-              1
-            );
-
+          transition: width .3s cubic-bezier(.4, 0, .2, 1);
         }
+        .d-sidebar.collapsed { width: var(--sidebar-collapsed-width); }
 
-
-        .d-sidebar.collapsed {
-
-          width:
-            var(--sidebar-collapsed-width);
-
-        }
-
-
-        /* =================================================
-           SIDEBAR HEADER
-        ================================================= */
-
+        /* 64px = same height as the top navbar, so the border line runs straight across */
         .d-sidebar-header {
-
-          /* Fixed height in BOTH states (expanded + collapsed) so the menu
-             items never shift vertically when the sidebar expands on hover. */
-          height: 105px;
-
-          min-height: 105px;
-
-          box-sizing: border-box;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          padding:
-            0 24px;
-
+          height: var(--header-height-desktop);
+          min-height: var(--header-height-desktop);
+          display: flex; align-items: center;
+          padding: 0 24px;
+          border-bottom: 1px solid var(--border-subtle);
           flex-shrink: 0;
-
         }
+        .d-sidebar.collapsed .d-sidebar-header { justify-content: center; padding: 0; }
 
+        .brand-logo, .mini-logo { display: flex; align-items: center; text-decoration: none; }
+        .brand-logo img, .mini-logo img { height: 36px; width: auto; display: block; }
 
-        .brand-logo {
-
-          display: flex;
-
-          align-items: center;
-
-          text-decoration: none;
-
+        .sidebar-edge-toggle {
+          position: absolute; top: 18px; right: -14px;
+          width: 28px; height: 28px; border-radius: 50%;
+          border: 1px solid var(--border-subtle);
+          background: var(--white); color: var(--icon-color);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; z-index: 5;
+          box-shadow: 0 2px 8px rgba(17, 12, 41, .12);
+          transition: background .15s, color .15s, border-color .15s;
         }
-
-
-        .brand-logo img {
-
-          height: 45px;
-
-          width: auto;
-
-          display: block;
-
-        }
-
-
-        .mini-logo {
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-        }
-
-
-        .mini-logo img {
-
-          height: 45px;
-
-          width: auto;
-
-          display: block;
-
-        }
-
-
-        /* =================================================
-           SIDEBAR TOGGLE
-        ================================================= */
-
-        .sidebar-toggle {
-
-          background: none;
-
-          border: none;
-
-          cursor: pointer;
-
-          color:
-            var(--icon-color);
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          padding: 6px;
-
-          border-radius: 8px;
-
-          transition:
-            0.2s;
-
-        }
-
-
-        .sidebar-toggle:hover {
-
-          background:
-            var(--hover-bg);
-
-          color:
-            var(--text-color);
-
-        }
-
-
-        /* =================================================
-           OVERLAY MODE (a right-side panel is open)
-           Full menu floats over the page; the page keeps
-           its 90px rail layout underneath.
-        ================================================= */
-
-        .d-scrim {
-
-          position: absolute;
-
-          inset: 0;
-
-          background:
-            rgba(23, 19, 38, 0.38);
-
-          z-index: 1900;
-
-          animation:
-            d-scrim-in 0.2s ease;
-
-        }
-
-
-        .d-sidebar.as-overlay {
-
-          box-shadow:
-            8px 0 40px
-            rgba(0, 0, 0, 0.22);
-
-        }
-
-
-        @keyframes d-scrim-in {
-
-          from { opacity: 0; }
-
-          to { opacity: 1; }
-
-        }
-
-
-        /* =================================================
-           COLLAPSED HEADER
-        ================================================= */
-
-        .d-sidebar.collapsed
-        .d-sidebar-header {
-
-          flex-direction: column;
-
-          justify-content: center;
-
-          padding: 8px 0;
-
-          gap: 4px;
-
-        }
-
-
-        /* =================================================
-           SIDEBAR INNER
-        ================================================= */
+        .sidebar-edge-toggle:hover { background: var(--brand-primary); border-color: var(--brand-primary); color: var(--white, #fff); }
+
+        .d-scrim { position: absolute; inset: 0; background: rgba(23, 19, 38, .38); z-index: 1900; animation: d-scrim-in .2s ease; }
+        .d-sidebar.as-overlay { box-shadow: 8px 0 40px rgba(0, 0, 0, .22); }
+        @keyframes d-scrim-in { from { opacity: 0; } to { opacity: 1; } }
 
         .d-sidebar-inner {
-
-          flex: 1;
-
-          padding:
-            10px 16px;
-
-          display: flex;
-
-          flex-direction: column;
-
-          overflow-y: auto;
-
-          overflow-x: visible;
-
+          flex: 1; padding: 8px 16px 16px;
+          display: flex; flex-direction: column;
+          overflow-y: auto; overflow-x: visible;
         }
 
+        /* Group labels: sentence case, become a hairline when collapsed */
+        .nav-section-label {
+          padding: 16px 14px 6px;
+          font-size: 12px; font-weight: 500;
+          color: var(--gray); white-space: nowrap;
+        }
+        nav > .nav-section-label:first-child { padding-top: 8px; }
+        .d-sidebar.collapsed .nav-section-label {
+          height: 1px; padding: 0; margin: 14px 14px 12px;
+          background: var(--border-subtle); font-size: 0; overflow: hidden;
+        }
+        .d-sidebar.collapsed nav > .nav-section-label:first-child { display: none; }
 
-        /* =================================================
-           NAV ITEMS
-
-           NO EXPLICIT FONT-SIZE.
-           Reference inherits body DM Sans 500.
-        ================================================= */
+        /* ---------- NAV ITEMS ---------- */
 
         .nav-item {
-
           position: relative;
+          display: flex; align-items: center;
+          width: 100%; height: var(--row-height);
+          padding: 0 14px; margin: 2px 0;
+          border: 0; border-radius: var(--radius-md);
+          background: transparent;
+          gap: 14px; cursor: pointer;
+          color: var(--text-color); text-decoration: none;
+          font-size: 15px; font-weight: 600; text-align: left;
+          white-space: nowrap; user-select: none;
+          transition: background .2s, color .2s;
+        }
+        .nav-item:hover { background: var(--hover-bg); }
+        .nav-item.active { background: var(--active-bg); color: var(--brand-primary); }
 
-          display: flex;
-
-          align-items: center;
-
-          height:
-            var(--row-height);
-
-          padding:
-            0 16px;
-
-          margin:
-            2px 0;
-
-          border-radius:
-            var(--radius-md);
-
-          gap: 14px;
-
-          cursor: pointer;
-
-          color:
-            var(--text-color);
-
-          text-decoration: none;
-
-          transition:
-            background 0.2s,
-            color 0.2s;
-
-          white-space: nowrap;
-
-          user-select: none;
-
+        /* Active indicator: constant font-weight, so labels never shift */
+        .nav-item.active::before {
+          content: ""; position: absolute; left: -16px; top: 12px; bottom: 12px;
+          width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
         }
 
-
-        .nav-item:hover {
-
-          background:
-            var(--hover-bg);
-
-        }
-
-
-        .nav-item.active {
-
-          background:
-            var(--active-bg);
-
-          color:
-            var(--brand-primary);
-
-          font-weight: 700;
-
-        }
-
-
-        /* =================================================
-           ICON
-        ================================================= */
+        /* Group open with an active child: let the child carry the highlight */
+        .nav-item.active.dropdown-open { background: transparent; }
+        .nav-item.active.dropdown-open:hover { background: var(--hover-bg); }
+        .nav-item.active.dropdown-open::before { display: none; }
 
         .menu-icon {
-
-          position: relative;
-
-          width: 24px;
-
-          height: 24px;
-
-          min-width: 24px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
+          width: 22px; height: 22px; min-width: 22px;
+          display: flex; align-items: center; justify-content: center;
+          color: var(--icon-color);
+          transition: color .2s;
         }
+        .nav-item:hover .menu-icon,
+        .nav-item.active .menu-icon,
+        .nav-submenu-item:hover .menu-icon,
+        .nav-submenu-item.active .menu-icon,
+        .live-site:hover .menu-icon { color: var(--brand-primary); }
 
+        .nav-chevron { margin-left: auto; flex-shrink: 0; color: var(--icon-color); transition: transform .25s ease; }
+        .nav-item.dropdown-open .nav-chevron { transform: rotate(90deg); }
 
-        .menu-icon img {
-
-          position: absolute;
-
-          width: 24px;
-
-          height: 24px;
-
-          object-fit: contain;
-
-        }
-
-
-        .icon-visible {
-
-          opacity: 1;
-
-        }
-
-
-        .icon-hidden {
-
-          opacity: 0;
-
-        }
-
-
-        .menu-icon .icon-hover {
-
-          opacity: 0;
-
-        }
-
-
-        .nav-item:hover:not(.active)
-        .menu-icon .icon-hover {
-
-          opacity: 1;
-
-        }
-
-
-        .nav-item:hover:not(.active)
-        .menu-icon .icon-visible {
-
-          opacity: 0;
-
-        }
-
-
-        /* =================================================
-           CHEVRON
-        ================================================= */
-
-        .nav-chevron {
-
-          margin-left: auto;
-
-          width: 16px;
-
-          height: 16px;
-
-          stroke:
-            currentColor;
-
-          flex-shrink: 0;
-
-          transition:
-            transform 0.25s ease;
-
-        }
-
-
-        .nav-item.dropdown-open
-        .nav-chevron {
-
-          transform:
-            rotate(90deg);
-
-        }
-
-
-        /* =================================================
-           SUBMENU
-        ================================================= */
+        /* ---------- SUBMENU (animated) ---------- */
 
         .nav-submenu {
-
-          display: none;
-
-          margin:
-            2px 0 4px 20px;
-
-          padding-left: 16px;
-
-          border-left:
-            2px solid
-            var(--border-subtle);
-
-          flex-direction: column;
-
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows .25s ease;
         }
+        .nav-submenu.open { grid-template-rows: 1fr; }
 
-
-        .nav-submenu.open {
-
-          display: flex;
-
+        .nav-submenu-inner {
+          overflow: hidden; min-height: 0;
+          margin-left: 22px; padding-left: 14px;
+          border-left: 1px solid var(--border-subtle);
+          display: flex; flex-direction: column;
+          visibility: hidden;
+          transition: visibility .25s;
         }
-
-
-        /* EXACT REFERENCE:
-           font-size 15px
-           font-weight 600
-        */
+        .nav-submenu.open .nav-submenu-inner { visibility: visible; }
 
         .nav-submenu-item {
-
-          display: flex;
-
-          align-items: center;
-
-          height: 50px;
-
-          padding:
-            0 14px;
-
-          border-radius: 8px;
-
-          margin:
-            1px 0;
-
-          gap: 12px;
-
-          cursor: pointer;
-
-          color:
-            var(--text-color);
-
-          font-size: 15px;
-
-          font-weight: 600;
-
-          text-decoration: none;
-
-          transition:
-            background 0.15s,
-            color 0.15s;
-
-          white-space: nowrap;
-
+          display: flex; align-items: center;
+          height: 42px; padding: 0 12px; margin: 1px 0;
+          border-radius: 8px; gap: 12px; flex-shrink: 0;
+          color: var(--text-color); text-decoration: none;
+          font-size: 14px; font-weight: 500; white-space: nowrap;
+          transition: background .15s, color .15s;
         }
+        .nav-submenu-item:hover { background: var(--hover-bg); color: var(--brand-primary); }
+        .nav-submenu-item.active { background: var(--active-bg); color: var(--brand-primary); font-weight: 600; }
 
+        /* ---------- COLLAPSED ---------- */
 
-        .nav-submenu-item:hover {
-
-          background:
-            var(--hover-bg);
-
-          color:
-            var(--brand-primary);
-
-        }
-
-
-        .nav-submenu-item.active {
-
-          background:
-            var(--active-bg);
-
-          color:
-            var(--brand-primary);
-
-          font-weight: 700;
-
-        }
-
-
-        /* =================================================
-           COLLAPSED SIDEBAR
-        ================================================= */
-
-        .d-sidebar.collapsed
-        .brand-logo,
-
-        .d-sidebar.collapsed
-        .nav-label,
-
-        .d-sidebar.collapsed
-        .nav-chevron,
-
-        .d-sidebar.collapsed
-        .nav-submenu {
-
-          display: none !important;
-
-        }
-
-
-        .d-sidebar.collapsed
-        .d-sidebar-inner {
-
-          overflow: visible;
-
-        }
-
-
-        .d-sidebar.collapsed
-        .nav-item {
-
-          justify-content: center;
-
-          padding: 0;
-
-        }
-
-
-        /* =================================================
-           COLLAPSED TOOLTIP
-
-           Same values as reference.
-        ================================================= */
+        .d-sidebar.collapsed :is(.brand-logo, .nav-label, .nav-chevron, .nav-submenu) { display: none !important; }
+        .d-sidebar.collapsed .d-sidebar-inner { overflow: visible; }
+        .d-sidebar.collapsed .nav-item { justify-content: center; padding: 0; }
 
         .collapsed-tooltip {
-
           display: none;
-
-          position: absolute;
-
-          left: 100%;
-
-          top: 50%;
-
-          transform:
-            translateY(-50%);
-
-          background-color:
-            var(--tooltip-bg);
-
-          color:
-            var(--white);
-
-          padding:
-            8px 12px;
-
-          border-radius: 6px;
-
-          font-size: 13px;
-
-          font-weight: 500;
-
-          white-space: nowrap;
-
-          z-index: 1000;
-
-          margin-left: 12px;
-
-          box-shadow:
-            0 4px 12px
-            rgba(
-              0,
-              0,
-              0,
-              0.15
-            );
-
+          position: absolute; left: 100%; top: 50%;
+          transform: translateY(-50%);
+          margin-left: 12px; padding: 8px 12px;
+          background-color: var(--tooltip-bg); color: var(--white, #fff);
+          border-radius: 6px; font-size: 13px; font-weight: 500;
+          white-space: nowrap; z-index: 1000;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
           pointer-events: none;
-
         }
-
-
-        .d-sidebar.collapsed
-        .nav-item:hover
-        .collapsed-tooltip {
-
-          display: block;
-
-        }
-
-
+        .d-sidebar.collapsed :is(.nav-item, .live-site):is(:hover, :focus-visible) .collapsed-tooltip { display: block; }
         .collapsed-tooltip::before {
-
-          content: "";
-
-          position: absolute;
-
-          left: -6px;
-
-          top: 50%;
-
-          transform:
-            translateY(-50%);
-
-          border-width:
-            6px 6px 6px 0;
-
-          border-style: solid;
-
-          border-color:
-            transparent
-            var(--tooltip-bg)
-            transparent
-            transparent;
-
+          content: ""; position: absolute; left: -6px; top: 50%;
+          transform: translateY(-50%);
+          border-width: 6px 6px 6px 0; border-style: solid;
+          border-color: transparent var(--tooltip-bg) transparent transparent;
         }
 
+        /* ---------- FOOTER ---------- */
 
-        /* =================================================
-           ACCOUNT
-        ================================================= */
+        .d-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-subtle); }
 
-        .d-account-section {
-
-          margin-top: auto;
-
-          padding:
-            24px 16px;
-
-          border-top:
-            1px solid
-            var(--border-subtle);
-
-          cursor: pointer;
-
+        .live-site {
+          position: relative;
+          display: flex; align-items: center; gap: 12px;
+          height: 46px; padding: 0 14px;
+          border: 1px solid var(--border-subtle); border-radius: 12px;
+          color: var(--text-color); text-decoration: none;
+          font-size: 14px; font-weight: 600; white-space: nowrap;
+          transition: background .15s, color .15s, border-color .15s;
         }
+        .live-site:hover { background: var(--hover-bg); color: var(--brand-primary); border-color: transparent; }
+        .d-sidebar.collapsed .live-site { justify-content: center; padding: 0; }
 
+        /* ---------- ACCOUNT (mobile drawer) ---------- */
 
-        .account-card {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 12px;
-
-        }
-
-
+        .account-card { display: flex; align-items: center; gap: 12px; }
+        .account-button { width: 100%; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; border-radius: 12px; }
         .account-avatar {
-
-          width: 44px;
-
-          height: 44px;
-
-          min-width: 44px;
-
-          border-radius: 50%;
-
-          border:
-            1px solid
-            var(--border-subtle);
-
-          background:
-            var(--active-bg);
-
-          color:
-            var(--brand-primary);
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
+          width: 44px; height: 44px; min-width: 44px; border-radius: 50%;
+          border: 1px solid var(--border-subtle);
+          background: var(--active-bg); color: var(--brand-primary);
+          display: flex; align-items: center; justify-content: center;
           font-weight: 700;
-
-          flex-shrink: 0;
-
         }
+        .account-text { display: flex; flex-direction: column; overflow: hidden; }
+        .account-name { font-size: 15px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .account-email { font-size: 13px; color: var(--gray); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
 
-
-        .account-text {
-
-          display: flex;
-
-          flex-direction: column;
-
-          overflow: hidden;
-
-        }
-
-
-        .account-name {
-
-          font-size: 15px;
-
-          font-weight: 700;
-
-          white-space: nowrap;
-
-          text-overflow: ellipsis;
-
-          overflow: hidden;
-
-        }
-
-
-        .account-email {
-
-          font-size: 13px;
-
-          color:
-            var(--gray);
-
-          white-space: nowrap;
-
-          text-overflow: ellipsis;
-
-          overflow: hidden;
-
-        }
-
-
-        .d-sidebar.collapsed
-        .account-text {
-
-          display: none;
-
-        }
-
-
-        .d-sidebar.collapsed
-        .d-account-section {
-
-          display: flex;
-
-          justify-content: center;
-
-          padding:
-            24px 0;
-
-        }
-
-
-        /* =================================================
-           MOBILE HEADER
-           EXACT REFERENCE VALUES
-        ================================================= */
+        /* ---------- MOBILE ---------- */
 
         .m-header {
-
-          display: none;
-
-          height: 72px;
-
-          background:
-            var(--white);
-
-          border-bottom:
-            1px solid
-            var(--border-subtle);
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          padding:
-            0 16px;
-
-          position: fixed;
-
-          top: 0;
-
-          width: 100%;
-
-          z-index: 1000;
-
+          display: none; height: 72px;
+          background: var(--white); border-bottom: 1px solid var(--border-subtle);
+          align-items: center; justify-content: space-between;
+          padding: 0 16px; position: fixed; top: 0; width: 100%; z-index: 1000;
         }
 
-
-        .m-menu-btn {
-
-          width: 40px;
-
-          height: 40px;
-
-          border-radius: 10px;
-
-          border:
-            1px solid var(--gray-border);
-
-          background:
-            var(--gray-light);
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          cursor: pointer;
-
+        .m-menu-btn, .m-drawer-close {
+          width: 40px; height: 40px; border-radius: 10px;
+          border: 1px solid var(--gray-border); background: var(--gray-light);
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
 
-
-        .m-menu-lines {
-
-          width: 18px;
-
-          height: 14px;
-
-          position: relative;
-
+        .m-profile-btn {
+          width: 40px; height: 40px; border-radius: 50%;
+          border: 1px solid var(--border-subtle);
+          background: var(--active-bg); color: var(--brand-primary);
+          font-size: 14px; font-weight: 700; cursor: pointer;
         }
 
-
-        .m-menu-lines::before,
-        .m-menu-lines::after,
-        .m-menu-lines span {
-
-          content: "";
-
-          position: absolute;
-
-          left: 0;
-          right: 0;
-
-          height: 2px;
-
-          background:
-            var(--dark);
-
-          border-radius: 10px;
-
+        .m-menu-lines { width: 18px; height: 14px; position: relative; }
+        .m-menu-lines::before, .m-menu-lines::after, .m-menu-lines span {
+          content: ""; position: absolute; left: 0; right: 0;
+          height: 2px; background: var(--dark); border-radius: 10px;
         }
+        .m-menu-lines::before { top: 0; }
+        .m-menu-lines span { top: 6px; }
+        .m-menu-lines::after { bottom: 0; }
 
-
-        .m-menu-lines::before {
-
-          top: 0;
-
-        }
-
-
-        .m-menu-lines span {
-
-          top: 6px;
-
-        }
-
-
-        .m-menu-lines::after {
-
-          bottom: 0;
-
-        }
-
-
-        .mobile-brand-logo {
-
-          display: flex;
-
-          align-items: center;
-
-        }
-
-
-        .mobile-brand-logo img {
-
-          height: 45px;
-
-          width: auto;
-
-          display: block;
-
-        }
-
-
-        .mobile-header-spacer {
-
-          width: 40px;
-
-        }
-
-
-        /* =================================================
-           MOBILE OVERLAY
-        ================================================= */
+        .mobile-brand-logo { display: flex; align-items: center; }
+        .mobile-brand-logo img { height: 36px; width: auto; display: block; }
 
         .m-overlay {
-
-          position: fixed;
-
-          inset: 0;
-
-          background:
-            rgba(
-              15,
-              23,
-              42,
-              0.45
-            );
-
-          opacity: 0;
-
-          pointer-events: none;
-
-          transition:
-            0.25s;
-
-          z-index: 4000;
-
+          position: fixed; inset: 0;
+          background: rgba(15, 23, 42, .45);
+          opacity: 0; pointer-events: none;
+          transition: .25s; z-index: 4000;
         }
-
-
-        .m-overlay.open {
-
-          opacity: 1;
-
-          pointer-events: auto;
-
-        }
-
-
-        /* =================================================
-           MOBILE DRAWER
-           EXACT REFERENCE:
-           width 300px
-           max-width 85vw
-        ================================================= */
+        .m-overlay.open { opacity: 1; pointer-events: auto; }
 
         .m-drawer {
-
-          position: absolute;
-
-          left: 0;
-
-          top: 0;
-
-          width: 300px;
-
-          max-width: 85vw;
-
-          height: 100%;
-
-          background:
-            var(--white);
-
-          transform:
-            translateX(-100%);
-
-          transition:
-            0.25s;
-
-          display: flex;
-
-          flex-direction: column;
-
-          overflow-y: auto;
-
+          position: absolute; left: 0; top: 0;
+          width: 300px; max-width: 85vw; height: 100%;
+          background: var(--white);
+          transform: translateX(-100%); transition: .25s;
+          display: flex; flex-direction: column; overflow-y: auto;
         }
-
-
-        .m-overlay.open
-        .m-drawer {
-
-          transform:
-            translateX(0);
-
-        }
-
-
-        /* =================================================
-           MOBILE DRAWER HEADER
-           EXACT REFERENCE
-        ================================================= */
+        .m-overlay.open .m-drawer { transform: translateX(0); }
 
         .m-drawer-header {
-
-          height: 80px;
-
-          padding:
-            0 20px;
-
-          border-bottom:
-            1px solid
-            var(--border-subtle);
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content:
-            space-between;
-
-          flex-shrink: 0;
-
+          height: 80px; padding: 0 20px;
+          border-bottom: 1px solid var(--border-subtle);
+          display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
         }
 
-
-        .m-drawer-close {
-
-          width: 40px;
-
-          height: 40px;
-
-          border-radius: 10px;
-
-          border:
-            1px solid var(--gray-border);
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          background:
-            var(--gray-light);
-
-          cursor: pointer;
-
+        .m-drawer-close-icon { width: 14px; height: 14px; position: relative; }
+        .m-drawer-close-icon::before, .m-drawer-close-icon::after {
+          content: ""; position: absolute; inset: 0; margin: auto;
+          width: 14px; height: 2px; background: var(--dark);
         }
+        .m-drawer-close-icon::before { transform: rotate(45deg); }
+        .m-drawer-close-icon::after { transform: rotate(-45deg); }
 
-
-        .m-drawer-close-icon {
-
-          width: 14px;
-
-          height: 14px;
-
-          position: relative;
-
-        }
-
-
-        .m-drawer-close-icon::before,
-        .m-drawer-close-icon::after {
-
-          content: "";
-
-          position: absolute;
-
-          inset: 0;
-
-          margin: auto;
-
-          width: 14px;
-
-          height: 2px;
-
-          background:
-            var(--dark);
-
-        }
-
-
-        .m-drawer-close-icon::before {
-
-          transform:
-            rotate(45deg);
-
-        }
-
-
-        .m-drawer-close-icon::after {
-
-          transform:
-            rotate(-45deg);
-
-        }
-
-
-        /* =================================================
-           MOBILE NAV
-           EXACT REFERENCE:
-           padding 20px 12px
-        ================================================= */
-
-        .m-drawer-nav {
-
-          padding:
-            20px 12px;
-
-          flex: 1;
-
-        }
-
-
-        /* =================================================
-           MOBILE ACCOUNT
-           EXACT REFERENCE:
-           padding 20px
-        ================================================= */
-
-        .m-account-section {
-
-          padding:
-            20px;
-
-          border-top:
-            1px solid
-            var(--border-subtle);
-
-          background:
-            var(--white);
-
-        }
-
-
-        /* =================================================
-           MOBILE SUBMENU
-        ================================================= */
-
-        .m-drawer
-        .nav-submenu {
-
-          margin:
-            2px 0 4px 20px;
-
-        }
-
-
-        /* =================================================
-           MOBILE
-        ================================================= */
+        .m-drawer-nav { padding: 12px 12px 20px; flex: 1; }
+        .m-drawer .nav-item.active::before { left: -12px; }
+        .m-drawer .nav-section-label { padding-left: 16px; }
+        .m-account-section { padding: 20px; border-top: 1px solid var(--border-subtle); background: var(--white); }
 
         @media (max-width: 768px) {
-
-          .d-sidebar,
-          .d-scrim {
-
-            display: none !important;
-
-          }
-
-
-          .top-navbar {
-
-            display: none;
-
-          }
-
-
-          .m-header {
-
-            display: flex;
-
-          }
-
+          .d-sidebar, .d-scrim, .top-navbar { display: none !important; }
+          .m-header { display: flex; }
         }
-
-
-        /* =================================================
-           DESKTOP
-        ================================================= */
 
         @media (min-width: 769px) {
-
-          .m-header,
-          .m-overlay {
-
-            display: none !important;
-
-          }
-
+          .m-header, .m-overlay { display: none !important; }
         }
 
+        @media (max-width: 1100px) {
+          .navbar-user-info, .nav-search kbd { display: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .d-sidebar, .top-navbar-inner, .nav-submenu, .nav-chevron, .m-drawer, .m-overlay, .d-scrim {
+            transition: none !important; animation: none !important;
+          }
+        }
       `}</style>
     </>
   );
