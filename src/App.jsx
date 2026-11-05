@@ -2,44 +2,19 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
 import {
-  Bell, Sparkles, X, User, Users, CreditCard, ShieldCheck, Activity,
+  Bell, Sparkles, User, Users, CreditCard, ShieldCheck, Activity,
   Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
 } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Create from "./pages/Create";
-
-/* =========================================================
-   THEME  (applied on load, and "System" now follows the OS)
-   ========================================================= */
-const LS_THEME = "schedy_theme";
-
-function useTheme() {
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem(LS_THEME) || "light"; } catch { return "light"; }
-  });
-
-  useEffect(() => {
-    try { localStorage.setItem(LS_THEME, theme); } catch { /* ignore */ }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () => {
-      document.documentElement.dataset.theme =
-        theme === "system" ? (mq.matches ? "dark" : "light") : theme;
-    };
-    apply();
-    if (theme !== "system") return;
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, [theme]);
-
-  return [theme, setTheme];
-}
+import logoSmall from "./assets/logo-small.png";
 
 /* =========================================================
    PROFILE MENU (opens from the navbar profile button)
    ========================================================= */
-function ProfileMenu({ onClose, theme, setTheme }) {
+function ProfileMenu({ onClose }) {
   useEffect(() => {
     const down = (e) => {
       if (!e.target.closest(".pm") && !e.target.closest("[data-pm-trigger]")) onClose();
@@ -81,18 +56,6 @@ function ProfileMenu({ onClose, theme, setTheme }) {
       <Item icon={BookOpen} label="Help center" external />
       <Item icon={LifeBuoy} label="Contact support" />
       <i className="pm-sep" />
-      <div className="pm-theme">
-        <span>Theme</span>
-        <div className="pm-seg" role="radiogroup" aria-label="Theme">
-          {[["light", "Light"], ["dark", "Dark"], ["system", "System"]].map(([k, l]) => (
-            <button
-              key={k} type="button" role="radio" aria-checked={theme === k}
-              className={theme === k ? "on" : ""} onClick={() => setTheme(k)}
-            >{l}</button>
-          ))}
-        </div>
-      </div>
-      <i className="pm-sep" />
       <Item icon={LogOut} label="Log out" />
     </div>,
     document.body
@@ -123,39 +86,29 @@ function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [hoverExpanded, setHoverExpanded] = useState(false);
-  const [promoOpen, setPromoOpen] = useState(true);
-  const [theme, setTheme] = useTheme();
-
-  /* Lets the profile menu (portaled to <body>) and mobile header sit right under the strip */
-  useEffect(() => {
-    document.documentElement.style.setProperty("--chrome-top", promoOpen ? "44px" : "8px");
-  }, [promoOpen]);
 
   return (
     <BrowserRouter>
-      <div className={`workspace-shell${promoOpen ? "" : " no-promo"}`}>
-        {/* Slim announcement strip. Profile and notifications now live in the white navbar. */}
-        {promoOpen && (
-          <header className="workspace-promo">
-            <div className="promo-brand">
-              <span className="promo-mark" aria-hidden="true">S</span>
-              <span className="promo-name">Schedy Admin</span>
-            </div>
+      <div className="workspace-shell">
+        {/* Slim announcement strip. Always visible. Profile and notifications live in the white navbar. */}
+        <header className="workspace-promo">
+          <div className="promo-brand">
+            <span className="promo-mark" aria-hidden="true">
+              <img src={logoSmall} alt="" />
+            </span>
+            <span className="promo-name">Schedy Admin</span>
+          </div>
 
-            <NavLink to="/" className="promo-center">
-              <Sparkles size={15} />
-              <span>You're viewing a demo workspace</span>
-              <strong>Explore the dashboard</strong>
-            </NavLink>
+          <NavLink to="/" className="promo-center">
+            <Sparkles size={15} />
+            <span className="promo-long">You're viewing a demo workspace</span>
+            <strong>Take a 2-min tour</strong>
+          </NavLink>
 
-            <button
-              type="button" className="promo-dismiss" aria-label="Dismiss banner"
-              onClick={() => setPromoOpen(false)}
-            >
-              <X size={16} />
-            </button>
-          </header>
-        )}
+          <div className="promo-right">
+            <a className="promo-link" href="#">Docs</a>
+          </div>
+        </header>
 
         <div className="workspace-body">
           <div className="app">
@@ -190,7 +143,7 @@ function App() {
       </div>
 
       {profileOpen && (
-        <ProfileMenu onClose={() => setProfileOpen(false)} theme={theme} setTheme={setTheme} />
+        <ProfileMenu onClose={() => setProfileOpen(false)} />
       )}
 
       <style>{`
@@ -219,7 +172,6 @@ function App() {
           overflow: hidden;
           background: #110C29;
         }
-        .workspace-shell.no-promo { padding-top: 8px; }
 
         /* ---------- slim gradient strip: 44px, one message ---------- */
         .workspace-promo {
@@ -239,19 +191,30 @@ function App() {
             radial-gradient(48% 170% at 82% 0%, rgba(139, 92, 246, .5), transparent 72%),
             radial-gradient(36% 140% at 8% 0%, rgba(71, 30, 167, .35), transparent 70%),
             linear-gradient(#150F33, #110C29);
+          background-size: 140% 100%, 140% 100%, 100% 100%;
+          animation: promo-drift 12s ease-in-out infinite alternate;
           border-bottom: 1px solid rgba(255, 255, 255, .07);
         }
+        @keyframes promo-drift {
+          from { background-position: 0% 0, 0% 0, 0 0; }
+          to   { background-position: 30% 0, 12% 0, 0 0; }
+        }
+        @media (prefers-reduced-motion: reduce) { .workspace-promo { animation: none; } }
 
         .promo-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
         .promo-mark {
-          width: 24px; text-align: center;
-          font-size: 22px; line-height: 1; font-weight: 900; font-style: italic;
+          width: 26px; height: 26px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 7px; background: #fff;
+          border: 1px solid rgba(255, 255, 255, .5);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
         }
+        .promo-mark img { width: 18px; height: 18px; object-fit: contain; display: block; }
         .promo-name { color: rgba(255, 255, 255, .78); font-weight: 600; white-space: nowrap; }
 
         .promo-center {
           display: flex; align-items: center; gap: 8px;
-          padding: 6px 14px;
+          padding: 7px 16px;
           border: 1px solid rgba(255, 255, 255, .16);
           border-radius: 999px;
           background: rgba(255, 255, 255, .06);
@@ -262,15 +225,14 @@ function App() {
         .promo-center svg { color: #d9c6ff; flex-shrink: 0; }
         .promo-center strong { color: #e7d9ff; font-weight: 600; }
 
-        .promo-dismiss {
-          justify-self: end;
-          width: 30px; height: 30px; border: 0; border-radius: 50%;
-          background: transparent; color: rgba(255, 255, 255, .7);
-          display: flex; align-items: center; justify-content: center; cursor: pointer;
+        .promo-right { justify-self: end; display: flex; align-items: center; }
+        .promo-link {
+          padding: 6px 12px; border-radius: 999px;
+          color: rgba(255, 255, 255, .72); text-decoration: none; font-weight: 600;
           transition: background .15s, color .15s;
         }
-        .promo-dismiss:hover { background: rgba(255, 255, 255, .12); color: #fff; }
-        .promo-dismiss:focus-visible, .promo-center:focus-visible { outline: 2px solid #d9c6ff; outline-offset: 2px; }
+        .promo-link:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+        .promo-link:focus-visible, .promo-center:focus-visible { outline: 2px solid #d9c6ff; outline-offset: 2px; }
 
         /* ---------- profile dropdown ---------- */
         .pm, .pm * { box-sizing: border-box; }
@@ -304,13 +266,9 @@ function App() {
           transition: background .15s;
         }
         .pm-item:hover { background: #f3f1fb; }
-        .pm-item:focus-visible, .pm-seg button:focus-visible { outline: 2px solid #6d3fe0; outline-offset: -2px; }
+        .pm-item:focus-visible { outline: 2px solid #6d3fe0; outline-offset: -2px; }
         .pm-item svg { flex-shrink: 0; color: #4a4c5c; }
         .pm-item .pm-val { margin-left: auto; font-style: normal; font-size: 13px; color: #6d7081; }
-        .pm-theme { padding: 8px 22px 10px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; font-weight: 500; }
-        .pm-seg { display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: #f1f1f4; }
-        .pm-seg button { flex: 1; height: 34px; border: 0; border-radius: 999px; background: transparent; color: #6d7081; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-        .pm-seg button.on { background: #fff; color: #202027; box-shadow: 0 1px 4px rgba(24, 28, 45, .18); }
 
         .workspace-body {
           width: 100%;
@@ -381,10 +339,9 @@ function App() {
 
         @media (max-width: 768px) {
           .workspace-shell { padding: 0 5px 5px; }
-          .workspace-shell.no-promo { padding-top: 5px; }
 
           .workspace-promo { padding: 0 6px 0 10px; }
-          .promo-name, .promo-center strong { display: none; }
+          .promo-name, .promo-long, .promo-link { display: none; }
 
           .app {
             height: auto;
