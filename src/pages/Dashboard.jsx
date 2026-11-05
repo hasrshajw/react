@@ -1,25 +1,43 @@
 import React, { useEffect, useState } from "react";
-import { FilePlus2, LayoutTemplate, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox } from "lucide-react";
+import { FilePlus2, LayoutTemplate, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox, Eye, Pencil, Link2, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getDemoInvitations } from "../lib/demoData";
 
 /* Demo traffic numbers. Replace with real values from your analytics source. */
-const DEMO_TRAFFIC = { visitors: 1284, requests: 36 };
+const DEMO_TRAFFIC = { visitors: 1284, requestsPending: 1, requestsTotal: 30 };
+
+/* Demo view count: uses x.views when it exists, otherwise a stable fake number per invitation. */
+const getViews = (x) => {
+  if (typeof x.views === "number") return x.views;
+  const s = String(x.id ?? "");
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 997;
+  return 40 + h;
+};
+
+/* Public link of an invitation. Change this if your live route is different. */
+const getInviteLink = (x) =>
+  `${window.location.origin}/${x.details?.customId || x.id}`;
 
 const initials = (x) =>
   `${(x.groom_name || "G").trim().charAt(0)}${(x.bride_name || "B").trim().charAt(0)}`.toUpperCase();
-
-const getStatus = (x) => {
-  if (!x.event_date) return { label: "Date not set", tone: "warn" };
-  return new Date(x.event_date + "T23:59:59") >= new Date()
-    ? { label: "Upcoming", tone: "ok" }
-    : { label: "Completed", tone: "done" };
-};
 
 export default function Dashboard() {
   const [rows, setRows] = useState([]);
   const load = () => setRows(getDemoInvitations());
   useEffect(() => { load(); }, []);
+
+  const [copiedId, setCopiedId] = useState(null);
+  const copyLink = async (x) => {
+    const link = getInviteLink(x);
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      window.prompt("Copy invitation link", link);
+    }
+    setCopiedId(x.id);
+    setTimeout(() => setCopiedId((id) => (id === x.id ? null : id)), 1600);
+  };
 
   return (
     <div className="dashboard-page">
@@ -62,7 +80,15 @@ export default function Dashboard() {
           <div className="stat-icon"><Inbox size={19} /></div>
           <div className="stat-body">
             <span>Site requests</span>
-            <strong>{DEMO_TRAFFIC.requests.toLocaleString()}</strong>
+            <strong
+              className="req-count"
+              title={`${DEMO_TRAFFIC.requestsPending} pending of ${DEMO_TRAFFIC.requestsTotal} requests`}
+            >
+              <span className={DEMO_TRAFFIC.requestsPending > 0 ? "pending" : "clear"}>
+                {DEMO_TRAFFIC.requestsPending}
+              </span>
+              <span className="total">/{DEMO_TRAFFIC.requestsTotal}</span>
+            </strong>
           </div>
           <Link to="/analytics" className="round-btn" aria-label="View site requests">
             <ArrowUpRight size={16} />
@@ -95,31 +121,44 @@ export default function Dashboard() {
                 <tr>
                   <th>Couple</th>
                   <th>Event date</th>
-                  <th>Template</th>
-                  <th>Status</th>
+                  <th>Invitation views</th>
+                  <th className="th-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 5).map((x) => {
-                  const s = getStatus(x);
-                  return (
-                    <tr key={x.id}>
-                      <td>
-                        <div className="cell-couple">
-                          <div className="row-avatar">{initials(x)}</div>
-                          <b>{x.groom_name || "Groom"} &amp; {x.bride_name || "Bride"}</b>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="cell-date">
-                          <CalendarDays size={14} /> {x.event_date || "Date not set"}
-                        </div>
-                      </td>
-                      <td><span className="row-pill">{x.template_name || "Custom invitation"}</span></td>
-                      <td><span className={`status ${s.tone}`}>{s.label}</span></td>
-                    </tr>
-                  );
-                })}
+                {rows.slice(0, 5).map((x) => (
+                  <tr key={x.id}>
+                    <td>
+                      <div className="cell-couple">
+                        <div className="row-avatar">{initials(x)}</div>
+                        <b>{x.groom_name || "Groom"} &amp; {x.bride_name || "Bride"}</b>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cell-date">
+                        <CalendarDays size={14} /> {x.event_date || "Date not set"}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="views"><Eye size={15} /> {getViews(x).toLocaleString()}</span>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <Link to={`/create?edit=${x.id}`} className="act-btn">
+                          <Pencil size={14} /> Edit
+                        </Link>
+                        <button
+                          type="button"
+                          className={`act-btn ${copiedId === x.id ? "done" : ""}`}
+                          onClick={() => copyLink(x)}
+                        >
+                          {copiedId === x.id ? <Check size={14} /> : <Link2 size={14} />}
+                          {copiedId === x.id ? "Copied" : "Link"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -161,13 +200,14 @@ export default function Dashboard() {
         .stat-card.green .stat-icon { background: var(--success-light); color: var(--success-dark); }
         .stat-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
         .stat-body > span { font-size: 13px; font-weight: 600; color: var(--gray); white-space: nowrap; }
+        .req-count .pending { color: var(--danger-dark); }
+        .req-count .clear { color: var(--success-dark); }
+        .req-count .total { margin-left: 1px; font-size: 20px; font-weight: 600; color: var(--gray); letter-spacing: 0; }
         .stat-body strong { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; color: var(--dark); }
 
         /* circular arrow button, top-right corner of the card */
         .round-btn { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--gray-border); background: var(--white); color: var(--gray-dark); text-decoration: none; transition: background .2s, color .2s, border-color .2s, transform .2s; }
         .round-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
-        .round-btn:hover svg { transform: translate(1px, -1px); }
-        .round-btn svg { transition: transform .2s; }
 
         .action-card { overflow: hidden; justify-content: space-between; color: #fff; background: linear-gradient(120deg, #351775 0%, #673de6 100%); }
         .action-card::before { content: ""; position: absolute; width: 150px; height: 150px; right: -40px; top: -70px; border-radius: 50%; background: rgba(255, 255, 255, .09); pointer-events: none; }
@@ -199,13 +239,14 @@ export default function Dashboard() {
         .row-avatar { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--primary-light); color: var(--primary); font-size: 12px; font-weight: 700; letter-spacing: .02em; }
         .cell-date { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-dark); white-space: nowrap; }
         .cell-date svg { color: var(--gray); flex-shrink: 0; }
-        .row-pill { display: inline-block; padding: 6px 12px; border-radius: 999px; background: var(--gray-light); color: var(--gray-dark); font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .views { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--dark); }
+        .views svg { color: var(--gray); }
 
-        .status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-        .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-        .status.ok { background: var(--success-light); color: var(--success-dark); }
-        .status.done { background: var(--gray-light); color: var(--gray); }
-        .status.warn { background: var(--warning-light); color: #9a6700; }
+        .inv-table .th-actions { text-align: right; }
+        .row-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .act-btn { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; transition: background .2s, border-color .2s, color .2s; }
+        .act-btn:hover { background: var(--primary-lightest); border-color: var(--primary); color: var(--primary); }
+        .act-btn.done { background: var(--success-light); border-color: var(--success-light); color: var(--success-dark); }
 
         .empty-state { padding: 40px 24px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; color: var(--gray); font-size: 13px; }
         .empty-icon { width: 52px; height: 52px; margin-bottom: 6px; display: grid; place-items: center; border-radius: 50%; background: var(--primary-light); color: var(--primary); }
