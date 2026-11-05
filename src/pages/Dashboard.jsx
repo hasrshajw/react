@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   FilePlus2, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox, Eye, Pencil, Link2, Check,
   Plus, Search, Smartphone, MoreHorizontal, Trash2, X, MessageCircle, QrCode, Globe, EyeOff,
-  TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ChevronDown, Phone, Mail, PhoneCall, Clock,
+  TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ChevronDown, Phone, Mail, PhoneCall, Clock, Ban,
 } from "lucide-react";
 import * as demo from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
@@ -173,7 +173,7 @@ function ConfirmDelete({ row, onCancel, onConfirm }) {
   );
 }
 
-const ENQ_LABEL = { new: "New", followup: "Follow-up", called: "Called" };
+const ENQ_LABEL = { new: "New", followup: "Follow-up", called: "Called", cancelled: "Cancelled" };
 
 function EnquiriesPanel({ slot, enquiries, total, newCount, onClose, onSetStatus }) {
   const [tab, setTab] = useState("new");
@@ -227,21 +227,31 @@ function EnquiriesPanel({ slot, enquiries, total, newCount, onClose, onSetStatus
           <div className="dx-empty-mini"><Check size={22} /><b>{empty[0]}</b><span>{empty[1]}</span></div>
         )}
         {list.map((e) => {
-          const open = openId === e.id;
+          const isNew = e.status === "new";
+          const open = isNew || openId === e.id; /* new enquiries are always fully shown */
+          const avatar = e.name.split(" ").map((p) => p[0]).slice(0, 2).join("");
           return (
             <div className={`dx-enq ${e.status}${open ? " open" : ""}`} key={e.id}>
-              <button
-                type="button"
-                className="dx-enq-top"
-                aria-expanded={open}
-                aria-controls={`enq-body-${e.id}`}
-                onClick={() => setOpenId(open ? null : e.id)}
-              >
-                <div className="row-avatar">{e.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
-                <b className="dx-enq-name">{e.name}</b>
-                <span className={`chip enq-${e.status}`}>{ENQ_LABEL[e.status]}</span>
-                <ChevronDown size={18} className="dx-chev" />
-              </button>
+              {isNew ? (
+                <div className="dx-enq-top static">
+                  <div className="row-avatar">{avatar}</div>
+                  <b className="dx-enq-name">{e.name}</b>
+                  <span className={`chip enq-${e.status}`}>{ENQ_LABEL[e.status]}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="dx-enq-top"
+                  aria-expanded={open}
+                  aria-controls={`enq-body-${e.id}`}
+                  onClick={() => setOpenId(open ? null : e.id)}
+                >
+                  <div className="row-avatar">{avatar}</div>
+                  <b className="dx-enq-name">{e.name}</b>
+                  <span className={`chip enq-${e.status}`}>{ENQ_LABEL[e.status]}</span>
+                  <ChevronDown size={18} className="dx-chev" />
+                </button>
+              )}
 
               <div className="dx-enq-collapse" id={`enq-body-${e.id}`}>
                 <div>
@@ -261,6 +271,11 @@ function EnquiriesPanel({ slot, enquiries, total, newCount, onClose, onSetStatus
                       {e.status !== "followup" && (
                         <button type="button" className="act-btn" onClick={() => onSetStatus(e.id, "followup")}>
                           <Clock size={14} /> Need follow-up
+                        </button>
+                      )}
+                      {e.status !== "cancelled" && (
+                        <button type="button" className="act-btn cancel" onClick={() => onSetStatus(e.id, "cancelled")}>
+                          <Ban size={14} /> Cancelled
                         </button>
                       )}
                     </div>
@@ -387,7 +402,11 @@ export default function Dashboard({ onPanelChange }) {
   const enqTotal = ENQUIRIES_EARLIER + enquiries.length;
   const setEnqStatus = (id, status) => {
     setEnquiries((p) => p.map((e) => (e.id === id ? { ...e, status } : e)));
-    notify(status === "called" ? "Marked as called" : "Marked for follow-up");
+    notify(
+      status === "called" ? "Marked as called"
+      : status === "cancelled" ? "Marked as cancelled"
+      : "Marked for follow-up"
+    );
   };
 
   /* ---------- row actions ---------- */
@@ -838,6 +857,10 @@ export default function Dashboard({ onPanelChange }) {
         .dx-enq { margin: 0 0 10px; padding: 0; overflow: hidden; border: 1px solid var(--gray-border); border-radius: 18px; background: var(--white); transition: border-color .2s, box-shadow .2s; }
         .dx-enq.new { border-color: var(--danger-light); background: #fffafb; }
         .dx-enq.open { border-color: var(--periwinkle); box-shadow: 0 6px 18px rgba(54, 52, 77, .06); }
+        .dx-enq.new.open { border-color: var(--danger-light); box-shadow: none; }
+        .dx-enq.cancelled { background: var(--ghost-white); }
+        .dx-enq-top.static { cursor: default; }
+        .dx-enq-top.static:hover { background: transparent; }
 
         .dx-enq-top { width: 100%; padding: 12px 14px; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background .2s; }
         .dx-enq-top:hover { background: var(--ghost-white); }
@@ -863,6 +886,8 @@ export default function Dashboard({ onPanelChange }) {
         .chip.enq-new { background: var(--danger-light); color: var(--danger-dark); }
         .chip.enq-followup { background: var(--warning-light); color: #9a6700; }
         .chip.enq-called { background: var(--success-light); color: var(--success-dark); }
+        .chip.enq-cancelled { background: var(--gray-light); color: var(--gray); }
+        .act-btn.cancel:hover:not(:disabled) { background: var(--danger-light); border-color: var(--danger-dark); color: var(--danger-dark); }
 
         .dx-req-list { flex: 1; overflow-y: auto; padding: 12px 12px 12px; }
         .dx-req { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; }
