@@ -8,6 +8,9 @@ import Create from "./pages/Create";
 
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // True while a right-side panel (preview / requests) is open.
+  // The sidebar then becomes a slim rail and its full menu opens as an overlay.
+  const [panelOpen, setPanelOpen] = useState(false);
 
   return (
     <BrowserRouter>
@@ -49,25 +52,18 @@ function App() {
           <Sidebar
             collapsed={sidebarCollapsed}
             setCollapsed={setSidebarCollapsed}
+            panelOpen={panelOpen}
           />
 
           <main
             className={`main-content ${
-              sidebarCollapsed ? "content-collapsed" : "content-expanded"
+              sidebarCollapsed || panelOpen ? "content-collapsed" : "content-expanded"
             }`}
           >
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <Dashboard
-                    sidebarCollapsed={sidebarCollapsed}
-                    setSidebarCollapsed={setSidebarCollapsed}
-                  />
-                }
-              />
+              <Route path="/" element={<Dashboard onPanelChange={setPanelOpen} />} />
               <Route path="/analytics" element={<Analytics />} />
-              <Route path="/create" element={<Create />} />
+              <Route path="/create" element={<Create onPanelChange={setPanelOpen} />} />
             </Routes>
           </main>
         </div>
