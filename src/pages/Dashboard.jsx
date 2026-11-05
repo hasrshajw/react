@@ -1448,15 +1448,16 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
         @keyframes dx-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 
         /* sliding pill filter (New / Follow-up / Cancelled / All) */
-        .dx-seg { position: relative; display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); margin: 14px 16px 2px; padding: 4px; border-radius: 999px; background: var(--gray-light); }
+        .dx-seg { position: relative; display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); margin: 14px 12px 2px; padding: 4px; border-radius: 999px; background: var(--gray-light); }
         .dx-seg-thumb { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / var(--n, 3)); border-radius: 999px; background: var(--white); box-shadow: 0 1px 4px rgba(54, 52, 77, .18); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .28s cubic-bezier(.4, 0, .2, 1); }
-        .dx-seg button { position: relative; z-index: 1; height: 34px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: color .2s; }
+        .dx-seg button { position: relative; z-index: 1; min-width: 0; height: 34px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: color .2s; }
         .dx-seg button.on { color: var(--primary); }
-        .dx-seg button em { min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px; background: var(--white); font-size: 10.5px; font-style: normal; }
-        .dx-seg button.on em { background: var(--primary-light); }
-        .dx-seg button.t-new em { background: var(--danger-light); color: var(--danger-dark); }
+        .dx-seg button em { font-size: 11.5px; font-style: normal; font-weight: 600; color: var(--gray); }
+        .dx-seg button.on em { color: var(--primary); }
+        /* only the New count is a badge, since it is the one that needs action */
+        .dx-seg button.t-new em { min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px; background: var(--danger-light); color: var(--danger-dark); font-size: 10.5px; font-weight: 700; }
 
-        .dx-enq-search { margin: 10px 16px 0; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray); transition: border-color .2s, box-shadow .2s; }
+        .dx-enq-search { margin: 10px 12px 0; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray); transition: border-color .2s, box-shadow .2s; }
         .dx-enq-search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
         .dx-enq-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; color: var(--dark); }
 
