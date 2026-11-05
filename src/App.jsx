@@ -220,21 +220,14 @@ function App() {
           border-bottom: 0;         /* line removed */
         }
 
-        /* colour layer: the 44px strip stays fully solid (same size as before),
-           then the colour keeps flowing down over the sidebar + dashboard and fades out.
-           It sits above them but ignores clicks (pointer-events: none). */
+        /* colour layer of the 44px strip: dark edges -> violet centre, no overlay below it */
         .workspace-promo::before {
           content: "";
           position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 280px;            /* 44px strip + long fade tail */
+          inset: 0;
           z-index: 0;
           pointer-events: none;
           background: linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%);
-          -webkit-mask-image: linear-gradient(to bottom,
-            #000 0, #000 44px, rgba(0,0,0,.5) 100px, rgba(0,0,0,.22) 170px, transparent 100%);
-          mask-image: linear-gradient(to bottom,
-            #000 0, #000 44px, rgba(0,0,0,.5) 100px, rgba(0,0,0,.22) 170px, transparent 100%);
         }
 
         /* keep content above the fade layer */
@@ -341,13 +334,29 @@ function App() {
           background: #f5f5f7;
         }
 
+        /* ---------- colour glow BEHIND the content ----------
+           Lives inside .app at z-index 0, under the sidebar, navbar and page content,
+           so nothing is covered. It starts where the strip ends and fades downward. */
+        .app::before {
+          content: "";
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 300px;
+          z-index: 0;
+          pointer-events: none;
+          background: linear-gradient(90deg,
+            rgba(71, 30, 167, .22) 0%, rgba(71, 30, 167, .55) 50%, rgba(71, 30, 167, .22) 100%);
+          -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.45) 45%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.45) 45%, transparent 100%);
+        }
+
         .main-content {
           position: relative;
           height: 100%;
           min-height: 0;
           padding: 96px 32px 32px;
           overflow-y: auto;
-          background: #f5f5f7;
+          background: transparent;   /* glow shows through; .app supplies #f5f5f7 */
           transition: margin-left .3s cubic-bezier(.4, 0, .2, 1);
         }
 
@@ -369,7 +378,15 @@ function App() {
           z-index: 1500 !important;
         }
 
+        /* navbar and sidebar top become see-through so the glow sits behind them */
+        .app .top-navbar {
+          background: transparent !important;
+          box-shadow: none !important;
+          border-bottom: 0 !important;
+        }
+
         .app .d-sidebar {
+          background: linear-gradient(to bottom, transparent 0, #fff 260px) !important;
           position: absolute !important;
           top: 0 !important;
           left: 0 !important;
