@@ -200,7 +200,13 @@ function App() {
           flex-direction: column;
           padding: 0 8px 8px;
           overflow: hidden;
-          background: #101011;
+          /* The glow lives on the shell, not on the strip, so it flows past the
+             44px strip into the page/body: violet in the centre, dark at the
+             left/right edges, and fading down into #101011 over 180px. */
+          background:
+            linear-gradient(180deg, rgba(16, 16, 17, 0) 0%, rgba(16, 16, 17, 0) 15%, #101011 100%) top / 100% 180px no-repeat,
+            linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%) top / 100% 180px no-repeat,
+            #101011;
         }
 
         /* ---------- slim gradient strip: 44px, one message ---------- */
@@ -216,13 +222,9 @@ function App() {
           align-items: center;
           color: #fff;
           font-size: 13px;
-          /* Two layers:
-             1) top layer fades the strip downward into the shell colour (#101011)
-             2) bottom layer fades sideways: dark edges, violet centre
-             No border-bottom, so there is no visible line under the strip. */
-          background:
-            linear-gradient(180deg, rgba(16, 16, 17, 0) 0%, rgba(16, 16, 17, 0) 35%, #101011 100%),
-            linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%);
+          /* Transparent on purpose: the gradient is drawn by .workspace-shell
+             behind it, so there is no edge or line where the strip ends. */
+          background: transparent;
           border-bottom: 0;
         }
 
