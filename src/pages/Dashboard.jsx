@@ -99,8 +99,8 @@ function Modal({ title, subtitle, onClose, children, width = 440, headExtra }) {
   );
 }
 
-function PreviewPanel({ slot, row, published, onClose, escapeOn = true }) {
-  useEscape(escapeOn, onClose);
+function PreviewPanel({ slot, row, published, onClose }) {
+  useEscape(true, onClose);
   const html = useMemo(() => {
     try {
       const tpl = (demo.demoTemplates || []).find((t) => String(t.id) === String(row.template_id));
@@ -171,71 +171,49 @@ function ConfirmDelete({ row, onCancel, onConfirm }) {
   );
 }
 
-function RequestsPanel({ requests, total, pending, onClose, onDone }) {
+function RequestsPanel({ slot, requests, total, pending, onClose, onDone }) {
   const [tab, setTab] = useState("pending");
   useEscape(true, onClose);
-  const done = Math.max(0, total - pending);
-  const pct = total ? Math.round((done / total) * 100) : 0;
+  if (!slot) return null;
   const list = tab === "pending" ? requests.filter((r) => r.status === "pending") : requests;
-
   return createPortal(
-    <div className="rq-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <aside className="rq-panel" role="dialog" aria-modal="true" aria-label="Site requests">
-        <div className="rq-head">
-          <div className="rq-icon"><Inbox size={19} /></div>
-          <div className="rq-title">
-            <b>Site requests</b>
-            <small><span className="red">{pending} pending</span> of {total}</small>
-          </div>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}><X size={16} /></button>
+    <aside className="dash-side-panel" aria-label="Site requests">
+      <div className="dp-head">
+        <div className="dp-title">
+          <b><span className="live-dot red" />Site requests</b>
+          <small><span className="red">{pending} pending</span> of {total} requests</small>
         </div>
-
-        <div className="rq-summary">
-          <div className="rq-counts">
-            <div><strong className="red">{pending}</strong><span>Pending</span></div>
-            <div><strong>{done}</strong><span>Completed</span></div>
-            <div><strong>{total}</strong><span>Total</span></div>
-          </div>
-          <div className="rq-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${pct}%` }} /></div>
-          <small>{pct}% resolved</small>
+        <div className="dp-actions">
+          <button type="button" className="icon-btn" aria-label="Close requests" onClick={onClose}><X size={16} /></button>
         </div>
-
-        <div className="rq-tabs">
-          <button type="button" className={tab === "pending" ? "on" : ""} onClick={() => setTab("pending")}>Pending <em>{pending}</em></button>
-          <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>Recent <em>{requests.length}</em></button>
-        </div>
-
-        <div className="rq-list">
-          {list.length === 0 && (
-            <div className="dx-empty-mini"><Check size={22} /><b>All caught up</b><span>No pending requests.</span></div>
-          )}
-          {list.map((r) => (
-            <div className="rq-item" key={r.id}>
-              <div className="row-avatar">{r.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
-              <div className="rq-main">
-                <div className="rq-line"><b>{r.name}</b><small>{r.time}</small></div>
-                <span>{r.subject}</span>
-                <div className="rq-foot">
-                  {r.status === "pending" ? (
-                    <>
-                      <span className="chip pending">Pending</span>
-                      <button type="button" className="act-btn sm" onClick={() => onDone(r.id)}><Check size={14} /> Mark done</button>
-                    </>
-                  ) : (
-                    <span className="chip ok">Completed</span>
-                  )}
-                </div>
-              </div>
+      </div>
+      <div className="dx-tabs">
+        <button type="button" className={tab === "pending" ? "on" : ""} onClick={() => setTab("pending")}>Pending <em>{pending}</em></button>
+        <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>Recent <em>{requests.length}</em></button>
+      </div>
+      <div className="dx-req-list">
+        {list.length === 0 && (
+          <div className="dx-empty-mini"><Check size={22} /><b>All caught up</b><span>No pending requests.</span></div>
+        )}
+        {list.map((r) => (
+          <div className="dx-req" key={r.id}>
+            <div className="row-avatar">{r.name.split(" ").map((p) => p[0]).slice(0, 2).join("")}</div>
+            <div className="dx-req-main">
+              <b>{r.name}</b>
+              <span>{r.subject}</span>
+              <small>{r.time}</small>
             </div>
-          ))}
-        </div>
-
-        <div className="rq-foot-bar">
-          <Link to="/analytics" className="head-link">Open analytics <ArrowUpRight size={14} /></Link>
-        </div>
-      </aside>
-    </div>,
-    document.body
+            {r.status === "pending"
+              ? <button type="button" className="act-btn" onClick={() => onDone(r.id)}><Check size={14} /> Mark done</button>
+              : <span className="chip ok">Done</span>}
+          </div>
+        ))}
+      </div>
+      <div className="dx-drawer-foot">
+        <Link to="/analytics" className="head-link">Open analytics <ArrowUpRight size={14} /></Link>
+      </div>
+    </aside>,
+    slot
   );
 }
 
@@ -265,7 +243,7 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
   const [slot, setSlot] = useState(null);
   const prevCollapsed = useRef(null);
   const pageRef = useRef(null);
-  const [bp, setBp] = useState("wide");
+  const [narrow, setNarrow] = useState(false);
   const [qr, setQr] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [toast, setToast] = useState(null);
@@ -289,11 +267,11 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
 
   useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
 
-  /* Layout follows the page's own width (it changes when the preview opens), not only the screen. */
+  /* Tell the page when it is narrow (e.g. preview open) so the cards can reflow. */
   useEffect(() => {
     const el = pageRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(([e]) => { const w = e.contentRect.width; setBp(w >= 1040 ? "wide" : w >= 640 ? "mid" : "small"); });
+    const ro = new ResizeObserver(([e]) => setNarrow(e.contentRect.width < 980));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -306,11 +284,18 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
   const openPreview = (x) => {
     if (preview?.id === x.id) { closePanel(); return; }
     collapseSidebar();
+    setReqOpen(false);
     setPreview(x);
   };
-  const openRequests = () => setReqOpen(true);
+  const openRequests = () => {
+    if (reqOpen) { closePanel(); return; }
+    collapseSidebar();
+    setPreview(null);
+    setReqOpen(true);
+  };
   const closePanel = () => {
     setPreview(null);
+    setReqOpen(false);
     if (prevCollapsed.current !== null) {
       setSidebarCollapsed?.(prevCollapsed.current);
       prevCollapsed.current = null;
@@ -414,68 +399,17 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
   const traffic = TRAFFIC[range];
 
   return (
-    <div className={`dashboard-page bp-${bp}`} ref={pageRef}>
-      {/* ---------- page header: title + actions (start), KPI portal (end) ---------- */}
+    <div className={`dashboard-page${narrow ? " narrow" : ""}`} ref={pageRef}>
+      {/* ---------- page header ---------- */}
       <div className="page-head">
-        <div className="head-main">
+        <div>
           <div className="eyebrow">SCHEDY · DEMO WORKSPACE</div>
           <h1>Dashboard</h1>
           <p>Manage and preview invitations using sample templates.</p>
-          <div className="head-actions">
-            <Link to="/create" className="create-btn"><Plus size={16} /> Create invitation</Link>
-            <button className="refresh" onClick={load}><RefreshCw size={16} /> Refresh</button>
-          </div>
         </div>
-
-        <div className="kpi-portal" aria-label="Key numbers">
-          <div className="kpi">
-            <div className="kpi-top">
-              <div className="stat-icon"><FilePlus2 size={19} /></div>
-            </div>
-            <div className="kpi-body">
-              <span className="kpi-label">Total invitations</span>
-              {loading ? <i className="sk sk-num" /> : <strong>{visible.length}</strong>}
-            </div>
-          </div>
-
-          <div className="kpi blue">
-            <div className="kpi-top">
-              <div className="stat-icon"><Users size={19} /></div>
-              <div className="seg" role="tablist" aria-label="Visitor range">
-                {Object.entries({ "7": "7D", "30": "30D", all: "All" }).map(([k, l]) => (
-                  <button key={k} type="button" className={range === k ? "on" : ""} onClick={() => setRange(k)}>{l}</button>
-                ))}
-              </div>
-            </div>
-            <div className="kpi-body">
-              <span className="kpi-label">Total site visitors</span>
-              <div className="stat-line">
-                <strong>{traffic.value.toLocaleString()}</strong>
-                {traffic.trend !== null && (
-                  <em className={`trend ${traffic.trend >= 0 ? "up" : "down"}`} title={`vs previous ${traffic.label}`}>
-                    {traffic.trend >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                    {Math.abs(traffic.trend)}%
-                  </em>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="kpi green">
-            <div className="kpi-top">
-              <div className="stat-icon"><Inbox size={19} /></div>
-              <button type="button" className="round-btn" aria-label="View site requests" onClick={openRequests}>
-                <ArrowUpRight size={16} />
-              </button>
-            </div>
-            <div className="kpi-body">
-              <span className="kpi-label">Site requests</span>
-              <strong className="req-count" title={`${reqPending} pending of ${reqTotal} requests`}>
-                <span className={reqPending > 0 ? "pending" : "clear"}>{reqPending}</span>
-                <span className="total">/{reqTotal}</span>
-              </strong>
-            </div>
-          </div>
+        <div className="head-actions">
+          <button className="refresh" onClick={load}><RefreshCw size={16} /> Refresh</button>
+          <Link to="/create" className="create-btn"><Plus size={16} /> Create invitation</Link>
         </div>
       </div>
 
@@ -486,6 +420,52 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
           <button type="button" className="note-x" aria-label="Dismiss" onClick={dismissNote}><X size={15} /></button>
         </div>
       )}
+
+      {/* ---------- KPI row ---------- */}
+      <div className="dashboard-grid">
+        <div className="stat-card">
+          <div className="stat-icon"><FilePlus2 size={19} /></div>
+          <div className="stat-body">
+            <span>Total invitations</span>
+            {loading ? <i className="sk sk-num" /> : <strong>{visible.length}</strong>}
+          </div>
+        </div>
+
+        <div className="stat-card blue">
+          <div className="stat-icon"><Users size={19} /></div>
+          <div className="stat-body">
+            <span>Total site visitors</span>
+            <div className="stat-line">
+              <strong>{traffic.value.toLocaleString()}</strong>
+              {traffic.trend !== null && (
+                <em className={`trend ${traffic.trend >= 0 ? "up" : "down"}`} title={`vs previous ${traffic.label}`}>
+                  {traffic.trend >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                  {Math.abs(traffic.trend)}%
+                </em>
+              )}
+            </div>
+          </div>
+          <div className="seg" role="tablist" aria-label="Visitor range">
+            {Object.entries({ "7": "7D", "30": "30D", all: "All" }).map(([k, l]) => (
+              <button key={k} type="button" className={range === k ? "on" : ""} onClick={() => setRange(k)}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="stat-card green">
+          <div className="stat-icon"><Inbox size={19} /></div>
+          <div className="stat-body">
+            <span>Site requests</span>
+            <strong className="req-count" title={`${reqPending} pending of ${reqTotal} requests`}>
+              <span className={reqPending > 0 ? "pending" : "clear"}>{reqPending}</span>
+              <span className="total">/{reqTotal}</span>
+            </strong>
+          </div>
+          <button type="button" className={`round-btn${reqOpen ? " on" : ""}`} aria-label="View site requests" onClick={openRequests}>
+            <ArrowUpRight size={16} />
+          </button>
+        </div>
+      </div>
 
       {/* ---------- recent invitations (table) ---------- */}
       <div className="recent-card">
@@ -660,24 +640,23 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
       })()}
 
       {/* ---------- overlays ---------- */}
-      {preview && <PreviewPanel slot={slot} row={preview} published={isPub(preview)} onClose={closePanel} escapeOn={!reqOpen} />}
+      {preview && <PreviewPanel slot={slot} row={preview} published={isPub(preview)} onClose={closePanel} />}
       {qr && <QrModal row={qr} onClose={closeAll} onCopy={copyLink} />}
       {confirm && <ConfirmDelete row={confirm} onCancel={closeAll} onConfirm={doDelete} />}
-      {reqOpen && <RequestsPanel requests={reqs} total={reqTotal} pending={reqPending} onClose={() => setReqOpen(false)} onDone={markDone} />}
+      {reqOpen && <RequestsPanel slot={slot} requests={reqs} total={reqTotal} pending={reqPending} onClose={closePanel} onDone={markDone} />}
       {toast && createPortal(<div className="dx-toast" role="status"><Check size={15} /> {toast}</div>, document.body)}
 
       <style>{`
-        .dashboard-page { max-width: 1560px; margin: auto; font-family: "DM Sans", Inter, sans-serif; color: var(--dark); }
+        .dashboard-page { max-width: 1400px; margin: auto; font-family: "DM Sans", Inter, sans-serif; color: var(--dark); }
         .dashboard-page * { box-sizing: border-box; }
         .dashboard-page button:disabled { cursor: not-allowed; opacity: .5; }
 
         /* ---------- header ---------- */
-        .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 28px; margin-bottom: 16px; }
-        .head-main { flex: 1 1 280px; min-width: 0; }
+        .page-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 16px; }
         .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--primary); }
         .dashboard-page h1 { margin: 5px 0 3px; font-size: 26px; line-height: 1.15; font-weight: 700; color: var(--dark); }
         .page-head p { margin: 0; color: var(--gray); font-size: 14px; }
-        .head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
+        .head-actions { display: flex; align-items: center; gap: 10px; }
         .refresh, .create-btn { height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 8px; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .2s, border-color .2s, box-shadow .2s; }
         .refresh { border: 1px solid var(--gray-border); background: var(--white); color: var(--gray-dark); }
         .refresh:hover { background: var(--gray-light); border-color: var(--periwinkle); }
@@ -692,44 +671,32 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .note-x { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--primary-dark); cursor: pointer; }
         .note-x:hover { background: rgba(103, 61, 230, .14); }
 
-        /* ---------- KPI portal (top-end of the header) ---------- */
-        .kpi-portal { flex: 0 1 720px; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-        .bp-mid .kpi-portal, .bp-small .kpi-portal { flex-basis: 100%; }
-        .bp-small .kpi-portal { grid-template-columns: minmax(0, 1fr); }
-
-        .kpi { position: relative; min-width: 0; min-height: 116px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; padding: 14px 16px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 20px; transition: border-color .2s, box-shadow .2s; }
-        .kpi:hover { border-color: var(--periwinkle); box-shadow: 0 6px 18px rgba(54, 52, 77, .06); }
-        .kpi-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; }
-        .kpi-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-        .kpi-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--gray); }
-        .kpi strong { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; color: var(--dark); }
-        .stat-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
-
-        .stat-icon { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 13px; background: var(--primary-light); color: var(--primary); }
-        .kpi.blue .stat-icon { background: var(--info-light); color: #0b86a8; }
-        .kpi.green .stat-icon { background: var(--success-light); color: var(--success-dark); }
+        /* ---------- KPI row ---------- */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .stat-card { position: relative; min-height: 84px; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 20px; transition: border-color .2s, box-shadow .2s; }
+        .stat-card:hover { border-color: var(--periwinkle); box-shadow: 0 6px 18px rgba(54, 52, 77, .06); }
+        .stat-icon { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 14px; background: var(--primary-light); color: var(--primary); }
+        .stat-card.blue .stat-icon { background: var(--info-light); color: #0b86a8; }
+        .stat-card.green .stat-icon { background: var(--success-light); color: var(--success-dark); }
+        .stat-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+        .stat-body > span { font-size: 13px; font-weight: 600; color: var(--gray); white-space: nowrap; }
+        .stat-body strong { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; color: var(--dark); }
+        .stat-line { display: flex; align-items: center; gap: 8px; }
 
         .trend { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-style: normal; font-weight: 700; }
         .trend.up { background: var(--success-light); color: var(--success-dark); }
         .trend.down { background: var(--danger-light); color: var(--danger-dark); }
 
-        .seg { flex-shrink: 0; display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--gray-light); }
-        .seg button { height: 24px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+        .seg { position: absolute; top: 12px; right: 12px; display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--gray-light); }
+        .seg button { height: 24px; padding: 0 9px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
         .seg button.on { background: var(--white); color: var(--primary); box-shadow: 0 1px 3px rgba(54, 52, 77, .14); }
 
         .req-count .pending { color: var(--danger-dark); }
         .req-count .clear { color: var(--success-dark); }
         .req-count .total { margin-left: 1px; font-size: 20px; font-weight: 600; color: var(--gray); letter-spacing: 0; }
 
-        .round-btn { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1px solid var(--gray-border); background: var(--white); color: var(--gray-dark); cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
-        .round-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
-
-        /* single column: tiles become compact horizontal rows */
-        .bp-small .kpi { flex-direction: row; align-items: center; min-height: 76px; gap: 14px; }
-        .bp-small .kpi-top { display: contents; }
-        .bp-small .kpi .stat-icon { order: 0; width: 44px; height: 44px; }
-        .bp-small .kpi-body { order: 1; flex: 1; }
-        .bp-small .kpi .seg, .bp-small .kpi .round-btn { order: 2; }
+        .round-btn { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1px solid var(--gray-border); background: var(--white); color: var(--gray-dark); cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
+        .round-btn.on, .round-btn:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
 
         /* ---------- recent invitations ---------- */
         .recent-card { margin-top: 14px; overflow: hidden; background: var(--white); border: 1px solid var(--gray-border); border-radius: 22px; }
@@ -802,47 +769,23 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         .sk-btn { width: 70px; height: 34px; border-radius: 12px; }
         @keyframes dx-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 
+        .dx-tabs { display: flex; gap: 6px; padding: 12px 20px 0; }
+        .dx-tabs button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .dx-tabs button.on { background: var(--primary-light); color: var(--primary); }
+        .dx-tabs em { min-width: 20px; height: 20px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; background: var(--white); font-size: 11px; font-style: normal; }
+        .dx-req-list { flex: 1; overflow-y: auto; padding: 12px 12px 12px; }
+        .dx-req { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; }
+        .dx-req:hover { background: var(--ghost-white); }
+        .dx-req-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .dx-req-main b { font-size: 14px; }
+        .dx-req-main span { font-size: 12.5px; color: var(--gray-dark); }
+        .dx-req-main small { font-size: 11.5px; color: var(--gray); }
+        .dx-drawer-foot { flex: 0 0 auto; padding: 14px 20px; border-top: 1px solid var(--gray-border); display: flex; justify-content: flex-end; }
+
         /* portaled to <body>, so they need their own base styles */
         .dx-overlay, .dx-overlay *, .row-menu, .row-menu *, .dx-toast, .dx-toast * { box-sizing: border-box; }
         .dx-overlay, .row-menu, .dx-toast { font-family: "DM Sans", Inter, sans-serif; }
         .dx-overlay { color: var(--dark); }
-
-        /* ---------- Site requests drawer ---------- */
-        .rq-overlay { position: fixed; top: 64px; left: 8px; right: 8px; bottom: 8px; z-index: 9000; display: flex; justify-content: flex-end; padding: 12px; border-radius: 26px; background: rgba(23, 19, 38, .45); backdrop-filter: blur(2px); animation: dx-fade .15s ease; }
-        .rq-panel { width: 440px; max-width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; background: var(--white); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); animation: dx-slide .22s ease; }
-        .rq-head { flex: 0 0 auto; padding: 16px 16px 14px 20px; display: flex; align-items: center; gap: 12px; }
-        .rq-icon { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 13px; background: var(--success-light); color: var(--success-dark); }
-        .rq-title { flex: 1; min-width: 0; }
-        .rq-title b { display: block; font-size: 16px; font-weight: 700; color: var(--dark); }
-        .rq-title small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--gray); }
-        .rq-panel .red { color: var(--danger-dark); font-weight: 700; }
-
-        .rq-summary { flex: 0 0 auto; margin: 0 20px; padding: 16px; border-radius: 16px; background: var(--ghost-white); border: 1px solid var(--gray-border); }
-        .rq-counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
-        .rq-counts strong { display: block; font-size: 24px; line-height: 1.1; font-weight: 700; color: var(--dark); }
-        .rq-counts span { display: block; margin-top: 3px; font-size: 12px; color: var(--gray); font-weight: 600; }
-        .rq-bar { height: 8px; margin: 14px 0 8px; overflow: hidden; border-radius: 999px; background: var(--gray-border); }
-        .rq-bar i { display: block; height: 100%; border-radius: 999px; background: var(--success); transition: width .4s ease; }
-        .rq-summary > small { display: block; text-align: right; font-size: 12px; font-weight: 600; color: var(--gray); }
-
-        .rq-tabs { flex: 0 0 auto; display: flex; gap: 6px; padding: 14px 20px 6px; }
-        .rq-tabs button { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
-        .rq-tabs button:hover { background: var(--gray-light); }
-        .rq-tabs button.on { background: var(--primary-light); color: var(--primary); }
-        .rq-tabs em { min-width: 20px; height: 20px; padding: 0 6px; display: grid; place-items: center; border-radius: 999px; background: var(--white); font-size: 11px; font-style: normal; }
-
-        .rq-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
-        .rq-item { display: flex; gap: 12px; padding: 12px; border-radius: 16px; transition: background .15s; }
-        .rq-item:hover { background: var(--ghost-white); }
-        .rq-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-        .rq-line { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-        .rq-line b { font-size: 14px; font-weight: 700; }
-        .rq-line small { flex-shrink: 0; font-size: 11.5px; color: var(--gray); }
-        .rq-main > span { font-size: 13px; line-height: 1.45; color: var(--gray-dark); }
-        .rq-foot { margin-top: 6px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .rq-foot-bar { flex: 0 0 auto; padding: 14px 20px; display: flex; justify-content: flex-end; border-top: 1px solid var(--gray-border); }
-        .act-btn.sm { height: 30px; padding: 0 12px; font-size: 12px; border-radius: 10px; }
-        .chip.pending { background: var(--danger-light); color: var(--danger-dark); }
 
         /* ---------- row menu ---------- */
         .row-menu { position: fixed; z-index: 9500; width: 208px; padding: 6px; display: flex; flex-direction: column; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); box-shadow: 0 16px 40px rgba(24, 28, 45, .18); }
@@ -895,15 +838,17 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
         @keyframes dx-slide { from { transform: translateX(40px); opacity: .6; } to { transform: none; opacity: 1; } }
 
         /* ---------- responsive ---------- */
+        /* narrow = the page itself is narrow (e.g. preview panel open), not just the screen */
+        .narrow .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .narrow .stat-card.blue { grid-column: 1 / -1; order: -1; }
         @media (max-width: 900px) {
           .dash-side-panel { position: fixed; inset: 12px; z-index: 4000; width: auto; min-width: 0; max-width: none; height: auto; flex: none; border-radius: 20px; box-shadow: 0 12px 34px rgba(24, 28, 45, .3); }
         }
         @media (max-width: 700px) {
-          .page-head { align-items: flex-start; }
-          .rq-overlay { left: 5px; right: 5px; bottom: 5px; padding: 8px; border-radius: 20px; }
-          .rq-panel { width: 100%; }
+          .page-head { align-items: flex-start; flex-direction: column; }
           .head-actions { width: 100%; }
           .head-actions > * { flex: 1; justify-content: center; }
+          .dashboard-grid { grid-template-columns: 1fr; }
           .recent-head { padding: 12px 16px; }
           .recent-tools { width: 100%; }
           .search { flex: 1; width: auto; min-width: 140px; }
