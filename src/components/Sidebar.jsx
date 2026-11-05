@@ -318,6 +318,7 @@ export default function Sidebar({
               <span className="live-dot" aria-label="Store is live" title="Store is live" />
               <span className="collapsed-tooltip">View live site</span>
             </a>
+            <div className="powered">Powered by Schedy</div>
           </div>
         </div>
       </aside>
@@ -757,6 +758,9 @@ export default function Sidebar({
           box-shadow: 0 0 0 3px rgba(34, 197, 94, .18);
         }
         .d-sidebar.collapsed .live-dot { display: none; }
+
+        .powered { margin-top: 12px; text-align: center; font-size: 11px; letter-spacing: .02em; color: var(--gray); }
+        .d-sidebar.collapsed .powered { display: none; }
 
         /* ---------- ACCOUNT (mobile drawer) ---------- */
 
