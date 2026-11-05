@@ -152,6 +152,15 @@ export default function Sidebar({
     if (overlayMode) setOverlayOpen(false);
   };
 
+  /* Collapse right away and ignore hover until the pointer leaves the sidebar,
+     otherwise the mouse still resting on the link would re-expand it */
+  const collapseNow = () => {
+    setHovering(false);
+    setHoverLock(true);
+    if (overlayMode) setOverlayOpen(false);
+    else setCollapsed(true);
+  };
+
   const handleToggle = () => {
     if (overlayMode) {
       if (overlayOpen) {
@@ -282,7 +291,7 @@ export default function Sidebar({
                 key={path}
                 to={path}
                 end={path === "/"}
-                onClick={closeOverlay}
+                onClick={path === "/create" ? collapseNow : closeOverlay}
                 onMouseEnter={handleIconEnter}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >
