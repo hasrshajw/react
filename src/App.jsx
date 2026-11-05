@@ -11,6 +11,8 @@ function App() {
   // True while a right-side panel (preview / requests) is open.
   // The sidebar then becomes a slim rail and its full menu opens as an overlay.
   const [panelOpen, setPanelOpen] = useState(false);
+  // True while a collapsed sidebar is hover-expanded (no panel open): the page makes room, like a normal expanded sidebar.
+  const [hoverExpanded, setHoverExpanded] = useState(false);
 
   return (
     <BrowserRouter>
@@ -53,11 +55,12 @@ function App() {
             collapsed={sidebarCollapsed}
             setCollapsed={setSidebarCollapsed}
             panelOpen={panelOpen}
+            onHoverExpand={setHoverExpanded}
           />
 
           <main
             className={`main-content ${
-              sidebarCollapsed || panelOpen ? "content-collapsed" : "content-expanded"
+              (sidebarCollapsed || panelOpen) && !hoverExpanded ? "content-collapsed" : "content-expanded"
             }`}
           >
             <Routes>
