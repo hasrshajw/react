@@ -232,7 +232,28 @@ export default function Sidebar({
 
   const overlayMode = rightPanelOpen;
 
-  const isExpanded = overlayMode ? overlayOpen : !collapsed;
+  /* Hover-peek: a collapsed rail temporarily expands (floating over the page)
+     while the mouse is on it, and collapses again on mouse leave.
+     hoverLock stops it re-opening right after the user clicks "collapse"
+     while the mouse is still over the sidebar. */
+  const [hovering, setHovering] = useState(false);
+  const [hoverLock, setHoverLock] = useState(false);
+
+  const handleMouseEnter = () => {
+    if (!hoverLock) setHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setHovering(false);
+    setHoverLock(false);
+  };
+
+  const isExpanded = overlayMode
+    ? overlayOpen || hovering
+    : !collapsed || hovering;
+
+  /* expanded visually, but the page layout is still the 90px rail */
+  const floating = isExpanded && (overlayMode || collapsed);
 
   /* narrow = the page content / navbar use the 90px rail layout */
   const narrowLayout = overlayMode || collapsed;
@@ -258,8 +279,21 @@ export default function Sidebar({
 
   const handleToggle = () => {
     if (overlayMode) {
-      setOverlayOpen((o) => !o);
+      if (overlayOpen) {
+        // closing: collapse right away even though the mouse is still over it
+        setOverlayOpen(false);
+        setHovering(false);
+        setHoverLock(true);
+      } else {
+        // clicking expand while hover-peeking pins the overlay open
+        setOverlayOpen(true);
+      }
       return;
+    }
+
+    if (!collapsed) {
+      setHovering(false);
+      setHoverLock(true);
     }
     setCollapsed(!collapsed);
   };
@@ -367,7 +401,9 @@ export default function Sidebar({
           isExpanded
             ? "expanded"
             : "collapsed"
-        }${overlayMode && overlayOpen ? " as-overlay" : ""}`}
+        }${floating ? " as-overlay" : ""}`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
 
         {/* =================================================
@@ -410,15 +446,15 @@ export default function Sidebar({
             className="sidebar-toggle"
             onClick={handleToggle}
             aria-label={
-              collapsed
-                ? "Open sidebar"
-                : "Close sidebar"
+              (overlayMode ? overlayOpen : !collapsed)
+                ? "Close sidebar"
+                : "Open sidebar"
             }
           >
 
             <img
               src={
-                isExpanded
+                (overlayMode ? overlayOpen : !collapsed)
                   ? panelClose
                   : panelOpen
               }
