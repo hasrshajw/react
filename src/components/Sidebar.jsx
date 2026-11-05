@@ -219,6 +219,7 @@ export default function Sidebar({
   collapsed,
   setCollapsed,
   panelOpen: rightPanelOpen = false, // renamed: "panelOpen" is already the toggle icon import
+  onHoverExpand,
 }) {
 
   const [siteOpen, setSiteOpen] = useState(false);
@@ -239,7 +240,9 @@ export default function Sidebar({
   const [hovering, setHovering] = useState(false);
   const [hoverLock, setHoverLock] = useState(false);
 
-  const handleMouseEnter = () => {
+  /* Only the icons (menu items, logo, account avatar) open the peek,
+     not the empty areas of the rail. */
+  const handleIconEnter = () => {
     if (!hoverLock) setHovering(true);
   };
 
@@ -252,11 +255,18 @@ export default function Sidebar({
     ? overlayOpen || hovering
     : !collapsed || hovering;
 
-  /* expanded visually, but the page layout is still the 90px rail */
-  const floating = isExpanded && (overlayMode || collapsed);
+  /* Floating over the page only while a right-side panel is open.
+     Without a panel, a hover-expanded sidebar is a normal expanded one
+     and the page content makes room for it. */
+  const floating = isExpanded && overlayMode;
 
   /* narrow = the page content / navbar use the 90px rail layout */
-  const narrowLayout = overlayMode || collapsed;
+  const narrowLayout = overlayMode || (collapsed && !hovering);
+
+  useEffect(() => {
+    onHoverExpand?.(!overlayMode && collapsed && hovering);
+  }, [overlayMode, collapsed, hovering]);
+  useEffect(() => () => onHoverExpand?.(false), []);
 
   useEffect(() => {
     if (!overlayMode) setOverlayOpen(false);
@@ -402,7 +412,6 @@ export default function Sidebar({
             ? "expanded"
             : "collapsed"
         }${floating ? " as-overlay" : ""}`}
-        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
 
@@ -431,7 +440,7 @@ export default function Sidebar({
 
           {!isExpanded && (
 
-            <span className="mini-logo">
+            <span className="mini-logo" onMouseEnter={handleIconEnter}>
 
               <img
                 src={logoSmall}
@@ -486,6 +495,7 @@ export default function Sidebar({
                 to={item.path}
                 end={item.path === "/"}
                 onClick={closeOverlay}
+                onMouseEnter={handleIconEnter}
                 className={({ isActive }) =>
                   `nav-item ${
                     isActive
@@ -529,6 +539,7 @@ export default function Sidebar({
                   : ""
               }`}
               onClick={handleCustomizeClick}
+              onMouseEnter={handleIconEnter}
             >
 
               <MenuIcon
@@ -614,7 +625,7 @@ export default function Sidebar({
               ACCOUNT
           ================================================= */}
 
-          <div className="d-account-section">
+          <div className="d-account-section" onMouseEnter={handleIconEnter}>
 
             <div className="account-card">
 
