@@ -88,7 +88,7 @@ function App() {
 
         body {
           font-family: "DM Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          background: #171326;
+          background: #110C29;
           color: var(--text-color, #202027);
           overflow: hidden;
         }
@@ -103,9 +103,7 @@ function App() {
           flex-direction: column;
           padding: 0 8px 8px;
           overflow: hidden;
-          background:
-            radial-gradient(ellipse at 50% -35%, rgba(104, 65, 190, .48), transparent 58%),
-            #171326;
+          background: #110C29;
         }
 
         .workspace-promo {
@@ -119,7 +117,7 @@ function App() {
           align-items: center;
           gap: 22px;
           color: #fff;
-          background: linear-gradient(105deg, #171326 0%, #351775 48%, #1a142b 100%);
+          background: linear-gradient(105deg, #101011 0%, #471ea7 50%, #101011 100%);
           font-size: 13px;
         }
 
