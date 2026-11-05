@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Package, Ticket, Palette, Image as ImageIcon, LayoutGrid,
+  LayoutDashboard, Mail, MailPlus, Ticket, Palette, Image as ImageIcon, LayoutGrid,
   PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, Search, Bell, Plus,
 } from "lucide-react";
 
@@ -11,11 +11,15 @@ import logoSmall from "../assets/logo-small.png";
 /* =========================================================
    NAV DATA  (icons are lucide: one set, follows currentColor,
    so hover / active states need no extra image files)
+
+   An item with `path` is an in-app route.
+   An item with `href` is an external link (opens in a new tab).
 ========================================================= */
 
 const menuItems = [
   { name: "Dashboard", path: "/", Icon: LayoutDashboard },
-  { name: "Inventory", path: "/inventory", Icon: Package },
+  { name: "Create Invitation", href: "https://hub-schedy.vercel.app/create.html", Icon: MailPlus },
+  { name: "All Invitations", href: "https://hub-schedy.vercel.app/invitations.html", Icon: Mail },
   { name: "Manage Coupons", path: "/coupons", Icon: Ticket },
 ];
 
@@ -31,7 +35,6 @@ const CRUMBS = {
   "/": ["Dashboard", "Overview"],
   "/analytics": ["Dashboard", "Analytics"],
   "/create": ["Dashboard", "Create"],
-  "/inventory": ["Manage", "Inventory"],
   "/coupons": ["Manage", "Coupons"],
   "/customize/hero-section": ["Customize site", "Hero section"],
   "/customize/sections": ["Customize site", "Sections"],
@@ -51,6 +54,46 @@ function MenuIcon({ Icon, size = 20 }) {
     <span className="menu-icon" aria-hidden="true">
       <Icon size={size} strokeWidth={1.8} />
     </span>
+  );
+}
+
+/* One main-menu row: a router link for in-app pages, a plain anchor for external ones */
+function NavEntry({ item, onClick, onMouseEnter, tooltip = false }) {
+  const { name, path, href, Icon } = item;
+
+  const inner = (
+    <>
+      <MenuIcon Icon={Icon} />
+      <span className="nav-label">{name}</span>
+      {tooltip && <span className="collapsed-tooltip">{name}</span>}
+    </>
+  );
+
+  if (href) {
+    return (
+      <a
+        className="nav-item"
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <NavLink
+      to={path}
+      end={path === "/"}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+    >
+      {inner}
+    </NavLink>
   );
 }
 
@@ -276,19 +319,14 @@ export default function Sidebar({
           <nav aria-label="Main">
             <div className="nav-section-label">Manage</div>
 
-            {menuItems.map(({ name, path, Icon }) => (
-              <NavLink
-                key={path}
-                to={path}
-                end={path === "/"}
+            {menuItems.map((item) => (
+              <NavEntry
+                key={item.name}
+                item={item}
                 onClick={closeOverlay}
                 onMouseEnter={handleIconEnter}
-                className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
-              >
-                <MenuIcon Icon={Icon} />
-                <span className="nav-label">{name}</span>
-                <span className="collapsed-tooltip">{name}</span>
-              </NavLink>
+                tooltip
+              />
             ))}
 
             <div className="nav-section-label">Storefront</div>
@@ -368,17 +406,8 @@ export default function Sidebar({
           <nav className="m-drawer-nav" aria-label="Main">
             <div className="nav-section-label">Manage</div>
 
-            {menuItems.map(({ name, path, Icon }) => (
-              <NavLink
-                key={path}
-                to={path}
-                end={path === "/"}
-                onClick={closeMobileDrawer}
-                className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
-              >
-                <MenuIcon Icon={Icon} />
-                <span className="nav-label">{name}</span>
-              </NavLink>
+            {menuItems.map((item) => (
+              <NavEntry key={item.name} item={item} onClick={closeMobileDrawer} />
             ))}
 
             <div className="nav-section-label">Storefront</div>
