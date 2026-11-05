@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   FilePlus2, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox, Eye, Pencil, Link2, Check,
@@ -97,7 +98,8 @@ function Modal({ title, subtitle, onClose, children, width = 440, headExtra }) {
   );
 }
 
-function PreviewModal({ row, onClose, published }) {
+function PreviewPanel({ slot, row, published, onClose }) {
+  useEscape(true, onClose);
   const html = useMemo(() => {
     try {
       const tpl = (demo.demoTemplates || []).find((t) => String(t.id) === String(row.template_id));
@@ -113,22 +115,28 @@ function PreviewModal({ row, onClose, published }) {
     } catch { return ""; }
   }, [row]);
 
-  return (
-    <Modal
-      title={coupleName(row)}
-      subtitle={published ? "Published · mobile preview" : "Draft · mobile preview"}
-      width={420}
-      onClose={onClose}
-      headExtra={<Link to={`/create?edit=${row.id}`} className="act-btn"><Pencil size={14} /> Edit</Link>}
-    >
-      <div className="dx-preview-body">
+  if (!slot) return null;
+  return createPortal(
+    <aside className="dash-preview-panel" aria-label="Invitation preview">
+      <div className="dp-head">
+        <div className="dp-title">
+          <b><span className="live-dot" />{coupleName(row)}</b>
+          <small>{published ? "Published" : "Draft"} · mobile preview</small>
+        </div>
+        <div className="dp-actions">
+          <Link to={`/create?edit=${row.id}`} className="act-btn"><Pencil size={14} /> Edit</Link>
+          <button type="button" className="icon-btn" aria-label="Close preview" onClick={onClose}><X size={16} /></button>
+        </div>
+      </div>
+      <div className="dp-body">
         {html ? (
-          <iframe title="Invitation preview" srcDoc={html} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
+          <iframe key={row.id} title="Invitation preview" srcDoc={html} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
         ) : (
           <div className="dx-empty-mini"><Smartphone size={22} /><b>No preview available</b><span>This invitation has no template yet.</span></div>
         )}
       </div>
-    </Modal>
+    </aside>,
+    slot
   );
 }
 
@@ -209,7 +217,7 @@ function RequestsDrawer({ requests, total, pending, onClose, onDone }) {
 /* =========================================================
    PAGE
    ========================================================= */
-export default function Dashboard() {
+export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const timer = useRef();
@@ -229,6 +237,10 @@ export default function Dashboard() {
 
   const [menu, setMenu] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [slot, setSlot] = useState(null);
+  const prevCollapsed = useRef(null);
+  const pageRef = useRef(null);
+  const [narrow, setNarrow] = useState(false);
   const [qr, setQr] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [toast, setToast] = useState(null);
@@ -248,6 +260,35 @@ export default function Dashboard() {
   useEffect(() => {
     load();
     return () => { clearTimeout(timer.current); clearTimeout(toastTimer.current); };
+  }, []);
+
+  useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
+
+  /* Tell the page when it is narrow (e.g. preview open) so the cards can reflow. */
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setNarrow(e.contentRect.width < 980));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  /* Preview opens in the right-hand slot and collapses the left sidebar; closing restores it. */
+  const openPreview = (x) => {
+    if (preview?.id === x.id) { closePreview(); return; }
+    if (prevCollapsed.current === null) prevCollapsed.current = !!sidebarCollapsed;
+    setSidebarCollapsed?.(true);
+    setPreview(x);
+  };
+  const closePreview = () => {
+    setPreview(null);
+    if (prevCollapsed.current !== null) {
+      setSidebarCollapsed?.(prevCollapsed.current);
+      prevCollapsed.current = null;
+    }
+  };
+  useEffect(() => () => {
+    if (prevCollapsed.current !== null) setSidebarCollapsed?.(prevCollapsed.current);
   }, []);
 
   const visible = useMemo(() => rows.filter((r) => !deleted.includes(r.id)), [rows, deleted]);
@@ -305,6 +346,7 @@ export default function Dashboard() {
       setDeleted(ids);
       writeJSON(LS_DEL, ids);
     }
+    if (preview?.id === x.id) closePreview();
     setConfirm(null);
     notify("Invitation deleted");
   };
@@ -339,11 +381,11 @@ export default function Dashboard() {
     };
   }, [menu]);
 
-  const closeAll = () => { setPreview(null); setQr(null); setConfirm(null); setDrawer(false); };
+  const closeAll = () => { setQr(null); setConfirm(null); setDrawer(false); };
   const traffic = TRAFFIC[range];
 
   return (
-    <div className="dashboard-page">
+    <div className={`dashboard-page${narrow ? " narrow" : ""}`} ref={pageRef}>
       {/* ---------- page header ---------- */}
       <div className="page-head">
         <div>
@@ -481,7 +523,7 @@ export default function Dashboard() {
                     const live = isPub(x);
                     const when = whenText(dayDiff(x.event_date));
                     return (
-                      <tr key={x.id}>
+                      <tr key={x.id} className={preview?.id === x.id ? "active" : ""}>
                         <td>
                           <div className="cell-couple">
                             <div className="row-avatar">{initials(x)}</div>
@@ -505,7 +547,7 @@ export default function Dashboard() {
                         </td>
                         <td>
                           <div className="row-actions">
-                            <button type="button" className="icon-btn" title="Preview" aria-label="Preview invitation" onClick={() => setPreview(x)}>
+                            <button type="button" className={`icon-btn${preview?.id === x.id ? " on" : ""}`} title="Preview" aria-label="Preview invitation" onClick={() => openPreview(x)}>
                               <Smartphone size={16} />
                             </button>
                             <Link to={`/create?edit=${x.id}`} className="act-btn"><Pencil size={14} /> Edit</Link>
@@ -583,7 +625,7 @@ export default function Dashboard() {
       })()}
 
       {/* ---------- overlays ---------- */}
-      {preview && <PreviewModal row={preview} published={isPub(preview)} onClose={closeAll} />}
+      {preview && <PreviewPanel slot={slot} row={preview} published={isPub(preview)} onClose={closePreview} />}
       {qr && <QrModal row={qr} onClose={closeAll} onCopy={copyLink} />}
       {confirm && <ConfirmDelete row={confirm} onCancel={closeAll} onConfirm={doDelete} />}
       {drawer && <RequestsDrawer requests={reqs} total={reqTotal} pending={reqPending} onClose={closeAll} onDone={markDone} />}
@@ -663,6 +705,7 @@ export default function Dashboard() {
         .inv-table tbody td { padding: 12px 22px; border-bottom: 1px solid var(--gray-border); vertical-align: middle; }
         .inv-table tbody tr:last-child td { border-bottom: 0; }
         .inv-table tbody tr:hover { background: var(--ghost-white); }
+        .inv-table tbody tr.active { background: var(--primary-lightest); }
         .inv-table .th-actions { text-align: right; }
 
         .cell-couple { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -689,6 +732,7 @@ export default function Dashboard() {
         .act-btn.danger { background: var(--danger-dark); border-color: var(--danger-dark); color: #fff; }
         .act-btn.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
         .icon-btn { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; padding: 0; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
+        .icon-btn.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
         .icon-btn:hover:not(:disabled) { background: var(--primary-lightest); border-color: var(--primary); color: var(--primary); }
 
         .table-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 22px; border-top: 1px solid var(--gray-border); font-size: 13px; color: var(--gray); }
@@ -729,8 +773,16 @@ export default function Dashboard() {
         .dx-modal-head .red { color: var(--danger-dark); font-weight: 700; }
         .dx-modal-actions { display: flex; align-items: center; gap: 8px; }
 
-        .dx-preview-body { height: min(76vh, 760px); background: #f5f6fa; }
-        .dx-preview-body iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+        .dash-preview-panel { position: relative; box-sizing: border-box; height: 100%; width: 390px; min-width: 390px; max-width: 390px; flex: 0 0 390px; display: flex; flex-direction: column; overflow: hidden; border-radius: 26px; background: #fff; animation: dx-slide .22s ease; }
+        .dash-preview-panel * { box-sizing: border-box; }
+        .dp-head { height: 64px; flex: 0 0 64px; padding: 0 14px 0 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--gray-border); }
+        .dp-title { min-width: 0; }
+        .dp-title b { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dp-title small { display: block; margin: 3px 0 0 16px; font-size: 12px; color: var(--gray); }
+        .live-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-light); }
+        .dp-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .dp-body { flex: 1; min-height: 0; background: #f5f6fa; }
+        .dp-body iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
         .dx-empty-mini { height: 100%; padding: 32px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; font-size: 13px; color: var(--gray); }
         .dx-empty-mini svg { width: 48px; height: 48px; padding: 12px; border-radius: 50%; background: var(--primary-light); color: var(--primary); }
         .dx-empty-mini b { font-size: 14px; color: var(--dark); }
@@ -766,7 +818,12 @@ export default function Dashboard() {
         @keyframes dx-slide { from { transform: translateX(40px); opacity: .6; } to { transform: none; opacity: 1; } }
 
         /* ---------- responsive ---------- */
-        @media (max-width: 1100px) { .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        /* narrow = the page itself is narrow (e.g. preview panel open), not just the screen */
+        .narrow .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .narrow .stat-card.blue { grid-column: 1 / -1; order: -1; }
+        @media (max-width: 900px) {
+          .dash-preview-panel { position: fixed; inset: 12px; z-index: 4000; width: auto; min-width: 0; max-width: none; height: auto; flex: none; border-radius: 20px; box-shadow: 0 12px 34px rgba(24, 28, 45, .3); }
+        }
         @media (max-width: 700px) {
           .page-head { align-items: flex-start; flex-direction: column; }
           .head-actions { width: 100%; }
