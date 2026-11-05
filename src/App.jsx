@@ -220,16 +220,18 @@ function App() {
           border-bottom: 0;         /* line removed */
         }
 
-        /* colour layer: dark edges -> violet centre, then fades to nothing at the bottom */
+        /* colour layer: full 44px strip stays solid (same size as before),
+           then the colour keeps going below it and fades out downward */
         .workspace-promo::before {
           content: "";
           position: absolute;
-          inset: 0;
+          top: 0; left: 0; right: 0;
+          height: 110px;            /* 44px strip + 66px fade tail */
           z-index: 0;
           pointer-events: none;
           background: linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%);
-          -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .85) 40%, transparent 100%);
-          mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .85) 40%, transparent 100%);
+          -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 44px, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 0, #000 44px, transparent 100%);
         }
 
         /* keep content above the fade layer */
