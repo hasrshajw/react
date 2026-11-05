@@ -924,7 +924,7 @@ export default function Sidebar({
 
         :root {
 
-          --header-height-desktop: 70px;
+          --header-height-desktop: 64px;
 
           --sidebar-width: 260px;
 
