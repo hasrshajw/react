@@ -3,29 +3,13 @@ import { createPortal } from "react-dom";
 import { CalendarPlus, Eye, Heart, LayoutTemplate, Loader2, MapPin, Plus, Save, Trash2, User, Users, X } from "lucide-react";
 import morphdom from "morphdom";
 import { demoCategories, demoTemplates, getDemoInvitations, saveDemoInvitation } from "../lib/demoData";
+import { compile } from "../lib/compileInvitation";
 
 const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 const newEvent = () => ({ id: uid(), name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "" });
 const newContact = () => ({ id: uid(), nameEn: "", nameTe: "", phone: "" });
 const initial = { customId:"",templateId:"",categoryId:"ALL",surnameEn:"",surnameTe:"",weddingDate:"",muhurthamTime:"",groomEn:"",groomTe:"",groomFatherEn:"",groomFatherTe:"",groomFatherPhone:"",groomMotherEn:"",groomMotherTe:"",groomMotherPhone:"",brideEn:"",brideTe:"",brideFatherEn:"",brideFatherTe:"",brideFatherPhone:"",brideMotherEn:"",brideMotherTe:"",brideMotherPhone:"",receptionEnabled:false,receptionDate:"",receptionTime:"",venueEn:"",venueTe:"",venueAddress:"",venueMaps:"",events:[],groomContacts:[],brideContacts:[] };
 const EN_TO_TE={surnameEn:"surnameTe",groomEn:"groomTe",groomFatherEn:"groomFatherTe",groomMotherEn:"groomMotherTe",brideEn:"brideTe",brideFatherEn:"brideFatherTe",brideMotherEn:"brideMotherTe",venueEn:"venueTe"};
-const dateText=v=>{if(!v)return "";const d=new Date(`${v}T00:00:00`);return Number.isNaN(d.getTime())?"":new Intl.DateTimeFormat("en-IN",{day:"numeric",month:"long",year:"numeric"}).format(d)};
-const dayText=v=>{if(!v)return "";const d=new Date(`${v}T00:00:00`);return Number.isNaN(d.getTime())?"":new Intl.DateTimeFormat("en-IN",{weekday:"long"}).format(d)};
-const timeText=v=>{if(!v)return "";const [h,m]=v.split(":").map(Number);if(!Number.isFinite(h)||!Number.isFinite(m))return "";const d=new Date();d.setHours(h,m,0,0);return new Intl.DateTimeFormat("en-IN",{hour:"numeric",minute:"2-digit"}).format(d)};
-
-function valuesFor(data){
- const v={"surname-en":data.surnameEn,"surname-te":data.surnameTe,"bride-en":data.brideEn,"bride-te":data.brideTe,"groom-en":data.groomEn,"groom-te":data.groomTe,"groom-father-en":data.groomFatherEn,"groom-father-te":data.groomFatherTe,"groom-father-phone":data.groomFatherPhone,"groom-mother-en":data.groomMotherEn,"groom-mother-te":data.groomMotherTe,"groom-mother-phone":data.groomMotherPhone,"bride-father-en":data.brideFatherEn,"bride-father-te":data.brideFatherTe,"bride-father-phone":data.brideFatherPhone,"bride-mother-en":data.brideMotherEn,"bride-mother-te":data.brideMotherTe,"bride-mother-phone":data.brideMotherPhone,"event-wedding-date":dateText(data.weddingDate),"event-wedding-day":dayText(data.weddingDate),"event-wedding-time":timeText(data.muhurthamTime),"wedding-date":data.weddingDate,"event-reception-date":dateText(data.receptionDate),"event-reception-day":dayText(data.receptionDate),"event-reception-time":timeText(data.receptionTime),"venue-en":data.venueEn,"venue-te":data.venueTe,"venue-address":data.venueAddress,"venue-maps":data.venueMaps,"reception-date":dateText(data.receptionDate),"reception-time":timeText(data.receptionTime),"reception-venue-te":data.venueTe,"same-venue":data.receptionEnabled&&data.venueTe?"1":""};
- [0,1].forEach(i=>{const e=data.events[i]||{},n=i+1;v[`event-${n}-name-te`]=e.nameTe||"";v[`event-${n}-date`]=dateText(e.date);v[`event-${n}-day`]=dayText(e.date);v[`event-${n}-time`]=timeText(e.time);v[`event-${n}-venue-te`]=e.venueTe||"";v[`event-${n}-maps`]=e.maps||"";v[`event-${n}-name-en`]=e.name||"";v[`event-${n}-venue-en`]=e.venue||""});
- const gc=data.groomContacts[0]||{},bc=data.brideContacts[0]||{};v["groom-extra-1-te"]=gc.nameTe||"";v["groom-extra-1-phone"]=gc.phone||"";v["bride-extra-1-te"]=bc.nameTe||"";v["bride-extra-1-phone"]=bc.phone||"";return v;
-}
-
-function compile(source,data){
- if(!source)return "";const v=valuesFor(data);let html=source;const conditional=/\{\{#if\s+([\w-]+)\}\}((?:(?!\{\{#if\b)[\s\S])*?)\{\{\/if\}\}/g;let previous;do{previous=html;html=html.replace(conditional,(_,key,body)=>v[key.trim().replaceAll("_","-")]?body:"")}while(html!==previous&&/\{\{#if\b/.test(html));
- const doc=new DOMParser().parseFromString(html,"text/html"),placeholder=/\{\{\s*([\w-]+)\s*\}\}/g,walker=doc.createTreeWalker(doc.body,NodeFilter.SHOW_TEXT),nodes=[];let node;while((node=walker.nextNode()))nodes.push(node);
- nodes.forEach(textNode=>{const text=textNode.nodeValue||"";placeholder.lastIndex=0;if(!placeholder.test(text))return;placeholder.lastIndex=0;const frag=doc.createDocumentFragment();let last=0,match;while((match=placeholder.exec(text))){if(match.index>last)frag.appendChild(doc.createTextNode(text.slice(last,match.index)));const key=match[1].replaceAll("_","-"),span=doc.createElement("span");span.dataset.schedyField=key;span.textContent=v[key]??"";frag.appendChild(span);last=match.index+match[0].length}if(last<text.length)frag.appendChild(doc.createTextNode(text.slice(last)));textNode.parentNode?.replaceChild(frag,textNode)});
- doc.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(attr=>{if(attr.value.includes("{{"))attr.value=attr.value.replace(placeholder,(_,key)=>v[key.replaceAll("_","-")]??"")}));return `<!doctype html>${doc.documentElement.outerHTML}`.replace(/\{\{[^}]+\}\}/g,"");
-}
-
 function Input({label,type="text",value,onChange,onFocus}){return <label className="f"><span>{label}</span><input type={type} value={value??""} onFocus={onFocus} onChange={e=>onChange(e.target.value)}/></label>}
 function TeluguInput({label,value,onChange,onFocus}){return <label className="f te"><span>{label}</span><input lang="te" value={value??""} onFocus={onFocus} onChange={e=>onChange(e.target.value)}/></label>}
 function Bilingual({enLabel,teLabel,enField,teField,data,set,focus}){return <div className="grid two"><Input label={enLabel} value={data[enField]} onFocus={()=>focus(enField)} onChange={v=>set(enField,v)}/><TeluguInput label={teLabel} value={data[teField]} onFocus={()=>focus(teField)} onChange={v=>set(teField,v)}/></div>}
