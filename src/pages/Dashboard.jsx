@@ -460,8 +460,9 @@ function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSetStatus
           <div className="dx-empty-mini"><Check size={22} /><b>{empty[0]}</b><span>{empty[1]}</span></div>
         )}
         {list.map((e) => {
-          const isNew = e.status === "new";
-          const open = isNew || openId === e.id; /* new enquiries are always fully shown */
+          /* On the New tab, new enquiries are always fully shown. Everywhere else (All, search) they collapse like the rest. */
+          const pinned = e.status === "new" && tab === "new";
+          const open = pinned || openId === e.id;
           const avatar = e.name.split(" ").map((p) => p[0]).slice(0, 2).join("");
           const due = followDue(e);
           const chips = (
@@ -474,7 +475,7 @@ function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSetStatus
           );
           return (
             <div className={`dx-enq ${e.status}${open ? " open" : ""}`} key={e.id}>
-              {isNew ? (
+              {pinned ? (
                 <div className="dx-enq-top static">
                   <div className="row-avatar">{avatar}</div>
                   <b className="dx-enq-name">{e.name}</b>
