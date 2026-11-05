@@ -203,7 +203,7 @@ function App() {
           background: #101011;
         }
 
-        /* ---------- slim strip: fades left/right AND down, no border line ---------- */
+        /* ---------- slim gradient strip: 44px, one message ---------- */
         .workspace-promo {
           position: relative;
           z-index: 3000;
@@ -216,24 +216,10 @@ function App() {
           align-items: center;
           color: #fff;
           font-size: 13px;
-          background: transparent;  /* colour comes from ::before */
-          border-bottom: 0;         /* line removed */
-        }
-
-        /* colour layer: dark edges -> violet centre, then fades to nothing at the bottom */
-        .workspace-promo::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-          pointer-events: none;
+          /* dark edges, violet centre: #101011 -> #471ea7 -> #101011 */
           background: linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%);
-          -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .85) 40%, transparent 100%);
-          mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, .85) 40%, transparent 100%);
+          border-bottom: 1px solid rgba(255, 255, 255, .07);
         }
-
-        /* keep content above the fade layer */
-        .workspace-promo > * { position: relative; z-index: 1; }
 
         .promo-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
         .promo-mark {
