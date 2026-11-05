@@ -57,7 +57,15 @@ function App() {
             }`}
           >
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route
+                path="/"
+                element={
+                  <Dashboard
+                    sidebarCollapsed={sidebarCollapsed}
+                    setSidebarCollapsed={setSidebarCollapsed}
+                  />
+                }
+              />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/create" element={<Create />} />
             </Routes>
