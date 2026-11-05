@@ -220,7 +220,7 @@ function RequestsPanel({ slot, requests, total, pending, onClose, onDone }) {
 /* =========================================================
    PAGE
    ========================================================= */
-export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
+export default function Dashboard({ onPanelChange }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const timer = useRef();
@@ -241,7 +241,6 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
   const [menu, setMenu] = useState(null);
   const [preview, setPreview] = useState(null);
   const [slot, setSlot] = useState(null);
-  const prevCollapsed = useRef(null);
   const pageRef = useRef(null);
   const [narrow, setNarrow] = useState(false);
   const [qr, setQr] = useState(null);
@@ -276,34 +275,28 @@ export default function Dashboard({ sidebarCollapsed, setSidebarCollapsed }) {
     return () => ro.disconnect();
   }, []);
 
-  /* Preview and Site requests open in the right-hand slot, collapse the left sidebar, and restore it on close. */
-  const collapseSidebar = () => {
-    if (prevCollapsed.current === null) prevCollapsed.current = !!sidebarCollapsed;
-    setSidebarCollapsed?.(true);
-  };
+  /* Preview and Site requests open in the right-hand slot. The sidebar's own
+     state is never changed; App switches it to a slim rail + overlay menu. */
   const openPreview = (x) => {
     if (preview?.id === x.id) { closePanel(); return; }
-    collapseSidebar();
     setReqOpen(false);
     setPreview(x);
   };
   const openRequests = () => {
     if (reqOpen) { closePanel(); return; }
-    collapseSidebar();
     setPreview(null);
     setReqOpen(true);
   };
   const closePanel = () => {
     setPreview(null);
     setReqOpen(false);
-    if (prevCollapsed.current !== null) {
-      setSidebarCollapsed?.(prevCollapsed.current);
-      prevCollapsed.current = null;
-    }
   };
-  useEffect(() => () => {
-    if (prevCollapsed.current !== null) setSidebarCollapsed?.(prevCollapsed.current);
-  }, []);
+
+  /* Tell App whether a right-side panel is open. */
+  useEffect(() => {
+    onPanelChange?.(!!(preview || reqOpen));
+  }, [preview, reqOpen]);
+  useEffect(() => () => onPanelChange?.(false), []);
 
   const visible = useMemo(() => rows.filter((r) => !deleted.includes(r.id)), [rows, deleted]);
   const isPub = (x) => pub[x.id] !== false;
