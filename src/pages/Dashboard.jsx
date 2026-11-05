@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import QRCode from "qrcode"; // npm i qrcode
 import {
   FilePlus2, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox, Eye, Pencil, Link2, Check,
   Plus, Search, Smartphone, MoreHorizontal, Trash2, X, MessageCircle, QrCode, Globe, EyeOff,
@@ -306,32 +305,54 @@ function PreviewPanel({ slot, row, published, onClose }) {
 
 function QrModal({ row, onClose, onCopy }) {
   const link = getInviteLink(row);
-  const [src, setSrc] = useState("");
+  const api = (size) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(link)}`;
+  const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let off = false;
-    QRCode.toDataURL(link, { width: 720, margin: 2, errorCorrectionLevel: "M" })
-      .then((u) => { if (!off) setSrc(u); })
-      .catch(() => { if (!off) setFailed(true); });
-    return () => { off = true; };
-  }, [link]);
+  const [busy, setBusy] = useState(false);
   const fileName = `${coupleName(row).replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase()}-qr.png`;
+
+  /* Fetch as a blob so the browser saves a file instead of opening the image in a new tab. */
+  const download = async () => {
+    setBusy(true);
+    try {
+      const blob = await (await fetch(api(720))).blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      window.open(api(720), "_blank", "noopener");
+    }
+    setBusy(false);
+  };
+
   return (
     <Modal title="QR code" subtitle={coupleName(row)} width={360} onClose={onClose}>
       <div className="dx-qr">
-        {src ? (
-          <img src={src} alt={`QR code for ${coupleName(row)}`} width="220" height="220" />
-        ) : (
-          <div className="dx-qr-ph">{failed ? "Couldn't create the QR code." : <i className="sk" />}</div>
-        )}
+        <div className="dx-qr-ph">
+          {failed ? (
+            "Couldn't load the QR code. Check your connection."
+          ) : (
+            <>
+              {!loaded && <i className="sk" />}
+              <img
+                src={api(240)} alt={`QR code for ${coupleName(row)}`} width="220" height="220"
+                style={loaded ? undefined : { display: "none" }}
+                onLoad={() => setLoaded(true)} onError={() => setFailed(true)}
+              />
+            </>
+          )}
+        </div>
         <code>{link}</code>
         <div className="dx-qr-actions">
           <button type="button" className="act-btn wide" onClick={() => onCopy(row)}><Link2 size={14} /> Copy link</button>
-          {src ? (
-            <a className="act-btn wide solid" href={src} download={fileName}><Download size={14} /> Download PNG</a>
-          ) : (
-            <button type="button" className="act-btn wide solid" disabled><Download size={14} /> Download PNG</button>
-          )}
+          <button type="button" className="act-btn wide solid" disabled={!loaded || busy} onClick={download}>
+            <Download size={14} /> Download PNG
+          </button>
         </div>
       </div>
     </Modal>
@@ -1540,6 +1561,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
         .dx-qr { padding: 22px 20px 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
         .dx-qr img { border: 1px solid var(--gray-border); border-radius: 16px; background: #fff; }
         .dx-qr-ph { width: 220px; height: 220px; display: grid; place-items: center; text-align: center; font-size: 12px; color: var(--gray); }
+        .dx-qr-ph img { display: block; }
         .dx-qr-ph .sk { width: 100%; height: 100%; border-radius: 16px; }
         .dx-qr code { max-width: 100%; padding: 8px 12px; border-radius: 10px; background: var(--gray-light); font-size: 12px; color: var(--gray-dark); overflow-wrap: anywhere; text-align: center; }
         .dx-qr-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
