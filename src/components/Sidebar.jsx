@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 
@@ -218,19 +218,49 @@ function MenuIcon({ type, active = false }) {
 export default function Sidebar({
   collapsed,
   setCollapsed,
+  panelOpen: rightPanelOpen = false, // renamed: "panelOpen" is already the toggle icon import
 }) {
 
   const [siteOpen, setSiteOpen] = useState(false);
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isExpanded = !collapsed;
+  /* While a right-side panel (preview / requests) is open the sidebar stays a
+     slim rail and the full menu opens as an overlay on top of the page.
+     The user's saved collapsed/expanded preference is never touched. */
+  const [overlayOpen, setOverlayOpen] = useState(false);
+
+  const overlayMode = rightPanelOpen;
+
+  const isExpanded = overlayMode ? overlayOpen : !collapsed;
+
+  /* narrow = the page content / navbar use the 90px rail layout */
+  const narrowLayout = overlayMode || collapsed;
+
+  useEffect(() => {
+    if (!overlayMode) setOverlayOpen(false);
+  }, [overlayMode]);
+
+  useEffect(() => {
+    if (!overlayOpen) return;
+    const onKey = (e) => e.key === "Escape" && setOverlayOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [overlayOpen]);
+
+  const closeOverlay = () => {
+    if (overlayMode) setOverlayOpen(false);
+  };
 
   /* =======================================================
      DESKTOP TOGGLE
   ======================================================= */
 
   const handleToggle = () => {
+    if (overlayMode) {
+      setOverlayOpen((o) => !o);
+      return;
+    }
     setCollapsed(!collapsed);
   };
 
@@ -240,9 +270,10 @@ export default function Sidebar({
 
   const handleCustomizeClick = () => {
 
-    if (collapsed) {
+    if (!isExpanded) {
 
-      setCollapsed(false);
+      if (overlayMode) setOverlayOpen(true);
+      else setCollapsed(false);
 
       setTimeout(() => {
         setSiteOpen(true);
@@ -289,9 +320,9 @@ export default function Sidebar({
 
         <div
           className={`top-navbar-inner ${
-            isExpanded
-              ? "navbar-expanded"
-              : "navbar-collapsed"
+            narrowLayout
+              ? "navbar-collapsed"
+              : "navbar-expanded"
           }`}
         >
 
@@ -323,12 +354,20 @@ export default function Sidebar({
           DESKTOP SIDEBAR
       =================================================== */}
 
+      {overlayMode && overlayOpen && (
+        <div
+          className="d-scrim"
+          onClick={() => setOverlayOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       <aside
         className={`d-sidebar ${
           isExpanded
             ? "expanded"
             : "collapsed"
-        }`}
+        }${overlayMode && overlayOpen ? " as-overlay" : ""}`}
       >
 
         {/* =================================================
@@ -342,6 +381,7 @@ export default function Sidebar({
             <NavLink
               to="/"
               className="brand-logo"
+              onClick={closeOverlay}
             >
 
               <img
@@ -409,6 +449,7 @@ export default function Sidebar({
                 key={item.path}
                 to={item.path}
                 end={item.path === "/"}
+                onClick={closeOverlay}
                 className={({ isActive }) =>
                   `nav-item ${
                     isActive
@@ -498,6 +539,7 @@ export default function Sidebar({
                   <NavLink
                     key={item.path}
                     to={item.path}
+                    onClick={closeOverlay}
                     className={({ isActive }) =>
                       `nav-submenu-item ${
                         isActive
@@ -1346,6 +1388,47 @@ export default function Sidebar({
 
           color:
             var(--text-color);
+
+        }
+
+
+        /* =================================================
+           OVERLAY MODE (a right-side panel is open)
+           Full menu floats over the page; the page keeps
+           its 90px rail layout underneath.
+        ================================================= */
+
+        .d-scrim {
+
+          position: absolute;
+
+          inset: 0;
+
+          background:
+            rgba(23, 19, 38, 0.38);
+
+          z-index: 1900;
+
+          animation:
+            d-scrim-in 0.2s ease;
+
+        }
+
+
+        .d-sidebar.as-overlay {
+
+          box-shadow:
+            8px 0 40px
+            rgba(0, 0, 0, 0.22);
+
+        }
+
+
+        @keyframes d-scrim-in {
+
+          from { opacity: 0; }
+
+          to { opacity: 1; }
 
         }
 
@@ -2302,9 +2385,10 @@ export default function Sidebar({
 
         @media (max-width: 768px) {
 
-          .d-sidebar {
+          .d-sidebar,
+          .d-scrim {
 
-            display: none;
+            display: none !important;
 
           }
 
