@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Package, Ticket, Palette, Image as ImageIcon, LayoutGrid,
-  PanelTop, Layers, ChevronRight, ChevronLeft, ExternalLink, Search, Bell, Plus,
+  PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, Search, Bell, Plus,
 } from "lucide-react";
 
 import logo from "../assets/logo.png";
@@ -10,7 +10,7 @@ import logoSmall from "../assets/logo-small.png";
 
 /* =========================================================
    NAV DATA  (icons are lucide: one set, follows currentColor,
-   so hover / active / dark theme need no extra image files)
+   so hover / active states need no extra image files)
 ========================================================= */
 
 const menuItems = [
@@ -233,6 +233,7 @@ export default function Sidebar({
                 <span className="navbar-user-name">Harsha Vardhan</span>
                 <span className="navbar-user-role">Administrator</span>
               </span>
+              <ChevronDown className="navbar-user-chevron" size={16} strokeWidth={2} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -314,6 +315,7 @@ export default function Sidebar({
             <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer">
               <MenuIcon Icon={ExternalLink} size={18} />
               <span className="nav-label">View live site</span>
+              <span className="live-dot" aria-label="Store is live" title="Store is live" />
               <span className="collapsed-tooltip">View live site</span>
             </a>
           </div>
@@ -464,7 +466,9 @@ export default function Sidebar({
           top: 0; left: 0; right: 0;
           height: var(--header-height-desktop);
           background: var(--header-bg);
-          border-bottom: 1px solid var(--border-subtle);
+          /* lighter than the sidebar's edge so the sidebar reads as the dominant plane */
+          border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
           z-index: 1500;
         }
 
@@ -481,10 +485,10 @@ export default function Sidebar({
         .navbar-expanded { margin-left: var(--sidebar-width); }
         .navbar-collapsed { margin-left: var(--sidebar-collapsed-width); }
 
-        .breadcrumb { display: flex; align-items: center; gap: 9px; min-width: 0; font-size: 14px; white-space: nowrap; }
+        .breadcrumb { display: flex; align-items: center; gap: 9px; min-width: 0; font-size: 13px; white-space: nowrap; }
         .breadcrumb-muted { color: var(--gray); }
         .breadcrumb-divider { color: var(--gray-border); }
-        .breadcrumb-current { color: var(--text-color); font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+        .breadcrumb-current { color: var(--text-color); font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
 
         .navbar-right { display: flex; align-items: center; gap: 8px; }
 
@@ -515,6 +519,7 @@ export default function Sidebar({
           color: var(--white, #fff);
           font-size: 14px; font-weight: 600;
           text-decoration: none;
+          box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 28%, transparent);
           transition: filter .15s, transform .15s;
         }
         .nav-cta:hover { filter: brightness(1.1); }
@@ -533,6 +538,12 @@ export default function Sidebar({
           position: absolute; top: 9px; right: 10px;
           width: 7px; height: 7px; border-radius: 50%;
           background: #fb4778; border: 1.5px solid var(--white);
+          animation: dot-pulse 2.4s ease-out infinite;
+        }
+        @keyframes dot-pulse {
+          0%   { box-shadow: 0 0 0 0 rgba(251, 71, 120, .5); }
+          70%  { box-shadow: 0 0 0 7px rgba(251, 71, 120, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(251, 71, 120, 0); }
         }
 
         .navbar-divider { width: 1px; height: 28px; background: var(--border-subtle); margin: 0 6px; }
@@ -555,6 +566,8 @@ export default function Sidebar({
         .navbar-user-info { display: flex; flex-direction: column; gap: 2px; line-height: 1.1; }
         .navbar-user-name { font-size: 13px; font-weight: 700; }
         .navbar-user-role { font-size: 11px; color: var(--text-sub, var(--gray)); }
+        .navbar-user-chevron { color: var(--icon-color); flex-shrink: 0; transition: transform .2s ease; }
+        .navbar-user[aria-expanded="true"] .navbar-user-chevron { transform: rotate(180deg); }
 
         /* ---------- SIDEBAR ---------- */
 
@@ -592,8 +605,11 @@ export default function Sidebar({
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; z-index: 5;
           box-shadow: 0 2px 8px rgba(17, 12, 41, .12);
-          transition: background .15s, color .15s, border-color .15s;
+          opacity: 0;
+          transition: opacity .2s, background .15s, color .15s, border-color .15s;
         }
+        .d-sidebar:hover .sidebar-edge-toggle,
+        .sidebar-edge-toggle:focus-visible { opacity: 1; }
         .sidebar-edge-toggle:hover { background: var(--brand-primary); border-color: var(--brand-primary); color: var(--white, #fff); }
 
         .d-scrim { position: absolute; inset: 0; background: rgba(23, 19, 38, .38); z-index: 1900; animation: d-scrim-in .2s ease; }
@@ -606,10 +622,11 @@ export default function Sidebar({
           overflow-y: auto; overflow-x: visible;
         }
 
-        /* Group labels: sentence case, become a hairline when collapsed */
+        /* Group labels: small caps-style, become a hairline when collapsed */
         .nav-section-label {
-          padding: 16px 14px 6px;
-          font-size: 12px; font-weight: 500;
+          padding: 18px 14px 6px;
+          font-size: 11px; font-weight: 600;
+          letter-spacing: .06em; text-transform: uppercase;
           color: var(--gray); white-space: nowrap;
         }
         nav > .nav-section-label:first-child { padding-top: 8px; }
@@ -630,14 +647,14 @@ export default function Sidebar({
           background: transparent;
           gap: 14px; cursor: pointer;
           color: var(--text-color); text-decoration: none;
-          font-size: 15px; font-weight: 600; text-align: left;
+          font-size: 15px; font-weight: 500; text-align: left;
           white-space: nowrap; user-select: none;
           transition: background .2s, color .2s;
         }
         .nav-item:hover { background: var(--hover-bg); }
-        .nav-item.active { background: var(--active-bg); color: var(--brand-primary); }
+        .nav-item.active { background: var(--active-bg); color: var(--brand-primary); font-weight: 600; }
 
-        /* Active indicator: constant font-weight, so labels never shift */
+        /* Active indicator bar */
         .nav-item.active::before {
           content: ""; position: absolute; left: -16px; top: 12px; bottom: 12px;
           width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
@@ -726,13 +743,20 @@ export default function Sidebar({
           position: relative;
           display: flex; align-items: center; gap: 12px;
           height: 46px; padding: 0 14px;
-          border: 1px solid var(--border-subtle); border-radius: 12px;
+          border: 1px solid transparent; border-radius: 12px;
           color: var(--text-color); text-decoration: none;
           font-size: 14px; font-weight: 600; white-space: nowrap;
           transition: background .15s, color .15s, border-color .15s;
         }
         .live-site:hover { background: var(--hover-bg); color: var(--brand-primary); border-color: transparent; }
         .d-sidebar.collapsed .live-site { justify-content: center; padding: 0; }
+
+        .live-dot {
+          margin-left: auto; width: 8px; height: 8px; border-radius: 50%;
+          background: #22c55e; flex-shrink: 0;
+          box-shadow: 0 0 0 3px rgba(34, 197, 94, .18);
+        }
+        .d-sidebar.collapsed .live-dot { display: none; }
 
         /* ---------- ACCOUNT (mobile drawer) ---------- */
 
@@ -836,6 +860,7 @@ export default function Sidebar({
           .d-sidebar, .top-navbar-inner, .nav-submenu, .nav-chevron, .m-drawer, .m-overlay, .d-scrim {
             transition: none !important; animation: none !important;
           }
+          .notification-dot { animation: none !important; }
         }
       `}</style>
     </>
