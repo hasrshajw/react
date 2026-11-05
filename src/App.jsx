@@ -1,20 +1,40 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
+import { BrowserRouter, Routes, Route, NavLink, useNavigate } from "react-router-dom";
 import {
-  Bell, Sparkles, User, Users, CreditCard, ShieldCheck, Activity,
+  Bell, Sparkles, AlertTriangle, ArrowRight, User, Users, CreditCard, ShieldCheck, Activity,
   Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
 } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";
 import Create from "./pages/Create";
-import logoSmall from "./assets/logo-small.png";
+import schedyMark from "./assets/schedy-mark.svg";
+
+/* =========================================================
+   SUBSCRIPTION (placeholder: replace with your billing data)
+   status: "trial" | "active" | "past_due"
+   ========================================================= */
+const PLAN = { name: "Pro", status: "trial", trialDaysLeft: 12 };
+
+function getPlanBanner(plan) {
+  if (plan.status === "past_due") {
+    return { tone: "warn", text: "Your last payment didn't go through", cta: "Update billing", to: "/billing" };
+  }
+  if (plan.status === "trial") {
+    const n = plan.trialDaysLeft ?? 0;
+    return { tone: "info", text: `${n} day${n === 1 ? "" : "s"} left in your ${plan.name} trial`, cta: "Upgrade", to: "/billing" };
+  }
+  return { tone: "info", text: `You're on the ${plan.name} plan`, cta: "Manage plan", to: "/billing" };
+}
 
 /* =========================================================
    PROFILE MENU (opens from the navbar profile button)
    ========================================================= */
-function ProfileMenu({ onClose }) {
+function ProfileMenu({ onClose, plan }) {
+  const navigate = useNavigate();
+  const planLabel = plan.status === "trial" ? `${plan.name} trial` : plan.name;
+
   useEffect(() => {
     const down = (e) => {
       if (!e.target.closest(".pm") && !e.target.closest("[data-pm-trigger]")) onClose();
@@ -28,8 +48,11 @@ function ProfileMenu({ onClose }) {
     };
   }, [onClose]);
 
-  const Item = ({ icon: Icon, label, value, external }) => (
-    <button type="button" className="pm-item" role="menuitem" onClick={onClose}>
+  const Item = ({ icon: Icon, label, value, external, to }) => (
+    <button
+      type="button" className="pm-item" role="menuitem"
+      onClick={() => { if (to) navigate(to); onClose(); }}
+    >
       <Icon size={20} strokeWidth={1.8} />
       <span>{label}</span>
       {value && <em className="pm-val">{value}</em>}
@@ -40,13 +63,16 @@ function ProfileMenu({ onClose }) {
   return createPortal(
     <div className="pm" role="menu" aria-label="Profile menu">
       <div className="pm-head">
-        <b>Harsha Vardhan</b>
+        <div className="pm-head-row">
+          <b>Harsha Vardhan</b>
+          <em className="pm-badge">{planLabel}</em>
+        </div>
         <span>schedy.in@gmail.com</span>
       </div>
       <i className="pm-sep" />
       <Item icon={User} label="Account information" />
       <Item icon={Users} label="Account sharing" />
-      <Item icon={CreditCard} label="Billing" />
+      <Item icon={CreditCard} label="Billing" to="/billing" />
       <i className="pm-sep" />
       <Item icon={ShieldCheck} label="Security" />
       <Item icon={Activity} label="Account activity" />
@@ -75,6 +101,7 @@ function ComingSoon({ title }) {
 const PLACEHOLDER_ROUTES = [
   ["/inventory", "Inventory"],
   ["/coupons", "Manage Coupons"],
+  ["/billing", "Billing"],
   ["/customize/hero-section", "Hero section"],
   ["/customize/sections", "Sections"],
   ["/customize/popup", "Popup"],
@@ -86,28 +113,31 @@ function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [hoverExpanded, setHoverExpanded] = useState(false);
+  const banner = getPlanBanner(PLAN);
 
   return (
     <BrowserRouter>
       <div className="workspace-shell">
-        {/* Slim announcement strip. Always visible. Profile and notifications live in the white navbar. */}
+        {/* Schedy's own strip: vendor branding + subscription state. Always visible. */}
         <header className="workspace-promo">
           <div className="promo-brand">
             <span className="promo-mark" aria-hidden="true">
-              <img src={logoSmall} alt="" />
+              <img src={schedyMark} alt="" />
             </span>
             <span className="promo-name">Schedy Admin</span>
           </div>
 
-          <NavLink to="/" className="promo-center">
-            <Sparkles size={15} />
-            <span className="promo-long">You're viewing a demo workspace</span>
-            <strong>Take a 2-min tour</strong>
+          <NavLink to={banner.to} className={`promo-center${banner.tone === "warn" ? " warn" : ""}`}>
+            {banner.tone === "warn" ? <AlertTriangle size={15} /> : <Sparkles size={15} />}
+            <span className="promo-long">{banner.text}</span>
+            <strong>{banner.cta}</strong>
+            <ArrowRight size={14} />
           </NavLink>
 
-          <div className="promo-right">
+          <nav className="promo-right" aria-label="Help">
             <a className="promo-link" href="#">Docs</a>
-          </div>
+            <a className="promo-link" href="#">Support</a>
+          </nav>
         </header>
 
         <div className="workspace-body">
@@ -143,7 +173,7 @@ function App() {
       </div>
 
       {profileOpen && (
-        <ProfileMenu onClose={() => setProfileOpen(false)} />
+        <ProfileMenu onClose={() => setProfileOpen(false)} plan={PLAN} />
       )}
 
       <style>{`
@@ -155,7 +185,7 @@ function App() {
 
         body {
           font-family: "DM Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          background: #110C29;
+          background: #101011;
           color: var(--text-color, #202027);
           overflow: hidden;
         }
@@ -170,7 +200,7 @@ function App() {
           flex-direction: column;
           padding: 0 8px 8px;
           overflow: hidden;
-          background: #110C29;
+          background: #101011;
         }
 
         /* ---------- slim gradient strip: 44px, one message ---------- */
@@ -186,20 +216,10 @@ function App() {
           align-items: center;
           color: #fff;
           font-size: 13px;
-          /* soft violet glow on the right, ends exactly on the shell colour (#110C29) so there is no seam */
-          background:
-            radial-gradient(48% 170% at 82% 0%, rgba(139, 92, 246, .5), transparent 72%),
-            radial-gradient(36% 140% at 8% 0%, rgba(71, 30, 167, .35), transparent 70%),
-            linear-gradient(#150F33, #110C29);
-          background-size: 140% 100%, 140% 100%, 100% 100%;
-          animation: promo-drift 12s ease-in-out infinite alternate;
+          /* dark edges, violet centre: #101011 -> #471ea7 -> #101011 */
+          background: linear-gradient(90deg, #101011 0%, #471ea7 50%, #101011 100%);
           border-bottom: 1px solid rgba(255, 255, 255, .07);
         }
-        @keyframes promo-drift {
-          from { background-position: 0% 0, 0% 0, 0 0; }
-          to   { background-position: 30% 0, 12% 0, 0 0; }
-        }
-        @media (prefers-reduced-motion: reduce) { .workspace-promo { animation: none; } }
 
         .promo-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
         .promo-mark {
@@ -210,22 +230,23 @@ function App() {
           box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
         }
         .promo-mark img { width: 18px; height: 18px; object-fit: contain; display: block; }
-        .promo-name { color: rgba(255, 255, 255, .78); font-weight: 600; white-space: nowrap; }
+        .promo-name { color: rgba(255, 255, 255, .8); font-weight: 600; white-space: nowrap; }
 
         .promo-center {
           display: flex; align-items: center; gap: 8px;
           padding: 7px 16px;
-          border: 1px solid rgba(255, 255, 255, .16);
+          border: 1px solid rgba(255, 255, 255, .2);
           border-radius: 999px;
-          background: rgba(255, 255, 255, .06);
+          background: rgba(255, 255, 255, .08);
           color: #fff; text-decoration: none; white-space: nowrap;
           transition: background .15s, border-color .15s;
         }
-        .promo-center:hover { background: rgba(255, 255, 255, .13); border-color: rgba(255, 255, 255, .28); }
+        .promo-center:hover { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .34); }
         .promo-center svg { color: #d9c6ff; flex-shrink: 0; }
-        .promo-center strong { color: #e7d9ff; font-weight: 600; }
+        .promo-center strong { color: #fff; font-weight: 700; }
+        .promo-center.warn svg:first-child { color: #fbbf24; }
 
-        .promo-right { justify-self: end; display: flex; align-items: center; }
+        .promo-right { justify-self: end; display: flex; align-items: center; gap: 2px; }
         .promo-link {
           padding: 6px 12px; border-radius: 999px;
           color: rgba(255, 255, 255, .72); text-decoration: none; font-weight: 600;
@@ -257,6 +278,12 @@ function App() {
         .pm-head { padding: 16px 22px 12px; display: flex; flex-direction: column; gap: 3px; }
         .pm-head b { font-size: 16px; font-weight: 700; }
         .pm-head span { font-size: 13px; color: #6d7081; overflow-wrap: anywhere; }
+        .pm-head-row { display: flex; align-items: center; gap: 8px; }
+        .pm-badge {
+          font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+          color: var(--primary, #6d3fe0);
+          background: color-mix(in srgb, var(--primary, #6d3fe0) 12%, #fff);
+        }
         .pm-sep { display: block; height: 1px; margin: 6px 16px; background: #e7e8ee; }
         .pm-item {
           width: calc(100% - 16px); height: 44px; margin: 0 8px; padding: 0 14px;
