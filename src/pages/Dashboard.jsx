@@ -4,8 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   FilePlus2, RefreshCw, CalendarDays, ArrowUpRight, Users, Inbox, Eye, Pencil, Link2, Check,
   Plus, Search, Smartphone, MoreHorizontal, Trash2, X, MessageCircle, QrCode, Globe, EyeOff,
-  TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ChevronDown, Phone, Mail, PhoneCall, Clock, Ban,
-  Moon, Sun, Download, Copy, AlertTriangle, RotateCcw, Archive,
+  ChevronLeft, ChevronRight, ChevronDown, Phone, Mail, PhoneCall, Clock, Ban,
+  Download, Copy, AlertTriangle, RotateCcw, Archive,
 } from "lucide-react";
 import * as demo from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
@@ -15,15 +15,10 @@ import { compile } from "../lib/compileInvitation";
    ========================================================= */
 /* Guest activity per range. Replace with real analytics. */
 const ACTIVITY = {
-  "7": { label: "7 days", views: 312, rsvps: 18, shares: 41, trend: 8.4, spark: [32, 41, 38, 52, 47, 60, 42] },
-  "30": { label: "30 days", views: 1284, rsvps: 86, shares: 203, trend: 12.1, spark: [140, 168, 150, 210, 185, 230, 201] },
-  all: { label: "All time", views: 5420, rsvps: 342, shares: 812, trend: null, spark: [600, 720, 810, 905, 1010, 1120, 1255] },
+  "7": { label: "7 days", views: 312, rsvps: 18, shares: 41 },
+  "30": { label: "30 days", views: 1284, rsvps: 86, shares: 203 },
+  all: { label: "All time", views: 5420, rsvps: 342, shares: 812 },
 };
-/* Sparklines / deltas for the other two cards (demo values). */
-const INV_SPARK = [3, 4, 4, 6, 5, 7, 8];
-const INV_DELTA = 14.3;
-const ENQ_SPARK = [1, 2, 1, 3, 2, 4, 3];
-const ENQ_DELTA = 9.1;
 
 const H = 3600000;
 const DAY = 24 * H;
@@ -52,7 +47,6 @@ const INITIAL_ENQUIRIES = [
 const LS_PUB = "schedy_published";
 const LS_DEL = "schedy_deleted_ids";
 const LS_NOTE = "schedy_hide_demo_note";
-const LS_THEME = "schedy_theme";
 const LS_AUTO = "schedy_auto_refresh";
 const readJSON = (k, f) => { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } };
 const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ } };
@@ -212,28 +206,6 @@ const useFocusTrap = (ref) => {
 /* =========================================================
    SMALL COMPONENTS
    ========================================================= */
-function Sparkline({ data }) {
-  const w = 72, h = 26, p = 2;
-  const max = Math.max(...data), min = Math.min(...data);
-  const step = (w - p * 2) / (data.length - 1);
-  const pts = data.map((v, i) => `${(p + i * step).toFixed(1)},${(h - p - ((v - min) / (max - min || 1)) * (h - p * 2)).toFixed(1)}`).join(" ");
-  return (
-    <svg className="spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Trend({ value, title }) {
-  if (value === null || value === undefined) return null;
-  return (
-    <em className={`trend ${value >= 0 ? "up" : "down"}`} title={title}>
-      {value >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-      {Math.abs(value)}%
-    </em>
-  );
-}
-
 function Modal({ title, subtitle, onClose, children, width = 440, headExtra }) {
   const ref = useRef(null);
   useEscape(true, onClose);
@@ -586,7 +558,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
   const [pub, setPub] = useState(() => readJSON(LS_PUB, {}));
   const [deleted, setDeleted] = useState(() => normDeleted(readJSON(LS_DEL, {})));
   const [hideNote, setHideNote] = useState(() => readJSON(LS_NOTE, false));
-  const [theme, setTheme] = useState(() => readJSON(LS_THEME, "light"));
   const [autoRefresh, setAutoRefresh] = useState(() => readJSON(LS_AUTO, false));
   const pubRef = useRef(pub);
   const delRef = useRef(deleted);
@@ -653,13 +624,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
     const t = setInterval(() => load(true), 60000);
     return () => clearInterval(t);
   }, [autoRefresh]);
-
-  /* theme (dark mode) */
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    writeJSON(LS_THEME, theme);
-  }, [theme]);
-  useEffect(() => () => document.documentElement.removeAttribute("data-theme"), []);
 
   useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
 
@@ -940,7 +904,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
       {/* ---------- page header ---------- */}
       <div className="page-head">
         <div>
-          <div className="eyebrow">SCHEDY · DEMO WORKSPACE</div>
           <h1>Dashboard</h1>
           <p>Manage and preview invitations using sample templates.</p>
         </div>
@@ -951,12 +914,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
             onClick={() => { const v = !autoRefresh; setAutoRefresh(v); writeJSON(LS_AUTO, v); }}
           >
             Auto
-          </button>
-          <button
-            type="button" className="refresh theme-btn" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            title={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <button type="button" className="refresh" onClick={() => load()}><RefreshCw size={16} /> Refresh</button>
           <Link to="/create" className="create-btn" title="Create invitation (N)"><Plus size={16} /> Create invitation</Link>
@@ -981,7 +938,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
               <>
                 <div className="stat-line">
                   <strong>{fmt(visible.length)}</strong>
-                  <Trend value={INV_DELTA} title="vs previous 7 days" />
                 </div>
                 <div className="stat-sub">
                   <button type="button" onClick={() => applyFilter("published")}>{fmt(pubCount)} published</button>
@@ -991,7 +947,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
               </>
             )}
           </div>
-          <Sparkline data={INV_SPARK} />
         </div>
 
         <div className="stat-card blue">
@@ -1000,7 +955,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
             <span>Invitation views</span>
             <div className="stat-line">
               <strong>{fmt(activity.views)}</strong>
-              <Trend value={activity.trend} title={`vs previous ${activity.label}`} />
             </div>
             <div className="stat-sub plain">
               <span>{fmt(activity.rsvps)} RSVPs</span>
@@ -1013,7 +967,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
               <button key={k} type="button" aria-pressed={range === k} className={range === k ? "on" : ""} onClick={() => setRange(k)}>{l}</button>
             ))}
           </div>
-          <Sparkline data={activity.spark} />
         </div>
 
         <div className="stat-card green">
@@ -1025,7 +978,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
                 <span className={enqNew > 0 ? "pending" : "clear"}>{enqNew}</span>
                 <span className="total">/{enquiries.length}</span>
               </strong>
-              <Trend value={ENQ_DELTA} title="vs previous 7 days" />
             </div>
             <div className="stat-sub">
               <button type="button" onClick={() => showRequests("followup")}>{enqFollow} follow-up</button>
@@ -1034,7 +986,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
           <button type="button" className={`round-btn${reqOpen ? " on" : ""}`} aria-label="View site enquiries" aria-expanded={reqOpen} onClick={toggleRequests}>
             <ArrowUpRight size={16} />
           </button>
-          <Sparkline data={ENQ_SPARK} />
         </div>
       </div>
 
@@ -1280,17 +1231,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
 
       <style>{`
         :root { --dx-new-tint: #fffafb; --dx-surface: #f5f6fa; --dx-sk1: #eceef3; --dx-sk2: #f6f7fa; --dx-toast-bg: #1f2233; --dx-warn-text: #9a6700; --dx-info-text: #0b86a8; }
-        html[data-theme="dark"] {
-          color-scheme: dark;
-          --white: #1a1d2b; --dark: #eceef7; --gray: #9aa0b8; --gray-dark: #c4c8da; --gray-light: #262a3d; --gray-border: #2f3450;
-          --ghost-white: #20243a; --periwinkle: #4a4f78;
-          --primary: #8b6cf6; --primary-dark: #6f46e6; --primary-light: #2d2650; --primary-lightest: #241f44;
-          --success: #34d399; --success-light: #14352b; --success-dark: #5fd9a0;
-          --danger: #f87171; --danger-light: #3a1d27; --danger-dark: #ff8a93;
-          --warning-light: #3b2f12; --info-light: #12303a;
-          --dx-new-tint: #2a1f2c; --dx-surface: #151826; --dx-sk1: #262a3d; --dx-sk2: #2f3450; --dx-toast-bg: #2b2f45;
-          --dx-warn-text: #f5c451; --dx-info-text: #5cc8e6; --dx-tint-text: #c9bcff;
-        }
 
         .dashboard-page { max-width: 1400px; margin: auto; font-family: "DM Sans", Inter, sans-serif; color: var(--dark); }
         .dashboard-page * { box-sizing: border-box; }
@@ -1300,8 +1240,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
 
         /* ---------- header ---------- */
         .page-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 16px; }
-        .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--primary); }
-        .dashboard-page h1 { margin: 5px 0 3px; font-size: 26px; line-height: 1.15; font-weight: 700; color: var(--dark); }
+        .dashboard-page h1 { margin: 0 0 3px; font-size: 26px; line-height: 1.15; font-weight: 700; color: var(--dark); }
         .page-head p { margin: 0; color: var(--gray); font-size: 14px; }
         .head-actions { display: flex; align-items: center; gap: 10px; }
         .updated { font-size: 12px; color: var(--gray); white-space: nowrap; }
@@ -1310,16 +1249,15 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
         .refresh:hover { background: var(--gray-light); border-color: var(--periwinkle); }
         .refresh svg { transition: transform .35s ease; }
         .refresh:active svg { transform: rotate(180deg); }
-        .theme-btn { width: 40px; padding: 0; justify-content: center; }
         .auto-btn { height: 28px; padding: 0 11px; border: 1px solid var(--gray-border); border-radius: 999px; background: var(--white); color: var(--gray); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
         .auto-btn.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
         .create-btn { border: 0; background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(103, 61, 230, .25); }
         .create-btn:hover { background: var(--primary-dark); }
 
-        .demo-note { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; margin-bottom: 16px; border-radius: 14px; background: var(--primary-light); color: var(--dx-tint-text, var(--primary-dark)); font-size: 13px; font-weight: 500; line-height: 1.4; }
+        .demo-note { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; margin-bottom: 16px; border-radius: 14px; background: var(--primary-light); color: var(--primary-dark); font-size: 13px; font-weight: 500; line-height: 1.4; }
         .demo-text { flex: 1; }
         .demo-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 4px rgba(103, 61, 230, .16); }
-        .note-x { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--dx-tint-text, var(--primary-dark)); cursor: pointer; }
+        .note-x { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--primary-dark); cursor: pointer; }
         .note-x:hover { background: rgba(103, 61, 230, .14); }
 
         /* ---------- KPI row ---------- */
@@ -1337,15 +1275,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
         .stat-sub i { font-style: normal; }
         .stat-sub button { padding: 0; border: 0; background: none; color: var(--gray); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
         .stat-sub button:hover { color: var(--primary); text-decoration: underline; }
-
-        .spark { position: absolute; right: 16px; bottom: 14px; color: var(--primary); }
-        .stat-card.blue .spark { color: var(--dx-info-text); }
-        .stat-card.green .spark { color: var(--success-dark); }
-        .narrow .stat-card:not(.blue) .spark { display: none; }
-
-        .trend { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 12px; font-style: normal; font-weight: 700; }
-        .trend.up { background: var(--success-light); color: var(--success-dark); }
-        .trend.down { background: var(--danger-light); color: var(--danger-dark); }
 
         .seg { position: absolute; top: 12px; right: 12px; display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--gray-light); }
         .seg button { height: 24px; padding: 0 9px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
@@ -1596,7 +1525,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
         @media (max-width: 700px) {
           .page-head { align-items: flex-start; flex-direction: column; }
           .head-actions { width: 100%; flex-wrap: wrap; }
-          .head-actions > .refresh:not(.theme-btn), .head-actions > .create-btn { flex: 1; justify-content: center; }
+          .head-actions > .refresh, .head-actions > .create-btn { flex: 1; justify-content: center; }
           .updated { display: none; }
           .dashboard-grid { grid-template-columns: 1fr; }
           .recent-head { padding: 12px 16px; }
