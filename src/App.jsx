@@ -131,7 +131,9 @@ function App() {
             {banner.tone === "warn" ? <AlertTriangle size={15} /> : <Sparkles size={15} />}
             <span className="promo-long">{banner.text}</span>
             <strong>{banner.cta}</strong>
-            <ArrowRight size={14} />
+            <span className="promo-arrow" aria-hidden="true">
+              <ArrowRight size={14} strokeWidth={2.2} />
+            </span>
           </NavLink>
 
           <nav className="promo-right" aria-label="Help">
@@ -241,15 +243,22 @@ function App() {
 
         .promo-center {
           display: flex; align-items: center; gap: 8px;
-          padding: 7px 16px;
+          padding: 4px 4px 4px 16px;
           border: 1px solid rgba(255, 255, 255, .2);
           border-radius: 999px;
-          background: rgba(255, 255, 255, .08);
+          background: #1C0C42;
           color: #fff; text-decoration: none; white-space: nowrap;
           transition: background .15s, border-color .15s;
         }
-        .promo-center:hover { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .34); }
+        .promo-center:hover { background: #26125a; border-color: rgba(255, 255, 255, .34); }
         .promo-center svg { color: #d9c6ff; flex-shrink: 0; }
+        .promo-arrow {
+          width: 24px; height: 24px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          border-radius: 50%;
+          background: var(--primary, #6d3fe0);
+        }
+        .promo-center .promo-arrow svg { color: #fff; }
         .promo-center strong { color: #fff; font-weight: 700; }
         .promo-center.warn svg:first-child { color: #fbbf24; }
 
