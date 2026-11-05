@@ -267,7 +267,7 @@ function App() {
           position: relative;
           height: 100%;
           min-height: 0;
-          padding: 102px 32px 32px;
+          padding: 96px 32px 32px;
           overflow-y: auto;
           background: #f5f5f7;
           transition: margin-left .3s cubic-bezier(.4,0,.2,1);
