@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Search, Bell, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 /* =========================================================
    LOGO ASSETS
@@ -312,56 +312,6 @@ export default function Sidebar({
               </span>
 
             </div>
-
-          </div>
-
-          <div className="navbar-right">
-
-            <button
-              className="navbar-icon-button"
-              aria-label="Search"
-            >
-              <Search
-                size={19}
-                strokeWidth={2}
-              />
-            </button>
-
-            <button
-              className="navbar-icon-button notification-button"
-              aria-label="Notifications"
-            >
-
-              <Bell
-                size={19}
-                strokeWidth={2}
-              />
-
-              <span className="notification-dot" />
-
-            </button>
-
-            <div className="navbar-divider" />
-
-            <button className="navbar-user">
-
-              <div className="navbar-avatar">
-                H
-              </div>
-
-              <div className="navbar-user-info">
-
-                <span className="navbar-user-name">
-                  Harsha
-                </span>
-
-                <span className="navbar-user-role">
-                  Administrator
-                </span>
-
-              </div>
-
-            </button>
 
           </div>
 
