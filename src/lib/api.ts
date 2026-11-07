@@ -9,6 +9,7 @@
    Set it to 0 when the real database is connected.
    ========================================================================== */
 import { demoCategories, demoTemplates, getDemoInvitations } from "./demoData";
+import { DEMO_USER, getSession } from "./auth";
 import { INITIAL_ENQUIRIES, LS_DEL, LS_PUB } from "./dashboardData";
 import type { DeletedMap, Enquiry, InvitationRow, PublishMap } from "../types/dashboard";
 import type { Category, Template } from "../types/invitation";
@@ -32,7 +33,8 @@ export interface Account { user: AccountUser; plan: Plan }
 
 export const fetchAccount = () =>
   respond<Account>(() => ({
-    user: { name: "Harsha Vardhan", email: "schedy.in@gmail.com", role: "Administrator" },
+    /* the signed-in user (see lib/auth.ts); the demo user when there is no session */
+    user: { name: getSession()?.name ?? DEMO_USER.name, email: getSession()?.email ?? DEMO_USER.email, role: "Administrator" },
     plan: { name: "Pro", status: "trial", trialDaysLeft: 12 },
   }), 350);
 

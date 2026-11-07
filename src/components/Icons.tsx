@@ -12,7 +12,7 @@ import {
   Mailbox01Icon, Message01Icon, MoreHorizontalIcon, Notification01Icon, PaintBoardIcon,
   PencilEdit01Icon, QrCodeIcon, Refresh01Icon, RotateLeft01Icon, Search01Icon, Shield01Icon,
   SmartPhone01Icon, SparklesIcon, Tick02Icon, Ticket01Icon, UserIcon, UserMultipleIcon,
-  ViewIcon, ViewOffIcon, Share08Icon,
+  ViewIcon, ViewOffIcon, Share08Icon, GoogleIcon, LockPasswordIcon,
 } from "@hugeicons/core-free-icons";
 
 /* Thin wrappers around Hugeicons so every icon stays a drop-in React component
@@ -70,6 +70,8 @@ export const Link2 = make(Link02Icon, "Link2");
 export const Loader2 = make(Loading03Icon, "Loader2");
 export const LogOut = make(Logout01Icon, "LogOut");
 export const Mail = make(Mail01Icon, "Mail");
+export const Lock = make(LockPasswordIcon, "Lock");
+export const Google = make(GoogleIcon, "Google");
 export const MailPlus = make(MailAdd01Icon, "MailPlus");
 export const Mails = make(Mailbox01Icon, "Mails");
 export const MapPin = make(Location01Icon, "MapPin");

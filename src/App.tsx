@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { createBrowserRouter, RouterProvider, Routes, Route, NavLink, useNavigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Routes, Route, NavLink, Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, Sparkles, AlertTriangle, ArrowRight, User, Users, CreditCard, ShieldCheck, Activity,
   Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
@@ -11,8 +11,10 @@ import Dashboard from "./pages/Dashboard";
 import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
 import Templates from "./pages/Templates";
+import Login from "./pages/Login";
 import schedyMark from "./assets/schedy-mark.svg";
 import { AccountProvider, useAccount } from "./hooks/useAccount";
+import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { Loading, SkText } from "./components/Skeleton";
 import type { Plan } from "./lib/api";
 
@@ -70,12 +72,12 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  const Item = ({ icon: Icon, label, value, external, to }: {
-    icon: IconComponent; label: string; value?: ReactNode; external?: boolean; to?: string;
+  const Item = ({ icon: Icon, label, value, external, to, onSelect }: {
+    icon: IconComponent; label: string; value?: ReactNode; external?: boolean; to?: string; onSelect?: () => void;
   }) => (
     <button
       type="button" className="pm-item" role="menuitem"
-      onClick={() => { if (to) navigate(to); onClose(); }}
+      onClick={() => { if (to) navigate(to); onSelect?.(); onClose(); }}
     >
       <Icon size={20} strokeWidth={1.8} />
       <span>{label}</span>
@@ -109,7 +111,8 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
       <Item icon={BookOpen} label="Help center" external />
       <Item icon={LifeBuoy} label="Contact support" />
       <i className="pm-sep" />
-      <Item icon={LogOut} label="Log out" />
+      {/* The login page clears the session when it opens, so a "Save your changes?" prompt can still cancel the logout. */}
+      <Item icon={LogOut} label="Log out" onSelect={() => navigate("/login", { replace: true, state: { loggedOut: true } })} />
     </div>,
     document.body
   );
@@ -467,13 +470,29 @@ function Shell() {
 /* A data router (instead of <BrowserRouter>) is required for useBlocker, which the
    Create page uses to ask "save your changes?" before the user leaves the page.
    One splat route renders the whole shell, so the <Routes> inside keep working. */
-const router = createBrowserRouter([{ path: "*", element: <Shell /> }]);
+/* Everything except /login needs a session. The account is loaded inside the guard, so it is fetched
+   fresh after each sign-in and dropped on logout. */
+function Protected() {
+  const { session } = useAuth();
+  const loc = useLocation();
+  if (!session) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
+  return (
+    <AccountProvider>
+      <Shell />
+    </AccountProvider>
+  );
+}
+
+const router = createBrowserRouter([
+  { path: "/login", element: <Login /> },
+  { path: "*", element: <Protected /> },
+]);
 
 function App() {
   return (
-    <AccountProvider>
+    <AuthProvider>
       <RouterProvider router={router} />
-    </AccountProvider>
+    </AuthProvider>
   );
 }
 
