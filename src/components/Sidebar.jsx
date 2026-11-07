@@ -30,7 +30,6 @@ const submenuItems = [
 /* Breadcrumb comes from the route instead of being hardcoded */
 const CRUMBS = {
   "/": ["Dashboard", "Overview"],
-  "/analytics": ["Dashboard", "Analytics"],
   "/create": ["Manage", "Create invitation"],
   "/invitations": ["Manage", "All invitations"],
   "/coupons": ["Manage", "Coupons"],

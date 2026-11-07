@@ -8,7 +8,7 @@ import {
 } from "../components/Icons";
 import * as demo from "../lib/demoData";
 import {
-  DASHBOARD_CSS, Modal, PreviewPanel, TrashModal, useEscape,
+  DASHBOARD_CSS, Modal, PreviewPanel, TrashModal, Select, SORT_OPTIONS, useEscape,
   LS_PUB, LS_DEL, PAGE_SIZE, TRASH_DAYS, DAY,
   readJSON, writeJSON, normDeleted, fmt, fmtDate, fmtDateTime, timeAgo,
   initials, coupleName, getViews, getInviteLink, dayDiff, whenText, isPast, copyText,
@@ -572,14 +572,6 @@ export default function Invitations({ onPanelChange }) {
             </button>
           ))}
         </div>
-        <label className="search">
-          <Search size={15} />
-          <input
-            ref={searchRef} type="search" placeholder="Search couple" value={q} aria-label="Search invitations"
-            onChange={(e) => setParams({ q: e.target.value })}
-          />
-          {!q && <kbd className="kbd" aria-hidden="true">/</kbd>}
-        </label>
       </div>
 
       {/* ---------- list ---------- */}
@@ -598,17 +590,21 @@ export default function Invitations({ onPanelChange }) {
             {hasFilters && <button type="button" className="link-btn" onClick={clearFilters}>Clear filters</button>}
           </div>
           <div className="recent-tools">
+            <label className="search">
+              <Search size={15} />
+              <input
+                ref={searchRef} type="search" placeholder="Search couple" value={q} aria-label="Search invitations"
+                onChange={(e) => setParams({ q: e.target.value })}
+              />
+              {!q && <kbd className="kbd" aria-hidden="true">/</kbd>}
+            </label>
             {templates.length > 1 && (
-              <select className="sort" value={tpl} aria-label="Filter by template" onChange={(e) => setParams({ template: e.target.value })}>
-                <option value="all">All templates</option>
-                {templates.map((t) => <option key={t.key} value={t.key}>{t.name} ({t.n})</option>)}
-              </select>
+              <Select
+                label="Filter by template" value={tpl} onChange={(v) => setParams({ template: v })}
+                options={[{ value: "all", label: "All templates" }, ...templates.map((t) => ({ value: t.key, label: `${t.name} (${t.n})` }))]}
+              />
             )}
-            <select className="sort" value={sort} aria-label="Sort invitations" onChange={(e) => setParams({ sort: e.target.value })}>
-              <option value="recent">Recently added</option>
-              <option value="date">Event date</option>
-              <option value="views">Most viewed</option>
-            </select>
+            <Select label="Sort invitations" value={sort} options={SORT_OPTIONS} onChange={(v) => setParams({ sort: v })} />
             {trashed.length > 0 && (
               <button type="button" className="act-btn" onClick={(e) => { opener.current = e.currentTarget; setTrash(true); }}>
                 <Trash2 size={14} /> Trash <em className="cnt">{trashed.length}</em>
@@ -824,7 +820,6 @@ export default function Invitations({ onPanelChange }) {
         .inv-tab:hover { color: var(--dark); }
         .inv-tab.on { border-bottom-color: var(--primary); color: var(--primary); }
         .inv-tab.on em { background: var(--primary-light); color: var(--primary); }
-        .inv-tabbar .search { margin-bottom: 8px; }
 
         /* ---------- list panel ---------- */
         .inv-panel { margin-top: 14px; overflow: hidden; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; }
@@ -881,8 +876,6 @@ export default function Invitations({ onPanelChange }) {
         .share-actions { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 
         @media (max-width: 768px) {
-          .inv-tabbar { align-items: stretch; }
-          .inv-tabbar .search { width: 100%; }
           .inv-toolbar, .bulk-bar { padding: 10px 16px; }
           .share-qr { flex-direction: column; align-items: stretch; }
           .share-qr-img { align-self: center; }

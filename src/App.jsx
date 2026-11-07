@@ -7,7 +7,6 @@ import {
 } from "./components/Icons";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
-import Analytics from "./pages/Analytics";
 import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
 import schedyMark from "./assets/schedy-mark.svg";
@@ -185,7 +184,6 @@ function Shell() {
             >
               <Routes>
                 <Route path="/" element={<Dashboard onPanelChange={setPanelOpen} />} />
-                <Route path="/analytics" element={<Analytics />} />
                 <Route path="/invitations" element={<Invitations onPanelChange={setPanelOpen} />} />
                 <Route path="/create" element={<Create onPanelChange={setPanelOpen} />} />
                 {PLACEHOLDER_ROUTES.map(([path, title]) => (

@@ -12,7 +12,7 @@ npm run dev
 ## Demo behavior
 
 - The invitation builder includes two built-in sample templates.
-- Invitations are saved to browser `localStorage` and appear on Dashboard and Analytics.
+- Invitations are saved to browser `localStorage` and appear on the Dashboard and All Invitations pages.
 - Editing an invitation uses its local demo record.
 - Data stays in the current browser profile. Clearing browser site data removes the demo records.
 - Telugu fields can be entered manually; automatic online transliteration has been disabled for this offline demo.

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -536,10 +536,114 @@ function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSetStatus
 
       <div className="dx-drawer-foot">
         <button type="button" className="act-btn" onClick={() => exportCsv(enquiries, notify)}><Download size={14} /> Export CSV</button>
-        <Link to="/analytics" className="head-link">Open analytics <ArrowUpRight size={14} /></Link>
       </div>
     </aside>,
     slot
+  );
+}
+
+/* Custom dropdown (replaces the browser's native <select>). Shared with the Invitations page.
+   options: [{ value, label }]. Keyboard: Arrow keys, Home/End, Enter/Space, Esc, type-ahead by first letter. */
+export const SORT_OPTIONS = [
+  { value: "recent", label: "Recently added" },
+  { value: "date", label: "Event date" },
+  { value: "views", label: "Most viewed" },
+];
+
+export function Select({ value, onChange, options, label }) {
+  const uid = useId();
+  const btnRef = useRef(null);
+  const listRef = useRef(null);
+  const [pos, setPos] = useState(null);
+  const [active, setActive] = useState(-1);
+  const open = !!pos;
+  const index = Math.max(0, options.findIndex((o) => o.value === value));
+  const cur = options[index];
+
+  const close = (refocus = false) => {
+    setPos(null);
+    if (refocus) setTimeout(() => btnRef.current?.focus(), 0);
+  };
+  const openList = () => {
+    const r = btnRef.current.getBoundingClientRect();
+    const up = window.innerHeight - r.bottom < Math.min(280, options.length * 40 + 20);
+    setPos({ left: r.left, minWidth: r.width, top: up ? undefined : r.bottom + 6, bottom: up ? window.innerHeight - r.top + 6 : undefined });
+    setActive(index);
+  };
+  const choose = (i) => {
+    const o = options[i];
+    if (o) onChange(o.value);
+    close(true);
+  };
+
+  useEscape(open, () => close(true));
+  useEffect(() => {
+    if (!open) return undefined;
+    listRef.current?.focus();
+    const down = (e) => { if (!e.target.closest(".dd-list") && !e.target.closest(".dd-btn")) close(); };
+    const scroll = (e) => { if (!e.target.closest?.(".dd-list")) close(); };
+    document.addEventListener("mousedown", down);
+    window.addEventListener("scroll", scroll, true);
+    const resize = () => close();
+    window.addEventListener("resize", resize);
+    return () => {
+      document.removeEventListener("mousedown", down);
+      window.removeEventListener("scroll", scroll, true);
+      window.removeEventListener("resize", resize);
+    };
+  }, [open]);
+  useEffect(() => {
+    if (open) document.getElementById(`${uid}-${active}`)?.scrollIntoView?.({ block: "nearest" });
+  }, [active, open]);
+
+  const onBtnKey = (e) => {
+    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) { e.preventDefault(); open ? close() : openList(); }
+  };
+  const onListKey = (e) => {
+    const n = options.length;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % n); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + n) % n); }
+    else if (e.key === "Home") { e.preventDefault(); setActive(0); }
+    else if (e.key === "End") { e.preventDefault(); setActive(n - 1); }
+    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(active); }
+    else if (e.key === "Tab") { close(); }
+    else if (e.key.length === 1) {
+      const k = e.key.toLowerCase();
+      const from = options.findIndex((o, i) => i > active && o.label.toLowerCase().startsWith(k));
+      const any = from > -1 ? from : options.findIndex((o) => o.label.toLowerCase().startsWith(k));
+      if (any > -1) setActive(any);
+    }
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef} type="button" className={`dd-btn${open ? " open" : ""}`} aria-haspopup="listbox" aria-expanded={open}
+        aria-label={`${label}: ${cur?.label ?? ""}`} onClick={() => (open ? close() : openList())} onKeyDown={onBtnKey}
+      >
+        <span>{cur?.label}</span>
+        <ChevronDown size={15} />
+      </button>
+      {open && createPortal(
+        <div
+          ref={listRef} className="dd-list" role="listbox" tabIndex={-1} aria-label={label}
+          aria-activedescendant={`${uid}-${active}`} onKeyDown={onListKey}
+          style={{ left: pos.left, minWidth: pos.minWidth, top: pos.top, bottom: pos.bottom }}
+        >
+          {options.map((o, i) => (
+            <div
+              key={o.value} id={`${uid}-${i}`} role="option" aria-selected={o.value === value}
+              className={`dd-opt${i === active ? " active" : ""}${o.value === value ? " sel" : ""}`}
+              onMouseEnter={() => setActive(i)} onClick={() => choose(i)}
+            >
+              <span>{o.label}</span>
+              {o.value === value && <Check size={14} />}
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -623,9 +727,13 @@ export const DASHBOARD_CSS = `
         .search { height: 36px; width: 210px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray); transition: border-color .2s, box-shadow .2s; }
         .search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
         .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; color: var(--dark); }
+        .search input:focus, .search input:focus-visible, .dx-enq-search input:focus, .dx-enq-search input:focus-visible { outline: 0; box-shadow: none; }
         .kbd { min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; border: 1px solid var(--gray-border); border-radius: 6px; font: inherit; font-size: 11px; font-weight: 700; color: var(--gray); }
-        .sort { height: 36px; padding: 0 34px 0 12px; border: 1px solid var(--gray-border); border-radius: 12px; font: inherit; font-size: 13px; font-weight: 600; color: var(--gray-dark); cursor: pointer; outline: 0; appearance: none; -webkit-appearance: none; background-color: var(--white); background-repeat: no-repeat; background-position: right 11px center; background-size: 15px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236d7081' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
-        .sort:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
+        .dd-btn { height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+        .dd-btn svg { color: var(--gray); transition: transform .2s; }
+        .dd-btn:hover { border-color: var(--periwinkle); }
+        .dd-btn.open, .dd-btn:focus-visible { outline: 0; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
+        .dd-btn.open svg { transform: rotate(180deg); }
         .head-link { display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 13px; border-radius: 999px; background: var(--primary-lightest); color: var(--primary); font-size: 13px; font-weight: 700; text-decoration: none; transition: background .2s; }
         .head-link:hover { background: var(--primary-light); }
         .head-link.as-btn { border: 0; font-family: inherit; cursor: pointer; }
@@ -778,6 +886,11 @@ export const DASHBOARD_CSS = `
         .row-menu button:disabled { opacity: .45; cursor: not-allowed; }
         .row-menu button.danger { color: var(--danger-dark); }
         .row-menu button.danger:hover { background: var(--danger-light); }
+        .dd-list { position: fixed; z-index: 9500; max-height: 280px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); box-shadow: 0 16px 40px rgba(24, 28, 45, .18); outline: 0; font-family: "DM Sans", Inter, sans-serif; }
+        .dd-list, .dd-list * { box-sizing: border-box; }
+        .dd-opt { min-height: 36px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-radius: 10px; color: var(--gray-dark); font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+        .dd-opt.active { background: var(--gray-light); }
+        .dd-opt.sel { color: var(--primary); }
         .menu-sep { height: 1px; margin: 4px 6px; background: var(--gray-border); }
 
         /* ---------- modals / drawer ---------- */
@@ -1330,17 +1443,12 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
               />
               {!q && <kbd className="kbd" aria-hidden="true">/</kbd>}
             </label>
-            <select className="sort" value={sort} aria-label="Sort invitations" onChange={(e) => { setSort(e.target.value); setPage(1); }}>
-              <option value="recent">Recently added</option>
-              <option value="date">Event date</option>
-              <option value="views">Most viewed</option>
-            </select>
+            <Select label="Sort invitations" value={sort} options={SORT_OPTIONS} onChange={(v) => { setSort(v); setPage(1); }} />
             {trashed.length > 0 && (
               <button type="button" className="act-btn" onClick={(e) => { opener.current = e.currentTarget; setTrash(true); }}>
                 <Trash2 size={14} /> Trash <em className="cnt">{trashed.length}</em>
               </button>
             )}
-            <Link to="/analytics" className="head-link">View analytics <ArrowUpRight size={14} /></Link>
           </div>
         </div>
 
