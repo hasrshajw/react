@@ -896,7 +896,8 @@ export default function Create({ onPanelChange }) {
   .del:hover { color: var(--danger-dark); background: var(--danger-light); border-color: var(--danger-light); }
 
   /* ---------- live preview card ---------- */
-  .create-live-preview-panel { position: relative; height: 100%; width: 390px; min-width: 390px; max-width: 390px; flex: 0 0 390px; isolation: isolate; background: #ffffff; border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; }
+  /* Phone proportions: 390 x 844 screen area (+64px header). Never taller than that, even on tall monitors; on short screens it shrinks and the invitation scrolls inside. */
+  .create-live-preview-panel { position: relative; height: min(100%, 908px); align-self: flex-start; width: 390px; min-width: 390px; max-width: 390px; flex: 0 0 390px; isolation: isolate; background: #ffffff; border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; }
   .create-live-preview-head { height: 64px; flex: 0 0 64px; border-bottom: 1px solid var(--gray-border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--white); }
   .create-live-preview-head b { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--dark); }
   .create-live-preview-head b::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-light); }
