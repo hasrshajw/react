@@ -971,11 +971,20 @@ export default function Create({ onPanelChange }) {
   .sec-nav { position: sticky; top: var(--sec-top); z-index: 30; display: flex; align-items: center; gap: 10px; margin: 0 -12px 16px; padding: 7px 10px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 20px; box-shadow: 0 6px 18px rgba(54, 52, 77, .07); transition: box-shadow .25s ease, border-color .25s ease, background-color .25s ease; }
   /* once stuck: stronger edge + a page-colored strip above so scrolling cards never show in the gap */
   .sec-nav::before { content: ""; position: absolute; z-index: -1; left: -4px; right: -4px; top: -60px; height: 60px; background: #f5f5f7; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
-  .sec-nav.stuck { background: #f3efff; border-color: #cdbdff; box-shadow: 0 12px 30px rgba(80, 37, 209, .18), 0 2px 0 rgba(103, 61, 230, .08); }
-  .sec-nav.stuck .sec-pill { background: var(--white); box-shadow: 0 2px 8px rgba(103, 61, 230, .22); }
-  .sec-nav.stuck .chip-nav:hover { background: rgba(103, 61, 230, .08); }
-  .sec-nav.stuck .chip-nav.on .cn-ic { background: var(--primary-light); }
-  .sec-nav.stuck .sec-progress i { background: #ddd3ff; }
+  .sec-nav.stuck { background: #101011; border-color: #101011; box-shadow: none; }
+  .sec-nav.stuck .sec-pill { background: #fff; box-shadow: none; }
+  .sec-nav.stuck .chip-nav { color: #fff; }
+  .sec-nav.stuck .chip-nav:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+  .sec-nav.stuck .chip-nav .cn-ic { background: rgba(255, 255, 255, .14); color: #fff; }
+  .sec-nav.stuck .chip-nav.ok .cn-ic { background: var(--success-dark); color: #fff; }
+  .sec-nav.stuck .chip-nav.bad .cn-ic { background: var(--danger-dark); color: #fff; }
+  .sec-nav.stuck .chip-nav.on, .sec-nav.stuck .chip-nav.on:hover { color: #000; background: transparent; }
+  .sec-nav.stuck .chip-nav.on .cn-ic { background: #ececf0; color: #000; }
+  .sec-nav.stuck .chip-nav.on.ok .cn-ic { background: var(--success-dark); color: #fff; }
+  .sec-nav.stuck .chip-nav.on.bad .cn-ic { background: var(--danger-dark); color: #fff; }
+  .sec-nav.stuck .sec-progress { color: #fff; }
+  .sec-nav.stuck .sec-progress i { background: rgba(255, 255, 255, .22); }
+  .sec-nav.stuck .sec-progress b { background: #fff; }
   .sec-nav.stuck::before { opacity: 1; }
   .sec-chips { position: relative; display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .sec-pill { position: absolute; left: 0; top: 0; height: 36px; border-radius: 999px; background: var(--primary-light); pointer-events: none; z-index: 0; transition: transform .42s cubic-bezier(.22, 1, .36, 1), width .42s cubic-bezier(.22, 1, .36, 1); will-change: transform, width; }
