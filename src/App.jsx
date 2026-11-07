@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BrowserRouter, Routes, Route, NavLink, useNavigate } from "react-router-dom";
 import {
@@ -35,6 +35,26 @@ function ProfileMenu({ onClose, plan }) {
   const navigate = useNavigate();
   const planLabel = plan.status === "trial" ? `${plan.name} trial` : plan.name;
 
+  /* Anchor the menu under the profile button. The preview panel shrinks the app
+     (and moves the button left), so a fixed window offset would drift away. */
+  const [pos, setPos] = useState(null);
+  useLayoutEffect(() => {
+    const place = () => {
+      const t = document.querySelector(".navbar-user[data-pm-trigger]");
+      if (!t || window.innerWidth <= 768) { setPos(null); return; } // mobile uses the CSS position
+      const r = t.getBoundingClientRect();
+      if (!r.width) { setPos(null); return; }
+      const top = Math.round(r.bottom + 11);
+      setPos({ top, right: Math.max(8, Math.round(window.innerWidth - r.right - 12)) });
+    };
+    place();
+    window.addEventListener("resize", place);
+    const app = document.querySelector(".app");
+    const ro = typeof ResizeObserver !== "undefined" && app ? new ResizeObserver(place) : null;
+    ro?.observe(app);
+    return () => { window.removeEventListener("resize", place); ro?.disconnect(); };
+  }, []);
+
   useEffect(() => {
     const down = (e) => {
       if (!e.target.closest(".pm") && !e.target.closest("[data-pm-trigger]")) onClose();
@@ -61,7 +81,10 @@ function ProfileMenu({ onClose, plan }) {
   );
 
   return createPortal(
-    <div className="pm" role="menu" aria-label="Profile menu">
+    <div
+      className="pm" role="menu" aria-label="Profile menu"
+      style={pos ? { top: pos.top, right: pos.right, maxHeight: `calc(100vh - ${pos.top}px - 12px)` } : undefined}
+    >
       <div className="pm-head">
         <div className="pm-head-row">
           <b>Harsha Vardhan</b>

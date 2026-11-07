@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, MailPlus, Mails, Ticket, Palette, Image as ImageIcon, LayoutGrid,
@@ -135,6 +135,41 @@ export default function Sidebar({
   };
   useEffect(() => () => clearTimeout(peekTimer.current), []);
   useEffect(() => { if (baseExpanded) setPeek(false); }, [baseExpanded]);
+
+  /* ---- Sliding active pill -----------------------------------------
+     Same look as the static highlight (soft brand bg + left accent bar),
+     but it slides to whichever link is active. */
+  const navRef = useRef(null);
+  const [pill, setPill] = useState(null);
+  const [pillAnim, setPillAnim] = useState(false);
+
+  const measurePill = useCallback(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const el =
+      nav.querySelector(".nav-submenu.open .nav-submenu-item.active") ||
+      nav.querySelector(".nav-item.active:not(.dropdown-open)");
+    if (!el || !el.offsetWidth) { setPill(null); return; }
+    let x = 0, y = 0, n = el;
+    while (n && n !== nav) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    const sub = el.classList.contains("nav-submenu-item");
+    const next = { x, y, w: el.offsetWidth, h: el.offsetHeight, sub };
+    setPill((p) => (p && p.x === next.x && p.y === next.y && p.w === next.w && p.h === next.h && p.sub === next.sub ? p : next));
+  }, []);
+
+  useLayoutEffect(() => { measurePill(); }, [pathname, isExpanded, submenuOpen, measurePill]);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measurePill);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [measurePill]);
+  useEffect(() => {
+    if (!pill || pillAnim) return;
+    const id = requestAnimationFrame(() => setPillAnim(true)); // no slide-in on first paint
+    return () => cancelAnimationFrame(id);
+  }, [pill, pillAnim]);
 
   useEffect(() => {
     onHoverExpand?.(!overlayMode && peeking);
@@ -291,7 +326,7 @@ export default function Sidebar({
         </button>
 
         <div className="d-sidebar-inner">
-          <nav aria-label="Main" className="d-nav">
+          <nav aria-label="Main" className="d-nav" ref={navRef}>
             <div className="nav-section-label">Manage</div>
 
             {menuItems.map(({ name, path, Icon }, i) => (
@@ -326,6 +361,13 @@ export default function Sidebar({
             </button>
 
             {isExpanded && <Submenu id="site-submenu" open={submenuOpen} onNavigate={closeOverlay} />}
+
+            {/* Sliding active highlight (desktop only) */}
+            <span
+              className={`nav-pill${pill ? " show" : ""}${pillAnim ? " anim" : ""}${pill?.sub ? " sub" : ""}`}
+              style={pill ? { transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h } : undefined}
+              aria-hidden="true"
+            />
           </nav>
 
           {/* Footer: a useful action instead of a duplicate of the profile */}
@@ -337,10 +379,6 @@ export default function Sidebar({
               <span className="live-dot" aria-label="Store is live" title="Store is live" />
             </a>
             <div className="powered">Powered by Schedy</div>
-            <button type="button" className="side-avatar" data-pm-trigger aria-label="Profile" onClick={onProfileClick}>
-              <span>H</span>
-              <i aria-hidden="true" />
-            </button>
           </div>
         </div>
       </aside>
@@ -669,6 +707,25 @@ export default function Sidebar({
         }
         .d-sidebar.collapsed nav > .nav-section-label:first-child { height: 0; margin: 0; background: transparent; }
 
+        /* ---------- ACTIVE PILL ---------- */
+
+        .nav-pill {
+          position: absolute; top: 0; left: 0; z-index: 0;
+          pointer-events: none; opacity: 0;
+          border-radius: var(--radius-md); will-change: transform;
+          background: var(--active-bg);
+        }
+        .nav-pill.show { opacity: 1; }
+        .nav-pill.anim {
+          transition: transform .3s cubic-bezier(.2, 0, 0, 1), height .25s cubic-bezier(.2, 0, 0, 1), opacity .15s ease;
+        }
+        .nav-pill::before {
+          content: ""; position: absolute; left: -16px; top: 12px; bottom: 12px;
+          width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
+        }
+        .nav-pill.sub { border-radius: 8px; }
+        .nav-pill.sub::before { display: none; }
+
         /* ---------- NAV ITEMS ---------- */
 
         .nav-item {
@@ -696,6 +753,10 @@ export default function Sidebar({
           width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
         }
         .m-drawer .nav-item.active::before { left: -12px; }
+
+        /* desktop: the sliding pill carries the highlight and bar */
+        .d-sidebar .nav-item.active, .d-sidebar .nav-item.active:hover { background: transparent; }
+        .d-sidebar .nav-item.active::before { display: none; }
 
         /* Group open with an active child: let the child carry the highlight */
         .nav-item.active.dropdown-open { background: transparent; }
@@ -787,6 +848,7 @@ export default function Sidebar({
         .nav-submenu-item:hover { background: color-mix(in srgb, var(--dark) 4.5%, transparent); color: var(--text-color); transform: none; }
         .nav-submenu-item.active { color: var(--brand-primary); font-weight: 600; }
         .nav-submenu-item.active, .nav-submenu-item.active:hover { background: var(--active-bg); }
+        .d-sidebar .nav-submenu-item.active, .d-sidebar .nav-submenu-item.active:hover { background: transparent; }
 
         .nav-submenu.open .nav-submenu-item {
           animation: sub-in .45s var(--spring) backwards;
@@ -847,24 +909,6 @@ export default function Sidebar({
 
         .powered { margin-top: 12px; text-align: center; font-size: 11px; letter-spacing: .02em; color: var(--gray); }
         .d-sidebar.collapsed .powered { display: none; }
-
-        /* collapsed: profile avatar with an online dot */
-        .side-avatar {
-          display: none; position: relative;
-          width: 38px; height: 38px; margin: 14px auto 0; padding: 0;
-          border: 0; border-radius: 50%; cursor: pointer;
-          background: linear-gradient(135deg, var(--brand-primary), var(--primary-dark, var(--brand-primary)));
-          color: var(--white, #fff); font-size: 13px; font-weight: 700;
-          box-shadow: 0 0 0 2px var(--white), 0 0 0 3px color-mix(in srgb, var(--brand-primary) 30%, transparent);
-          transition: transform .3s var(--spring), box-shadow .2s;
-        }
-        .side-avatar:hover { transform: scale(1.08); }
-        .side-avatar:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
-        .side-avatar i {
-          position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px;
-          border-radius: 50%; background: #22c55e; border: 2px solid var(--white);
-        }
-        .d-sidebar.collapsed .side-avatar { display: block; animation: logo-in .4s var(--spring) backwards; }
 
         /* ---------- ACCOUNT (mobile drawer) ---------- */
 
@@ -965,8 +1009,8 @@ export default function Sidebar({
 
         @media (prefers-reduced-motion: reduce) {
           .d-sidebar, .top-navbar-inner, .nav-submenu, .nav-chevron, .m-drawer, .m-overlay, .d-scrim,
-          .nav-label, .nav-section-label, .menu-icon, .nav-item, .nav-submenu-item,
-          .nav-submenu-inner::before, .live-site, .live-arrow, .sidebar-edge-toggle, .side-avatar {
+          .nav-pill, .nav-label, .nav-section-label, .menu-icon, .nav-item, .nav-submenu-item,
+          .nav-submenu-inner::before, .live-site, .live-arrow, .sidebar-edge-toggle {
             transition: none !important; animation: none !important;
           }
           .nav-label, .nav-submenu-item, .brand-logo img, .mini-logo img { animation: none !important; }
