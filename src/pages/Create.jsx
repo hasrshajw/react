@@ -311,7 +311,7 @@ export default function Create({ onPanelChange }) {
   const [share, setShare] = useState(null);
   const [navCta, setNavCta] = useState(false);
   const [stuck, setStuck] = useState(false);
-  const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
+  const pillRef = useRef(null);
   const lockRef = useRef(0);
   const sentinelRef = useRef(null);
 
@@ -529,14 +529,34 @@ export default function Create({ onPanelChange }) {
   };
 
   /* ---------- sticky section nav ---------- */
+  const animRef = useRef(0);
   const scrollToSection = (id) => {
     const el = document.getElementById(`sec-${id}`);
-    if (!el) return;
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const root = sentinelRef.current?.closest(".main-content");
+    if (!el || !root) return;
     setActive(id);
-    /* ignore scroll-spy while the smooth scroll runs so the clicked tab stays selected */
-    lockRef.current = Date.now() + (reduce ? 80 : 900);
-    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    cancelAnimationFrame(animRef.current);
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const margin = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+    const max = root.scrollHeight - root.clientHeight;
+    const to = Math.max(0, Math.min(max, el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - margin));
+    const from = root.scrollTop;
+    const dist = to - from;
+    if (reduce || Math.abs(dist) < 2) { lockRef.current = Date.now() + 150; root.scrollTop = to; return; }
+    const dur = Math.min(650, 280 + Math.abs(dist) * 0.12);
+    const t0 = performance.now();
+    const stop = () => { cancelAnimationFrame(animRef.current); lockRef.current = 0; };
+    root.addEventListener("wheel", stop, { once: true, passive: true });
+    root.addEventListener("touchstart", stop, { once: true, passive: true });
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      lockRef.current = Date.now() + 150;
+      root.scrollTop = from + dist * e;
+      if (t < 1) animRef.current = requestAnimationFrame(step);
+      else { root.removeEventListener("wheel", stop); root.removeEventListener("touchstart", stop); }
+    };
+    animRef.current = requestAnimationFrame(step);
   };
 
   /* scroll-spy: the active tab is the last section whose top has passed just under the sticky nav */
@@ -546,8 +566,7 @@ export default function Create({ onPanelChange }) {
     let raf = 0;
     const update = () => {
       raf = 0;
-      const locked = Date.now() < lockRef.current;
-      if (locked) { raf = requestAnimationFrame(update); return; }
+      if (Date.now() < lockRef.current) return;
       const navBottom = (document.querySelector(".sec-nav")?.getBoundingClientRect().bottom || 0) + 24;
       let cur = SECTIONS[0].id;
       for (const sec of SECTIONS) {
@@ -569,7 +588,8 @@ export default function Create({ onPanelChange }) {
     if (!bar) return;
     const measure = () => {
       const chip = bar.querySelector(`[data-id="${active}"]`);
-      if (chip) setPill((p) => ({ left: chip.offsetLeft, width: chip.offsetWidth, ready: p.ready || true }));
+      const pl = pillRef.current;
+      if (chip && pl) { pl.style.width = `${chip.offsetWidth}px`; pl.style.transform = `translateX(${chip.offsetLeft}px)`; }
     };
     measure();
     window.addEventListener("resize", measure);
@@ -746,7 +766,7 @@ export default function Create({ onPanelChange }) {
         <div ref={sentinelRef} className="sec-sentinel" aria-hidden="true" />
         <nav className={`sec-nav${stuck ? " stuck" : ""}`} aria-label="Form sections">
           <div className="sec-chips" ref={navRef}>
-            <span className="sec-pill" aria-hidden="true" style={{ width: pill.width, transform: `translateX(${pill.left}px)` }} />
+            <span className="sec-pill" ref={pillRef} aria-hidden="true" />
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               const bad = !!issues[s.id];
