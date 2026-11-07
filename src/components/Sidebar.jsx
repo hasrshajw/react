@@ -547,6 +547,7 @@ export default function Sidebar({
           justify-content: space-between;
           gap: 16px;
           padding: 0 24px;
+          transition: margin-left .45s var(--spring);
         }
 
         .navbar-expanded { margin-left: var(--sidebar-width); }
@@ -637,6 +638,7 @@ export default function Sidebar({
           display: flex; flex-direction: column;
           position: fixed; top: 0; left: 0;
           z-index: 2000;
+          transition: width .45s var(--spring);
         }
         .d-sidebar.collapsed { width: var(--sidebar-collapsed-width); }
 
@@ -691,6 +693,7 @@ export default function Sidebar({
           font-size: 11px; font-weight: 600;
           letter-spacing: .06em; text-transform: uppercase;
           color: var(--gray); white-space: nowrap; overflow: hidden;
+          transition: height .45s var(--spring), padding .45s var(--spring), margin .45s var(--spring), background .3s, color .2s;
         }
         nav > .nav-section-label:first-child { height: 30px; padding-top: 8px; }
         .d-sidebar.collapsed .nav-section-label {
@@ -775,12 +778,14 @@ export default function Sidebar({
            collapse smoothly (no pop) when it closes */
         .nav-label {
           margin-left: 14px; max-width: 190px; overflow: hidden;
+          transition: max-width .45s var(--spring), margin .45s var(--spring), opacity .2s ease .1s;
         }
         .d-sidebar.expanded .nav-label {
         }
         
         .d-sidebar.collapsed .nav-label {
           max-width: 0; margin-left: 0; opacity: 0;
+          transition: max-width .45s var(--spring), margin .45s var(--spring), opacity .12s ease;
         }
 
         .nav-chevron { margin-left: auto; flex-shrink: 0; color: var(--icon-color);}

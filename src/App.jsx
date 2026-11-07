@@ -368,6 +368,7 @@ function App() {
           padding: 96px 32px 32px;
           overflow-y: auto;
           background: #f5f5f7;
+          transition: margin-left .45s var(--spring, cubic-bezier(.22, 1, .36, 1));
         }
 
         .main-content.content-expanded { margin-left: 260px; }
