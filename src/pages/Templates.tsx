@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, LayoutTemplate, Plus, Search, X } from "../components/Icons";
-import { demoCategories, demoTemplates } from "../lib/demoData";
+import { SkText, Loading } from "../components/Skeleton";
+import { useTemplates } from "../hooks/useTemplates";
+import { useRowHint } from "../hooks/useRowHint";
 import { compile } from "../lib/compileInvitation";
 import { SAMPLE } from "../features/create/constants";
 import type { TemplateRecord } from "../types/dashboard";
@@ -45,24 +47,39 @@ function PreviewModal({ t, onClose }: { t: TemplateRecord; onClose: () => void }
   );
 }
 
+/** Same box as a real template card; only the server data (thumbnail, name, category, button) is ghosted. */
+function TemplateCardSkeleton() {
+  return (
+    <article className="tpl-card is-skeleton" aria-hidden="true">
+      <div className="tpl-thumb sk-bg" />
+      <div className="tpl-info">
+        <b><SkText w={13} /></b>
+        <span className="tpl-badge sk-bg">Wedding</span>
+      </div>
+      <span className="tpl-use sk-bg">Use template</span>
+    </article>
+  );
+}
+
 export default function Templates() {
+  const { templates, categories, loading } = useTemplates();
+  const skeletonCards = useRowHint("templates", templates.length, loading, 8, 4);
   const [cat, setCat] = useState("all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<TemplateRecord | null>(null);
 
-  const catName = (id: string | number) => demoCategories.find((c) => String(c.id) === String(id))?.name || "General";
-  const templates: TemplateRecord[] = demoTemplates;
-  const visible = templates.filter((t) =>
+  const catName = (id: string | number) => categories.find((c) => String(c.id) === String(id))?.name || "General";
+  const visible = (templates as TemplateRecord[]).filter((t) =>
     (cat === "all" || String(t.category_id) === String(cat)) &&
     nameOf(t).toLowerCase().includes(q.trim().toLowerCase())
   );
 
   return (
-    <div className="tpl-page">
+    <div className="tpl-page" aria-busy={loading}>
       <header className="tpl-head">
         <div>
           <h1>Manage Templates</h1>
-          <p>{demoTemplates.length} template{demoTemplates.length === 1 ? "" : "s"} available for invitations</p>
+          <p>{loading ? <SkText w={34} /> : `${templates.length} template${templates.length === 1 ? "" : "s"} available for invitations`}</p>
         </div>
         <label className="tpl-search">
           <Search size={16} />
@@ -71,15 +88,19 @@ export default function Templates() {
       </header>
 
       <div className="tpl-cats" role="group" aria-label="Template category">
-        {[{ id: "all", name: "All" }, ...demoCategories].map((c) => (
+        {[{ id: "all", name: "All" }, ...categories].map((c) => (
           <button key={c.id} type="button" aria-pressed={cat === c.id} className={`tpl-cat${cat === c.id ? " on" : ""}`} onClick={() => setCat(c.id)}>
             {c.name}
           </button>
         ))}
+        {/* categories come from the server: ghost chips until they arrive ("All" is always there) */}
+        {loading && [0, 1].map((i) => <span key={i} className="tpl-cat sk-bg" aria-hidden="true">Wedding</span>)}
       </div>
 
       <div className="tpl-grid">
-        {visible.map((t) => (
+        {loading && <Loading label="Loading templates" />}
+        {loading && Array.from({ length: skeletonCards }, (_, i) => <TemplateCardSkeleton key={i} />)}
+        {!loading && visible.map((t) => (
           <article key={t.id} className="tpl-card">
             <button type="button" className="tpl-thumb" onClick={() => setOpen(t)} aria-label={`Preview ${nameOf(t)}`}>
               <Thumb t={t} />
@@ -92,7 +113,7 @@ export default function Templates() {
             <Link className="tpl-use" to={`/create?template=${encodeURIComponent(t.id)}`}>Use template</Link>
           </article>
         ))}
-        {visible.length === 0 && <div className="tpl-empty">No templates match your search.</div>}
+        {!loading && visible.length === 0 && <div className="tpl-empty">No templates match your search.</div>}
       </div>
 
       {open && <PreviewModal t={open} onClose={() => setOpen(null)} />}
@@ -125,6 +146,8 @@ export default function Templates() {
         .tpl-use { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 40px; border-radius: 12px; background: var(--btn, #673de6); color: #fff; font-size: 13.5px; font-weight: 700; text-decoration: none; box-shadow: none; transition: background .2s; }
         .tpl-use:hover { background: var(--btn-hover, #471ea7); }
         .tpl-use.big { height: 46px; width: 100%; }
+        .tpl-card.is-skeleton { pointer-events: none; }
+        .tpl-card.is-skeleton:hover { transform: none; border-color: var(--gray-border, #dadce0); }
         .tpl-empty { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--gray, #6d7081); font-size: 14px; }
         .tpl-modal { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; padding: 16px; background: rgba(16, 16, 17, .6); }
         .tpl-modal-box { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 420px; max-height: 100%; padding: 16px; background: #fff; border-radius: 24px; }

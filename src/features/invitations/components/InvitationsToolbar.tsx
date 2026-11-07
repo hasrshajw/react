@@ -1,5 +1,6 @@
 import type { MouseEvent, RefObject } from "react";
 import { Search, Trash2 } from "../../../components/Icons";
+import { SkText } from "../../../components/Skeleton";
 import { fmt } from "../../../lib/dashboardData";
 import type { SortKey } from "../../../types/dashboard";
 import { SORT_OPTIONS, Select } from "../../dashboard/components/Select";
@@ -32,7 +33,7 @@ export function InvitationsToolbar(p: Props) {
             className={`inv-filter${p.when === key ? " on" : ""}`}
             onClick={() => p.onParams({ when: p.when === key ? "all" : key })}
           >
-            {label} <em>{p.loading ? "–" : fmt(p.counts[key])}</em>
+            {label} <em>{p.loading ? <SkText w={2} /> : fmt(p.counts[key])}</em>
           </button>
         ))}
         {p.hasFilters && <button type="button" className="link-btn" onClick={p.onClearFilters}>Clear filters</button>}

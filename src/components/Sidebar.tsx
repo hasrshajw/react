@@ -5,6 +5,8 @@ import {
   PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus,
 } from "./Icons";
 import type { IconComponent } from "./Icons";
+import { SkText } from "./Skeleton";
+import { useAccount } from "../hooks/useAccount";
 
 import logo from "../assets/logo.png";
 import logoSmall from "../assets/logo-small.png";
@@ -107,6 +109,8 @@ export default function Sidebar({
   liveSiteUrl = "/",
 }: SidebarProps) {
   const { pathname } = useLocation();
+  const { loading: accountLoading, user } = useAccount();
+  const initial = (user?.name?.trim()[0] ?? "A").toUpperCase();
   const customizeActive = pathname.startsWith("/customize");
 
   const [siteOpen, setSiteOpen] = useState(customizeActive);
@@ -302,10 +306,10 @@ export default function Sidebar({
               aria-expanded={profileOpen}
               onClick={onProfileClick}
             >
-              <span className="navbar-avatar">H</span>
+              <span className={`navbar-avatar${accountLoading ? " sk-bg" : ""}`} aria-hidden={accountLoading || undefined}>{initial}</span>
               <span className="navbar-user-info">
-                <span className="navbar-user-name">Harsha Vardhan</span>
-                <span className="navbar-user-role">Administrator</span>
+                <span className="navbar-user-name">{accountLoading ? <SkText w={13} /> : user?.name}</span>
+                <span className="navbar-user-role">{accountLoading ? <SkText w={11} /> : user?.role}</span>
               </span>
               <ChevronDown className="navbar-user-chevron" size={16} strokeWidth={2} aria-hidden="true" />
             </button>
@@ -490,10 +494,10 @@ export default function Sidebar({
                 onProfileClick?.();
               }}
             >
-              <span className="account-avatar">H</span>
+              <span className={`account-avatar${accountLoading ? " sk-bg" : ""}`} aria-hidden={accountLoading || undefined}>{initial}</span>
               <span className="account-text">
-                <span className="account-name">Harsha Vardhan</span>
-                <span className="account-email">Administrator</span>
+                <span className="account-name">{accountLoading ? <SkText w={13} /> : user?.name}</span>
+                <span className="account-email">{accountLoading ? <SkText w={11} /> : user?.role}</span>
               </span>
             </button>
           </div>

@@ -1,0 +1,70 @@
+/* ==========================================================================
+   Skeleton loading
+   Two ways to build a placeholder, both keep the real layout (no layout shift):
+   1. <SkText w={12} />   a text-height bar inside the REAL element, so it
+                          inherits the real font-size / line-height.
+   2. className="sk-bg"   turns a REAL element (avatar, chip, button, input)
+                          into a ghost: same size, content hidden, shimmer on.
+   ========================================================================== */
+:root {
+  --sk1: #eceef3;
+  --sk2: #f6f7fa;
+}
+
+/* colours for placeholders that sit on a dark surface (e.g. the plan banner) */
+.sk-on-dark { --sk1: rgba(255, 255, 255, .14); --sk2: rgba(255, 255, 255, .30); }
+
+.sk,
+.sk-bg {
+  background-image: linear-gradient(90deg, var(--sk1) 25%, var(--sk2) 37%, var(--sk1) 63%);
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.3s ease infinite;
+}
+
+/* standalone block: size it with width / height */
+.sk { display: block; border-radius: 8px; }
+
+/* text bar: lives inside a real text element and follows its font size */
+.sk-text {
+  display: inline-block;
+  vertical-align: middle;
+  width: var(--w, 8ch);
+  max-width: 100%;
+  height: .78em;
+  border-radius: 6px;
+}
+
+/* ghost: keep the element's own box, hide what is inside it */
+.sk-bg {
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, var(--sk1) 25%, var(--sk2) 37%, var(--sk1) 63%) !important;
+  color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  user-select: none;
+}
+.sk-bg *,
+.sk-bg::before,
+.sk-bg::after { color: transparent !important; background: transparent !important; border-color: transparent !important; }
+.sk-bg svg { visibility: hidden; }
+
+@keyframes sk-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk, .sk-bg { animation: none; background-image: none !important; background-color: var(--sk1) !important; }
+}
+
+/* announced to screen readers only */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* skeleton table rows are not interactive (no hover highlight) */
+.sk-row { pointer-events: none; }
+
+/* ghosted form controls */
+.sk-bg::placeholder { color: transparent !important; }
+.sk-bg::-webkit-datetime-edit,
+.sk-bg::-webkit-calendar-picker-indicator { opacity: 0; }

@@ -15,6 +15,12 @@ export interface CreateFormProps {
   templates: Template[];
   categoryId: string;
   onCategory: (id: string) => void;
+  /** The invitation being edited is still loading: field values are ghosted. */
+  loading: boolean;
+  /** Templates and categories are still loading. */
+  templatesLoading: boolean;
+  /** A template will be selected once data arrives (editing, or /create?template=…). */
+  expectTemplate: boolean;
   set: <K extends keyof InvitationData>(key: K, value: InvitationData[K]) => void;
   add: (field: ListField, make: () => EventItem | ContactItem) => void;
   patch: (field: ListField, id: string, patch: Partial<EventItem & ContactItem>) => void;
@@ -22,14 +28,14 @@ export interface CreateFormProps {
   focus: (field: string) => void;
   vis: (key: string) => string | undefined;
   touch: (key: string) => void;
-  tagFor: (id: SectionId) => { tone: string; text: string };
+  tagFor: (id: SectionId) => { tone: string; text: string; loading?: boolean };
   onSubmit: (e: React.FormEvent) => void;
   notify: (msg: string, tone?: "ok" | "error") => void;
 }
 
-export function CreateForm({ data, categories, templates, categoryId, onCategory, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify }: CreateFormProps) {
+export function CreateForm({ data, categories, templates, categoryId, onCategory, loading, templatesLoading, expectTemplate, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify }: CreateFormProps) {
   const slug = data.customId?.trim();
-  const fpx = (name: string, focusKey: string) => ({ name, onFocus: () => focus(focusKey), onBlur: () => touch(name), error: vis(name) });
+  const fpx = (name: string, focusKey: string) => ({ name, onFocus: () => focus(focusKey), onBlur: () => touch(name), error: vis(name), loading });
   const fp = (name: string) => fpx(name, name);
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
@@ -37,6 +43,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <TemplatePicker
           categories={categories} categoryId={categoryId} onCategory={onCategory} templates={templates}
           value={data.templateId} onSelect={(v) => set("templateId", v)} error={vis("templateId")}
+          loading={templatesLoading || (loading && expectTemplate)} expectSelected={expectTemplate}
         />
         <Field
           label="Custom Link ID" {...fp("customId")} value={data.customId} onChange={(v) => set("customId", v)}
@@ -60,7 +67,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <div className="sub">Mother's Details</div>
         <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="groomMotherEn" teField="groomMotherTe" data={data} set={set} fp={fp} />
         <Field label="Mother Phone" type="tel" inputMode="tel" {...fp("groomMotherPhone")} value={data.groomMotherPhone} onChange={(v) => set("groomMotherPhone", v)} />
-        <Contacts field="groomContacts" items={data.groomContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
+        <Contacts loading={loading} field="groomContacts" items={data.groomContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
       </Section>
 
       <Section id="bride" icon={Heart} title="Bride's Details" tag={tagFor("bride")}>
@@ -71,12 +78,12 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <div className="sub">Mother's Details</div>
         <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="brideMotherEn" teField="brideMotherTe" data={data} set={set} fp={fp} />
         <Field label="Mother Phone" type="tel" inputMode="tel" {...fp("brideMotherPhone")} value={data.brideMotherPhone} onChange={(v) => set("brideMotherPhone", v)} />
-        <Contacts field="brideContacts" items={data.brideContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
+        <Contacts loading={loading} field="brideContacts" items={data.brideContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
       </Section>
 
       <Section id="venue" icon={MapPin} title="Reception & Venue" tag={tagFor("venue")}>
         <label className="check">
-          <input type="checkbox" checked={data.receptionEnabled} onChange={(e) => set("receptionEnabled", e.target.checked)} /> Include reception
+          <input type="checkbox" disabled={loading} checked={data.receptionEnabled} onChange={(e) => set("receptionEnabled", e.target.checked)} /> Include reception
         </label>
         {data.receptionEnabled && (
           <div className="grid two">
@@ -91,18 +98,18 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
 
       <Section id="photos" icon={ImageIcon} title="Photos" tag={tagFor("photos")}>
         <PhotoPicker
-          label="Couple photo" value={data.couplePhoto} onChange={(v) => set("couplePhoto", v)}
+          loading={loading} label="Couple photo" value={data.couplePhoto} onChange={(v) => set("couplePhoto", v)}
           onError={(m) => notify(m, "error")} onFocus={() => focus("couplePhoto")} maxSide={1000}
           help="Shown in templates that have a photo spot. JPG, PNG or WebP."
         />
         <GalleryPicker
-          label="Gallery" value={data.gallery} onChange={(v) => set("gallery", v)}
+          loading={loading} label="Gallery" value={data.gallery} onChange={(v) => set("gallery", v)}
           onError={(m) => notify(m, "error")} onFocus={() => focus("gallery")}
         />
       </Section>
 
       <Section id="events" icon={CalendarPlus} title="Additional Events" tag={tagFor("events")}>
-        {data.events.map((ev, i) => (
+        {!loading && data.events.map((ev, i) => (
           <div className="repeat" key={ev.id}>
             <button type="button" className="del" aria-label="Remove event" onClick={() => remove("events", ev.id)}><Trash2 size={15} /></button>
             <div className="sub">Event {i + 1}</div>
@@ -119,7 +126,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
             <Field label="Google Maps Link" inputMode="url" {...fpx(`event-${ev.id}-maps`, `event-${i + 1}-venue-te`)} value={ev.maps} onChange={(v) => patch("events", ev.id, { maps: v })} />
           </div>
         ))}
-        {data.events.length < 2 ? (
+        {loading ? <span className="outline sk-bg" aria-hidden="true"><Plus size={15} /> Add event</span> : data.events.length < 2 ? (
           <button type="button" className="outline" onClick={() => add("events", newEvent)}><Plus size={15} /> Add event</button>
         ) : (
           <div className="hint">This template supports two additional event slots.</div>

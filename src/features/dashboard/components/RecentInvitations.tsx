@@ -6,12 +6,14 @@ import {
 import type { InvitationRow, SortKey, TableFilter, TrashItem } from "../../../types/dashboard";
 import { SORT_OPTIONS, Select } from "./Select";
 import { RowActions } from "./RowActions";
-import { ErrorState, NoInvitationsState, NoMatchState, TableSkeleton } from "./ListStates";
+import { ErrorState, InvitationsTableSkeleton, NoInvitationsState, NoMatchState } from "./ListStates";
 
 interface Props {
   tableRef: RefObject<HTMLDivElement | null>;
   searchRef: RefObject<HTMLInputElement | null>;
   loading: boolean;
+  /** Rows to draw while loading (see useRowHint). */
+  skeletonRows: number;
   error: boolean;
   visible: InvitationRow[];
   list: InvitationRow[];
@@ -53,7 +55,7 @@ export function RecentInvitations(p: Props) {
       <div className="recent-head">
         <div className="recent-title">
           <strong>Recent invitations</strong>
-          {!p.loading && visible.length > 0 && <em>{fmt(visible.length)}</em>}
+          {p.loading ? <em className="sk-bg" aria-hidden="true">00</em> : visible.length > 0 && <em>{fmt(visible.length)}</em>}
         </div>
         <div className="recent-tools">
           <label className="search">
@@ -86,16 +88,7 @@ export function RecentInvitations(p: Props) {
       {p.error ? (
         <ErrorState onRetry={p.onRetry} />
       ) : p.loading ? (
-        <TableSkeleton rows={4}>
-          {() => (
-            <>
-              <td><div className="cell-couple"><i className="sk sk-avatar" /><i className="sk sk-line" /></div></td>
-              <td><i className="sk sk-line short" /></td>
-              <td><i className="sk sk-line short" /></td>
-              <td><div className="row-actions"><i className="sk sk-btn" /><i className="sk sk-btn" /></div></td>
-            </>
-          )}
-        </TableSkeleton>
+        <InvitationsTableSkeleton rows={p.skeletonRows} />
       ) : visible.length === 0 ? (
         <NoInvitationsState />
       ) : list.length === 0 ? (

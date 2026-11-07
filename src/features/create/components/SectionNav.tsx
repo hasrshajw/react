@@ -13,11 +13,13 @@ interface Props {
   saveDisabled: boolean;
   saveLabel: string;
   headBtnRef: React.RefObject<HTMLButtonElement | null>;
+  /** Editing: the progress count is unknown until the invitation arrives. */
+  loading?: boolean;
 }
 
 /* Owns every piece of nav-only state (active tab, stuck, header-button visibility),
    so scrolling never re-renders the form or the live preview. */
-export const SectionNav = memo(function SectionNav({ sections, issues, done, doneCount, total, saving, saveDisabled, saveLabel, headBtnRef }: Props) {
+export const SectionNav = memo(function SectionNav({ sections, issues, done, doneCount, total, saving, saveDisabled, saveLabel, headBtnRef, loading = false }: Props) {
   const [active, setActive] = useState<string>(sections[0].id);
   const [stuck, setStuck] = useState(false);
   const [navCta, setNavCta] = useState(false);
@@ -119,7 +121,7 @@ export const SectionNav = memo(function SectionNav({ sections, issues, done, don
           })}
         </div>
         <div className="sec-progress" title={`${doneCount} of ${total} sections complete`}>
-          <span>{doneCount}/{total}</span>
+          <span className={loading ? "sk-bg" : undefined} aria-hidden={loading || undefined}>{doneCount}/{total}</span>
           <i><b style={{ width: `${pct}%` }} /></i>
         </div>
         <div className={`sec-cta${navCta ? " show" : ""}`}>

@@ -11,7 +11,8 @@ import { TrashModal } from "../features/dashboard/components/TrashModal";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
 import { RowMenu } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
-import { ErrorState, NoInvitationsState, NoMatchState, TableSkeleton } from "../features/dashboard/components/ListStates";
+import { ErrorState, InvitationsTableSkeleton, NoInvitationsState, NoMatchState } from "../features/dashboard/components/ListStates";
+import { useRowHint } from "../hooks/useRowHint";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
 import { useRowMenu } from "../features/dashboard/hooks/useRowMenu";
@@ -31,6 +32,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   const { toast, notify, dismiss } = useNotify();
   const store = useInvitationStore({ notify });
   const { rows, visible, trashed, isPub, loading } = store;
+  const skeletonRows = useRowHint("invitations", visible.length, loading, PAGE_SIZE, 5);
 
   const [page, setPage] = useState(1);
   const selection = useSelection();
@@ -197,11 +199,12 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   ];
 
   return (
-    <div className="dashboard-page inv-page">
+    <div className="dashboard-page inv-page" aria-busy={loading}>
       <PageHeader
         title="All invitations"
         subtitle="Every invitation you have created, in one place."
         lastUpdated={store.lastUpdated}
+        loading={loading && !store.lastUpdated}
         now={store.now}
         onRefresh={() => store.load()}
       />
@@ -215,7 +218,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
               className={`inv-tab${status === key ? " on" : ""}`}
               onClick={() => setParams({ status: key })}
             >
-              {label} <em>{loading ? "–" : fmt(n)}</em>
+              {label} {loading ? <em className="sk-bg" aria-hidden="true">00</em> : <em>{fmt(n)}</em>}
             </button>
           ))}
         </div>
@@ -241,13 +244,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
         {store.error ? (
           <ErrorState onRetry={() => store.load()} />
         ) : loading ? (
-          <TableSkeleton rows={5}>
-            {() => (
-              <td colSpan={5}>
-                <div className="cell-couple"><i className="sk sk-avatar" /><i className="sk sk-line" /></div>
-              </td>
-            )}
-          </TableSkeleton>
+          <InvitationsTableSkeleton rows={skeletonRows} detailed />
         ) : visible.length === 0 ? (
           <NoInvitationsState />
         ) : list.length === 0 ? (

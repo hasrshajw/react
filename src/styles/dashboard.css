@@ -1,4 +1,4 @@
-        :root { --dx-new-tint: #fffafb; --dx-surface: #f5f6fa; --dx-sk1: #eceef3; --dx-sk2: #f6f7fa; --dx-toast-bg: #1f2233; --dx-warn-text: #9a6700; --dx-info-text: #0b86a8; }
+        :root { --dx-new-tint: #fffafb; --dx-surface: #f5f6fa; --dx-toast-bg: #1f2233; --dx-warn-text: #9a6700; --dx-info-text: #0b86a8; }
 
         .dashboard-page { max-width: 1400px; margin: auto; font-family: "DM Sans", Inter, sans-serif; color: var(--dark); }
         .dashboard-page * { box-sizing: border-box; }
@@ -54,6 +54,7 @@
 
         .round-btn { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1px solid var(--gray-border); background: var(--white); color: var(--gray-dark); cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
         .round-btn.on, .round-btn:hover { background: var(--btn); border-color: var(--btn); color: #fff; }
+        .round-btn:disabled { opacity: .5; cursor: default; }
         .round-btn.on:hover { background: var(--btn-hover); border-color: var(--btn-hover); }
 
         /* ---------- needs attention ---------- */
@@ -141,14 +142,6 @@
         .empty-state a, .empty-btn { margin-top: 10px; height: 40px; padding: 0 18px; display: inline-flex; align-items: center; border: 0; border-radius: 14px; background: var(--btn); color: #fff; font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; box-shadow: none; transition: background .2s; }
         .empty-state a:hover, .empty-btn:hover { background: var(--btn-hover); }
 
-        /* skeleton */
-        .sk { display: block; border-radius: 8px; background: linear-gradient(90deg, var(--dx-sk1) 25%, var(--dx-sk2) 37%, var(--dx-sk1) 63%); background-size: 400% 100%; animation: dx-shimmer 1.3s ease infinite; }
-        .sk-num { width: 52px; height: 28px; }
-        .sk-avatar { width: 40px; height: 40px; border-radius: 50%; }
-        .sk-line { width: 160px; height: 12px; }
-        .sk-line.short { width: 96px; }
-        .sk-btn { width: 70px; height: 34px; border-radius: 12px; }
-        @keyframes dx-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 
         /* sliding pill filter (New / Follow-up / Cancelled / All) */
         .dx-seg { position: relative; display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); margin: 14px 12px 2px; padding: 4px; border-radius: 999px; background: var(--gray-light); }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { INITIAL_ENQUIRIES, isoDay } from "../../../lib/dashboardData";
+import { isoDay } from "../../../lib/dashboardData";
+import { fetchEnquiries } from "../../../lib/api";
 import type { Enquiry, EnquiryStatus, Notify } from "../../../types/dashboard";
 
 const STATUS_TOAST: Record<EnquiryStatus, string> = {
@@ -11,7 +12,18 @@ const STATUS_TOAST: Record<EnquiryStatus, string> = {
 
 /** Site enquiries: status changes (with undo), notes, follow-up dates and the unread count. */
 export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void) {
-  const [enquiries, setEnquiries] = useState<Enquiry[]>(INITIAL_ENQUIRIES);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let live = true;
+    fetchEnquiries().then(
+      (rows) => { if (live) { setEnquiries(rows); setLoading(false); } },
+      () => { if (live) setLoading(false); },
+    );
+    return () => { live = false; };
+  }, []);
+
   const enqNew = enquiries.filter((e) => e.status === "new").length;
   const enqFollow = enquiries.filter((e) => e.status === "followup").length;
 
@@ -48,5 +60,5 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
   }, [enqNew]);
   useEffect(() => { onCountChange?.(enqNew); }, [enqNew]);
 
-  return { enquiries, enqNew, enqFollow, setStatus, saveNote, setFollowDate };
+  return { enquiries, loading, enqNew, enqFollow, setStatus, saveNote, setFollowDate };
 }

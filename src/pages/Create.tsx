@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import { createPortal } from "react-dom";
 import { useBlocker, useSearchParams } from "react-router-dom";
 import { AlertCircle, Check, Eye, Loader2, Save } from "../components/Icons";
-import { demoCategories, demoTemplates, getDemoInvitations, saveDemoInvitation } from "../lib/demoData";
+import { saveDemoInvitation } from "../lib/demoData";
+import { fetchInvitation } from "../lib/api";
+import { useTemplates } from "../hooks/useTemplates";
 import { compile } from "../lib/compileInvitation";
 import { readJSON, removeKey, writeJSON } from "../lib/storage";
 import { has, validateInvitation } from "../lib/validate";
@@ -28,8 +30,7 @@ const copyText = async (text: string) => {
 type Draft = { data: InvitationData; at: number };
 
 export default function Create({ onPanelChange }: { onPanelChange?: (open: boolean) => void }) {
-  const categories = demoCategories;
-  const templates = demoTemplates;
+  const { templates, categories, loading: tplLoading } = useTemplates();
 
   const [state, dispatch] = useReducer(formReducer, undefined, () => initialFormState(new URLSearchParams(window.location.search).get("edit")));
   const { data, snap, touched, submitted, editId, categoryId, lastSaved } = state;
@@ -41,6 +42,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [draftOffer, setDraftOffer] = useState<Draft | null>(null);
   const [share, setShare] = useState<{ id: string } | null>(null);
   const headBtnRef = useRef<HTMLButtonElement>(null);
@@ -62,30 +64,43 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
 
   /* ---------- load (edit mode) + look for an unsaved draft ---------- */
   const [urlParams] = useSearchParams();
+  /* Creating starts instantly. Editing waits for the record, and the form shows skeletons until it arrives. */
+  const recordLoading = !!editId && !ready && !loadError;
+  const expectTemplate = !!editId || !!urlParams.get("template");
   useEffect(() => {
-    let base = initial;
-    if (editId) {
-      const row = getDemoInvitations().find((x: { id: string }) => x.id === editId);
-      if (!row) {
-        setMessage("Invitation not found. You can create a new one.");
-      } else {
-        const details = row.details || {};
-        base = {
-          ...initial, ...details,
-          templateId: row.template_id || details.templateId || "",
-          brideEn: row.bride_name || details.brideEn || "",
-          groomEn: row.groom_name || details.groomEn || "",
-          weddingDate: row.event_date || details.weddingDate || "",
-        };
-      }
-    }
-    dispatch({ type: "load", data: base });
-    /* /create?template=ID (from Manage Templates) preselects that template */
-    const t = urlParams.get("template");
-    if (t && !editId) dispatch({ type: "field", key: "templateId", value: String(t) });
-    const draft = readJSON<Draft | null>(LS_DRAFT + (editId || "new"), null);
-    if (draft?.data && JSON.stringify({ ...initial, ...draft.data }) !== JSON.stringify(base)) setDraftOffer(draft);
-    setReady(true);
+    let live = true;
+    const finish = (base: InvitationData) => {
+      dispatch({ type: "load", data: base });
+      /* /create?template=ID (from Manage Templates) preselects that template */
+      const t = urlParams.get("template");
+      if (t && !editId) dispatch({ type: "field", key: "templateId", value: String(t) });
+      const draft = readJSON<Draft | null>(LS_DRAFT + (editId || "new"), null);
+      if (draft?.data && JSON.stringify({ ...initial, ...draft.data }) !== JSON.stringify(base)) setDraftOffer(draft);
+      setReady(true);
+    };
+    if (!editId) { finish(initial); return; }
+    fetchInvitation(editId).then(
+      (row) => {
+        if (!live) return;
+        let base = initial;
+        if (!row) {
+          setMessage("Invitation not found. You can create a new one.");
+        } else {
+          const details = row.details || {};
+          base = {
+            ...initial, ...details,
+            templateId: row.template_id || details.templateId || "",
+            brideEn: row.bride_name || details.brideEn || "",
+            groomEn: row.groom_name || details.groomEn || "",
+            weddingDate: row.event_date || details.weddingDate || "",
+          };
+        }
+        finish(base);
+      },
+      /* Never fall back to an empty form here: saving it would overwrite the real invitation. */
+      () => { if (live) { setLoadError(true); setMessage("Couldn't load this invitation. Check your connection and try again."); } },
+    );
+    return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -113,6 +128,8 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   const source = selected?.html_code || "";
   const compiled = useMemo(() => compile(source, data) as string, [source, data]);
   const selectedInfo = useMemo(() => (selected ? { id: String(selected.id), name: selected.name } : undefined), [selected]);
+  /* The preview only needs a skeleton when a template is expected (editing, or /create?template=…). */
+  const previewLoading = expectTemplate && (tplLoading || recordLoading);
   const closePreview = useCallback(() => setPreviewOpen(false), []);
   const chooseTemplate = useCallback(() => { setPreviewOpen(false); scrollToSection("template"); }, []);
 
@@ -157,12 +174,13 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.couplePhoto, data.gallery.length, data.events.length]);
   const doneCount = PROGRESS_IDS.filter((id) => done[id]).length;
 
-  const tagFor = useCallback((id: SectionId) => {
+  const tagFor = useCallback((id: SectionId): { tone: string; text: string; loading?: boolean } => {
     const s = SECTIONS.find((x) => x.id === id)!;
+    if (recordLoading) return { tone: "", text: "Required", loading: true };
     if (issues[id]) return { tone: "bad", text: `${issues[id]} to fix` };
     if (done[id]) return { tone: "ok", text: "Done" };
     return { tone: "", text: s.hint === "required" ? "Required" : s.hint === "recommended" ? "Recommended" : "Optional" };
-  }, [issues, done]);
+  }, [issues, done, recordLoading]);
 
   /* ---------- save ---------- */
   const getLink = (id: string) => `${window.location.origin}/${data.customId?.trim() || id}`;
@@ -253,12 +271,12 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   };
   const discardDraft = () => { removeKey(draftKey); setDraftOffer(null); };
 
-  const saveDisabled = saving || (!!editId && !dirty);
+  const saveDisabled = saving || recordLoading || loadError || (!!editId && !dirty);
   const saveLabel = saving ? "Saving..." : editId ? "Update" : "Create";
   const draftTime = draftOffer?.at ? new Date(draftOffer.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
 
   return (
-    <div className="create">
+    <div className="create" aria-busy={recordLoading || tplLoading}>
       <header>
         <div>
           <div className="title-row">
@@ -280,7 +298,12 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
         </div>
       </header>
 
-      {message && <div className="msg">{message}</div>}
+      {message && (
+        <div className="msg">
+          <span>{message}</span>
+          {loadError && <div className="msg-actions"><button type="button" className="mini-act" onClick={() => window.location.reload()}>Retry</button></div>}
+        </div>
+      )}
       {draftOffer && (
         <div className="msg">
           <span>You have unsaved changes from {draftTime}. Restore them?</span>
@@ -294,10 +317,11 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
       <div className="create-builder-layout">
         <SectionNav
           sections={SECTIONS} issues={issues} done={done} doneCount={doneCount} total={PROGRESS_IDS.length}
-          saving={saving} saveDisabled={saveDisabled} saveLabel={saveLabel} headBtnRef={headBtnRef}
+          saving={saving} saveDisabled={saveDisabled} saveLabel={saveLabel} headBtnRef={headBtnRef} loading={recordLoading}
         />
         <CreateForm
           data={data} categories={categories} templates={templates} categoryId={categoryId} onCategory={onCategory}
+          loading={recordLoading} templatesLoading={tplLoading} expectTemplate={expectTemplate}
           set={set} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch}
           tagFor={tagFor} onSubmit={onSubmit} notify={notify}
         />
@@ -313,7 +337,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
 
       {slot && (
         <LivePreview
-          slot={slot} source={source} compiled={compiled} selected={selectedInfo} open={previewOpen}
+          slot={slot} source={source} compiled={compiled} selected={selectedInfo} loading={previewLoading} open={previewOpen}
           focusRequest={focusRequest} onClose={closePreview} onChoose={chooseTemplate}
         />
       )}

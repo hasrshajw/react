@@ -6,7 +6,7 @@ interface Props {
   id: SectionId;
   icon: React.ComponentType<{ size?: number }>;
   title: string;
-  tag?: { tone: string; text: string };
+  tag?: { tone: string; text: string; loading?: boolean };
   children: ReactNode;
 }
 
@@ -15,7 +15,7 @@ export function Section({ id, icon: Icon, title, tag, children }: Props) {
     <section id={`sec-${id}`}>
       <div className="sec-head">
         <h2><i><Icon size={17} /></i>{title}</h2>
-        {tag && <span className={`sec-tag ${tag.tone}`}>{tag.text}</span>}
+        {tag && <span className={`sec-tag ${tag.tone}${tag.loading ? " sk-bg" : ""}`} aria-hidden={tag.loading || undefined}>{tag.text}</span>}
       </div>
       {children}
     </section>

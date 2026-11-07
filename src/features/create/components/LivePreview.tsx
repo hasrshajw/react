@@ -2,6 +2,7 @@ import React, { memo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import morphdom from "morphdom";
 import { LayoutTemplate, X } from "../../../components/Icons";
+import { Loading, Sk, SkText } from "../../../components/Skeleton";
 import { TARGETS } from "../constants";
 
 export interface FocusRequest { field: string; id: string }
@@ -12,6 +13,8 @@ interface Props {
   compiled: string;
   selected?: { id: string; name: string };
   open: boolean;
+  /** A template is expected (editing, or /create?template=…) but has not arrived yet. */
+  loading?: boolean;
   focusRequest: FocusRequest | null;
   onClose: () => void;
   onChoose: () => void;
@@ -20,7 +23,7 @@ interface Props {
 /* React.memo: typing in the form changes `compiled`, but nothing else here, and
    unrelated renders of the page (toasts, save state, nav) skip this panel entirely.
    The iframe is patched in place with morphdom instead of being reloaded. */
-export const LivePreview = memo(function LivePreview({ slot, source, compiled, selected, open, focusRequest, onClose, onChoose }: Props) {
+export const LivePreview = memo(function LivePreview({ slot, source, compiled, selected, open, loading = false, focusRequest, onClose, onChoose }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
@@ -60,12 +63,25 @@ export const LivePreview = memo(function LivePreview({ slot, source, compiled, s
       <div className="create-live-preview-head">
         <div>
           <b>Live Preview</b>
-          <small>{selected?.name || "No template selected"}</small>
+          <small>{loading ? <SkText w={14} /> : selected?.name || "No template selected"}</small>
         </div>
         <button type="button" aria-label="Close preview" onClick={onClose}><X size={18} /></button>
       </div>
       <div className="create-live-preview-body">
-        {selected ? (
+        {loading ? (
+          <div className="lp-skel" aria-hidden="true">
+            <Sk w="38%" h={9} />
+            <Sk circle w={112} h={112} style={{ margin: "10px 0" }} />
+            <Sk w="58%" h={24} />
+            <Sk w={18} h={14} />
+            <Sk w="54%" h={24} />
+            <Sk w={64} h={2} style={{ margin: "10px 0" }} />
+            <Sk w="42%" h={9} />
+            <Sk w="66%" h={9} />
+            <Sk w="52%" h={9} />
+            <Loading label="Loading template" />
+          </div>
+        ) : selected ? (
           <iframe key={selected.id} ref={frameRef} title="Invitation preview" srcDoc={source} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
         ) : (
           <div className="empty">

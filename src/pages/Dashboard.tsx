@@ -19,6 +19,7 @@ import { RecentInvitations } from "../features/dashboard/components/RecentInvita
 import { RowMenu } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
 import { matchesFilter } from "../features/dashboard/filters";
+import { useRowHint } from "../hooks/useRowHint";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
 import { useEnquiries } from "../features/dashboard/hooks/useEnquiries";
@@ -128,6 +129,9 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const shown = expanded ? list.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE) : list.slice(0, 5);
   const topId = useMemo(() => topViewedId(visible), [visible]);
   const pubCount = visible.filter(isPub).length;
+  const skeletonRows = useRowHint("dashboard", visible.length, store.loading, 5);
+  const attnReady = !store.loading && !enq.loading;
+  const [attnHint] = useState(() => Number(readJSON<number>("schedy-attn", 0)) || 0);
 
   const applyFilter = (f: TableFilter) => {
     setFilter(f);
@@ -149,6 +153,8 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
     dueFollow > 0 && { key: "due", tone: "warn", count: dueFollow, label: `follow-up${dueFollow === 1 ? "" : "s"} due or overdue`, run: () => showRequests("followup") },
     noViews > 0 && { key: "views", tone: "info", count: noViews, label: "published with no views", run: () => applyFilter("noViews") },
   ].filter((a): a is AttentionItem => !!a);
+
+  useEffect(() => { if (attnReady) writeJSON("schedy-attn", attention.length); }, [attnReady, attention.length]);
 
   /* ---------- row actions ---------- */
   const copyLink = (x: InvitationRow) => copyText(getInviteLink(x), "Link copied", notify);
@@ -172,11 +178,12 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   );
 
   return (
-    <div className={`dashboard-page${narrow ? " narrow" : ""}`} ref={pageRef}>
+    <div className={`dashboard-page${narrow ? " narrow" : ""}`} ref={pageRef} aria-busy={store.loading || enq.loading}>
       <PageHeader
         title="Dashboard"
         subtitle="Manage and preview invitations using sample templates."
         lastUpdated={store.lastUpdated}
+        loading={store.loading && !store.lastUpdated}
         now={now}
         onRefresh={() => store.load()}
         createTitle="Create invitation (N)"
@@ -199,7 +206,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
       )}
 
       <StatCards
-        loading={store.loading}
+        loading={store.loading} enqLoading={enq.loading}
         total={visible.length} published={pubCount} drafts={visible.length - pubCount}
         onFilter={applyFilter}
         range={range} onRange={setRange}
@@ -209,11 +216,11 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         onToggleRequests={toggleRequests}
       />
 
-      {!store.loading && <AttentionStrip items={attention} />}
+      <AttentionStrip items={attention} loading={!attnReady} expected={attnHint} />
 
       <RecentInvitations
         tableRef={tableRef} searchRef={searchRef}
-        loading={store.loading} error={store.error}
+        loading={store.loading} skeletonRows={skeletonRows} error={store.error}
         visible={visible} list={list} shown={shown} trashed={trashed} topId={topId}
         q={q} sort={sort} filter={filter} expanded={expanded} showAll={showAll} page={cur} pages={pages}
         previewId={preview?.id} menuId={menu?.x.id}

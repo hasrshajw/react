@@ -2,7 +2,7 @@ import React from "react";
 import type { InvitationData } from "../../../types/invitation";
 import { Field } from "./Field";
 
-type FieldProps = (name: string) => { name: string; onFocus: () => void; onBlur: () => void; error?: string };
+type FieldProps = (name: string) => { name: string; onFocus: () => void; onBlur: () => void; error?: string; loading?: boolean };
 interface Props {
   enLabel: string; teLabel: string;
   enField: keyof InvitationData; teField: keyof InvitationData;

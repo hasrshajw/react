@@ -28,6 +28,23 @@ This is a frontend demonstration, not a production multi-user data store.
 - `src/lib/` pure helpers (`validate.ts`, `transliterate.ts`, `telugu.ts`, `image.ts`, `storage.ts`)
 - `src/types/` shared TypeScript types
 
+## Skeleton loading
+
+Every page shows a skeleton while its server data loads. The rules:
+
+- Static UI (page titles, column headers, tab labels, search box, buttons that always exist) renders immediately.
+- Only server data (names, dates, counts, plan text, user name, template cards, form values) is replaced by a placeholder.
+- Placeholders reuse the real element's box (`SkText` inside the real element, or the `sk-bg` ghost class), so nothing shifts when data arrives.
+- Components that may not exist (e.g. "Needs attention") only get a placeholder if they were there on the last visit.
+- `useRowHint` remembers how many rows the last visit had, so the skeleton has the same height as the real list.
+
+Building blocks: `src/components/Skeleton.tsx` and `src/styles/skeleton.css`.
+
+## Data layer (connect the database here)
+
+All server reads go through `src/lib/api.ts` (`fetchAccount`, `fetchTemplates`, `fetchInvitation`, `fetchEnquiries`).
+They currently read demo data after a simulated delay (`SIMULATED_LATENCY_MS`). Replace their bodies with real calls and set the delay to 0; the pages already handle `loading` and errors.
+
 ## Scripts
 
 - `npm run dev` start the dev server

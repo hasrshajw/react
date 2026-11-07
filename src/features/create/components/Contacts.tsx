@@ -12,9 +12,12 @@ interface Props {
   focus: (field: string) => void;
   vis: (key: string) => string | undefined;
   touch: (key: string) => void;
+  /** Whether contacts exist is unknown while the invitation loads: show the add button as a ghost (the usual state). */
+  loading?: boolean;
 }
 
-export function Contacts({ field, items, add, patch, remove, focus, vis, touch }: Props) {
+export function Contacts({ field, items, add, patch, remove, focus, vis, touch, loading = false }: Props) {
+  if (loading) return <span className="outline sk-bg" aria-hidden="true"><Plus size={15} /> Add contact</span>;
   return (
     <>
       {items.map((x) => {

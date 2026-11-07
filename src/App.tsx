@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { createBrowserRouter, RouterProvider, Routes, Route, NavLink, useNavigate } from "react-router-dom";
 import {
@@ -12,19 +12,11 @@ import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
 import Templates from "./pages/Templates";
 import schedyMark from "./assets/schedy-mark.svg";
+import { AccountProvider, useAccount } from "./hooks/useAccount";
+import { Loading, SkText } from "./components/Skeleton";
+import type { Plan } from "./lib/api";
 
-/* =========================================================
-   SUBSCRIPTION (placeholder: replace with your billing data)
-   status: "trial" | "active" | "past_due"
-   ========================================================= */
-interface Plan {
-  name: string;
-  status: "trial" | "active" | "past_due";
-  trialDaysLeft?: number;
-}
-
-const PLAN: Plan = { name: "Pro", status: "trial", trialDaysLeft: 12 };
-
+/* The plan comes from useAccount() (see lib/api.ts). */
 function getPlanBanner(plan: Plan) {
   if (plan.status === "past_due") {
     return { tone: "warn" as const, text: "Your last payment didn't go through", cta: "Update billing", to: "/billing" };
@@ -39,9 +31,10 @@ function getPlanBanner(plan: Plan) {
 /* =========================================================
    PROFILE MENU (opens from the navbar profile button)
    ========================================================= */
-function ProfileMenu({ onClose, plan }: { onClose: () => void; plan: Plan }) {
+function ProfileMenu({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
-  const planLabel = plan.status === "trial" ? `${plan.name} trial` : plan.name;
+  const { user, plan, loading } = useAccount();
+  const planLabel = plan ? (plan.status === "trial" ? `${plan.name} trial` : plan.name) : "";
 
   /* Anchor the menu under the profile button. The preview panel shrinks the app
      (and moves the button left), so a fixed window offset would drift away. */
@@ -78,7 +71,7 @@ function ProfileMenu({ onClose, plan }: { onClose: () => void; plan: Plan }) {
   }, [onClose]);
 
   const Item = ({ icon: Icon, label, value, external, to }: {
-    icon: IconComponent; label: string; value?: string; external?: boolean; to?: string;
+    icon: IconComponent; label: string; value?: ReactNode; external?: boolean; to?: string;
   }) => (
     <button
       type="button" className="pm-item" role="menuitem"
@@ -98,10 +91,10 @@ function ProfileMenu({ onClose, plan }: { onClose: () => void; plan: Plan }) {
     >
       <div className="pm-head">
         <div className="pm-head-row">
-          <b>Harsha Vardhan</b>
-          <em className="pm-badge">{planLabel}</em>
+          <b>{loading ? <SkText w={14} /> : user?.name ?? "Account"}</b>
+          {loading ? <em className="pm-badge sk-bg" aria-hidden="true">Pro trial</em> : planLabel && <em className="pm-badge">{planLabel}</em>}
         </div>
-        <span>schedy.in@gmail.com</span>
+        <span>{loading ? <SkText w={20} /> : user?.email}</span>
       </div>
       <i className="pm-sep" />
       <Item icon={User} label="Account information" />
@@ -111,7 +104,7 @@ function ProfileMenu({ onClose, plan }: { onClose: () => void; plan: Plan }) {
       <Item icon={ShieldCheck} label="Security" />
       <Item icon={Activity} label="Account activity" />
       <Item icon={Bell} label="Notification settings" />
-      <Item icon={Languages} label="Language" value="English" />
+      <Item icon={Languages} label="Language" value={loading ? <SkText w={7} /> : "English"} />
       <i className="pm-sep" />
       <Item icon={BookOpen} label="Help center" external />
       <Item icon={LifeBuoy} label="Contact support" />
@@ -146,7 +139,8 @@ function Shell() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [hoverExpanded, setHoverExpanded] = useState(false);
-  const banner = getPlanBanner(PLAN);
+  const { loading: accountLoading, plan } = useAccount();
+  const banner = plan ? getPlanBanner(plan) : null;
 
   return (
     <>
@@ -160,14 +154,25 @@ function Shell() {
             <span className="promo-name">Schedy Admin</span>
           </div>
 
-          <NavLink to={banner.to} className={`promo-center${banner.tone === "warn" ? " warn" : ""}`}>
-            {banner.tone === "warn" ? <AlertTriangle size={15} /> : <Sparkles size={15} />}
-            <span className="promo-long">{banner.text}</span>
-            <strong>{banner.cta}</strong>
-            <span className="promo-arrow" aria-hidden="true">
-              <ArrowRight size={14} strokeWidth={2.2} />
-            </span>
-          </NavLink>
+          {accountLoading ? (
+            /* same pill, same size: the message and the button text come from the server */
+            <div className="promo-center sk-on-dark" aria-busy="true">
+              <Sparkles size={15} />
+              <span className="promo-long"><SkText w={26} /></span>
+              <strong><SkText w={7} /></strong>
+              <span className="promo-arrow" aria-hidden="true"><ArrowRight size={14} strokeWidth={2.2} /></span>
+              <Loading label="Loading plan" />
+            </div>
+          ) : banner ? (
+            <NavLink to={banner.to} className={`promo-center${banner.tone === "warn" ? " warn" : ""}`}>
+              {banner.tone === "warn" ? <AlertTriangle size={15} /> : <Sparkles size={15} />}
+              <span className="promo-long">{banner.text}</span>
+              <strong>{banner.cta}</strong>
+              <span className="promo-arrow" aria-hidden="true">
+                <ArrowRight size={14} strokeWidth={2.2} />
+              </span>
+            </NavLink>
+          ) : <span />}
 
           <nav className="promo-right" aria-label="Help">
             <a className="promo-link" href="#">Docs</a>
@@ -209,7 +214,7 @@ function Shell() {
       </div>
 
       {profileOpen && (
-        <ProfileMenu onClose={() => setProfileOpen(false)} plan={PLAN} />
+        <ProfileMenu onClose={() => setProfileOpen(false)} />
       )}
 
       <style>{`
@@ -465,7 +470,11 @@ function Shell() {
 const router = createBrowserRouter([{ path: "*", element: <Shell /> }]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <AccountProvider>
+      <RouterProvider router={router} />
+    </AccountProvider>
+  );
 }
 
 export default App;

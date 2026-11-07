@@ -6,6 +6,8 @@ interface BaseProps {
   label: string;
   onError: (msg: string) => void;
   onFocus?: () => void;
+  /** Whether a photo exists is unknown while the invitation loads. */
+  loading?: boolean;
 }
 
 async function toDataUrl(file: File, maxSide: number, onError: (m: string) => void): Promise<string | null> {
@@ -42,9 +44,22 @@ function DropButton({ label, hint, multiple, onFiles, className = "", compact = 
   );
 }
 
-export function PhotoPicker({ label, value, onChange, onError, onFocus, maxSide = 1000, help }: BaseProps & {
+function PhotoGhost({ label }: { label: string }) {
+  return (
+    <div className="ph" aria-hidden="true">
+      <span className="ph-label">{label}</span>
+      <div className="ph-drop sk-bg">
+        <span className="ph-ic" />
+        <span><b>Upload photo</b><small>Click or drop an image here</small></span>
+      </div>
+    </div>
+  );
+}
+
+export function PhotoPicker({ label, value, onChange, onError, onFocus, loading = false, maxSide = 1000, help }: BaseProps & {
   value: string; onChange: (v: string) => void; maxSide?: number; help?: string;
 }) {
+  if (loading) return <PhotoGhost label={label} />;
   const pick = async (files: File[]) => {
     onFocus?.();
     if (!files[0]) return;
@@ -69,9 +84,10 @@ export function PhotoPicker({ label, value, onChange, onError, onFocus, maxSide 
   );
 }
 
-export function GalleryPicker({ label, value, onChange, onError, onFocus }: BaseProps & {
+export function GalleryPicker({ label, value, onChange, onError, onFocus, loading = false }: BaseProps & {
   value: string[]; onChange: (v: string[]) => void;
 }) {
+  if (loading) return <PhotoGhost label={label} />;
   const pick = async (files: File[]) => {
     onFocus?.();
     const room = MAX_GALLERY - value.length;
