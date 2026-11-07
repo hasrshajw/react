@@ -3,13 +3,13 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, MailPlus, Mails, Ticket, Palette, Image as ImageIcon, LayoutGrid,
   PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, Search, Bell, Plus,
-} from "lucide-react";
+} from "./Icons";
 
 import logo from "../assets/logo.png";
 import logoSmall from "../assets/logo-small.png";
 
 /* =========================================================
-   NAV DATA  (icons are lucide: one set, follows currentColor,
+   NAV DATA  (icons are Hugeicons: one set, follows currentColor,
    so hover / active states need no extra image files)
 ========================================================= */
 

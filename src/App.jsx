@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, NavLink, useNavigate } from "react-router
 import {
   Bell, Sparkles, AlertTriangle, ArrowRight, User, Users, CreditCard, ShieldCheck, Activity,
   Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
-} from "lucide-react";
+} from "./components/Icons";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Analytics from "./pages/Analytics";

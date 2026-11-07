@@ -6,7 +6,7 @@ import {
   Plus, Search, Smartphone, MoreHorizontal, Trash2, X, MessageCircle, QrCode, Globe, EyeOff,
   ChevronLeft, ChevronRight, ChevronDown, Phone, Mail, PhoneCall, Clock, Ban,
   Download, Copy, AlertTriangle, RotateCcw, Archive,
-} from "lucide-react";
+} from "../components/Icons";
 import * as demo from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
 

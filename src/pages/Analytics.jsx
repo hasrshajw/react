@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from "react";
-import {BarChart3,RefreshCw,CalendarDays,FileText} from "lucide-react";
+import {BarChart3,RefreshCw,CalendarDays,FileText} from "../components/Icons";
 import {getDemoInvitations} from "../lib/demoData";
 export default function Analytics(){
  const [rows,setRows]=useState([]);const load=()=>setRows(getDemoInvitations());useEffect(()=>{load()},[]);

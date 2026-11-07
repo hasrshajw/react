@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   AlertCircle, CalendarPlus, Check, CheckCircle2, Copy, Eye, Heart, LayoutDashboard, LayoutTemplate,
   Loader2, MapPin, MessageCircle, Plus, Save, Trash2, User, Users, X,
-} from "lucide-react";
+} from "../components/Icons";
 import morphdom from "morphdom";
 import { demoCategories, demoTemplates, getDemoInvitations, saveDemoInvitation } from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
