@@ -9,6 +9,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
+import Templates from "./pages/Templates";
 import schedyMark from "./assets/schedy-mark.svg";
 
 /* =========================================================
@@ -123,7 +124,6 @@ function ComingSoon({ title }) {
 
 const PLACEHOLDER_ROUTES = [
   ["/inventory", "Inventory"],
-  ["/coupons", "Manage Coupons"],
   ["/billing", "Billing"],
   ["/customize/hero-section", "Hero section"],
   ["/customize/sections", "Sections"],
@@ -185,6 +185,7 @@ function Shell() {
               <Routes>
                 <Route path="/" element={<Dashboard onPanelChange={setPanelOpen} />} />
                 <Route path="/invitations" element={<Invitations onPanelChange={setPanelOpen} />} />
+                <Route path="/templates" element={<Templates />} />
                 <Route path="/create" element={<Create onPanelChange={setPanelOpen} />} />
                 {PLACEHOLDER_ROUTES.map(([path, title]) => (
                   <Route key={path} path={path} element={<ComingSoon title={title} />} />

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useBlocker } from "react-router-dom";
+import { Link, useBlocker, useSearchParams } from "react-router-dom";
 import {
   AlertCircle, CalendarPlus, Check, CheckCircle2, Copy, Eye, Heart, LayoutDashboard, LayoutTemplate,
   Loader2, MapPin, MessageCircle, Plus, Save, Trash2, User, Users, X,
@@ -65,7 +65,7 @@ const writeJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); 
 const removeKey = (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } };
 
 const sampleDate = () => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); };
-const SAMPLE = { ...initial, groomEn: "Groom", brideEn: "Bride", weddingDate: sampleDate() };
+export const SAMPLE = { ...initial, groomEn: "Groom", brideEn: "Bride", weddingDate: sampleDate() };
 
 const SECTIONS = [
   { id: "template", label: "Template", icon: LayoutTemplate, hint: "required" },
@@ -456,6 +456,12 @@ export default function Create({ onPanelChange }) {
     }, 450);
     translitTimers.current.set(key, timer);
   };
+  /* /create?template=ID (from Manage Templates) preselects that template */
+  const [urlParams] = useSearchParams();
+  useEffect(() => {
+    const t = urlParams.get("template");
+    if (t) setData((prev) => ({ ...prev, templateId: String(t) }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const set = (key, value) => {
     setData((prev) => ({ ...prev, [key]: value }));
     const target = EN_TO_TE[key];

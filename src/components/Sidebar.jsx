@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, MailPlus, Mails, Ticket, Palette, Image as ImageIcon, LayoutGrid,
+  LayoutDashboard, MailPlus, Mails, LayoutTemplate, Palette, Image as ImageIcon, LayoutGrid,
   PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus,
 } from "./Icons";
 
@@ -17,7 +17,7 @@ const menuItems = [
   { name: "Dashboard", path: "/", Icon: LayoutDashboard },
   { name: "Create Invitation", path: "/create", Icon: MailPlus },
   { name: "All Invitations", path: "/invitations", Icon: Mails },
-  { name: "Manage Coupons", path: "/coupons", Icon: Ticket },
+  { name: "Manage Templates", path: "/templates", Icon: LayoutTemplate },
 ];
 
 const submenuItems = [
@@ -32,7 +32,7 @@ const CRUMBS = {
   "/": ["Dashboard", "Overview"],
   "/create": ["Manage", "Create invitation"],
   "/invitations": ["Manage", "All invitations"],
-  "/coupons": ["Manage", "Coupons"],
+  "/templates": ["Manage", "Templates"],
   "/customize/hero-section": ["Customize site", "Hero section"],
   "/customize/sections": ["Customize site", "Sections"],
   "/customize/popup": ["Customize site", "Popup"],
