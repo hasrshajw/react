@@ -12,7 +12,7 @@ import {
   Mailbox01Icon, Message01Icon, MoreHorizontalIcon, Notification01Icon, PaintBoardIcon,
   PencilEdit01Icon, QrCodeIcon, Refresh01Icon, RotateLeft01Icon, Search01Icon, Shield01Icon,
   SmartPhone01Icon, SparklesIcon, Tick02Icon, Ticket01Icon, UserIcon, UserMultipleIcon,
-  ViewIcon, ViewOffIcon, ListViewIcon, Share08Icon,
+  ViewIcon, ViewOffIcon, Share08Icon,
 } from "@hugeicons/core-free-icons";
 
 /* Thin wrappers around Hugeicons so every icon stays a drop-in React component
@@ -58,7 +58,6 @@ export const Languages = make(LanguageSquareIcon, "Languages");
 export const Layers = make(Layers01Icon, "Layers");
 export const LayoutDashboard = make(DashboardSquare01Icon, "LayoutDashboard");
 export const LayoutGrid = make(GridViewIcon, "LayoutGrid");
-export const ListView = make(ListViewIcon, "ListView");
 export const Share = make(Share08Icon, "Share");
 export const LayoutTemplate = make(LayoutIcon, "LayoutTemplate");
 export const LifeBuoy = make(CustomerSupportIcon, "LifeBuoy");

@@ -2,12 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  FilePlus2, CalendarDays, ArrowUpRight, Eye, Pencil, Link2, Check, Plus, Search, Smartphone,
+  FilePlus2, CalendarDays, Eye, Pencil, Link2, Check, Plus, Search, Smartphone,
   MoreHorizontal, Trash2, X, MessageCircle, Globe, EyeOff, ChevronLeft, ChevronRight,
-  AlertTriangle, Archive, RefreshCw, Copy, Download, Users, LayoutGrid, ListView, Share,
+  AlertTriangle, Archive, RefreshCw, Copy, Download, Share,
 } from "../components/Icons";
 import * as demo from "../lib/demoData";
-import { compile } from "../lib/compileInvitation";
 import {
   DASHBOARD_CSS, Modal, PreviewPanel, TrashModal, useEscape,
   LS_PUB, LS_DEL, PAGE_SIZE, TRASH_DAYS, DAY,
@@ -18,14 +17,11 @@ import {
 /* =========================================================
    HELPERS
    ========================================================= */
-const GRID_PAGE_SIZE = 12;
-const THUMB_W = 390;
-const THUMB_H = 560;
 const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 
-/* URL state: ?status=draft&when=week&sort=date&view=grid&template=classic&q=name
+/* URL state: ?status=draft&when=week&sort=date&template=classic&q=name
    Default values are left out of the URL so it stays short. */
-const DEFAULTS = { status: "all", when: "all", sort: "recent", view: "list", template: "all", q: "" };
+const DEFAULTS = { status: "all", when: "all", sort: "recent", template: "all", q: "" };
 const oneOf = (v, allowed, fallback) => (allowed.includes(v) ? v : fallback);
 
 const WHEN_FILTERS = [
@@ -45,45 +41,10 @@ const dateMatch = (x, w) => {
   return true;
 };
 
-const hashOf = (s, m) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % m;
-  return h;
-};
-
-/* RSVP numbers per invitation. Uses x.invited / x.rsvps when the record has them,
-   otherwise a stable placeholder per invitation (same idea as getViews).
-   Replace with your real guest-response data. */
-const getRsvp = (x) => {
-  const id = String(x.id ?? "");
-  const realInvited = Number(x.invited ?? x.details?.guestCount);
-  const invited = Number.isFinite(realInvited) && realInvited > 0 ? realInvited : 30 + hashOf(id, 13) * 10;
-  const going = x.rsvps != null && Number.isFinite(Number(x.rsvps))
-    ? Math.min(Number(x.rsvps), invited)
-    : Math.round(invited * (0.2 + hashOf(`${id}r`, 55) / 100));
-  return { going, invited };
-};
-
 const templateOf = (x) => {
   const t = (demo.demoTemplates || []).find((tpl) => String(tpl.id) === String(x.template_id));
   const name = x.template_name || t?.name || "Custom invitation";
   return { key: String(x.template_id || name), name };
-};
-
-/* Same compile step the preview panel uses. */
-const buildHtml = (row) => {
-  try {
-    const tpl = (demo.demoTemplates || []).find((t) => String(t.id) === String(row.template_id));
-    const source = tpl?.html_code || tpl?.html || "";
-    const data = {
-      events: [], groomContacts: [], brideContacts: [],
-      ...(row.details || {}),
-      brideEn: row.bride_name || row.details?.brideEn || "",
-      groomEn: row.groom_name || row.details?.groomEn || "",
-      weddingDate: row.event_date || row.details?.weddingDate || "",
-    };
-    return compile(source, data);
-  } catch { return ""; }
 };
 
 const csvCell = (v) => {
@@ -100,32 +61,6 @@ const todayStamp = () => {
 /* =========================================================
    SMALL COMPONENTS
    ========================================================= */
-/* Scaled-down, script-free render of the invitation (sandbox="" blocks scripts and storage). */
-function Thumb({ row }) {
-  const ref = useRef(null);
-  const [scale, setScale] = useState(0.4);
-  const html = useMemo(() => buildHtml(row), [row]);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    const fit = () => { if (el.clientWidth) setScale(el.clientWidth / THUMB_W); };
-    fit();
-    if (typeof ResizeObserver === "undefined") return undefined;
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return (
-    <div className="thumb" ref={ref}>
-      {html ? (
-        <iframe title="" aria-hidden="true" tabIndex={-1} loading="lazy" srcDoc={html} sandbox="" style={{ transform: `scale(${scale})` }} />
-      ) : (
-        <div className="thumb-empty"><Smartphone size={22} /><span>No preview</span></div>
-      )}
-    </div>
-  );
-}
-
 function Countdown({ x, live }) {
   const d = dayDiff(x.event_date);
   if (d === null) return null;
@@ -133,18 +68,6 @@ function Countdown({ x, live }) {
   const tone = d <= 7 ? (live ? "warn" : "danger") : "info";
   const title = !live && d <= 7 ? `Still a draft with the event ${whenText(d).toLowerCase()}. Publish it so guests can open the link.` : undefined;
   return <span className={`cd ${tone}`} title={title}>{whenText(d)}</span>;
-}
-
-function RsvpMeter({ x, live }) {
-  if (!live) return <span className="muted">Not live</span>;
-  const { going, invited } = getRsvp(x);
-  const pct = Math.min(100, Math.round((going / invited) * 100));
-  return (
-    <div className="rsvp" title={`${going} of ${invited} invited guests are attending (${pct}%)`}>
-      <span><b>{fmt(going)}</b> / {fmt(invited)} <small>invited</small></span>
-      <i className="bar"><u style={{ width: `${pct}%` }} /></i>
-    </div>
-  );
 }
 
 function ShareModal({ row, rows, live, onClose, onCopy, onWhatsApp, onSaveLink, onPublish }) {
@@ -248,14 +171,13 @@ function ShareModal({ row, rows, live, onClose, onCopy, onWhatsApp, onSaveLink, 
 /* =========================================================
    PAGE
    ========================================================= */
-/* "All Invitations" page: the full list with summary cards, filters, bulk actions,
-   a list/grid view and shareable URL filters. */
+/* "All Invitations" page: one flat list with status tabs, date filters, bulk actions
+   and shareable URL filters. Deliberately not laid out like the Dashboard. */
 export default function Invitations({ onPanelChange }) {
   const [sp, setSp] = useSearchParams();
   const status = oneOf(sp.get("status"), ["all", "published", "draft"], DEFAULTS.status);
   const when = oneOf(sp.get("when"), ["all", "upcoming", "week", "past"], DEFAULTS.when);
   const sort = oneOf(sp.get("sort"), ["recent", "date", "views"], DEFAULTS.sort);
-  const view = oneOf(sp.get("view"), ["list", "grid"], DEFAULTS.view);
   const tpl = sp.get("template") || DEFAULTS.template;
   const q = sp.get("q") || DEFAULTS.q;
 
@@ -293,7 +215,7 @@ export default function Invitations({ onPanelChange }) {
   };
 
   /* Changing a filter resets paging and clears the selection (a selection should only
-     ever cover rows the person can currently see). Sort and view keep it. */
+     ever cover rows the person can currently see). Sort keeps it. */
   const setParams = (patch) => {
     setSp((prev) => {
       const n = new URLSearchParams(prev);
@@ -303,7 +225,7 @@ export default function Invitations({ onPanelChange }) {
       return n;
     }, { replace: true });
     setPage(1);
-    if (!("view" in patch) && !("sort" in patch)) setSel(new Set());
+    if (!("sort" in patch)) setSel(new Set());
   };
 
   const load = () => {
@@ -357,7 +279,6 @@ export default function Invitations({ onPanelChange }) {
 
   const stats = useMemo(() => {
     const live = (x) => pub[x.id] !== false;
-    const soon = visible.filter((x) => { const d = dayDiff(x.event_date); return !live(x) && d !== null && d >= 0 && d <= 7; }).length;
     return {
       total: visible.length,
       pub: visible.filter(live).length,
@@ -365,7 +286,6 @@ export default function Invitations({ onPanelChange }) {
       upcoming: visible.filter((x) => dateMatch(x, "upcoming")).length,
       week: visible.filter((x) => dateMatch(x, "week")).length,
       past: visible.filter((x) => dateMatch(x, "past")).length,
-      soon,
     };
   }, [visible, pub]);
 
@@ -396,10 +316,9 @@ export default function Invitations({ onPanelChange }) {
     return r;
   }, [visible, q, sort, status, when, tpl, pub]);
 
-  const perPage = view === "grid" ? GRID_PAGE_SIZE : PAGE_SIZE;
-  const pages = Math.max(1, Math.ceil(list.length / perPage));
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   const cur = Math.min(page, pages);
-  const shown = list.slice((cur - 1) * perPage, cur * perPage);
+  const shown = list.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
   const topId = useMemo(() => {
     if (visible.length < 2) return null;
     return visible.reduce((best, x) => (getViews(x) > getViews(best) ? x : best), visible[0]).id;
@@ -466,7 +385,7 @@ export default function Invitations({ onPanelChange }) {
   const duplicate = (x) => {
     const id = uid();
     // eslint-disable-next-line no-unused-vars
-    const { views, rsvps, invited, created_at, updated_at, ...rest } = x;
+    const { views, created_at, updated_at, ...rest } = x;
     const copy = demo.saveDemoInvitation({
       ...rest,
       id,
@@ -521,15 +440,14 @@ export default function Invitations({ onPanelChange }) {
     );
   };
   const bulkExport = () => {
-    const head = ["Couple", "Groom", "Bride", "Event date", "Status", "Template", "Views", "RSVPs attending", "Invited", "Link", "Created"];
+    const head = ["Couple", "Groom", "Bride", "Event date", "Status", "Template", "Views", "Link", "Created"];
     const body = selectedRows.map((x) => {
       const live = isPub(x);
       const past = isPast(x);
       const statusText = past ? (live ? "Completed" : "Archived") : live ? "Published" : "Draft";
-      const r = live ? getRsvp(x) : null;
       return [
         coupleName(x), x.groom_name || "", x.bride_name || "", x.event_date || "", statusText, templateOf(x).name,
-        getViews(x), r ? r.going : "", r ? r.invited : "", live ? getInviteLink(x) : "", x.created_at || "",
+        getViews(x), live ? getInviteLink(x) : "", x.created_at || "",
       ];
     });
     const lines = [head, ...body].map((r) => r.map(csvCell).join(","));
@@ -612,7 +530,7 @@ export default function Invitations({ onPanelChange }) {
     return () => window.removeEventListener("keydown", h);
   }, [shareId, trash, menu]);
 
-  const statusFilters = [
+  const tabs = [
     ["all", "All", stats.total],
     ["published", "Published", stats.pub],
     ["draft", "Drafts", stats.draft],
@@ -620,48 +538,14 @@ export default function Invitations({ onPanelChange }) {
   const hasFilters = status !== "all" || when !== "all" || tpl !== "all" || q.trim() !== "";
   const clearFilters = () => setParams({ status: "all", when: "all", template: "all", q: "" });
 
-  /* Summary cards double as filters. */
-  const cards = [
-    { key: "total", label: "Total", n: stats.total, sub: "All invitations", on: status === "all" && when === "all", run: () => setParams({ status: "all", when: "all", template: "all", q: "" }) },
-    { key: "pub", label: "Published", n: stats.pub, sub: "Links are live", tone: "ok", on: status === "published" && when === "all", run: () => setParams({ status: "published", when: "all", template: "all", q: "" }) },
-    { key: "draft", label: "Drafts", n: stats.draft, sub: stats.soon > 0 ? `${stats.soon} with an event this week` : "Not live yet", tone: stats.soon > 0 ? "danger" : "", on: status === "draft" && when === "all", run: () => setParams({ status: "draft", when: "all", template: "all", q: "" }) },
-    { key: "upcoming", label: "Upcoming", n: stats.upcoming, sub: "Next 30 days", tone: "info", on: status === "all" && when === "upcoming", run: () => setParams({ status: "all", when: "upcoming", template: "all", q: "" }) },
-    { key: "past", label: "Completed", n: stats.past, sub: "Past events", on: status === "all" && when === "past", run: () => setParams({ status: "all", when: "past", template: "all", q: "" }) },
-  ];
-
-  /* ---------- row / card pieces ---------- */
   const statusChip = (x) => {
     const live = isPub(x);
     const past = isPast(x);
     return past ? (live ? ["done", "Completed"] : ["draft", "Archived"]) : live ? ["ok", "Published"] : ["draft", "Draft"];
   };
 
-  const rowActions = (x, live) => (
-    <div className="row-actions">
-      <button type="button" className={`icon-btn${preview?.id === x.id ? " on" : ""}`} title="Preview" aria-label="Preview invitation" onClick={() => openPreview(x)}>
-        <Smartphone size={16} />
-      </button>
-      <Link to={`/create?edit=${x.id}`} className="act-btn"><Pencil size={14} /> Edit</Link>
-      <button
-        type="button" className="act-btn" disabled={!live}
-        title={live ? "Copy invitation link" : "Publish to enable the link"}
-        onClick={() => copyLink(x)}
-      >
-        <Link2 size={14} /> Link
-      </button>
-      <button
-        type="button" className="icon-btn menu-trigger" aria-label="More actions" aria-haspopup="menu"
-        aria-expanded={menu?.x.id === x.id} onClick={(e) => openMenu(e, x)}
-      >
-        <MoreHorizontal size={16} />
-      </button>
-    </div>
-  );
-
-  const colSpan = 6;
-
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page inv-page">
       {/* ---------- page header ---------- */}
       <div className="page-head">
         <div>
@@ -675,33 +559,45 @@ export default function Invitations({ onPanelChange }) {
         </div>
       </div>
 
-      {/* ---------- summary cards ---------- */}
-      <div className="inv-stats" role="group" aria-label="Invitation summary">
-        {cards.map((c) => (
-          <button key={c.key} type="button" className={`inv-stat${c.on ? " on" : ""}`} aria-pressed={c.on} onClick={c.run}>
-            <span className="inv-stat-label">{c.label}</span>
-            {loading ? <i className="sk sk-num" /> : <strong>{fmt(c.n)}</strong>}
-            <span className={`inv-stat-sub ${c.tone || ""}`}>{c.sub}</span>
-          </button>
-        ))}
+      {/* ---------- status tabs + search ---------- */}
+      <div className="inv-tabbar">
+        <div className="inv-tabs" role="group" aria-label="Filter by status">
+          {tabs.map(([key, label, n]) => (
+            <button
+              key={key} type="button" aria-pressed={status === key}
+              className={`inv-tab${status === key ? " on" : ""}`}
+              onClick={() => setParams({ status: key })}
+            >
+              {label} <em>{loading ? "–" : fmt(n)}</em>
+            </button>
+          ))}
+        </div>
+        <label className="search">
+          <Search size={15} />
+          <input
+            ref={searchRef} type="search" placeholder="Search couple" value={q} aria-label="Search invitations"
+            onChange={(e) => setParams({ q: e.target.value })}
+          />
+          {!q && <kbd className="kbd" aria-hidden="true">/</kbd>}
+        </label>
       </div>
 
-      {/* ---------- invitations ---------- */}
-      <div className="recent-card">
-        <div className="recent-head">
-          <div className="recent-title">
-            <strong>Invitations</strong>
-            {!loading && visible.length > 0 && <em>{fmt(list.length === visible.length ? visible.length : list.length)}</em>}
+      {/* ---------- list ---------- */}
+      <div className="inv-panel">
+        <div className="inv-toolbar">
+          <div className="inv-chips" role="group" aria-label="Filter by event date">
+            {WHEN_FILTERS.map(([key, label, hint]) => (
+              <button
+                key={key} type="button" aria-pressed={when === key} title={hint}
+                className={`inv-filter${when === key ? " on" : ""}`}
+                onClick={() => setParams({ when: when === key ? "all" : key })}
+              >
+                {label} <em>{loading ? "–" : fmt(key === "upcoming" ? stats.upcoming : key === "week" ? stats.week : stats.past)}</em>
+              </button>
+            ))}
+            {hasFilters && <button type="button" className="link-btn" onClick={clearFilters}>Clear filters</button>}
           </div>
           <div className="recent-tools">
-            <label className="search">
-              <Search size={15} />
-              <input
-                ref={searchRef} type="search" placeholder="Search couple" value={q} aria-label="Search invitations"
-                onChange={(e) => setParams({ q: e.target.value })}
-              />
-              {!q && <kbd className="kbd" aria-hidden="true">/</kbd>}
-            </label>
             {templates.length > 1 && (
               <select className="sort" value={tpl} aria-label="Filter by template" onChange={(e) => setParams({ template: e.target.value })}>
                 <option value="all">All templates</option>
@@ -713,16 +609,11 @@ export default function Invitations({ onPanelChange }) {
               <option value="date">Event date</option>
               <option value="views">Most viewed</option>
             </select>
-            <div className="view-toggle" role="group" aria-label="View">
-              <button type="button" aria-pressed={view === "list"} className={view === "list" ? "on" : ""} title="List view" aria-label="List view" onClick={() => setParams({ view: "list" })}><ListView size={16} /></button>
-              <button type="button" aria-pressed={view === "grid"} className={view === "grid" ? "on" : ""} title="Grid view" aria-label="Grid view" onClick={() => setParams({ view: "grid" })}><LayoutGrid size={16} /></button>
-            </div>
             {trashed.length > 0 && (
               <button type="button" className="act-btn" onClick={(e) => { opener.current = e.currentTarget; setTrash(true); }}>
                 <Trash2 size={14} /> Trash <em className="cnt">{trashed.length}</em>
               </button>
             )}
-            <Link to="/analytics" className="head-link">View analytics <ArrowUpRight size={14} /></Link>
           </div>
         </div>
 
@@ -741,36 +632,6 @@ export default function Invitations({ onPanelChange }) {
           </div>
         )}
 
-        {!loading && !error && visible.length > 0 && (
-          <div className="filter-row" role="group" aria-label="Filters">
-            {statusFilters.map(([key, label, n]) => (
-              <button
-                key={key} type="button" aria-pressed={status === key}
-                className={`inv-filter${status === key ? " on" : ""}`}
-                onClick={() => setParams({ status: key })}
-              >
-                {label} <em>{fmt(n)}</em>
-              </button>
-            ))}
-            <i className="filter-sep" aria-hidden="true" />
-            {WHEN_FILTERS.map(([key, label, hint]) => (
-              <button
-                key={key} type="button" aria-pressed={when === key} title={hint}
-                className={`inv-filter${when === key ? " on" : ""}`}
-                onClick={() => setParams({ when: when === key ? "all" : key })}
-              >
-                {label} <em>{fmt(key === "upcoming" ? stats.upcoming : key === "week" ? stats.week : stats.past)}</em>
-              </button>
-            ))}
-            {hasFilters && <button type="button" className="link-btn" onClick={clearFilters}>Clear filters</button>}
-            {topTemplate && visible.length > 1 && (
-              <span className="insight" title="Template used by the most invitations">
-                Most used template: <b>{topTemplate.name}</b> · {topTemplate.n} of {visible.length}
-              </span>
-            )}
-          </div>
-        )}
-
         {error ? (
           <div className="empty-state">
             <div className="empty-icon err"><AlertTriangle size={22} /></div>
@@ -779,25 +640,19 @@ export default function Invitations({ onPanelChange }) {
             <button type="button" className="empty-btn" onClick={load}>Retry</button>
           </div>
         ) : loading ? (
-          view === "grid" ? (
-            <div className="inv-grid">
-              {[0, 1, 2, 3].map((i) => <i key={i} className="sk sk-card" />)}
-            </div>
-          ) : (
-            <div className="table-scroll">
-              <table className="inv-table">
-                <tbody>
-                  {[0, 1, 2, 3, 4].map((i) => (
-                    <tr key={i}>
-                      <td colSpan={colSpan}>
-                        <div className="cell-couple"><i className="sk sk-avatar" /><i className="sk sk-line" /></div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
+          <div className="table-scroll">
+            <table className="inv-table">
+              <tbody>
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <tr key={i}>
+                    <td colSpan={5}>
+                      <div className="cell-couple"><i className="sk sk-avatar" /><i className="sk sk-line" /></div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : visible.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon"><FilePlus2 size={22} /></div>
@@ -814,109 +669,92 @@ export default function Invitations({ onPanelChange }) {
           </div>
         ) : (
           <>
-            {view === "grid" ? (
-              <div className="inv-grid">
-                {shown.map((x) => {
-                  const live = isPub(x);
-                  const past = isPast(x);
-                  const chip = statusChip(x);
-                  const checked = sel.has(x.id);
-                  return (
-                    <article key={x.id} className={`inv-card${checked ? " sel" : ""}${past ? " is-past" : ""}${preview?.id === x.id ? " active" : ""}`}>
-                      <div className="card-thumb">
-                        <Thumb row={x} />
-                        <label className="card-check">
+            <div className="table-scroll">
+              <table className="inv-table">
+                <thead>
+                  <tr>
+                    <th className="th-check">
+                      <input ref={headCheck} type="checkbox" checked={allOnPage} aria-label="Select all invitations on this page" onChange={togglePage} />
+                    </th>
+                    <th>Couple</th>
+                    <th>Event date</th>
+                    <th>Invitation views</th>
+                    <th className="th-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((x) => {
+                    const live = isPub(x);
+                    const past = isPast(x);
+                    const chip = statusChip(x);
+                    const checked = sel.has(x.id);
+                    return (
+                      <tr key={x.id} className={`${preview?.id === x.id ? "active" : ""}${checked ? " sel" : ""}${past ? " is-past" : ""}`.trim()}>
+                        <td className="td-check">
                           <input type="checkbox" checked={checked} aria-label={`Select ${coupleName(x)}`} onChange={() => toggleSel(x.id)} />
-                        </label>
-                        <span className={`chip ${chip[0]} card-chip`}>{chip[1]}</span>
-                      </div>
-                      <div className="card-body">
-                        <b className="card-name" title={coupleName(x)}>{coupleName(x)}</b>
-                        <div className="card-meta">
-                          <span className="cell-date"><CalendarDays size={14} /> {x.event_date ? fmtDate(x.event_date) : "Date not set"}</span>
-                          <Countdown x={x} live={live} />
-                        </div>
-                        <div className="card-stats">
-                          <RsvpMeter x={x} live={live} />
+                        </td>
+                        <td>
+                          <div className="cell-couple">
+                            <div className="row-avatar">{initials(x)}</div>
+                            <div className="cell-stack">
+                              <b>{coupleName(x)}</b>
+                              <span className="cell-line">
+                                <span className={`chip ${chip[0]}`}>{chip[1]}</span>
+                                <small className="tpl-name">{templateOf(x).name}</small>
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="cell-stack">
+                            <span className="cell-date"><CalendarDays size={14} /> {x.event_date ? fmtDate(x.event_date) : "Date not set"}</span>
+                            <span className="cd-wrap"><Countdown x={x} live={live} /></span>
+                          </div>
+                        </td>
+                        <td>
                           <span className="views">
                             <Eye size={15} /> {fmt(getViews(x))}
                             {topId === x.id && <span className="top">Top</span>}
                           </span>
-                        </div>
-                        <small className="card-tpl">{templateOf(x).name}</small>
-                      </div>
-                      <div className="card-actions">{rowActions(x, live)}</div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="table-scroll">
-                <table className="inv-table">
-                  <thead>
-                    <tr>
-                      <th className="th-check">
-                        <input ref={headCheck} type="checkbox" checked={allOnPage} aria-label="Select all invitations on this page" onChange={togglePage} />
-                      </th>
-                      <th>Couple</th>
-                      <th>Event date</th>
-                      <th>RSVPs</th>
-                      <th>Invitation views</th>
-                      <th className="th-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {shown.map((x) => {
-                      const live = isPub(x);
-                      const past = isPast(x);
-                      const chip = statusChip(x);
-                      const checked = sel.has(x.id);
-                      return (
-                        <tr key={x.id} className={`${preview?.id === x.id ? "active" : ""}${checked ? " sel" : ""}${past ? " is-past" : ""}`.trim()}>
-                          <td className="td-check">
-                            <input type="checkbox" checked={checked} aria-label={`Select ${coupleName(x)}`} onChange={() => toggleSel(x.id)} />
-                          </td>
-                          <td>
-                            <div className="cell-couple">
-                              <div className="row-avatar">{initials(x)}</div>
-                              <div className="cell-stack">
-                                <b>{coupleName(x)}</b>
-                                <span className="cell-line">
-                                  <span className={`chip ${chip[0]}`}>{chip[1]}</span>
-                                  <small className="tpl-name">{templateOf(x).name}</small>
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="cell-stack">
-                              <span className="cell-date"><CalendarDays size={14} /> {x.event_date ? fmtDate(x.event_date) : "Date not set"}</span>
-                              <span className="cd-wrap"><Countdown x={x} live={live} /></span>
-                            </div>
-                          </td>
-                          <td><RsvpMeter x={x} live={live} /></td>
-                          <td>
-                            <span className="views">
-                              <Eye size={15} /> {fmt(getViews(x))}
-                              {topId === x.id && <span className="top">Top</span>}
-                            </span>
-                          </td>
-                          <td>{rowActions(x, live)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        </td>
+                        <td>
+                          <div className="row-actions">
+                            <button type="button" className={`icon-btn${preview?.id === x.id ? " on" : ""}`} title="Preview" aria-label="Preview invitation" onClick={() => openPreview(x)}>
+                              <Smartphone size={16} />
+                            </button>
+                            <Link to={`/create?edit=${x.id}`} className="act-btn"><Pencil size={14} /> Edit</Link>
+                            <button
+                              type="button" className="act-btn" disabled={!live}
+                              title={live ? "Copy invitation link" : "Publish to enable the link"}
+                              onClick={() => copyLink(x)}
+                            >
+                              <Link2 size={14} /> Link
+                            </button>
+                            <button
+                              type="button" className="icon-btn menu-trigger" aria-label="More actions" aria-haspopup="menu"
+                              aria-expanded={menu?.x.id === x.id} onClick={(e) => openMenu(e, x)}
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
             <div className="table-foot">
               <span>
-                {list.length > perPage
-                  ? `Showing ${(cur - 1) * perPage + 1}–${Math.min(cur * perPage, list.length)} of ${list.length}`
+                {list.length > PAGE_SIZE
+                  ? `Showing ${(cur - 1) * PAGE_SIZE + 1}–${Math.min(cur * PAGE_SIZE, list.length)} of ${list.length}`
                   : `Showing all ${list.length}`}
+                {topTemplate && visible.length > 1 && (
+                  <span className="insight" title="Template used by the most invitations"> · Most used template: <b>{topTemplate.name}</b> ({topTemplate.n} of {visible.length})</span>
+                )}
               </span>
-              {list.length > perPage && (
+              {list.length > PAGE_SIZE && (
                 <div className="pager">
                   <button type="button" className="icon-btn" aria-label="Previous page" disabled={cur === 1} onClick={() => setPage(cur - 1)}><ChevronLeft size={16} /></button>
                   <span className="page-no">{cur} / {pages}</span>
@@ -978,46 +816,39 @@ export default function Invitations({ onPanelChange }) {
 
       <style>{DASHBOARD_CSS}</style>
       <style>{`
-        /* ---------- summary cards ---------- */
-        .inv-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-        .inv-stat { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px; border: 1px solid var(--gray-border); border-radius: 18px; background: var(--white); color: var(--dark); font: inherit; text-align: left; cursor: pointer; transition: border-color .2s, box-shadow .2s, background .2s; }
-        .inv-stat:hover { border-color: var(--periwinkle); box-shadow: 0 6px 18px rgba(54, 52, 77, .06); }
-        .inv-stat.on { border-color: var(--primary); background: var(--primary-lightest); box-shadow: 0 0 0 3px var(--primary-lightest); }
-        .inv-stat-label { font-size: 13px; font-weight: 600; color: var(--gray); }
-        .inv-stat strong { font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -.02em; }
-        .inv-stat-sub { max-width: 100%; font-size: 12px; font-weight: 600; color: var(--gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .inv-stat-sub.ok { color: var(--success-dark); }
-        .inv-stat-sub.info { color: var(--dx-info-text); }
-        .inv-stat-sub.danger { color: var(--danger-dark); }
+        /* ---------- tabs + search ---------- */
+        .inv-tabbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; border-bottom: 1px solid var(--gray-border); }
+        .inv-tabs { display: flex; gap: 26px; }
+        .inv-tab { margin-bottom: -1px; padding: 10px 2px 12px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--gray); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: color .2s, border-color .2s; }
+        .inv-tab em { min-width: 22px; height: 20px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: var(--gray-light); color: var(--gray); font-size: 11.5px; font-style: normal; font-weight: 700; }
+        .inv-tab:hover { color: var(--dark); }
+        .inv-tab.on { border-bottom-color: var(--primary); color: var(--primary); }
+        .inv-tab.on em { background: var(--primary-light); color: var(--primary); }
+        .inv-tabbar .search { margin-bottom: 8px; }
 
-        /* ---------- toolbar ---------- */
-        .view-toggle { display: flex; padding: 3px; gap: 2px; border-radius: 12px; background: var(--gray-light); }
-        .view-toggle button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 9px; background: transparent; color: var(--gray); cursor: pointer; }
-        .view-toggle button.on { background: var(--white); color: var(--primary); box-shadow: 0 1px 3px rgba(54, 52, 77, .14); }
-
+        /* ---------- list panel ---------- */
+        .inv-panel { margin-top: 14px; overflow: hidden; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; }
+        .inv-toolbar { padding: 12px 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; border-bottom: 1px solid var(--gray-border); }
+        .inv-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+        .inv-filter { height: 30px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-border); border-radius: 999px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
+        .inv-filter em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--gray); }
+        .inv-filter:hover { border-color: var(--primary); }
+        .inv-filter.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+        .inv-filter.on em { color: var(--primary); }
         .link-btn { padding: 0; border: 0; background: none; color: var(--primary); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
         .link-btn:hover { text-decoration: underline; }
+        .insight { color: var(--gray); }
+        .insight b { color: var(--gray-dark); font-weight: 700; }
 
         .bulk-bar { padding: 10px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; border-bottom: 1px solid var(--gray-border); background: var(--primary-lightest); }
         .bulk-bar > b { font-size: 13px; font-weight: 700; color: var(--primary-dark); }
         .bulk-spacer { flex: 1; }
         .act-btn.danger:hover:not(:disabled) { background: var(--danger-light); border-color: var(--danger-dark); color: var(--danger-dark); }
 
-        /* ---------- filters ---------- */
-        .filter-row { flex-wrap: wrap; gap: 8px; }
-        .filter-sep { width: 1px; height: 20px; background: var(--gray-border); }
-        .inv-filter { height: 30px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-border); border-radius: 999px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
-        .inv-filter em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--gray); }
-        .inv-filter:hover { border-color: var(--primary); }
-        .inv-filter.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
-        .inv-filter.on em { color: var(--primary); }
-        .insight { margin-left: auto; font-size: 12px; color: var(--gray); }
-        .insight b { color: var(--gray-dark); font-weight: 700; }
-
         /* ---------- table ---------- */
-        .inv-table { min-width: 980px; }
+        .inv-table { min-width: 820px; }
         .inv-table .th-check, .inv-table .td-check { width: 44px; padding-right: 0; }
-        .inv-table input[type="checkbox"], .card-check input { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+        .inv-table input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); cursor: pointer; }
         .inv-table tbody tr.sel { background: var(--primary-lightest); }
         .inv-table tbody tr.is-past td:not(.td-check):not(:last-child) { opacity: .6; }
         .inv-table tbody tr.is-past:hover td { opacity: 1; }
@@ -1029,40 +860,6 @@ export default function Invitations({ onPanelChange }) {
         .cd.info { background: var(--info-light); color: var(--dx-info-text); }
         .cd.warn { background: var(--warning-light); color: var(--dx-warn-text); }
         .cd.danger { background: var(--danger-light); color: var(--danger-dark); }
-        .muted { font-size: 12.5px; color: var(--gray); }
-
-        .rsvp { min-width: 130px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--gray-dark); white-space: nowrap; }
-        .rsvp b { font-weight: 700; color: var(--dark); }
-        .rsvp small { font-size: 12px; color: var(--gray); }
-        .rsvp .bar { display: block; width: 100%; max-width: 140px; height: 6px; border-radius: 999px; background: var(--gray-light); overflow: hidden; }
-        .rsvp .bar u { display: block; height: 100%; border-radius: inherit; background: var(--success); text-decoration: none; }
-
-        /* ---------- grid ---------- */
-        .inv-grid { padding: 18px 22px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-        .inv-card { min-width: 0; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--gray-border); border-radius: 18px; background: var(--white); transition: border-color .2s, box-shadow .2s; }
-        .inv-card:hover { border-color: var(--periwinkle); box-shadow: 0 6px 18px rgba(54, 52, 77, .08); }
-        .inv-card.sel { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
-        .inv-card.active { border-color: var(--primary); }
-        .inv-card.is-past .card-thumb, .inv-card.is-past .card-body { opacity: .65; }
-        .card-thumb { position: relative; background: var(--gray-light); border-bottom: 1px solid var(--gray-border); }
-        .thumb { position: relative; width: 100%; aspect-ratio: ${THUMB_W} / ${THUMB_H}; overflow: hidden; }
-        .thumb iframe { position: absolute; top: 0; left: 0; width: ${THUMB_W}px; height: ${THUMB_H}px; border: 0; background: #fff; transform-origin: top left; pointer-events: none; }
-        .thumb-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--gray); }
-        .card-check { position: absolute; top: 10px; left: 10px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; background: rgba(255, 255, 255, .92); box-shadow: 0 1px 4px rgba(54, 52, 77, .2); cursor: pointer; }
-        .card-chip { position: absolute; top: 12px; right: 10px; background: rgba(255, 255, 255, .94); box-shadow: 0 1px 4px rgba(54, 52, 77, .16); }
-        .card-chip.ok { color: var(--success-dark); }
-        .card-chip.draft { color: var(--gray); }
-        .card-chip.done { color: var(--dx-info-text); }
-        .card-body { padding: 12px 14px 8px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-        .card-name { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-        .card-meta .when { margin-left: 0; }
-        .card-stats { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .card-stats .rsvp { min-width: 0; flex: 1; }
-        .card-tpl { font-size: 12px; color: var(--gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .card-actions { margin-top: auto; padding: 8px 14px 14px; }
-        .card-actions .row-actions { justify-content: flex-start; flex-wrap: wrap; }
-        .sk-card { display: block; height: 340px; border-radius: 18px; }
 
         /* ---------- share modal ---------- */
         .share { padding: 4px 22px 22px; display: flex; flex-direction: column; gap: 16px; }
@@ -1083,14 +880,10 @@ export default function Invitations({ onPanelChange }) {
         .share-qr-img .sk { width: 100%; height: 100%; }
         .share-actions { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 
-        @media (max-width: 1100px) {
-          .inv-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        }
         @media (max-width: 768px) {
-          .inv-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-          .bulk-bar { padding: 10px 16px; }
-          .inv-grid { padding: 14px 16px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-          .insight { margin-left: 0; width: 100%; }
+          .inv-tabbar { align-items: stretch; }
+          .inv-tabbar .search { width: 100%; }
+          .inv-toolbar, .bulk-bar { padding: 10px 16px; }
           .share-qr { flex-direction: column; align-items: stretch; }
           .share-qr-img { align-self: center; }
         }
