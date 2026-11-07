@@ -310,6 +310,10 @@ export default function Create({ onPanelChange }) {
   const [lastSaved, setLastSaved] = useState(null);
   const [share, setShare] = useState(null);
   const [navCta, setNavCta] = useState(false);
+  const [stuck, setStuck] = useState(false);
+  const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
+  const lockRef = useRef(0);
+  const sentinelRef = useRef(null);
 
   const frameRef = useRef(null);
   const navRef = useRef(null);
@@ -529,26 +533,58 @@ export default function Create({ onPanelChange }) {
     const el = document.getElementById(`sec-${id}`);
     if (!el) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     setActive(id);
+    /* ignore scroll-spy while the smooth scroll runs so the clicked tab stays selected */
+    lockRef.current = Date.now() + (reduce ? 80 : 900);
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   };
 
+  /* scroll-spy: the active tab is the last section whose top has passed just under the sticky nav */
   useEffect(() => {
-    const els = SECTIONS.map((s) => document.getElementById(`sec-${s.id}`)).filter(Boolean);
-    if (!els.length || typeof IntersectionObserver === "undefined") return;
-    const seen = new Set();
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((en) => {
-          const id = en.target.id.slice(4);
-          if (en.isIntersecting) seen.add(id); else seen.delete(id);
-        });
-        const first = SECTIONS.find((s) => seen.has(s.id));
-        if (first) setActive(first.id);
-      },
-      { rootMargin: "-100px 0px -55% 0px" }
-    );
-    els.forEach((el) => io.observe(el));
+    const root = sentinelRef.current?.closest(".main-content");
+    if (!root) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const locked = Date.now() < lockRef.current;
+      if (locked) { raf = requestAnimationFrame(update); return; }
+      const navBottom = (document.querySelector(".sec-nav")?.getBoundingClientRect().bottom || 0) + 24;
+      let cur = SECTIONS[0].id;
+      for (const sec of SECTIONS) {
+        const el = document.getElementById(`sec-${sec.id}`);
+        if (el && el.getBoundingClientRect().top <= navBottom) cur = sec.id;
+      }
+      if (root.scrollTop + root.clientHeight >= root.scrollHeight - 4) cur = SECTIONS[SECTIONS.length - 1].id;
+      setActive(cur);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    root.addEventListener("scroll", onScroll, { passive: true });
+    update();
+    return () => { root.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+
+  /* sliding pill behind the active tab */
+  useEffect(() => {
+    const bar = navRef.current;
+    if (!bar) return;
+    const measure = () => {
+      const chip = bar.querySelector(`[data-id="${active}"]`);
+      if (chip) setPill((p) => ({ left: chip.offsetLeft, width: chip.offsetWidth, ready: p.ready || true }));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    document.fonts?.ready?.then(measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [active, issues, done]);
+
+  /* stuck state: true once the nav has stuck under the top navbar, so it can separate from the content */
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const root = el.closest(".main-content");
+    const navbarH = document.querySelector(".top-navbar")?.getBoundingClientRect().height || 64;
+    const io = new IntersectionObserver(([en]) => setStuck(!en.isIntersecting), { root, rootMargin: `-${Math.round(navbarH)}px 0px 0px 0px`, threshold: 0 });
+    io.observe(el);
     return () => io.disconnect();
   }, []);
 
@@ -707,8 +743,10 @@ export default function Create({ onPanelChange }) {
       )}
 
       <div className="create-builder-layout">
-        <nav className="sec-nav" aria-label="Form sections">
+        <div ref={sentinelRef} className="sec-sentinel" aria-hidden="true" />
+        <nav className={`sec-nav${stuck ? " stuck" : ""}`} aria-label="Form sections">
           <div className="sec-chips" ref={navRef}>
+            <span className="sec-pill" aria-hidden="true" style={{ width: pill.width, transform: `translateX(${pill.left}px)` }} />
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               const bad = !!issues[s.id];
@@ -910,12 +948,19 @@ export default function Create({ onPanelChange }) {
      so a negative top lets the nav sit close under the top navbar (about 12px) instead of 40px below it.
      --sec-scroll-mt keeps a section's heading clear of the nav after a chip click. */
   .create { --sec-top: -20px; --sec-scroll-mt: 138px; }
-  .sec-nav { position: sticky; top: var(--sec-top); z-index: 30; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 6px 8px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; box-shadow: 0 6px 18px rgba(54, 52, 77, .07); }
-  .sec-chips { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .sec-nav { position: sticky; top: var(--sec-top); z-index: 30; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 6px 8px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; box-shadow: 0 6px 18px rgba(54, 52, 77, .07); transition: box-shadow .25s ease, border-color .25s ease; }
+  /* once stuck: stronger edge + a page-colored strip above so scrolling cards never show in the gap */
+  .sec-nav::before { content: ""; position: absolute; z-index: -1; left: -8px; right: -8px; top: -60px; height: 60px; background: #f5f5f7; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+  .sec-nav.stuck { border-color: #cfd2e6; box-shadow: 0 10px 28px rgba(54, 52, 77, .16), 0 1px 0 rgba(54, 52, 77, .06); }
+  .sec-nav.stuck::before { opacity: 1; }
+  .sec-chips { position: relative; display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .sec-pill { position: absolute; left: 0; top: 0; height: 36px; border-radius: 999px; background: var(--primary-light); pointer-events: none; z-index: 0; transition: transform .42s cubic-bezier(.22, 1, .36, 1), width .42s cubic-bezier(.22, 1, .36, 1); will-change: transform, width; }
+  .sec-sentinel { height: 0; }
   .sec-chips::-webkit-scrollbar { display: none; }
-  .chip-nav { flex-shrink: 0; height: 36px; padding: 0 13px 0 7px; display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s; }
+  .chip-nav { flex-shrink: 0; height: 36px; padding: 0 13px 0 7px; display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s; position: relative; z-index: 1; }
   .chip-nav:hover { background: var(--gray-light); color: var(--gray-dark); }
-  .chip-nav.on { background: var(--primary-light); color: var(--primary); }
+  .chip-nav.on { color: var(--primary); }
+  .chip-nav.on:hover { background: transparent; }
   .cn-ic { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--gray-light); color: var(--gray); transition: background .2s, color .2s; }
   .chip-nav.on .cn-ic { background: var(--white); color: var(--primary); }
   .chip-nav.ok .cn-ic { background: var(--success-light); color: var(--success-dark); }
