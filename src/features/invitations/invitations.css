@@ -66,3 +66,17 @@
   .share-qr { flex-direction: column; align-items: stretch; }
   .share-qr-img { align-self: center; }
 }
+
+/* mobile cards: the select-all checkbox gets its own bar, each row's checkbox sits in the card's corner */
+@media (max-width: 760px) {
+  .inv-table.has-check thead { display: block; background: var(--ghost-white); border-bottom: 1px solid var(--gray-border); }
+  .inv-table.has-check thead tr { display: flex; align-items: center; }
+  .inv-table.has-check thead th { display: none; }
+  .inv-table.has-check thead th.th-check { display: flex; align-items: center; gap: 10px; width: auto; padding: 10px 16px; border: 0; background: none; }
+  .inv-table.has-check thead th.th-check::after { content: "Select all"; font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--gray-dark); }
+  .inv-table.has-check tbody td.td-check { position: absolute; top: 14px; right: 14px; width: auto; padding: 0; }
+  .inv-table.has-check tbody td.td-couple { padding-right: 32px; }
+  .inv-table.has-check tbody tr.sel { background: var(--primary-lightest); border-color: var(--primary); }
+  .inv-table.has-check tbody tr.is-past td:not(.td-check):not(:last-child) { opacity: .75; }
+}
+

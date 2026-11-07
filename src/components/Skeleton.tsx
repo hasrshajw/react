@@ -27,3 +27,9 @@ export function SkText({ w = 8, className = "" }: { w?: Size; className?: string
 export function Loading({ label = "Loading…" }: { label?: string }) {
   return <span className="sr-only" role="status">{label}</span>;
 }
+
+/** Thin bar across the top of the screen while data is refreshed in place (the old data stays visible). */
+export function RefreshBar({ active }: { active: boolean }) {
+  return <div className={`top-progress${active ? " on" : ""}`} role="progressbar" aria-label="Refreshing" aria-hidden={!active} />;
+}
+

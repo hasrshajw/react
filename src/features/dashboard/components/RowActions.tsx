@@ -21,12 +21,13 @@ export function RowActions({ x, live, previewActive, menuOpen, onPreview, onCopy
         <Smartphone size={16} />
       </button>
       <Link to={`/create?edit=${x.id}`} className="act-btn"><Pencil size={14} /> Edit</Link>
+      {/* A draft has no link yet: say so in the button itself, not only in a tooltip. */}
       <button
-        type="button" className="act-btn" disabled={!live}
-        title={live ? "Copy invitation link" : "Publish to enable the link"}
+        type="button" className={`act-btn${live ? "" : " needs-publish"}`} disabled={!live}
+        title={live ? "Copy invitation link" : "Publish this invitation to get a link you can copy"}
         onClick={() => onCopyLink(x)}
       >
-        <Link2 size={14} /> Link
+        <Link2 size={14} /> {live ? "Link" : "Publish to copy link"}
       </button>
       <button
         type="button" className="icon-btn menu-trigger" aria-label="More actions" aria-haspopup="menu"

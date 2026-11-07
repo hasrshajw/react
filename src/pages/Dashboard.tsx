@@ -20,6 +20,7 @@ import { RowMenu } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
 import { matchesFilter } from "../features/dashboard/filters";
 import { useRowHint } from "../hooks/useRowHint";
+import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
 import { useEnquiries } from "../features/dashboard/hooks/useEnquiries";
@@ -38,6 +39,11 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const store = useInvitationStore({ notify, purgeExpired: true });
   const { visible, trashed, isPub, now } = store;
   const enq = useEnquiries(notify, onEnquiryCountChange);
+  /* Skeletons wait ~150ms before appearing and stay at least ~300ms, so fast loads do not flash. */
+  const invPhase = useSkeletonPhase(store.loading);
+  const enqPhase = useSkeletonPhase(enq.loading);
+  const invSkel = invPhase !== "idle";
+  const enqSkel = enqPhase !== "idle";
 
   const [hideNote, setHideNote] = useState(() => readJSON(LS_NOTE, false));
   const [autoRefresh, setAutoRefresh] = useState(() => readJSON(LS_AUTO, false));
@@ -178,12 +184,16 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   );
 
   return (
-    <div className={`dashboard-page${narrow ? " narrow" : ""}`} ref={pageRef} aria-busy={store.loading || enq.loading}>
+    <div
+      className={`dashboard-page${narrow ? " narrow" : ""}${invPhase === "hold" || enqPhase === "hold" ? " sk-pending" : ""}`}
+      ref={pageRef} aria-busy={store.loading || enq.loading || store.refreshing}
+    >
       <PageHeader
         title="Dashboard"
         subtitle="Manage and preview invitations using sample templates."
         lastUpdated={store.lastUpdated}
-        loading={store.loading && !store.lastUpdated}
+        loading={invSkel}
+        refreshing={store.refreshing}
         now={now}
         onRefresh={() => store.load()}
         createTitle="Create invitation (N)"
@@ -206,7 +216,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
       )}
 
       <StatCards
-        loading={store.loading} enqLoading={enq.loading}
+        loading={invSkel} enqLoading={enqSkel}
         total={visible.length} published={pubCount} drafts={visible.length - pubCount}
         onFilter={applyFilter}
         range={range} onRange={setRange}
@@ -216,11 +226,11 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         onToggleRequests={toggleRequests}
       />
 
-      <AttentionStrip items={attention} loading={!attnReady} expected={attnHint} />
+      <AttentionStrip items={attention} loading={invSkel || enqSkel} expected={attnHint} />
 
       <RecentInvitations
         tableRef={tableRef} searchRef={searchRef}
-        loading={store.loading} skeletonRows={skeletonRows} error={store.error}
+        loading={invSkel} holdSkeleton={invPhase === "hold"} skeletonRows={skeletonRows} error={store.error}
         visible={visible} list={list} shown={shown} trashed={trashed} topId={topId}
         q={q} sort={sort} filter={filter} expanded={expanded} showAll={showAll} page={cur} pages={pages}
         previewId={preview?.id} menuId={menu?.x.id}

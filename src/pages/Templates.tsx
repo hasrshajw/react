@@ -4,6 +4,7 @@ import { Eye, LayoutTemplate, Plus, Search, X } from "../components/Icons";
 import { SkText, Loading } from "../components/Skeleton";
 import { useTemplates } from "../hooks/useTemplates";
 import { useRowHint } from "../hooks/useRowHint";
+import { useFadeIn } from "../hooks/useFadeIn";
 import { compile } from "../lib/compileInvitation";
 import { SAMPLE } from "../features/create/constants";
 import type { TemplateRecord } from "../types/dashboard";
@@ -21,8 +22,10 @@ function useCompiled(t: TemplateRecord) {
 function Thumb({ t }: { t: TemplateRecord }) {
   const img = t.thumbnail || t.thumbnail_url || t.image || t.preview_image;
   const doc = useCompiled(t);
-  if (img) return <img src={img} alt="" loading="lazy" />;
-  if (doc) return <iframe title="" srcDoc={doc} sandbox="" loading="lazy" tabIndex={-1} aria-hidden="true" />;
+  const fade = useFadeIn();
+  /* The preview iframes render slowly: show a shimmer until each one is ready, then fade it in. */
+  if (img) return <>{!fade.loaded && <i className="sk thumb-shimmer" aria-hidden="true" />}<img ref={fade.imgRef} className={fade.className} src={img} alt="" loading="lazy" onLoad={fade.onLoad} onError={fade.onError} /></>;
+  if (doc) return <>{!fade.loaded && <i className="sk thumb-shimmer" aria-hidden="true" />}<iframe className={fade.className} title="" srcDoc={doc} sandbox="" loading="lazy" tabIndex={-1} aria-hidden="true" onLoad={fade.onLoad} /></>;
   return <span className="tpl-none"><LayoutTemplate size={26} /></span>;
 }
 

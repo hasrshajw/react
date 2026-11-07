@@ -9,11 +9,14 @@
    Set it to 0 when the real database is connected.
    ========================================================================== */
 import { demoCategories, demoTemplates, getDemoInvitations } from "./demoData";
-import { INITIAL_ENQUIRIES } from "./dashboardData";
-import type { Enquiry, InvitationRow } from "../types/dashboard";
+import { INITIAL_ENQUIRIES, LS_DEL, LS_PUB } from "./dashboardData";
+import type { DeletedMap, Enquiry, InvitationRow, PublishMap } from "../types/dashboard";
 import type { Category, Template } from "../types/invitation";
 
 export const SIMULATED_LATENCY_MS = 450;
+/** Writes. The UI already updates before a write finishes (optimistic updates, see useInvitationStore),
+ *  so this is 0 for now. Raise it (e.g. 600) to see that behaviour, and the roll-back when a write fails. */
+export const SIMULATED_WRITE_LATENCY_MS = 0;
 
 function respond<T>(read: () => T, ms = SIMULATED_LATENCY_MS): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -40,3 +43,9 @@ export const fetchInvitation = (id: string) =>
   respond<InvitationRow | null>(() => getDemoInvitations().find((x) => x.id === id) ?? null, 400);
 
 export const fetchEnquiries = () => respond<Enquiry[]>(() => INITIAL_ENQUIRIES, 500);
+
+/* Writes. They reject when the write fails (e.g. browser storage is full), and the UI rolls the change back. */
+const put = (key: string, value: unknown) => localStorage.setItem(key, JSON.stringify(value));
+export const savePublished = (map: PublishMap) => respond<void>(() => put(LS_PUB, map), SIMULATED_WRITE_LATENCY_MS);
+export const saveDeleted = (map: DeletedMap) => respond<void>(() => put(LS_DEL, map), SIMULATED_WRITE_LATENCY_MS);
+

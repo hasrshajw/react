@@ -68,3 +68,42 @@
 .sk-bg::placeholder { color: transparent !important; }
 .sk-bg::-webkit-datetime-edit,
 .sk-bg::-webkit-calendar-picker-indicator { opacity: 0; }
+
+/* ==========================================================================
+   Delayed skeleton: while a load is still "fast", keep the space but draw nothing
+   ========================================================================== */
+.sk-hold { opacity: 0; }
+.sk-hold, .sk-hold * { animation: none !important; }
+/* page-level hold: ghost blocks keep their size but are not drawn yet */
+.sk-pending .sk, .sk-pending .sk-bg { background-image: none !important; animation: none; }
+.sk-reveal { animation: sk-reveal .18s ease both; }
+@keyframes sk-reveal { from { opacity: 0; } to { opacity: 1; } }
+
+/* ==========================================================================
+   Thin progress bar: shown while data is refreshed in place (old data stays visible)
+   ========================================================================== */
+.top-progress {
+  position: fixed; z-index: 9900; top: 0; left: 0; right: 0; height: 3px;
+  overflow: hidden; background: var(--primary-light, #ebe4ff);
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.top-progress.on { opacity: 1; }
+.top-progress::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 35%;
+  border-radius: inherit; background: var(--primary, #673de6);
+  animation: top-progress 1.1s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+@keyframes top-progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+
+/* ==========================================================================
+   Image / iframe previews: fade in once they have actually rendered
+   ========================================================================== */
+.thumb-media { opacity: 0; transition: opacity .35s ease; }
+.thumb-media.is-loaded { opacity: 1; }
+.thumb-shimmer { position: absolute; inset: 0; width: auto; height: auto; border-radius: inherit; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-reveal { animation: none; }
+  .top-progress::before { animation: none; width: 100%; opacity: .6; }
+  .thumb-media { transition: none; }
+}

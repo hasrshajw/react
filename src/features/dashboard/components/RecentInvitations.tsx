@@ -12,6 +12,8 @@ interface Props {
   tableRef: RefObject<HTMLDivElement | null>;
   searchRef: RefObject<HTMLInputElement | null>;
   loading: boolean;
+  /** Loading is still quick: reserve the skeleton's space but draw nothing yet (see useSkeletonPhase). */
+  holdSkeleton?: boolean;
   /** Rows to draw while loading (see useRowHint). */
   skeletonRows: number;
   error: boolean;
@@ -88,7 +90,7 @@ export function RecentInvitations(p: Props) {
       {p.error ? (
         <ErrorState onRetry={p.onRetry} />
       ) : p.loading ? (
-        <InvitationsTableSkeleton rows={p.skeletonRows} />
+        <InvitationsTableSkeleton rows={p.skeletonRows} hold={p.holdSkeleton} />
       ) : visible.length === 0 ? (
         <NoInvitationsState />
       ) : list.length === 0 ? (
@@ -112,7 +114,7 @@ export function RecentInvitations(p: Props) {
                   const when = whenText(dayDiff(x.event_date));
                   return (
                     <tr key={x.id} className={p.previewId === x.id ? "active" : ""}>
-                      <td>
+                      <td className="td-couple">
                         <div className="cell-couple">
                           <div className="row-avatar">{initials(x)}</div>
                           <div className="cell-stack">
@@ -121,19 +123,19 @@ export function RecentInvitations(p: Props) {
                           </div>
                         </div>
                       </td>
-                      <td>
+                      <td className="td-date" data-label="Event date">
                         <div className="cell-stack">
                           <span className="cell-date"><CalendarDays size={14} /> {x.event_date ? fmtDate(x.event_date) : "Date not set"}</span>
                           {when && <small className="when">{when}</small>}
                         </div>
                       </td>
-                      <td>
+                      <td className="td-views" data-label="Views">
                         <span className="views">
                           <Eye size={15} /> {fmt(getViews(x))}
                           {p.topId === x.id && <span className="top">Top</span>}
                         </span>
                       </td>
-                      <td>
+                      <td className="td-actions">
                         <RowActions
                           x={x} live={live} previewActive={p.previewId === x.id} menuOpen={p.menuId === x.id}
                           onPreview={p.onPreview} onCopyLink={p.onCopyLink} onOpenMenu={p.onOpenMenu}

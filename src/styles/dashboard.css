@@ -17,6 +17,10 @@
         .refresh:hover { background: var(--gray-light); border-color: var(--periwinkle); }
         .refresh svg { transition: transform .35s ease; }
         .refresh:active svg { transform: rotate(180deg); }
+        .refresh.is-refreshing:disabled { opacity: .8; cursor: progress; }
+        .refresh.is-refreshing svg { transition: none; }
+        .refresh .spin { animation: dx-spin .8s linear infinite; }
+        @keyframes dx-spin { to { transform: rotate(360deg); } }
         .auto-btn { height: 28px; padding: 0 11px; border: 1px solid var(--gray-border); border-radius: 999px; background: var(--white); color: var(--gray); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
         .auto-btn.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
         .create-btn { border: 0; background: var(--btn); color: #fff; box-shadow: none; }
@@ -126,6 +130,7 @@
         .act-btn { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; transition: background .2s, border-color .2s, color .2s; }
         .act-btn:hover:not(:disabled) { background: var(--primary-lightest); border-color: var(--primary); color: var(--primary); }
         .act-btn.wide { width: 100%; height: 40px; }
+        .act-btn.needs-publish:disabled { opacity: 1; border-style: dashed; background: var(--ghost-white); color: var(--gray); font-weight: 500; cursor: default; }
         .act-btn .cnt { min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px; background: var(--primary-light); color: var(--primary); font-size: 11px; font-style: normal; font-weight: 700; }
         .icon-btn { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; padding: 0; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
         .icon-btn.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
@@ -283,7 +288,7 @@
         @keyframes dx-slide { from { transform: translateX(40px); opacity: .6; } to { transform: none; opacity: 1; } }
 
         @media (prefers-reduced-motion: reduce) {
-          .dx-enq-collapse, .dx-chev, .dx-seg-thumb, .dash-side-panel, .dx-modal, .dx-overlay, .dx-toast, .sk { transition: none; animation: none; }
+          .dx-enq-collapse, .dx-chev, .dx-seg-thumb, .dash-side-panel, .dx-modal, .dx-overlay, .dx-toast, .sk, .refresh .spin { transition: none; animation: none; }
         }
 
         /* ---------- responsive ---------- */
@@ -306,4 +311,23 @@
           .inv-table thead th, .inv-table tbody td { padding-left: 16px; padding-right: 16px; }
           .table-foot { padding: 12px 16px; flex-wrap: wrap; }
         }
-      
+
+        /* ---------- mobile: each table row becomes a stacked card (the skeleton uses the same classes) ---------- */
+        @media (max-width: 760px) {
+          .table-scroll { overflow: visible; }
+          .table-scroll .inv-table { display: block; min-width: 0; }
+          .inv-table thead { display: none; }
+          .inv-table tbody { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
+          .inv-table tbody tr { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 14px; padding: 14px; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); }
+          .inv-table tbody tr:hover { background: var(--white); }
+          .inv-table tbody tr.active { background: var(--primary-lightest); border-color: var(--primary); }
+          .inv-table tbody td { display: block; min-width: 0; padding: 0; border: 0; }
+          .inv-table tbody td.td-couple, .inv-table tbody td.td-actions { grid-column: 1 / -1; }
+          .inv-table tbody td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
+          .inv-table tbody td.td-actions { padding-top: 12px; border-top: 1px solid var(--gray-border); }
+          .inv-table .cell-stack b { white-space: normal; overflow-wrap: anywhere; }
+          .inv-table .row-actions { justify-content: stretch; }
+          .inv-table .row-actions .act-btn { flex: 1; min-width: 0; }
+          .inv-table tbody tr.sk-row .td-actions .act-btn { flex: 1; }
+        }
+

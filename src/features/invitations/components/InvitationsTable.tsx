@@ -35,7 +35,7 @@ export function InvitationsTable(p: Props) {
   return (
     <>
       <div className="table-scroll">
-        <table className="inv-table">
+        <table className="inv-table has-check">
           <thead>
             <tr>
               <th className="th-check">
@@ -58,7 +58,7 @@ export function InvitationsTable(p: Props) {
                   <td className="td-check">
                     <input type="checkbox" checked={checked} aria-label={`Select ${coupleName(x)}`} onChange={() => p.onToggle(x.id)} />
                   </td>
-                  <td>
+                  <td className="td-couple">
                     <div className="cell-couple">
                       <div className="row-avatar">{initials(x)}</div>
                       <div className="cell-stack">
@@ -70,19 +70,19 @@ export function InvitationsTable(p: Props) {
                       </div>
                     </div>
                   </td>
-                  <td>
+                  <td className="td-date" data-label="Event date">
                     <div className="cell-stack">
                       <span className="cell-date"><CalendarDays size={14} /> {x.event_date ? fmtDate(x.event_date) : "Date not set"}</span>
                       <span className="cd-wrap"><Countdown x={x} live={live} /></span>
                     </div>
                   </td>
-                  <td>
+                  <td className="td-views" data-label="Views">
                     <span className="views">
                       <Eye size={15} /> {fmt(getViews(x))}
                       {p.topId === x.id && <span className="top">Top</span>}
                     </span>
                   </td>
-                  <td>
+                  <td className="td-actions">
                     <RowActions
                       x={x} live={live} previewActive={p.previewId === x.id} menuOpen={p.menuId === x.id}
                       onPreview={p.onPreview} onCopyLink={p.onCopyLink} onOpenMenu={p.onOpenMenu}

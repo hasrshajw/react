@@ -42,14 +42,17 @@ interface TableSkeletonProps {
   rows: number;
   /** All invitations page: leading checkbox column, template name and a countdown chip. */
   detailed?: boolean;
+  /** Loading has not lasted long enough to show a skeleton yet: keep the space, draw nothing (see useSkeletonPhase). */
+  hold?: boolean;
 }
 
 /** Placeholder for the invitations table. It reuses the real table's classes and column headers
- *  (static text is shown as is), and only the server data (names, dates, counts, buttons) is replaced. */
-export function InvitationsTableSkeleton({ rows, detailed = false }: TableSkeletonProps) {
+ *  (static text is shown as is), and only the server data (names, dates, counts, buttons) is replaced.
+ *  It uses the same cell classes as the real table, so below 760px it turns into stacked cards just like the real rows. */
+export function InvitationsTableSkeleton({ rows, detailed = false, hold = false }: TableSkeletonProps) {
   return (
-    <div className="table-scroll" aria-busy="true">
-      <table className="inv-table">
+    <div className={`table-scroll${hold ? " sk-hold" : " sk-reveal"}`} aria-busy="true">
+      <table className={`inv-table${detailed ? " has-check" : ""}`}>
         <caption className="sr-only">Loading invitations</caption>
         <thead>
           <tr>
@@ -64,7 +67,7 @@ export function InvitationsTableSkeleton({ rows, detailed = false }: TableSkelet
           {Array.from({ length: rows }, (_, i) => (
             <tr key={i} className="sk-row" aria-hidden="true">
               {detailed && <td className="td-check"><input type="checkbox" disabled tabIndex={-1} /></td>}
-              <td>
+              <td className="td-couple">
                 <div className="cell-couple">
                   <div className="row-avatar sk-bg">AB</div>
                   <div className="cell-stack">
@@ -80,7 +83,7 @@ export function InvitationsTableSkeleton({ rows, detailed = false }: TableSkelet
                   </div>
                 </div>
               </td>
-              <td>
+              <td className="td-date" data-label="Event date">
                 <div className="cell-stack">
                   <span className="cell-date"><CalendarDays size={14} /> <SkText w={12} /></span>
                   {detailed
@@ -88,8 +91,8 @@ export function InvitationsTableSkeleton({ rows, detailed = false }: TableSkelet
                     : <small className="when"><SkText w={9} /></small>}
                 </div>
               </td>
-              <td><span className="views"><Eye size={15} /> <SkText w={4} /></span></td>
-              <td>
+              <td className="td-views" data-label="Views"><span className="views"><Eye size={15} /> <SkText w={4} /></span></td>
+              <td className="td-actions">
                 <div className="row-actions">
                   <span className="icon-btn sk-bg" />
                   <span className="act-btn sk-bg"><Pencil size={14} /> Edit</span>

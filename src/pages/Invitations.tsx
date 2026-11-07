@@ -13,6 +13,7 @@ import { RowMenu } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
 import { ErrorState, InvitationsTableSkeleton, NoInvitationsState, NoMatchState } from "../features/dashboard/components/ListStates";
 import { useRowHint } from "../hooks/useRowHint";
+import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
 import { useRowMenu } from "../features/dashboard/hooks/useRowMenu";
@@ -33,6 +34,9 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   const store = useInvitationStore({ notify });
   const { rows, visible, trashed, isPub, loading } = store;
   const skeletonRows = useRowHint("invitations", visible.length, loading, PAGE_SIZE, 5);
+  /* The skeleton waits ~150ms before appearing and stays at least ~300ms, so fast loads do not flash. */
+  const phase = useSkeletonPhase(loading);
+  const skel = phase !== "idle";
 
   const [page, setPage] = useState(1);
   const selection = useSelection();
@@ -199,12 +203,13 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   ];
 
   return (
-    <div className="dashboard-page inv-page" aria-busy={loading}>
+    <div className={`dashboard-page inv-page${phase === "hold" ? " sk-pending" : ""}`} aria-busy={loading || store.refreshing}>
       <PageHeader
         title="All invitations"
         subtitle="Every invitation you have created, in one place."
         lastUpdated={store.lastUpdated}
-        loading={loading && !store.lastUpdated}
+        loading={skel}
+        refreshing={store.refreshing}
         now={store.now}
         onRefresh={() => store.load()}
       />
@@ -218,7 +223,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
               className={`inv-tab${status === key ? " on" : ""}`}
               onClick={() => setParams({ status: key })}
             >
-              {label} {loading ? <em className="sk-bg" aria-hidden="true">00</em> : <em>{fmt(n)}</em>}
+              {label} {skel ? <em className="sk-bg" aria-hidden="true">00</em> : <em>{fmt(n)}</em>}
             </button>
           ))}
         </div>
@@ -227,7 +232,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
       {/* ---------- list ---------- */}
       <div className="inv-panel">
         <InvitationsToolbar
-          loading={loading} when={when} counts={stats} hasFilters={hasFilters}
+          loading={skel} when={when} counts={stats} hasFilters={hasFilters}
           q={q} tpl={tpl} sort={sort} templates={templates} trashedCount={trashed.length}
           searchRef={searchRef} onParams={setParams} onClearFilters={clearFilters}
           onOpenTrash={(e: MouseEvent<HTMLButtonElement>) => { opener.current = e.currentTarget; setTrash(true); }}
@@ -243,8 +248,8 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
 
         {store.error ? (
           <ErrorState onRetry={() => store.load()} />
-        ) : loading ? (
-          <InvitationsTableSkeleton rows={skeletonRows} detailed />
+        ) : skel ? (
+          <InvitationsTableSkeleton rows={skeletonRows} detailed hold={phase === "hold"} />
         ) : visible.length === 0 ? (
           <NoInvitationsState />
         ) : list.length === 0 ? (

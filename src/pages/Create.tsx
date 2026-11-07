@@ -174,6 +174,13 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.couplePhoto, data.gallery.length, data.events.length]);
   const doneCount = PROGRESS_IDS.filter((id) => done[id]).length;
 
+  /* Each section has its own loading flag, so a section can appear as soon as ITS data is there.
+     (Today the invitation arrives in one piece, so its sections appear together, with a short stagger.) */
+  const sectionLoading = useMemo<Record<SectionId, boolean>>(() => ({
+    template: recordLoading, family: recordLoading, groom: recordLoading, bride: recordLoading,
+    venue: recordLoading, photos: recordLoading, events: recordLoading,
+  }), [recordLoading]);
+
   const tagFor = useCallback((id: SectionId): { tone: string; text: string; loading?: boolean } => {
     const s = SECTIONS.find((x) => x.id === id)!;
     if (recordLoading) return { tone: "", text: "Required", loading: true };
@@ -321,7 +328,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
         />
         <CreateForm
           data={data} categories={categories} templates={templates} categoryId={categoryId} onCategory={onCategory}
-          loading={recordLoading} templatesLoading={tplLoading} expectTemplate={expectTemplate}
+          sectionLoading={sectionLoading} templatesLoading={tplLoading} expectTemplate={expectTemplate}
           set={set} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch}
           tagFor={tagFor} onSubmit={onSubmit} notify={notify}
         />
