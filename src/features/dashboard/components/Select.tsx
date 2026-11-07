@@ -1,21 +1,30 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   Check, ChevronDown,
-} from "../../components/Icons";
-import { useEscape } from "../../hooks/useEscape";
+} from "../../../components/Icons";
+import { useEscape } from "../../../hooks/useEscape";
 
-export const SORT_OPTIONS = [
+export interface SelectOption { value: string; label: string }
+
+export const SORT_OPTIONS: SelectOption[] = [
   { value: "recent", label: "Recently added" },
   { value: "date", label: "Event date" },
   { value: "views", label: "Most viewed" },
 ];
 
-export function Select({ value, onChange, options, label }) {
+interface SelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  label: string;
+}
+
+export function Select({ value, onChange, options, label }: SelectProps) {
   const uid = useId();
-  const btnRef = useRef(null);
-  const listRef = useRef(null);
-  const [pos, setPos] = useState(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<CSSProperties | null>(null);
   const [active, setActive] = useState(-1);
   const open = !!pos;
   const index = Math.max(0, options.findIndex((o) => o.value === value));
@@ -26,12 +35,12 @@ export function Select({ value, onChange, options, label }) {
     if (refocus) setTimeout(() => btnRef.current?.focus(), 0);
   };
   const openList = () => {
-    const r = btnRef.current.getBoundingClientRect();
+    const r = btnRef.current!.getBoundingClientRect();
     const up = window.innerHeight - r.bottom < Math.min(280, options.length * 40 + 20);
     setPos({ left: r.left, minWidth: r.width, top: up ? undefined : r.bottom + 6, bottom: up ? window.innerHeight - r.top + 6 : undefined });
     setActive(index);
   };
-  const choose = (i) => {
+  const choose = (i: number) => {
     const o = options[i];
     if (o) onChange(o.value);
     close(true);
@@ -41,8 +50,8 @@ export function Select({ value, onChange, options, label }) {
   useEffect(() => {
     if (!open) return undefined;
     listRef.current?.focus();
-    const down = (e) => { if (!e.target.closest(".dd-list") && !e.target.closest(".dd-btn")) close(); };
-    const scroll = (e) => { if (!e.target.closest?.(".dd-list")) close(); };
+    const down = (e: MouseEvent) => { const t = e.target as Element; if (!t.closest(".dd-list") && !t.closest(".dd-btn")) close(); };
+    const scroll = (e: Event) => { if (!(e.target as Element).closest?.(".dd-list")) close(); };
     document.addEventListener("mousedown", down);
     window.addEventListener("scroll", scroll, true);
     const resize = () => close();
@@ -57,10 +66,10 @@ export function Select({ value, onChange, options, label }) {
     if (open) document.getElementById(`${uid}-${active}`)?.scrollIntoView?.({ block: "nearest" });
   }, [active, open]);
 
-  const onBtnKey = (e) => {
+  const onBtnKey = (e: KeyboardEvent) => {
     if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) { e.preventDefault(); open ? close() : openList(); }
   };
-  const onListKey = (e) => {
+  const onListKey = (e: KeyboardEvent) => {
     const n = options.length;
     if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % n); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + n) % n); }
@@ -89,7 +98,7 @@ export function Select({ value, onChange, options, label }) {
         <div
           ref={listRef} className="dd-list" role="listbox" tabIndex={-1} aria-label={label}
           aria-activedescendant={`${uid}-${active}`} onKeyDown={onListKey}
-          style={{ left: pos.left, minWidth: pos.minWidth, top: pos.top, bottom: pos.bottom }}
+          style={pos ?? undefined}
         >
           {options.map((o, i) => (
             <div

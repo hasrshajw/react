@@ -1,0 +1,58 @@
+import type { Template } from "./invitation";
+
+/** Invitation record as stored by the demo data layer (and as the real API will return it). */
+export interface InvitationRow {
+  id: string;
+  groom_name?: string;
+  bride_name?: string;
+  event_date?: string | null;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  views?: number;
+  template_id?: string | number | null;
+  template_name?: string;
+  details?: { customId?: string; [key: string]: any };
+  [key: string]: any;
+}
+
+/** A template plus the optional fields a real API may add (thumbnail, alternate name/html keys). */
+export interface TemplateRecord extends Template {
+  title?: string;
+  html?: string;
+  thumbnail?: string;
+  thumbnail_url?: string;
+  image?: string;
+  preview_image?: string;
+}
+
+
+export type EnquiryStatus = "new" | "followup" | "called" | "cancelled";
+/** Tabs of the enquiries panel: a status, or everything. */
+export type EnquiryTab = EnquiryStatus | "all";
+
+export interface Enquiry {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  message: string;
+  createdAt: string;
+  status: EnquiryStatus;
+  note: string;
+  followUpDate: string;
+  history: { status: EnquiryStatus; at: string }[];
+}
+
+export interface TrashItem { row: InvitationRow; at: number }
+
+/** Map of invitation id -> published flag. A missing id means "published". */
+export type PublishMap = Record<string, boolean>;
+/** Map of invitation id -> time it was moved to the trash (ms). */
+export type DeletedMap = Record<string, number>;
+
+export type Notify = (msg: string, undo?: () => void) => void;
+
+export type ActivityRange = "7" | "30" | "all";
+export type TableFilter = "all" | "published" | "draft" | "draftSoon" | "noViews";
+export type SortKey = "recent" | "date" | "views";

@@ -1,23 +1,37 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   Check, Search, X, MessageCircle, ChevronDown, Phone, Mail, PhoneCall, Clock, Ban, Download, Copy,
-} from "../../components/Icons";
-import { ENQ_LABEL, copyText, exportCsv, fmtDateTime, followDue, timeAgo, waLink } from "../../lib/dashboardData";
-import { useEscape } from "../../hooks/useEscape";
+} from "../../../components/Icons";
+import { ENQ_LABEL, copyText, exportCsv, fmtDateTime, followDue, timeAgo, waLink } from "../../../lib/dashboardData";
+import { useEscape } from "../../../hooks/useEscape";
+import type { Enquiry, EnquiryStatus, EnquiryTab, Notify } from "../../../types/dashboard";
 
-export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSetStatus, onSaveNote, onSetFollowDate, notify }) {
-  const [openId, setOpenId] = useState(null);
+interface Props {
+  slot: HTMLElement | null;
+  enquiries: Enquiry[];
+  now: number;
+  tab: EnquiryTab;
+  onTab: (tab: EnquiryTab) => void;
+  onClose: () => void;
+  onSetStatus: (id: string, status: EnquiryStatus) => void;
+  onSaveNote: (id: string, value: string) => void;
+  onSetFollowDate: (id: string, date: string) => void;
+  notify: Notify;
+}
+
+export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSetStatus, onSaveNote, onSetFollowDate, notify }: Props) {
+  const [openId, setOpenId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const asideRef = useRef(null);
-  const tabRefs = useRef([]);
+  const asideRef = useRef<HTMLElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   useEscape(true, onClose);
   useEffect(() => { asideRef.current?.focus({ preventScroll: true }); }, []);
   if (!slot) return null;
 
-  const count = (s) => enquiries.filter((e) => e.status === s).length;
+  const count = (s: EnquiryStatus) => enquiries.filter((e) => e.status === s).length;
   const newCount = count("new");
-  const tabs = [
+  const tabs: { key: EnquiryTab; label: string; count: number }[] = [
     { key: "new", label: "New", count: newCount },
     { key: "followup", label: "Follow-up", count: count("followup") },
     { key: "cancelled", label: "Cancelled", count: count("cancelled") },
@@ -30,7 +44,7 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
       (tab === "all" || e.status === tab) &&
       (!term || [e.name, e.phone, e.email, e.message, e.note || ""].some((s) => s.toLowerCase().includes(term)))
   );
-  const empty = term
+  const empty: string[] = term
     ? ["No matches", "Try a different name, phone or email."]
     : {
         new: ["All caught up", "No new enquiries."],
@@ -39,7 +53,7 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
         all: ["No enquiries yet", "Website enquiries will show up here."],
       }[tab];
 
-  const onTabKey = (ev) => {
+  const onTabKey = (ev: KeyboardEvent) => {
     if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(ev.key)) return;
     ev.preventDefault();
     let n = idx;
@@ -68,7 +82,7 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
         {tabs.map((t, i) => (
           <button
             key={t.key} type="button" role="tab" id={`enq-tab-${t.key}`} aria-selected={tab === t.key} aria-controls="enq-tabpanel"
-            tabIndex={tab === t.key ? 0 : -1} ref={(el) => (tabRefs.current[i] = el)}
+            tabIndex={tab === t.key ? 0 : -1} ref={(el) => { tabRefs.current[i] = el; }}
             className={`t-${t.key}${tab === t.key ? " on" : ""}`} onClick={() => onTab(t.key)}
           >
             {t.label} <em>{t.count}</em>
@@ -195,6 +209,3 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
     slot
   );
 }
-
-/* Custom dropdown (replaces the browser's native <select>). Shared with the Invitations page.
-   options: [{ value, label }]. Keyboard: Arrow keys, Home/End, Enter/Space, Esc, type-ahead by first letter. */

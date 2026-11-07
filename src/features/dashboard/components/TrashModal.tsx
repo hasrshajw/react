@@ -1,11 +1,17 @@
-import React from "react";
 import {
   Trash2, RotateCcw,
-} from "../../components/Icons";
-import { DAY, TRASH_DAYS, coupleName, fmtDate, initials } from "../../lib/dashboardData";
-import { Modal } from "../../components/dashboard/Modal";
+} from "../../../components/Icons";
+import { DAY, TRASH_DAYS, coupleName, fmtDate, initials } from "../../../lib/dashboardData";
+import type { TrashItem } from "../../../types/dashboard";
+import { Modal } from "./Modal";
 
-export function TrashModal({ items, onRestore, onClose }) {
+interface Props {
+  items: TrashItem[];
+  onRestore: (id: string) => void;
+  onClose: () => void;
+}
+
+export function TrashModal({ items, onRestore, onClose }: Props) {
   return (
     <Modal title="Trash" subtitle={`Deleted invitations are kept for ${TRASH_DAYS} days`} width={440} onClose={onClose}>
       <div className="dx-trash">

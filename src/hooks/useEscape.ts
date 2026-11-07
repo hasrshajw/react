@@ -1,14 +1,14 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
-const escStack = [];
-export const useEscape = (active, fn) => {
+const escStack: object[] = [];
+export const useEscape = (active: boolean, fn: () => void) => {
   const ref = useRef(fn);
   ref.current = fn;
   useEffect(() => {
     if (!active) return;
-    const token = {};
+    const token: object = {};
     escStack.push(token);
-    const h = (e) => {
+    const h = (e: KeyboardEvent) => {
       if (e.key === "Escape" && escStack[escStack.length - 1] === token) ref.current();
     };
     window.addEventListener("keydown", h);
@@ -22,14 +22,14 @@ export const useEscape = (active, fn) => {
 
 /* Keeps Tab inside a dialog and restores focus when it closes. */
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])';
-export const useFocusTrap = (ref) => {
+export const useFocusTrap = (ref: RefObject<HTMLElement | null>) => {
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const prev = document.activeElement;
-    const items = () => [...root.querySelectorAll(FOCUSABLE)].filter((n) => n.offsetParent !== null);
+    const prev = document.activeElement as HTMLElement | null;
+    const items = () => [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.offsetParent !== null);
     (items()[0] || root).focus();
-    const onKey = (e) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
       const els = items();
       if (!els.length) { e.preventDefault(); return; }

@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, MailPlus, Mails, LayoutTemplate, Palette, Image as ImageIcon, LayoutGrid,
   PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus,
 } from "./Icons";
+import type { IconComponent } from "./Icons";
 
 import logo from "../assets/logo.png";
 import logoSmall from "../assets/logo-small.png";
@@ -39,14 +40,14 @@ const CRUMBS = {
   "/customize/combo": ["Customize site", "Combo offer"],
 };
 
-function getCrumbs(pathname) {
+function getCrumbs(pathname: string): string[] {
   const clean = pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname;
   if (CRUMBS[clean]) return CRUMBS[clean];
   const last = clean.split("/").filter(Boolean).pop() || "Overview";
   return ["Dashboard", last.charAt(0).toUpperCase() + last.slice(1).replace(/-/g, " ")];
 }
 
-function MenuIcon({ Icon, size = 20 }) {
+function MenuIcon({ Icon, size = 20 }: { Icon: IconComponent; size?: number }) {
   return (
     <span className="menu-icon" aria-hidden="true">
       <Icon size={size} strokeWidth={1.8} />
@@ -55,7 +56,7 @@ function MenuIcon({ Icon, size = 20 }) {
 }
 
 /* Always rendered so it can animate; hidden links are not focusable */
-function Submenu({ id, open, onNavigate }) {
+function Submenu({ id, open, onNavigate }: { id: string; open: boolean; onNavigate: () => void }) {
   return (
     <div id={id} className={`nav-submenu ${open ? "open" : ""}`}>
       <div className="nav-submenu-inner">
@@ -80,6 +81,21 @@ function Submenu({ id, open, onNavigate }) {
    SIDEBAR
 ========================================================= */
 
+interface SidebarProps {
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+  panelOpen?: boolean;
+  onHoverExpand?: (expanded: boolean) => void;
+  onProfileClick?: () => void;
+  profileOpen?: boolean;
+  /** Optional: pass a handler to show the search button + Ctrl K shortcut. */
+  onSearch?: () => void;
+  liveSiteUrl?: string;
+}
+
+interface Pill { x: number; y: number; w: number; h: number; sub: boolean }
+type Timer = ReturnType<typeof setTimeout> | undefined;
+
 export default function Sidebar({
   collapsed,
   setCollapsed,
@@ -87,9 +103,9 @@ export default function Sidebar({
   onHoverExpand,
   onProfileClick,
   profileOpen = false,
-  onSearch, // optional: pass a handler to show the search button + ⌘K shortcut
+  onSearch,
   liveSiteUrl = "/",
-}) {
+}: SidebarProps) {
   const { pathname } = useLocation();
   const customizeActive = pathname.startsWith("/customize");
 
@@ -110,7 +126,7 @@ export default function Sidebar({
      enter/leave stops flicker, and the Customize submenu only opens on click. */
   const [peek, setPeek] = useState(false);
   const [siteTouched, setSiteTouched] = useState(false);
-  const peekTimer = useRef(null);
+  const peekTimer = useRef<Timer>(undefined);
 
   const baseExpanded = overlayMode ? overlayOpen : !collapsed;
   const isExpanded = baseExpanded || peek;
@@ -122,7 +138,7 @@ export default function Sidebar({
   const sidebarOpen = baseExpanded;
   const submenuOpen = siteOpen && (!peeking || siteTouched);
 
-  const handlePointerEnter = (e) => {
+  const handlePointerEnter = (e: PointerEvent<HTMLElement>) => {
     if (e.pointerType && e.pointerType !== "mouse") return; // touch: tap, don't peek
     clearTimeout(peekTimer.current);
     if (baseExpanded) return;
@@ -138,19 +154,20 @@ export default function Sidebar({
   /* ---- Sliding active pill -----------------------------------------
      Same look as the static highlight (soft brand bg + left accent bar),
      but it slides to whichever link is active. */
-  const navRef = useRef(null);
-  const [pill, setPill] = useState(null);
+  const navRef = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState<Pill | null>(null);
   const [pillAnim, setPillAnim] = useState(false);
 
   const measurePill = useCallback(() => {
     const nav = navRef.current;
     if (!nav) return;
     const el =
-      nav.querySelector(".nav-submenu.open .nav-submenu-item.active") ||
-      nav.querySelector(".nav-item.active:not(.dropdown-open)");
+      nav.querySelector<HTMLElement>(".nav-submenu.open .nav-submenu-item.active") ||
+      nav.querySelector<HTMLElement>(".nav-item.active:not(.dropdown-open)");
     if (!el || !el.offsetWidth) { setPill(null); return; }
-    let x = 0, y = 0, n = el;
-    while (n && n !== nav) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    let x = 0, y = 0;
+    let n: HTMLElement | null = el;
+    while (n && n !== nav) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent as HTMLElement | null; }
     const sub = el.classList.contains("nav-submenu-item");
     const next = { x, y, w: el.offsetWidth, h: el.offsetHeight, sub };
     setPill((p) => (p && p.x === next.x && p.y === next.y && p.w === next.w && p.h === next.h && p.sub === next.sub ? p : next));
@@ -167,9 +184,9 @@ export default function Sidebar({
 
   /* The pill only slides right after a nav link is clicked. Any other layout
      change (collapse/expand, hover, first paint) repositions it instantly. */
-  const animTimer = useRef(null);
-  const handleNavClick = (e) => {
-    if (!e.target.closest("a.nav-item, a.nav-submenu-item")) return;
+  const animTimer = useRef<Timer>(undefined);
+  const handleNavClick = (e: MouseEvent<HTMLElement>) => {
+    if (!(e.target as Element).closest("a.nav-item, a.nav-submenu-item")) return;
     setPillAnim(true);
     clearTimeout(animTimer.current);
     animTimer.current = setTimeout(() => setPillAnim(false), 450);
@@ -187,14 +204,14 @@ export default function Sidebar({
 
   useEffect(() => {
     if (!overlayOpen) return;
-    const onKey = (e) => e.key === "Escape" && setOverlayOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOverlayOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [overlayOpen]);
 
   useEffect(() => {
     if (!onSearch) return;
-    const onKey = (e) => {
+    const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         onSearch();
@@ -581,13 +598,13 @@ export default function Sidebar({
           display: flex; align-items: center; gap: 6px;
           padding: 0 16px 0 12px;
           border-radius: 10px;
-          background: var(--brand-primary);
+          background: var(--btn);
           color: var(--white, #fff);
           font-size: 14px; font-weight: 600;
           text-decoration: none;
-          box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 28%, transparent);
+          box-shadow: none;
         }
-        .nav-cta:hover { filter: brightness(1.1); }
+        .nav-cta:hover { background: var(--btn-hover); }
         .nav-cta:active { transform: translateY(1px); }
 
         .navbar-icon-button {
@@ -670,7 +687,7 @@ export default function Sidebar({
         }
         .d-sidebar:hover .sidebar-edge-toggle,
         .sidebar-edge-toggle:focus-visible { opacity: 1; transform: scale(1); }
-        .sidebar-edge-toggle:hover { background: var(--brand-primary); border-color: var(--brand-primary); color: var(--white, #fff); }
+        .sidebar-edge-toggle:hover { background: var(--btn-hover); border-color: var(--btn-hover); color: var(--white, #fff); }
 
         .d-scrim { position: absolute; inset: 0; background: rgba(23, 19, 38, .38); backdrop-filter: blur(2px); z-index: 1900;}
         .d-sidebar.as-overlay { box-shadow: 18px 0 48px -14px rgba(36, 20, 90, .3); }

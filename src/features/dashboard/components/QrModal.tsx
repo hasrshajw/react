@@ -1,13 +1,21 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Link2, Check, Download, Copy,
-} from "../../components/Icons";
-import { coupleName, getInviteLink } from "../../lib/dashboardData";
-import { Modal } from "../../components/dashboard/Modal";
+} from "../../../components/Icons";
+import { coupleName, getInviteLink } from "../../../lib/dashboardData";
+import { downloadBlob } from "../../../lib/download";
+import type { InvitationRow } from "../../../types/dashboard";
+import { Modal } from "./Modal";
 
-export function QrModal({ row, onClose, onCopy }) {
+interface Props {
+  row: InvitationRow;
+  onClose: () => void;
+  onCopy: (x: InvitationRow) => void;
+}
+
+export function QrModal({ row, onClose, onCopy }: Props) {
   const link = getInviteLink(row);
-  const api = (size) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(link)}`;
+  const api = (size: number) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(link)}`;
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -18,14 +26,7 @@ export function QrModal({ row, onClose, onCopy }) {
     setBusy(true);
     try {
       const blob = await (await fetch(api(720))).blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(blob, fileName);
     } catch {
       window.open(api(720), "_blank", "noopener");
     }

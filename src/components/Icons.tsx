@@ -1,4 +1,4 @@
-import React from "react";
+import type { ComponentProps, FC } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Activity01Icon, AlertCircleIcon, Alert02Icon, Add01Icon, Archive02Icon, ArrowDown01Icon,
@@ -18,8 +18,13 @@ import {
 /* Thin wrappers around Hugeicons so every icon stays a drop-in React component
    (they are passed around as props, e.g. <MenuIcon Icon={Bell} />).
    Props: size, strokeWidth, className, color (defaults to currentColor). */
-const make = (icon, name) => {
-  const C = (props) => <HugeiconsIcon icon={icon} {...props} />;
+type HugeProps = ComponentProps<typeof HugeiconsIcon>;
+type IconData = NonNullable<HugeProps["icon"]>;
+export type IconProps = Omit<HugeProps, "icon">;
+export type IconComponent = FC<IconProps>;
+
+const make = (icon: IconData, name: string): IconComponent => {
+  const C: IconComponent = (props) => <HugeiconsIcon icon={icon} {...props} />;
   C.displayName = name;
   return C;
 };

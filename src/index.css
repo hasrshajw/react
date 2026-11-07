@@ -34,6 +34,10 @@
   --placeholder: #0009;
   --primary-dark-hover: #dadce03d;
 
+  /* Solid (coloured) buttons: one colour, no shadow, darker on hover */
+  --btn: #673de6;
+  --btn-hover: #471ea7;
+
   /* Aliases & layout defaults */
   --header-height-desktop: 70px;
   --sidebar-width: 260px;

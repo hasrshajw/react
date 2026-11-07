@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Eye, LayoutTemplate, Plus, Search, X } from "../components/Icons";
 import { demoCategories, demoTemplates } from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
 import { SAMPLE } from "../features/create/constants";
+import type { TemplateRecord } from "../types/dashboard";
 
-const nameOf = (t) => t.name || t.title || `Template ${t.id}`;
+const nameOf = (t: TemplateRecord) => t.name || t.title || `Template ${t.id}`;
 
-function useCompiled(t) {
+function useCompiled(t: TemplateRecord) {
   const src = t.html_code || t.html || "";
   return useMemo(() => {
     if (!src) return "";
@@ -15,7 +16,7 @@ function useCompiled(t) {
   }, [src]);
 }
 
-function Thumb({ t }) {
+function Thumb({ t }: { t: TemplateRecord }) {
   const img = t.thumbnail || t.thumbnail_url || t.image || t.preview_image;
   const doc = useCompiled(t);
   if (img) return <img src={img} alt="" loading="lazy" />;
@@ -23,10 +24,10 @@ function Thumb({ t }) {
   return <span className="tpl-none"><LayoutTemplate size={26} /></span>;
 }
 
-function PreviewModal({ t, onClose }) {
+function PreviewModal({ t, onClose }: { t: TemplateRecord; onClose: () => void }) {
   const doc = useCompiled(t);
   useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -47,10 +48,11 @@ function PreviewModal({ t, onClose }) {
 export default function Templates() {
   const [cat, setCat] = useState("all");
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(null);
+  const [open, setOpen] = useState<TemplateRecord | null>(null);
 
-  const catName = (id) => demoCategories.find((c) => String(c.id) === String(id))?.name || "General";
-  const visible = demoTemplates.filter((t) =>
+  const catName = (id: string | number) => demoCategories.find((c) => String(c.id) === String(id))?.name || "General";
+  const templates: TemplateRecord[] = demoTemplates;
+  const visible = templates.filter((t) =>
     (cat === "all" || String(t.category_id) === String(cat)) &&
     nameOf(t).toLowerCase().includes(q.trim().toLowerCase())
   );
@@ -106,7 +108,8 @@ export default function Templates() {
         .tpl-cats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
         .tpl-cat { height: 36px; padding: 0 16px; border: 1px solid var(--gray-border, #dadce0); border-radius: 999px; background: #fff; color: var(--gray-dark, #44465a); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
         .tpl-cat:hover { border-color: var(--periwinkle, #b8a5f5); }
-        .tpl-cat.on { background: var(--primary, #673de6); border-color: var(--primary, #673de6); color: #fff; }
+        .tpl-cat.on { background: var(--btn, #673de6); border-color: var(--btn, #673de6); color: #fff; }
+        .tpl-cat.on:hover { background: var(--btn-hover, #471ea7); border-color: var(--btn-hover, #471ea7); }
         .tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
         .tpl-card { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: #fff; border: 1px solid var(--gray-border, #dadce0); border-radius: 22px; transition: transform .25s, border-color .25s; }
         .tpl-card:hover { transform: translateY(-3px); border-color: var(--periwinkle, #b8a5f5); }
@@ -119,8 +122,8 @@ export default function Templates() {
         .tpl-info { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .tpl-info b { font-size: 14.5px; font-weight: 700; }
         .tpl-badge { padding: 3px 10px; border-radius: 999px; background: var(--primary-light, #ebe4ff); color: var(--primary, #673de6); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
-        .tpl-use { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 40px; border-radius: 12px; background: var(--primary, #673de6); color: #fff; font-size: 13.5px; font-weight: 700; text-decoration: none; transition: background .2s; }
-        .tpl-use:hover { background: var(--primary-dark, #5025d1); }
+        .tpl-use { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 40px; border-radius: 12px; background: var(--btn, #673de6); color: #fff; font-size: 13.5px; font-weight: 700; text-decoration: none; box-shadow: none; transition: background .2s; }
+        .tpl-use:hover { background: var(--btn-hover, #471ea7); }
         .tpl-use.big { height: 46px; width: 100%; }
         .tpl-empty { grid-column: 1 / -1; padding: 40px 0; text-align: center; color: var(--gray, #6d7081); font-size: 14px; }
         .tpl-modal { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; padding: 16px; background: rgba(16, 16, 17, .6); }

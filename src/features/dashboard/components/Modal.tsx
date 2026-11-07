@@ -1,12 +1,21 @@
-import React, { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
-} from "../../components/Icons";
-import { useEscape, useFocusTrap } from "../../hooks/useEscape";
+} from "../../../components/Icons";
+import { useEscape, useFocusTrap } from "../../../hooks/useEscape";
 
-export function Modal({ title, subtitle, onClose, children, width = 440, headExtra }) {
-  const ref = useRef(null);
+interface ModalProps {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: ReactNode;
+  width?: number;
+  headExtra?: ReactNode;
+}
+
+export function Modal({ title, subtitle, onClose, children, width = 440, headExtra }: ModalProps) {
+  const ref = useRef<HTMLDivElement>(null);
   useEscape(true, onClose);
   useFocusTrap(ref);
   return createPortal(

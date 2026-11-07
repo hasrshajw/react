@@ -1,10 +1,11 @@
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { createBrowserRouter, RouterProvider, Routes, Route, NavLink, useNavigate } from "react-router-dom";
 import {
   Bell, Sparkles, AlertTriangle, ArrowRight, User, Users, CreditCard, ShieldCheck, Activity,
   Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
 } from "./components/Icons";
+import type { IconComponent } from "./components/Icons";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Create from "./pages/Create";
@@ -16,29 +17,35 @@ import schedyMark from "./assets/schedy-mark.svg";
    SUBSCRIPTION (placeholder: replace with your billing data)
    status: "trial" | "active" | "past_due"
    ========================================================= */
-const PLAN = { name: "Pro", status: "trial", trialDaysLeft: 12 };
+interface Plan {
+  name: string;
+  status: "trial" | "active" | "past_due";
+  trialDaysLeft?: number;
+}
 
-function getPlanBanner(plan) {
+const PLAN: Plan = { name: "Pro", status: "trial", trialDaysLeft: 12 };
+
+function getPlanBanner(plan: Plan) {
   if (plan.status === "past_due") {
-    return { tone: "warn", text: "Your last payment didn't go through", cta: "Update billing", to: "/billing" };
+    return { tone: "warn" as const, text: "Your last payment didn't go through", cta: "Update billing", to: "/billing" };
   }
   if (plan.status === "trial") {
     const n = plan.trialDaysLeft ?? 0;
-    return { tone: "info", text: `${n} day${n === 1 ? "" : "s"} left in your ${plan.name} trial`, cta: "Upgrade", to: "/billing" };
+    return { tone: "info" as const, text: `${n} day${n === 1 ? "" : "s"} left in your ${plan.name} trial`, cta: "Upgrade", to: "/billing" };
   }
-  return { tone: "info", text: `You're on the ${plan.name} plan`, cta: "Manage plan", to: "/billing" };
+  return { tone: "info" as const, text: `You're on the ${plan.name} plan`, cta: "Manage plan", to: "/billing" };
 }
 
 /* =========================================================
    PROFILE MENU (opens from the navbar profile button)
    ========================================================= */
-function ProfileMenu({ onClose, plan }) {
+function ProfileMenu({ onClose, plan }: { onClose: () => void; plan: Plan }) {
   const navigate = useNavigate();
   const planLabel = plan.status === "trial" ? `${plan.name} trial` : plan.name;
 
   /* Anchor the menu under the profile button. The preview panel shrinks the app
      (and moves the button left), so a fixed window offset would drift away. */
-  const [pos, setPos] = useState(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
   useLayoutEffect(() => {
     const place = () => {
       const t = document.querySelector(".navbar-user[data-pm-trigger]");
@@ -52,15 +59,16 @@ function ProfileMenu({ onClose, plan }) {
     window.addEventListener("resize", place);
     const app = document.querySelector(".app");
     const ro = typeof ResizeObserver !== "undefined" && app ? new ResizeObserver(place) : null;
-    ro?.observe(app);
+    if (app) ro?.observe(app);
     return () => { window.removeEventListener("resize", place); ro?.disconnect(); };
   }, []);
 
   useEffect(() => {
-    const down = (e) => {
-      if (!e.target.closest(".pm") && !e.target.closest("[data-pm-trigger]")) onClose();
+    const down = (e: MouseEvent) => {
+      const t = e.target as Element;
+      if (!t.closest(".pm") && !t.closest("[data-pm-trigger]")) onClose();
     };
-    const key = (e) => e.key === "Escape" && onClose();
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("mousedown", down);
     document.addEventListener("keydown", key);
     return () => {
@@ -69,7 +77,9 @@ function ProfileMenu({ onClose, plan }) {
     };
   }, [onClose]);
 
-  const Item = ({ icon: Icon, label, value, external, to }) => (
+  const Item = ({ icon: Icon, label, value, external, to }: {
+    icon: IconComponent; label: string; value?: string; external?: boolean; to?: string;
+  }) => (
     <button
       type="button" className="pm-item" role="menuitem"
       onClick={() => { if (to) navigate(to); onClose(); }}
@@ -113,7 +123,7 @@ function ProfileMenu({ onClose, plan }) {
 }
 
 /* Sidebar links that have no page yet land here instead of a blank screen */
-function ComingSoon({ title }) {
+function ComingSoon({ title }: { title: string }) {
   return (
     <div className="coming-soon">
       <h1>{title}</h1>
@@ -122,7 +132,7 @@ function ComingSoon({ title }) {
   );
 }
 
-const PLACEHOLDER_ROUTES = [
+const PLACEHOLDER_ROUTES: [string, string][] = [
   ["/inventory", "Inventory"],
   ["/billing", "Billing"],
   ["/customize/hero-section", "Hero section"],
@@ -280,8 +290,9 @@ function Shell() {
           width: 24px; height: 24px; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
           border-radius: 50%;
-          background: var(--primary, #6d3fe0);
+          background: var(--btn, #673de6);
         }
+        .promo-center:hover .promo-arrow { background: var(--btn-hover, #471ea7); }
         .promo-center .promo-arrow svg { color: #fff; }
         .promo-center strong { color: #fff; font-weight: 700; }
         .promo-center.warn svg:first-child { color: #fbbf24; }
