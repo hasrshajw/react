@@ -156,7 +156,7 @@ export default function Sidebar({
     if (!el || !el.offsetWidth) { setPill(null); return; }
     let x = 0, y = 0, n = el;
     while (n && n !== nav) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
-    const next = { x, y, w: el.offsetWidth, h: el.offsetHeight, r: el.classList.contains("nav-submenu-item") ? 9 : 12 };
+    const next = { x, y, w: el.offsetWidth, h: el.offsetHeight, r: 8 };
     setPill((p) => (p && p.x === next.x && p.y === next.y && p.w === next.w && p.h === next.h && p.r === next.r ? p : next));
   }, []);
 
@@ -638,7 +638,7 @@ export default function Sidebar({
         .d-sidebar {
           width: var(--sidebar-width);
           height: 100vh;
-          background: linear-gradient(180deg, var(--white) 0%, color-mix(in srgb, var(--brand-primary) 3.5%, var(--white)) 100%);
+          background: var(--sidebar-bg);
           border-right: 1px solid var(--border-subtle);
           display: flex; flex-direction: column;
           position: fixed; top: 0; left: 0;
@@ -714,22 +714,18 @@ export default function Sidebar({
         .nav-pill {
           position: absolute; top: 0; left: 0; z-index: 0;
           pointer-events: none; opacity: 0;
-          border-radius: 12px; will-change: transform;
-          background: linear-gradient(135deg,
-            color-mix(in srgb, var(--brand-primary) 17%, var(--white)),
-            color-mix(in srgb, var(--brand-primary) 8%, var(--white)));
-          box-shadow:
-            0 10px 20px -12px color-mix(in srgb, var(--brand-primary) 60%, transparent),
-            inset 0 1px 0 rgba(255, 255, 255, .75),
-            inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 12%, transparent);
+          border-radius: 8px; will-change: transform;
+          /* flat, crisp: solid brand tint + hairline, no glow or gradient */
+          background: color-mix(in srgb, var(--brand-primary) 8%, var(--white));
+          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 14%, transparent);
         }
         .nav-pill.show { opacity: 1; }
         .nav-pill.anim {
-          transition: transform .5s var(--spring), height .35s var(--spring), border-radius .3s, opacity .25s ease;
+          transition: transform .24s cubic-bezier(.2, 0, 0, 1), height .2s cubic-bezier(.2, 0, 0, 1), opacity .15s ease;
         }
         .nav-pill::before {
-          content: ""; position: absolute; left: 0; top: 26%; bottom: 26%;
-          width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
+          content: ""; position: absolute; left: 0; top: 10px; bottom: 10px;
+          width: 3px; border-radius: 0 2px 2px 0; background: var(--brand-primary);
         }
 
         /* ---------- NAV ITEMS ---------- */
@@ -740,7 +736,7 @@ export default function Sidebar({
           width: 100%; height: var(--row-height);
           /* same left inset in both states so the icon never jumps when the width animates */
           padding: 0 18px; margin: 2px 0;
-          border: 0; border-radius: var(--radius-md);
+          border: 0; border-radius: 8px;
           background: transparent;
           gap: 0; cursor: pointer;
           color: var(--text-color); text-decoration: none;
@@ -748,22 +744,22 @@ export default function Sidebar({
           white-space: nowrap; user-select: none;
           transition: background .2s, color .2s, transform .2s var(--spring);
         }
-        .nav-item:hover { background: color-mix(in srgb, var(--brand-primary) 7%, transparent); }
-        .nav-item:active { transform: scale(.98); }
+        .nav-item:hover { background: color-mix(in srgb, var(--dark) 4.5%, transparent); }
+        .nav-item:active { transform: none; }
         .nav-item.active { color: var(--brand-primary); font-weight: 600; }
 
         /* desktop: the sliding pill carries the active highlight */
         .d-sidebar .nav-item.active, .d-sidebar .nav-item.active:hover { background: transparent; }
 
         /* mobile drawer keeps the classic static highlight */
-        .m-drawer .nav-item.active { background: var(--active-bg); }
+        .m-drawer .nav-item.active { background: color-mix(in srgb, var(--brand-primary) 8%, var(--white)); }
         .m-drawer .nav-item.active::before {
           content: ""; position: absolute; left: -12px; top: 12px; bottom: 12px;
           width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
         }
         .m-drawer .nav-item.active.dropdown-open { background: transparent; }
         .m-drawer .nav-item.active.dropdown-open::before { display: none; }
-        .nav-item.active.dropdown-open:hover { background: color-mix(in srgb, var(--brand-primary) 7%, transparent); }
+        .nav-item.active.dropdown-open:hover { background: color-mix(in srgb, var(--dark) 4.5%, transparent); }
 
         .menu-icon {
           width: 22px; height: 22px; min-width: 22px;
@@ -772,13 +768,13 @@ export default function Sidebar({
           transition: color .2s, transform .35s var(--spring);
         }
         .menu-icon svg * { transition: stroke-width .25s ease; }
-        .nav-item:hover .menu-icon { transform: translateX(2px) scale(1.08); }
+        .nav-item:hover .menu-icon { transform: none; }
         /* free Hugeicons has no solid set, so the active icon gets a heavier stroke */
         .nav-item.active .menu-icon svg *,
-        .nav-submenu-item.active .menu-icon svg * { stroke-width: 2.1px; }
+        .nav-submenu-item.active .menu-icon svg * { stroke-width: 1.9px; }
         .nav-item:hover .menu-icon,
+        .nav-submenu-item:hover .menu-icon { color: var(--text-color); }
         .nav-item.active .menu-icon,
-        .nav-submenu-item:hover .menu-icon,
         .nav-submenu-item.active .menu-icon,
         .live-site:hover .menu-icon { color: var(--brand-primary); }
 
@@ -834,7 +830,7 @@ export default function Sidebar({
           position: relative; z-index: 1;
           display: flex; align-items: center;
           height: 42px; padding: 0 12px; margin: 1px 0;
-          border-radius: 9px; gap: 12px; flex-shrink: 0;
+          border-radius: 8px; gap: 12px; flex-shrink: 0;
           color: var(--text-color); text-decoration: none;
           font-size: 14px; font-weight: 500; white-space: nowrap;
           transition: background .15s, color .15s, transform .25s var(--spring);
@@ -844,8 +840,9 @@ export default function Sidebar({
           width: 10px; height: 1px; background: var(--border-subtle);
           transition: background .2s, width .3s var(--spring);
         }
-        .nav-submenu-item:hover::before, .nav-submenu-item.active::before { background: var(--brand-primary); width: 14px; }
-        .nav-submenu-item:hover { background: color-mix(in srgb, var(--brand-primary) 7%, transparent); color: var(--brand-primary); transform: translateX(2px); }
+        .nav-submenu-item:hover::before { background: var(--gray); }
+        .nav-submenu-item.active::before { background: var(--brand-primary); }
+        .nav-submenu-item:hover { background: color-mix(in srgb, var(--dark) 4.5%, transparent); color: var(--text-color); transform: none; }
         .nav-submenu-item.active { color: var(--brand-primary); font-weight: 600; }
         .d-sidebar .nav-submenu-item.active, .d-sidebar .nav-submenu-item.active:hover { background: transparent; }
         .m-drawer .nav-submenu-item.active { background: var(--active-bg); }
@@ -868,22 +865,18 @@ export default function Sidebar({
           position: relative;
           display: flex; align-items: center;
           height: 50px; padding: 0 17px;
-          border: 1px solid color-mix(in srgb, #22c55e 20%, var(--border-subtle));
-          border-radius: 14px;
-          background: linear-gradient(135deg,
-            color-mix(in srgb, #22c55e 9%, var(--white)),
-            color-mix(in srgb, var(--brand-primary) 5%, var(--white)));
+          border: 1px solid var(--border-subtle);
+          border-radius: 10px;
+          background: var(--white);
           color: var(--text-color); text-decoration: none;
           font-size: 14px; font-weight: 600; white-space: nowrap;
           transition: transform .3s var(--spring), box-shadow .3s ease, border-color .2s, color .2s;
         }
         .live-site:hover {
-          transform: translateY(-1px); color: var(--brand-primary);
-          border-color: color-mix(in srgb, var(--brand-primary) 35%, transparent);
-          box-shadow: 0 12px 24px -16px color-mix(in srgb, var(--brand-primary) 65%, transparent);
+          color: var(--text-color); background: color-mix(in srgb, var(--dark) 3%, var(--white));
+          border-color: color-mix(in srgb, var(--dark) 22%, var(--border-subtle));
         }
-        .live-site:active { transform: translateY(0) scale(.99); }
-
+        
         .live-dot {
           margin-left: auto; width: 8px; height: 8px; border-radius: 50%;
           background: #22c55e; flex-shrink: 0;
@@ -896,7 +889,7 @@ export default function Sidebar({
           100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
         .live-arrow {
-          position: absolute; right: 16px; opacity: 0; color: var(--brand-primary);
+          position: absolute; right: 16px; opacity: 0; color: var(--text-color);
           transform: translate(-4px, 4px);
           transition: opacity .2s, transform .3s var(--spring);
         }
