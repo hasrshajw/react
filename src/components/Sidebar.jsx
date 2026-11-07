@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, MailPlus, Mails, Ticket, Palette, Image as ImageIcon, LayoutGrid,
-  PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, Search, Bell, Plus,
+  PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus,
 } from "./Icons";
 
 import logo from "../assets/logo.png";
@@ -60,10 +60,11 @@ function Submenu({ id, open, onNavigate }) {
   return (
     <div id={id} className={`nav-submenu ${open ? "open" : ""}`}>
       <div className="nav-submenu-inner">
-        {submenuItems.map(({ name, path, Icon }) => (
+        {submenuItems.map(({ name, path, Icon }, i) => (
           <NavLink
             key={path}
             to={path}
+            style={{ "--i": i }}
             onClick={onNavigate}
             className={({ isActive }) => `nav-submenu-item${isActive ? " active" : ""}`}
           >
@@ -103,12 +104,67 @@ export default function Sidebar({
     if (customizeActive) setSiteOpen(true);
   }, [customizeActive]);
 
-  /* The sidebar only opens/closes from an explicit click (edge toggle or the
-     Customize Site button). Hovering never expands it or reveals labels. */
-  const isExpanded = overlayMode ? overlayOpen : !collapsed;
-  const floating = isExpanded && overlayMode;
+  /* ---- Hover "peek" ------------------------------------------------
+     Hovering the collapsed sidebar opens it as a floating panel on top of the
+     page (content never shifts). A short delay on enter/leave stops flicker,
+     and the Customize submenu only opens when the user clicks it. */
+  const [peek, setPeek] = useState(false);
+  const [siteTouched, setSiteTouched] = useState(false);
+  const peekTimer = useRef(null);
+
+  const baseExpanded = overlayMode ? overlayOpen : !collapsed;
+  const isExpanded = baseExpanded || peek;
+  const peeking = peek && !baseExpanded;
+  const floating = isExpanded && (overlayMode || peeking);
   const narrowLayout = overlayMode || collapsed;
-  const sidebarOpen = isExpanded;
+  const sidebarOpen = baseExpanded;
+  const submenuOpen = siteOpen && (!peeking || siteTouched);
+
+  const handlePointerEnter = (e) => {
+    if (e.pointerType && e.pointerType !== "mouse") return; // touch: tap, don't peek
+    clearTimeout(peekTimer.current);
+    if (baseExpanded) return;
+    peekTimer.current = setTimeout(() => setPeek(true), 120);
+  };
+  const handlePointerLeave = () => {
+    clearTimeout(peekTimer.current);
+    peekTimer.current = setTimeout(() => setPeek(false), 180);
+  };
+  useEffect(() => () => clearTimeout(peekTimer.current), []);
+  useEffect(() => { if (baseExpanded) setPeek(false); }, [baseExpanded]);
+
+  /* ---- Sliding active pill -----------------------------------------
+     One highlight element glides to whichever link is active. */
+  const navRef = useRef(null);
+  const [pill, setPill] = useState(null);
+  const [pillAnim, setPillAnim] = useState(false);
+
+  const measurePill = useCallback(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const el =
+      nav.querySelector(".nav-submenu.open .nav-submenu-item.active") ||
+      nav.querySelector(".nav-item.active:not(.dropdown-open)");
+    if (!el || !el.offsetWidth) { setPill(null); return; }
+    let x = 0, y = 0, n = el;
+    while (n && n !== nav) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    const next = { x, y, w: el.offsetWidth, h: el.offsetHeight, r: el.classList.contains("nav-submenu-item") ? 9 : 12 };
+    setPill((p) => (p && p.x === next.x && p.y === next.y && p.w === next.w && p.h === next.h && p.r === next.r ? p : next));
+  }, []);
+
+  useLayoutEffect(() => { measurePill(); }, [pathname, isExpanded, submenuOpen, measurePill]);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measurePill);
+    ro.observe(nav);
+    return () => ro.disconnect();
+  }, [measurePill]);
+  useEffect(() => {
+    if (!pill || pillAnim) return;
+    const id = requestAnimationFrame(() => setPillAnim(true)); // no slide-in on first paint
+    return () => cancelAnimationFrame(id);
+  }, [pill, pillAnim]);
 
   useEffect(() => {
     if (!overlayMode) setOverlayOpen(false);
@@ -138,11 +194,15 @@ export default function Sidebar({
   };
 
   const collapseNow = () => {
+    clearTimeout(peekTimer.current);
+    setPeek(false);
     if (overlayMode) setOverlayOpen(false);
     else setCollapsed(true);
   };
 
   const handleToggle = () => {
+    clearTimeout(peekTimer.current);
+    setPeek(false);
     if (overlayMode) {
       setOverlayOpen(!overlayOpen);
       return;
@@ -151,13 +211,14 @@ export default function Sidebar({
   };
 
   const handleCustomizeClick = () => {
+    setSiteTouched(true);
     if (!isExpanded) {
       if (overlayMode) setOverlayOpen(true);
       else setCollapsed(false);
       setTimeout(() => setSiteOpen(true), 300);
       return;
     }
-    setSiteOpen(!siteOpen);
+    setSiteOpen(!submenuOpen);
   };
 
   const closeMobileDrawer = () => setMobileOpen(false);
@@ -229,6 +290,8 @@ export default function Sidebar({
 
       <aside
         className={`d-sidebar ${isExpanded ? "expanded" : "collapsed"}${floating ? " as-overlay" : ""}`}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
       >
         <div className="d-sidebar-header">
           {isExpanded ? (
@@ -253,14 +316,15 @@ export default function Sidebar({
         </button>
 
         <div className="d-sidebar-inner">
-          <nav aria-label="Main">
+          <nav aria-label="Main" className="d-nav" ref={navRef}>
             <div className="nav-section-label">Manage</div>
 
-            {menuItems.map(({ name, path, Icon }) => (
+            {menuItems.map(({ name, path, Icon }, i) => (
               <NavLink
                 key={path}
                 to={path}
                 end={path === "/"}
+                style={{ "--i": i }}
                 onClick={path === "/create" ? collapseNow : closeOverlay}
                 aria-label={isExpanded ? undefined : name}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
@@ -274,10 +338,11 @@ export default function Sidebar({
 
             <button
               type="button"
-              className={`nav-item${siteOpen && isExpanded ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
+              className={`nav-item${submenuOpen && isExpanded ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
+              style={{ "--i": menuItems.length }}
               onClick={handleCustomizeClick}
               aria-label={isExpanded ? undefined : "Customize Site"}
-              aria-expanded={isExpanded && siteOpen}
+              aria-expanded={isExpanded && submenuOpen}
               aria-controls="site-submenu"
             >
               <MenuIcon Icon={Palette} />
@@ -285,17 +350,29 @@ export default function Sidebar({
               {isExpanded && <ChevronRight className="nav-chevron" size={16} strokeWidth={2} />}
             </button>
 
-            {isExpanded && <Submenu id="site-submenu" open={siteOpen} onNavigate={closeOverlay} />}
+            {isExpanded && <Submenu id="site-submenu" open={submenuOpen} onNavigate={closeOverlay} />}
+
+            {/* Sliding active highlight (desktop only) */}
+            <span
+              className={`nav-pill${pill ? " show" : ""}${pillAnim ? " anim" : ""}`}
+              style={pill ? { transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h, borderRadius: pill.r } : undefined}
+              aria-hidden="true"
+            />
           </nav>
 
           {/* Footer: a useful action instead of a duplicate of the profile */}
           <div className="d-footer">
             <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer" aria-label={isExpanded ? undefined : "View live site"}>
               <MenuIcon Icon={ExternalLink} size={18} />
-              <span className="nav-label">View live site</span>
+              <span className="nav-label" style={{ "--i": menuItems.length + 1 }}>View live site</span>
+              <ArrowUpRight className="live-arrow" size={16} strokeWidth={2} aria-hidden="true" />
               <span className="live-dot" aria-label="Store is live" title="Store is live" />
             </a>
             <div className="powered">Powered by Schedy</div>
+            <button type="button" className="side-avatar" data-pm-trigger aria-label="Profile" onClick={onProfileClick}>
+              <span>H</span>
+              <i aria-hidden="true" />
+            </button>
           </div>
         </div>
       </aside>
@@ -413,6 +490,7 @@ export default function Sidebar({
           --radius-md: 10px;
           --radius-lg: 14px;
           --tooltip-bg: var(--gray-dark);
+          --spring: cubic-bezier(.22, 1, .36, 1);
         }
 
         .d-sidebar, .top-navbar, .m-header, .m-drawer {
@@ -457,7 +535,7 @@ export default function Sidebar({
           justify-content: space-between;
           gap: 16px;
           padding: 0 24px;
-          transition: margin-left .3s cubic-bezier(.4, 0, .2, 1);
+          transition: margin-left .45s var(--spring);
         }
 
         .navbar-expanded { margin-left: var(--sidebar-width); }
@@ -552,12 +630,12 @@ export default function Sidebar({
         .d-sidebar {
           width: var(--sidebar-width);
           height: 100vh;
-          background: var(--sidebar-bg);
+          background: linear-gradient(180deg, var(--white) 0%, color-mix(in srgb, var(--brand-primary) 3.5%, var(--white)) 100%);
           border-right: 1px solid var(--border-subtle);
           display: flex; flex-direction: column;
           position: fixed; top: 0; left: 0;
           z-index: 2000;
-          transition: width .3s cubic-bezier(.4, 0, .2, 1);
+          transition: width .45s var(--spring), box-shadow .35s ease;
         }
         .d-sidebar.collapsed { width: var(--sidebar-collapsed-width); }
 
@@ -573,7 +651,11 @@ export default function Sidebar({
         .d-sidebar.collapsed .d-sidebar-header { justify-content: center; padding: 0; }
 
         .brand-logo, .mini-logo { display: flex; align-items: center; text-decoration: none; }
-        .brand-logo img, .mini-logo img { height: 36px; width: auto; display: block; }
+        .brand-logo img, .mini-logo img {
+          height: 36px; width: auto; display: block;
+          animation: logo-in .4s var(--spring) backwards;
+        }
+        @keyframes logo-in { from { opacity: 0; transform: translateX(-6px) scale(.96); } to { opacity: 1; transform: none; } }
 
         .sidebar-edge-toggle {
           position: absolute; top: 18px; right: -14px;
@@ -583,116 +665,192 @@ export default function Sidebar({
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; z-index: 5;
           box-shadow: 0 2px 8px rgba(17, 12, 41, .12);
-          opacity: 0;
-          transition: opacity .2s, background .15s, color .15s, border-color .15s;
+          opacity: 0; transform: scale(.85);
+          transition: opacity .25s, transform .35s var(--spring), background .15s, color .15s, border-color .15s;
         }
         .d-sidebar:hover .sidebar-edge-toggle,
-        .sidebar-edge-toggle:focus-visible { opacity: 1; }
+        .sidebar-edge-toggle:focus-visible { opacity: 1; transform: scale(1); }
         .sidebar-edge-toggle:hover { background: var(--brand-primary); border-color: var(--brand-primary); color: var(--white, #fff); }
 
-        .d-scrim { position: absolute; inset: 0; background: rgba(23, 19, 38, .38); z-index: 1900; animation: d-scrim-in .2s ease; }
-        .d-sidebar.as-overlay { box-shadow: 8px 0 40px rgba(0, 0, 0, .22); }
+        .d-scrim { position: absolute; inset: 0; background: rgba(23, 19, 38, .38); backdrop-filter: blur(2px); z-index: 1900; animation: d-scrim-in .25s ease; }
+        .d-sidebar.as-overlay { box-shadow: 18px 0 48px -14px rgba(36, 20, 90, .3); }
         @keyframes d-scrim-in { from { opacity: 0; } to { opacity: 1; } }
 
         .d-sidebar-inner {
           flex: 1; padding: 8px 16px 16px;
           display: flex; flex-direction: column;
-          overflow-y: auto; overflow-x: visible;
+          overflow-y: auto; overflow-x: hidden;
+          scrollbar-width: none;
         }
+        .d-sidebar-inner::-webkit-scrollbar { display: none; }
 
-        /* Group labels: small caps-style, become a hairline when collapsed */
+        .d-nav { position: relative; }
+
+        /* Group labels: caps-style, collapse into a hairline (height/padding animate) */
         .nav-section-label {
-          padding: 18px 14px 6px;
+          height: 38px; padding: 18px 18px 0;
           font-size: 11px; font-weight: 600;
           letter-spacing: .06em; text-transform: uppercase;
-          color: var(--gray); white-space: nowrap;
+          color: var(--gray); white-space: nowrap; overflow: hidden;
+          transition: height .45s var(--spring), padding .45s var(--spring), margin .45s var(--spring), background .3s, color .2s;
         }
-        nav > .nav-section-label:first-child { padding-top: 8px; }
+        nav > .nav-section-label:first-child { height: 30px; padding-top: 8px; }
         .d-sidebar.collapsed .nav-section-label {
           height: 1px; padding: 0; margin: 14px 14px 12px;
-          background: var(--border-subtle); font-size: 0; overflow: hidden;
+          background: var(--border-subtle); color: transparent;
         }
-        .d-sidebar.collapsed nav > .nav-section-label:first-child { display: none; }
+        .d-sidebar.collapsed nav > .nav-section-label:first-child { height: 0; margin: 0; background: transparent; }
+
+        /* ---------- ACTIVE PILL ---------- */
+
+        .nav-pill {
+          position: absolute; top: 0; left: 0; z-index: 0;
+          pointer-events: none; opacity: 0;
+          border-radius: 12px; will-change: transform;
+          background: linear-gradient(135deg,
+            color-mix(in srgb, var(--brand-primary) 17%, var(--white)),
+            color-mix(in srgb, var(--brand-primary) 8%, var(--white)));
+          box-shadow:
+            0 10px 20px -12px color-mix(in srgb, var(--brand-primary) 60%, transparent),
+            inset 0 1px 0 rgba(255, 255, 255, .75),
+            inset 0 0 0 1px color-mix(in srgb, var(--brand-primary) 12%, transparent);
+        }
+        .nav-pill.show { opacity: 1; }
+        .nav-pill.anim {
+          transition: transform .5s var(--spring), height .35s var(--spring), border-radius .3s, opacity .25s ease;
+        }
+        .nav-pill::before {
+          content: ""; position: absolute; left: 0; top: 26%; bottom: 26%;
+          width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
+        }
 
         /* ---------- NAV ITEMS ---------- */
 
         .nav-item {
-          position: relative;
+          position: relative; z-index: 1;
           display: flex; align-items: center;
           width: 100%; height: var(--row-height);
-          padding: 0 14px; margin: 2px 0;
+          /* same left inset in both states so the icon never jumps when the width animates */
+          padding: 0 18px; margin: 2px 0;
           border: 0; border-radius: var(--radius-md);
           background: transparent;
-          gap: 14px; cursor: pointer;
+          gap: 0; cursor: pointer;
           color: var(--text-color); text-decoration: none;
           font-size: 15px; font-weight: 500; text-align: left;
           white-space: nowrap; user-select: none;
-          transition: background .2s, color .2s;
+          transition: background .2s, color .2s, transform .2s var(--spring);
         }
-        .nav-item:hover { background: var(--hover-bg); }
-        .nav-item.active { background: var(--active-bg); color: var(--brand-primary); font-weight: 600; }
+        .nav-item:hover { background: color-mix(in srgb, var(--brand-primary) 7%, transparent); }
+        .nav-item:active { transform: scale(.98); }
+        .nav-item.active { color: var(--brand-primary); font-weight: 600; }
 
-        /* Active indicator bar */
-        .nav-item.active::before {
-          content: ""; position: absolute; left: -16px; top: 12px; bottom: 12px;
+        /* desktop: the sliding pill carries the active highlight */
+        .d-sidebar .nav-item.active, .d-sidebar .nav-item.active:hover { background: transparent; }
+
+        /* mobile drawer keeps the classic static highlight */
+        .m-drawer .nav-item.active { background: var(--active-bg); }
+        .m-drawer .nav-item.active::before {
+          content: ""; position: absolute; left: -12px; top: 12px; bottom: 12px;
           width: 3px; border-radius: 0 3px 3px 0; background: var(--brand-primary);
         }
-
-        /* Group open with an active child: let the child carry the highlight */
-        .nav-item.active.dropdown-open { background: transparent; }
-        .nav-item.active.dropdown-open:hover { background: var(--hover-bg); }
-        .nav-item.active.dropdown-open::before { display: none; }
+        .m-drawer .nav-item.active.dropdown-open { background: transparent; }
+        .m-drawer .nav-item.active.dropdown-open::before { display: none; }
+        .nav-item.active.dropdown-open:hover { background: color-mix(in srgb, var(--brand-primary) 7%, transparent); }
 
         .menu-icon {
           width: 22px; height: 22px; min-width: 22px;
           display: flex; align-items: center; justify-content: center;
           color: var(--icon-color);
-          transition: color .2s;
+          transition: color .2s, transform .35s var(--spring);
         }
+        .menu-icon svg * { transition: stroke-width .25s ease; }
+        .nav-item:hover .menu-icon { transform: translateX(2px) scale(1.08); }
+        /* free Hugeicons has no solid set, so the active icon gets a heavier stroke */
+        .nav-item.active .menu-icon svg *,
+        .nav-submenu-item.active .menu-icon svg * { stroke-width: 2.1px; }
         .nav-item:hover .menu-icon,
         .nav-item.active .menu-icon,
         .nav-submenu-item:hover .menu-icon,
         .nav-submenu-item.active .menu-icon,
         .live-site:hover .menu-icon { color: var(--brand-primary); }
 
-        .nav-chevron { margin-left: auto; flex-shrink: 0; color: var(--icon-color); transition: transform .25s ease; }
+        /* labels fade/slide in with a stagger when the sidebar opens, and
+           collapse smoothly (no pop) when it closes */
+        .nav-label {
+          margin-left: 14px; max-width: 190px; overflow: hidden;
+          transition: max-width .45s var(--spring), margin .45s var(--spring), opacity .2s ease .1s;
+        }
+        .d-sidebar.expanded .nav-label {
+          animation: label-in .45s var(--spring) backwards;
+          animation-delay: calc(var(--i, 0) * 35ms + 90ms);
+        }
+        @keyframes label-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+        .d-sidebar.collapsed .nav-label {
+          max-width: 0; margin-left: 0; opacity: 0;
+          transition: max-width .45s var(--spring), margin .45s var(--spring), opacity .12s ease;
+        }
+
+        .nav-chevron { margin-left: auto; flex-shrink: 0; color: var(--icon-color); transition: transform .3s var(--spring); }
         .nav-item.dropdown-open .nav-chevron { transform: rotate(90deg); }
+        .nav-item:hover:not(.dropdown-open) .nav-chevron { transform: translateX(3px); }
 
         /* ---------- SUBMENU (animated) ---------- */
 
         .nav-submenu {
           display: grid;
           grid-template-rows: 0fr;
-          transition: grid-template-rows .25s ease;
+          transition: grid-template-rows .4s var(--spring);
         }
         .nav-submenu.open { grid-template-rows: 1fr; }
 
         .nav-submenu-inner {
+          position: relative;
           overflow: hidden; min-height: 0;
-          margin-left: 22px; padding-left: 14px;
-          border-left: 1px solid var(--border-subtle);
+          margin-left: 22px; padding-left: 16px;
           display: flex; flex-direction: column;
           visibility: hidden;
-          transition: visibility .25s;
+          transition: visibility .4s;
         }
         .nav-submenu.open .nav-submenu-inner { visibility: visible; }
 
+        /* tree connector that draws itself down when the group opens */
+        .nav-submenu-inner::before {
+          content: ""; position: absolute; left: 0; top: 2px; bottom: 22px; width: 1px;
+          background: var(--border-subtle);
+          transform: scaleY(0); transform-origin: top;
+          transition: transform .5s var(--spring) .05s;
+        }
+        .nav-submenu.open .nav-submenu-inner::before { transform: scaleY(1); }
+
         .nav-submenu-item {
+          position: relative; z-index: 1;
           display: flex; align-items: center;
           height: 42px; padding: 0 12px; margin: 1px 0;
-          border-radius: 8px; gap: 12px; flex-shrink: 0;
+          border-radius: 9px; gap: 12px; flex-shrink: 0;
           color: var(--text-color); text-decoration: none;
           font-size: 14px; font-weight: 500; white-space: nowrap;
-          transition: background .15s, color .15s;
+          transition: background .15s, color .15s, transform .25s var(--spring);
         }
-        .nav-submenu-item:hover { background: var(--hover-bg); color: var(--brand-primary); }
-        .nav-submenu-item.active { background: var(--active-bg); color: var(--brand-primary); font-weight: 600; }
+        .nav-submenu-item::before {
+          content: ""; position: absolute; left: -16px; top: 50%;
+          width: 10px; height: 1px; background: var(--border-subtle);
+          transition: background .2s, width .3s var(--spring);
+        }
+        .nav-submenu-item:hover::before, .nav-submenu-item.active::before { background: var(--brand-primary); width: 14px; }
+        .nav-submenu-item:hover { background: color-mix(in srgb, var(--brand-primary) 7%, transparent); color: var(--brand-primary); transform: translateX(2px); }
+        .nav-submenu-item.active { color: var(--brand-primary); font-weight: 600; }
+        .d-sidebar .nav-submenu-item.active, .d-sidebar .nav-submenu-item.active:hover { background: transparent; }
+        .m-drawer .nav-submenu-item.active { background: var(--active-bg); }
+
+        .nav-submenu.open .nav-submenu-item {
+          animation: sub-in .45s var(--spring) backwards;
+          animation-delay: calc(var(--i, 0) * 45ms + 120ms);
+        }
+        @keyframes sub-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
 
         /* ---------- COLLAPSED ---------- */
 
-        .d-sidebar.collapsed :is(.brand-logo, .nav-label, .nav-chevron, .nav-submenu) { display: none !important; }
-        .d-sidebar.collapsed .d-sidebar-inner { overflow: visible; }
-        .d-sidebar.collapsed .nav-item { justify-content: center; padding: 0; }
+        .d-sidebar.collapsed :is(.brand-logo, .nav-chevron, .nav-submenu) { display: none !important; }
 
         /* ---------- FOOTER ---------- */
 
@@ -700,25 +858,71 @@ export default function Sidebar({
 
         .live-site {
           position: relative;
-          display: flex; align-items: center; gap: 12px;
-          height: 46px; padding: 0 14px;
-          border: 1px solid transparent; border-radius: 12px;
+          display: flex; align-items: center;
+          height: 50px; padding: 0 17px;
+          border: 1px solid color-mix(in srgb, #22c55e 20%, var(--border-subtle));
+          border-radius: 14px;
+          background: linear-gradient(135deg,
+            color-mix(in srgb, #22c55e 9%, var(--white)),
+            color-mix(in srgb, var(--brand-primary) 5%, var(--white)));
           color: var(--text-color); text-decoration: none;
           font-size: 14px; font-weight: 600; white-space: nowrap;
-          transition: background .15s, color .15s, border-color .15s;
+          transition: transform .3s var(--spring), box-shadow .3s ease, border-color .2s, color .2s;
         }
-        .live-site:hover { background: var(--hover-bg); color: var(--brand-primary); border-color: transparent; }
-        .d-sidebar.collapsed .live-site { justify-content: center; padding: 0; }
+        .live-site:hover {
+          transform: translateY(-1px); color: var(--brand-primary);
+          border-color: color-mix(in srgb, var(--brand-primary) 35%, transparent);
+          box-shadow: 0 12px 24px -16px color-mix(in srgb, var(--brand-primary) 65%, transparent);
+        }
+        .live-site:active { transform: translateY(0) scale(.99); }
 
         .live-dot {
           margin-left: auto; width: 8px; height: 8px; border-radius: 50%;
           background: #22c55e; flex-shrink: 0;
-          box-shadow: 0 0 0 3px rgba(34, 197, 94, .18);
+          animation: live-pulse 2.2s ease-out infinite;
+          transition: opacity .2s;
         }
-        .d-sidebar.collapsed .live-dot { display: none; }
+        @keyframes live-pulse {
+          0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, .5); }
+          70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .live-arrow {
+          position: absolute; right: 16px; opacity: 0; color: var(--brand-primary);
+          transform: translate(-4px, 4px);
+          transition: opacity .2s, transform .3s var(--spring);
+        }
+        .live-site:hover .live-arrow { opacity: 1; transform: none; }
+        .live-site:hover .live-dot { opacity: 0; }
+
+        /* collapsed: the dot becomes a status badge on the icon */
+        .d-sidebar.collapsed .live-dot {
+          position: absolute; top: 10px; left: 33px; margin: 0;
+          width: 10px; height: 10px; border: 2px solid var(--white);
+        }
+        .d-sidebar.collapsed .live-site:hover .live-dot { opacity: 1; }
+        .d-sidebar.collapsed .live-arrow { display: none; }
 
         .powered { margin-top: 12px; text-align: center; font-size: 11px; letter-spacing: .02em; color: var(--gray); }
         .d-sidebar.collapsed .powered { display: none; }
+
+        /* collapsed: profile avatar with an online dot */
+        .side-avatar {
+          display: none; position: relative;
+          width: 38px; height: 38px; margin: 14px auto 0; padding: 0;
+          border: 0; border-radius: 50%; cursor: pointer;
+          background: linear-gradient(135deg, var(--brand-primary), var(--primary-dark, var(--brand-primary)));
+          color: var(--white, #fff); font-size: 13px; font-weight: 700;
+          box-shadow: 0 0 0 2px var(--white), 0 0 0 3px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+          transition: transform .3s var(--spring), box-shadow .2s;
+        }
+        .side-avatar:hover { transform: scale(1.08); }
+        .side-avatar:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
+        .side-avatar i {
+          position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px;
+          border-radius: 50%; background: #22c55e; border: 2px solid var(--white);
+        }
+        .d-sidebar.collapsed .side-avatar { display: block; animation: logo-in .4s var(--spring) backwards; }
 
         /* ---------- ACCOUNT (mobile drawer) ---------- */
 
@@ -801,7 +1005,6 @@ export default function Sidebar({
         .m-drawer-close-icon::after { transform: rotate(-45deg); }
 
         .m-drawer-nav { padding: 12px 12px 20px; flex: 1; }
-        .m-drawer .nav-item.active::before { left: -12px; }
         .m-drawer .nav-section-label { padding-left: 16px; }
         .m-account-section { padding: 20px; border-top: 1px solid var(--border-subtle); background: var(--white); }
 
@@ -819,9 +1022,13 @@ export default function Sidebar({
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .d-sidebar, .top-navbar-inner, .nav-submenu, .nav-chevron, .m-drawer, .m-overlay, .d-scrim {
+          .d-sidebar, .top-navbar-inner, .nav-submenu, .nav-chevron, .m-drawer, .m-overlay, .d-scrim,
+          .nav-pill, .nav-label, .nav-section-label, .menu-icon, .nav-item, .nav-submenu-item,
+          .nav-submenu-inner::before, .live-site, .live-arrow, .sidebar-edge-toggle, .side-avatar {
             transition: none !important; animation: none !important;
           }
+          .nav-label, .nav-submenu-item, .brand-logo img, .mini-logo img { animation: none !important; }
+          .live-dot { animation: none !important; }
           .notification-dot { animation: none !important; }
         }
       `}</style>
