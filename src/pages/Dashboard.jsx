@@ -1474,7 +1474,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }) {
                 ) : !expanded ? (
                   <>
                     <span>Showing 5 of {visible.length}</span>
-                    <button type="button" className="head-link as-btn" onClick={() => { setShowAll(true); setPage(1); }}>
+                    <button type="button" className="head-link as-btn" onClick={() => navigate(sort !== "recent" ? `/invitations?sort=${sort}` : "/invitations")}>
                       View all invitations <ArrowUpRight size={14} />
                     </button>
                   </>
