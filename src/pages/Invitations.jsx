@@ -7,12 +7,17 @@ import {
   AlertTriangle, Archive, RefreshCw, Copy, Download, Share,
 } from "../components/Icons";
 import * as demo from "../lib/demoData";
+import dashboardCss from "../styles/dashboard.css?inline";
+import { Modal } from "../components/dashboard/Modal";
+import { PreviewPanel } from "../components/dashboard/PreviewPanel";
+import { TrashModal } from "../components/dashboard/TrashModal";
+import { Select, SORT_OPTIONS } from "../components/dashboard/Select";
+import { useEscape } from "../hooks/useEscape";
 import {
-  DASHBOARD_CSS, Modal, PreviewPanel, TrashModal, Select, SORT_OPTIONS, useEscape,
   LS_PUB, LS_DEL, PAGE_SIZE, TRASH_DAYS, DAY,
   readJSON, writeJSON, normDeleted, fmt, fmtDate, fmtDateTime, timeAgo,
   initials, coupleName, getViews, getInviteLink, dayDiff, whenText, isPast, copyText,
-} from "./Dashboard";
+} from "../lib/dashboardData";
 
 /* =========================================================
    HELPERS
@@ -810,7 +815,7 @@ export default function Invitations({ onPanelChange }) {
         document.body
       )}
 
-      <style>{DASHBOARD_CSS}</style>
+      <style>{dashboardCss}</style>
       <style>{`
         /* ---------- tabs + search ---------- */
         .inv-tabbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; border-bottom: 1px solid var(--gray-border); }
