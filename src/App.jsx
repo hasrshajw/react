@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BrowserRouter, Routes, Route, NavLink, useNavigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Routes, Route, NavLink, useNavigate } from "react-router-dom";
 import {
   Bell, Sparkles, AlertTriangle, ArrowRight, User, Users, CreditCard, ShieldCheck, Activity,
   Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
@@ -131,7 +131,7 @@ const PLACEHOLDER_ROUTES = [
   ["/customize/combo", "Combo offer"],
 ];
 
-function App() {
+function Shell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -139,7 +139,7 @@ function App() {
   const banner = getPlanBanner(PLAN);
 
   return (
-    <BrowserRouter>
+    <>
       <div className="workspace-shell">
         {/* Schedy's own strip: vendor branding + subscription state. Always visible. */}
         <header className="workspace-promo">
@@ -443,8 +443,17 @@ function App() {
           .pm { top: calc(var(--chrome-top, 44px) + 76px); right: 8px; }
         }
       `}</style>
-    </BrowserRouter>
+    </>
   );
+}
+
+/* A data router (instead of <BrowserRouter>) is required for useBlocker, which the
+   Create page uses to ask "save your changes?" before the user leaves the page.
+   One splat route renders the whole shell, so the <Routes> inside keep working. */
+const router = createBrowserRouter([{ path: "*", element: <Shell /> }]);
+
+function App() {
+  return <RouterProvider router={router} />;
 }
 
 export default App;

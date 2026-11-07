@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useBlocker } from "react-router-dom";
 import {
   AlertCircle, CalendarPlus, Check, CheckCircle2, Copy, Eye, Heart, LayoutDashboard, LayoutTemplate,
   Loader2, MapPin, MessageCircle, Plus, Save, Trash2, User, Users, X,
@@ -244,6 +244,47 @@ function ShareModal({ name, link, onCopy, onWhatsApp, onClose, onAnother }) {
   );
 }
 
+/* Shown when the user tries to open another page with unsaved changes.
+   Save    -> saves, then continues to the page they chose.
+   Cancel  -> continues without saving; the local draft is kept, so the
+              "Restore them?" card shows up when they come back.
+   X / Esc -> stays on this page and keeps editing. */
+function LeaveModal({ onSave, onCancel, onStay }) {
+  const ref = useRef(null);
+  const stayRef = useRef(onStay);
+  stayRef.current = onStay;
+  useEffect(() => {
+    const prev = document.activeElement;
+    ref.current?.querySelector("[data-autofocus]")?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") { stayRef.current(); return; }
+      if (e.key !== "Tab") return;
+      const els = [...ref.current.querySelectorAll("button:not([disabled])")];
+      if (!els.length) return;
+      const first = els[0], last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); if (prev?.isConnected) prev.focus?.(); };
+  }, []);
+  return createPortal(
+    <div className="cx-overlay" onMouseDown={(e) => e.target === e.currentTarget && onStay()}>
+      <div className="cx-modal lv" ref={ref} role="alertdialog" aria-modal="true" aria-labelledby="lv-title" aria-describedby="lv-desc">
+        <button type="button" className="cx-close" aria-label="Keep editing" onClick={onStay}><X size={17} /></button>
+        <div className="cx-ok warn"><AlertCircle size={30} /></div>
+        <h3 id="lv-title">Save your changes?</h3>
+        <p id="lv-desc">You have unsaved changes on this invitation. Save them before you leave, or cancel and we'll keep a draft you can restore when you come back.</p>
+        <div className="cx-grid lv-actions">
+          <button type="button" className="secondary" onClick={onCancel}>Cancel</button>
+          <button type="button" className="primary" data-autofocus onClick={onSave}><Save size={16} /> Save</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 /* =========================================================
    PAGE
    ========================================================= */
@@ -268,9 +309,11 @@ export default function Create({ onPanelChange }) {
   const [draftOffer, setDraftOffer] = useState(null);
   const [lastSaved, setLastSaved] = useState(null);
   const [share, setShare] = useState(null);
+  const [navCta, setNavCta] = useState(false);
 
   const frameRef = useRef(null);
   const navRef = useRef(null);
+  const headBtnRef = useRef(null);
   const translitTimers = useRef(new Map());
   const translitSeq = useRef(0);
   const toastTimer = useRef();
@@ -278,6 +321,13 @@ export default function Create({ onPanelChange }) {
 
   const dirty = useMemo(() => JSON.stringify(data) !== snap, [data, snap]);
   const draftKey = LS_DRAFT + (editId || "new");
+
+  /* ---------- ask before leaving with unsaved changes ---------- */
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty;
+  const blocker = useBlocker(
+    useCallback(({ currentLocation, nextLocation }) => dirtyRef.current && currentLocation.pathname !== nextLocation.pathname, [])
+  );
 
   /* ---------- toast (same look as the dashboard) ---------- */
   const notify = (msg, tone = "ok") => {
@@ -510,15 +560,33 @@ export default function Create({ onPanelChange }) {
     bar.scrollTo({ left: chip.offsetLeft - bar.clientWidth / 2 + chip.clientWidth / 2, behavior: "smooth" });
   }, [active]);
 
+  /* Show a Create/Update button inside the sticky nav only while the real one in the
+     page header is scrolled out of view (hidden under the top navbar or above it). */
+  useEffect(() => {
+    const btn = headBtnRef.current;
+    if (!btn || typeof IntersectionObserver === "undefined") return;
+    const root = btn.closest(".main-content");
+    const navbarH = document.querySelector(".top-navbar")?.getBoundingClientRect().height || 64;
+    const io = new IntersectionObserver(
+      ([en]) => setNavCta(!en.isIntersecting),
+      { root, rootMargin: `-${Math.round(navbarH)}px 0px 0px 0px`, threshold: 0.01 }
+    );
+    io.observe(btn);
+    return () => io.disconnect();
+  }, []);
+
   const chooseTemplate = () => { setPreviewOpen(false); scrollToSection("template"); };
 
   /* ---------- save ---------- */
   const getLink = (id) => `${window.location.origin}/${data.customId?.trim() || id}`;
   const coupleName = `${has(data.groomEn) ? data.groomEn.trim() : "Groom"} & ${has(data.brideEn) ? data.brideEn.trim() : "Bride"}`;
 
-  const doSave = () => {
-    if (saving) return;
-    if (editId && !dirty) return;
+  /* Returns true when the invitation is saved (or there was nothing to save).
+     { leaving: true } is used by the "Save your changes?" dialog: it skips the share
+     popup and the toast, because the user is on their way to another page. */
+  const doSave = ({ leaving = false } = {}) => {
+    if (saving) return false;
+    if (editId && !dirty) return true;
     setSubmitted(true);
     const entries = Object.entries(errors);
     if (entries.length) {
@@ -526,7 +594,7 @@ export default function Create({ onPanelChange }) {
       scrollToSection(section);
       setTimeout(() => document.getElementById(`f-${key}`)?.focus({ preventScroll: true }), 450);
       notify(`Fix ${entries.length} ${entries.length === 1 ? "field" : "fields"} to continue`, "error");
-      return;
+      return false;
     }
     setSaving(true);
     const id = editId || uid();
@@ -547,14 +615,29 @@ export default function Create({ onPanelChange }) {
     if (!editId) {
       /* First save: remember the id so the next save updates instead of creating a duplicate. */
       setEditId(id);
-      history.replaceState({}, "", `/create?edit=${id}`);
-      setShare({ id });
-    } else {
+      /* Keep history.state: the router stores its position there (needed for back/forward blocking). */
+      if (!leaving) history.replaceState(history.state, "", `/create?edit=${id}`);
+      if (!leaving) setShare({ id });
+    } else if (!leaving) {
       notify("Invitation updated");
     }
     setSaving(false);
+    return true;
   };
-  saveRef.current = doSave;
+
+  /* "Save your changes?" dialog actions */
+  const leaveSave = () => {
+    if (doSave({ leaving: true })) blocker.proceed?.();
+    else blocker.reset?.(); /* validation failed: stay, and show what needs fixing */
+  };
+  const leaveCancel = () => {
+    /* Flush the draft now (autosave is debounced) so the Restore card appears on return. */
+    writeJSON(draftKey, { data, at: Date.now() });
+    blocker.proceed?.();
+  };
+  const leaveStay = () => blocker.reset?.();
+
+  saveRef.current = () => (blocker.state === "blocked" ? leaveSave() : doSave());
 
   const onSubmit = (e) => { e.preventDefault(); doSave(); };
 
@@ -567,7 +650,7 @@ export default function Create({ onPanelChange }) {
     setSubmitted(false);
     setLastSaved(null);
     setCategoryId("ALL");
-    history.replaceState({}, "", "/create");
+    history.replaceState(history.state, "", "/create");
     scrollToSection("template");
   };
 
@@ -606,7 +689,7 @@ export default function Create({ onPanelChange }) {
           <p>Fill in the details to build your invitation.</p>
         </div>
         <div className="actions">
-          <button className="primary" type="submit" form="create-form" disabled={saveDisabled} title="Save (Ctrl+S)">
+          <button ref={headBtnRef} className="primary" type="submit" form="create-form" disabled={saveDisabled} title="Save (Ctrl+S)">
             {saving ? <Loader2 className="spin" size={17} /> : <Save size={17} />} {saveLabel}
           </button>
         </div>
@@ -645,6 +728,12 @@ export default function Create({ onPanelChange }) {
           <div className="sec-progress" title={`${doneCount} of ${PROGRESS_IDS.length} sections complete`}>
             <span>{doneCount}/{PROGRESS_IDS.length}</span>
             <i><b style={{ width: `${pct}%` }} /></i>
+          </div>
+          {/* Desktop only. Slides in while the header's Create button is out of view. */}
+          <div className={`sec-cta${navCta ? " show" : ""}`}>
+            <button className="primary" type="submit" form="create-form" disabled={saveDisabled} title="Save (Ctrl+S)">
+              {saving ? <Loader2 className="spin" size={15} /> : <Save size={15} />} {saveLabel}
+            </button>
           </div>
         </nav>
 
@@ -772,6 +861,10 @@ export default function Create({ onPanelChange }) {
         />
       )}
 
+      {blocker.state === "blocked" && (
+        <LeaveModal onSave={leaveSave} onCancel={leaveCancel} onStay={leaveStay} />
+      )}
+
       {toast && createPortal(
         <div className="dx-toast" role="status">
           {toast.tone === "error" ? <AlertCircle size={15} className="bad" /> : <Check size={15} />} {toast.msg}
@@ -813,7 +906,11 @@ export default function Create({ onPanelChange }) {
 
   /* ---------- sticky section nav ---------- */
   .create-builder-layout { display: block !important; width: 100%; }
-  .sec-nav { position: sticky; top: 8px; z-index: 30; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 6px 8px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; box-shadow: 0 6px 18px rgba(54, 52, 77, .07); }
+  /* The page scrolls inside .main-content, whose 96px top padding counts as part of the sticky area,
+     so a negative top lets the nav sit close under the top navbar (about 12px) instead of 40px below it.
+     --sec-scroll-mt keeps a section's heading clear of the nav after a chip click. */
+  .create { --sec-top: -20px; --sec-scroll-mt: 138px; }
+  .sec-nav { position: sticky; top: var(--sec-top); z-index: 30; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 6px 8px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; box-shadow: 0 6px 18px rgba(54, 52, 77, .07); }
   .sec-chips { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .sec-chips::-webkit-scrollbar { display: none; }
   .chip-nav { flex-shrink: 0; height: 36px; padding: 0 13px 0 7px; display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s; }
@@ -827,9 +924,15 @@ export default function Create({ onPanelChange }) {
   .sec-progress i { width: 72px; height: 6px; border-radius: 999px; background: var(--gray-light); overflow: hidden; }
   .sec-progress b { display: block; height: 100%; border-radius: inherit; background: var(--primary); transition: width .3s ease; }
 
+  /* Create/Update button in the nav: grows in from the right while the header one is out of view.
+     The negative margin cancels the flex gap while it is collapsed. */
+  .sec-cta { --ease: cubic-bezier(.22, 1, .36, 1); flex: 0 0 auto; display: flex; align-items: center; overflow: hidden; max-width: 0; margin-left: -10px; opacity: 0; transform: translateX(12px) scale(.94); transform-origin: right center; visibility: hidden; pointer-events: none; transition: max-width .38s var(--ease), margin-left .38s var(--ease), opacity .26s ease, transform .38s var(--ease), visibility 0s linear .38s; }
+  .sec-cta.show { max-width: 170px; margin-left: 0; opacity: 1; transform: none; visibility: visible; pointer-events: auto; transition: max-width .38s var(--ease), margin-left .38s var(--ease), opacity .3s ease .05s, transform .38s var(--ease), visibility 0s; }
+  .sec-cta .primary { height: 36px; padding: 0 16px; border-radius: 999px; font-size: 13px; gap: 7px; box-shadow: none; }
+
   /* ---------- form cards ---------- */
   .create-builder-form { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .create-builder-form section { display: flex; flex-direction: column; gap: 14px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 22px; padding: 24px; scroll-margin-top: 84px; }
+  .create-builder-form section { display: flex; flex-direction: column; gap: 14px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 22px; padding: 24px; scroll-margin-top: var(--sec-scroll-mt); }
   .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
   .create-builder-form h2 { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 16px; font-weight: 700; color: var(--dark); }
   .create-builder-form h2 i { width: 34px; height: 34px; flex-shrink: 0; border-radius: 12px; background: var(--primary-light); color: var(--primary); display: grid; place-items: center; }
@@ -936,13 +1039,20 @@ export default function Create({ onPanelChange }) {
   .cx-modal .secondary { padding: 0 12px; }
   @keyframes cx-fade { from { opacity: 0; } to { opacity: 1; } }
 
+  /* ---------- "Save your changes?" dialog ---------- */
+  .cx-modal.lv { position: relative; padding-top: 32px; }
+  .cx-ok.warn { background: var(--warning-light); color: var(--warning-dark); }
+  .cx-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: var(--gray-light); color: var(--gray-dark); cursor: pointer; transition: background .2s; }
+  .cx-close:hover { background: var(--meteorite-light); }
+  .lv-actions { margin-top: 22px; }
+
   /* ---------- toast (same as dashboard; portaled to <body>) ---------- */
   .dx-toast, .dx-toast * { box-sizing: border-box; }
   .dx-toast { --tx: -50%; position: fixed; left: 50%; bottom: 28px; z-index: 9800; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 14px; background: var(--dx-toast-bg); color: #fff; font-family: "DM Sans", Inter, system-ui, sans-serif; font-size: 13px; font-weight: 600; box-shadow: 0 12px 30px rgba(0, 0, 0, .3); animation: dx-pop .2s ease; }
   .dx-toast svg { color: #5eead4; }
   .dx-toast svg.bad { color: #fca5a5; }
   @keyframes dx-pop { from { opacity: 0; transform: translate(var(--tx, 0), 8px) scale(.98); } to { opacity: 1; transform: translate(var(--tx, 0), 0) scale(1); } }
-  @media (prefers-reduced-motion: reduce) { .dx-toast, .cx-modal, .cx-overlay, .sec-progress b { animation: none; transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .dx-toast, .cx-modal, .cx-overlay, .sec-progress b, .sec-cta, .sec-cta.show { animation: none; transition: none; } }
 
   /* ---------- responsive ---------- */
   @media(max-width: 1500px) { .grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -950,6 +1060,7 @@ export default function Create({ onPanelChange }) {
   @media(max-width: 900px) {
     .create { padding-bottom: 88px; }
     .actions { display: none; }
+    .sec-cta { display: none; } /* phones/tablets already have the bottom action bar */
     .mbar { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 3500; display: flex; gap: 10px; padding: 10px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; box-shadow: 0 12px 30px rgba(24, 28, 45, .18); }
     .mbar button { flex: 1; }
     .dx-toast { bottom: 92px; }
@@ -957,6 +1068,10 @@ export default function Create({ onPanelChange }) {
     .create-live-preview-panel { position: fixed !important; inset: 12px; z-index: 4000; width: auto; min-width: 0; height: auto; max-width: none; flex: none; border-radius: 20px !important; display: none; box-shadow: 0 12px 34px rgba(24, 28, 45, .3); }
     .create-live-preview-panel.mobile-open { display: flex; }
     .create-live-preview-panel.mobile-open .create-live-preview-head button { display: grid; }
+  }
+  @media(max-width: 768px) {
+    /* phones: the 72px mobile header replaces the desktop navbar and main-content padding is 88px */
+    .create { --sec-top: -4px; --sec-scroll-mt: 146px; }
   }
   @media(max-width: 600px) {
     .create header { flex-direction: column; align-items: stretch; }
