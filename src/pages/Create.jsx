@@ -968,10 +968,14 @@ export default function Create({ onPanelChange }) {
      so a negative top lets the nav sit close under the top navbar (about 12px) instead of 40px below it.
      --sec-scroll-mt keeps a section's heading clear of the nav after a chip click. */
   .create { --sec-top: -20px; --sec-scroll-mt: 138px; }
-  .sec-nav { position: sticky; top: var(--sec-top); z-index: 30; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 6px 8px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 18px; box-shadow: 0 6px 18px rgba(54, 52, 77, .07); transition: box-shadow .25s ease, border-color .25s ease; }
+  .sec-nav { position: sticky; top: var(--sec-top); z-index: 30; display: flex; align-items: center; gap: 10px; margin: 0 -12px 16px; padding: 7px 10px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 20px; box-shadow: 0 6px 18px rgba(54, 52, 77, .07); transition: box-shadow .25s ease, border-color .25s ease, background-color .25s ease; }
   /* once stuck: stronger edge + a page-colored strip above so scrolling cards never show in the gap */
-  .sec-nav::before { content: ""; position: absolute; z-index: -1; left: -8px; right: -8px; top: -60px; height: 60px; background: #f5f5f7; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
-  .sec-nav.stuck { border-color: #cfd2e6; box-shadow: 0 10px 28px rgba(54, 52, 77, .16), 0 1px 0 rgba(54, 52, 77, .06); }
+  .sec-nav::before { content: ""; position: absolute; z-index: -1; left: -4px; right: -4px; top: -60px; height: 60px; background: #f5f5f7; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+  .sec-nav.stuck { background: #f3efff; border-color: #cdbdff; box-shadow: 0 12px 30px rgba(80, 37, 209, .18), 0 2px 0 rgba(103, 61, 230, .08); }
+  .sec-nav.stuck .sec-pill { background: var(--white); box-shadow: 0 2px 8px rgba(103, 61, 230, .22); }
+  .sec-nav.stuck .chip-nav:hover { background: rgba(103, 61, 230, .08); }
+  .sec-nav.stuck .chip-nav.on .cn-ic { background: var(--primary-light); }
+  .sec-nav.stuck .sec-progress i { background: #ddd3ff; }
   .sec-nav.stuck::before { opacity: 1; }
   .sec-chips { position: relative; display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .sec-pill { position: absolute; left: 0; top: 0; height: 36px; border-radius: 999px; background: var(--primary-light); pointer-events: none; z-index: 0; transition: transform .42s cubic-bezier(.22, 1, .36, 1), width .42s cubic-bezier(.22, 1, .36, 1); will-change: transform, width; }
@@ -1143,6 +1147,7 @@ export default function Create({ onPanelChange }) {
     .grid.two, .grid.three { grid-template-columns: 1fr; }
     .create-builder-form section { padding: 18px 16px; }
     .sec-progress i { display: none; }
+    .sec-nav { margin-left: -6px; margin-right: -6px; }
     .tp-grid { justify-content: center; }
   }
       `}</style>
