@@ -165,11 +165,17 @@ export default function Sidebar({
     ro.observe(nav);
     return () => ro.disconnect();
   }, [measurePill]);
-  useEffect(() => {
-    if (!pill || pillAnim) return;
-    const id = requestAnimationFrame(() => setPillAnim(true)); // no slide-in on first paint
-    return () => cancelAnimationFrame(id);
-  }, [pill, pillAnim]);
+
+  /* The pill only slides right after a nav link is clicked. Any other layout
+     change (collapse/expand, hover, first paint) repositions it instantly. */
+  const animTimer = useRef(null);
+  const handleNavClick = (e) => {
+    if (!e.target.closest("a.nav-item, a.nav-submenu-item")) return;
+    setPillAnim(true);
+    clearTimeout(animTimer.current);
+    animTimer.current = setTimeout(() => setPillAnim(false), 450);
+  };
+  useEffect(() => () => clearTimeout(animTimer.current), []);
 
   useEffect(() => {
     onHoverExpand?.(!overlayMode && peeking);
@@ -326,7 +332,7 @@ export default function Sidebar({
         </button>
 
         <div className="d-sidebar-inner">
-          <nav aria-label="Main" className="d-nav" ref={navRef}>
+          <nav aria-label="Main" className="d-nav" ref={navRef} onClickCapture={handleNavClick}>
             <div className="nav-section-label">Manage</div>
 
             {menuItems.map(({ name, path, Icon }, i) => (
@@ -541,7 +547,6 @@ export default function Sidebar({
           justify-content: space-between;
           gap: 16px;
           padding: 0 24px;
-          transition: margin-left .45s var(--spring);
         }
 
         .navbar-expanded { margin-left: var(--sidebar-width); }
@@ -564,7 +569,6 @@ export default function Sidebar({
           color: var(--gray);
           font-size: 13px;
           cursor: pointer;
-          transition: border-color .15s, color .15s;
         }
         .nav-search:hover { color: var(--text-color); border-color: var(--gray); }
         .nav-search kbd {
@@ -582,7 +586,6 @@ export default function Sidebar({
           font-size: 14px; font-weight: 600;
           text-decoration: none;
           box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 28%, transparent);
-          transition: filter .15s, transform .15s;
         }
         .nav-cta:hover { filter: brightness(1.1); }
         .nav-cta:active { transform: translateY(1px); }
@@ -592,7 +595,6 @@ export default function Sidebar({
           border: 0; background: transparent; border-radius: 10px;
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: var(--icon-color); position: relative;
-          transition: background .15s, color .15s;
         }
         .navbar-icon-button:hover { background: var(--hover-bg); color: var(--brand-primary); }
 
@@ -600,13 +602,8 @@ export default function Sidebar({
           position: absolute; top: 9px; right: 10px;
           width: 7px; height: 7px; border-radius: 50%;
           background: #fb4778; border: 1.5px solid var(--white);
-          animation: dot-pulse 2.4s ease-out infinite;
         }
-        @keyframes dot-pulse {
-          0%   { box-shadow: 0 0 0 0 rgba(251, 71, 120, .5); }
-          70%  { box-shadow: 0 0 0 7px rgba(251, 71, 120, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(251, 71, 120, 0); }
-        }
+        
 
         .navbar-divider { width: 1px; height: 28px; background: var(--border-subtle); margin: 0 6px; }
 
@@ -615,7 +612,6 @@ export default function Sidebar({
           display: flex; align-items: center; gap: 10px;
           padding: 4px 10px 4px 4px; border-radius: 999px;
           cursor: pointer; text-align: left; color: inherit;
-          transition: background .15s;
         }
         .navbar-user:hover, .navbar-user[aria-expanded="true"] { background: var(--hover-bg); }
 
@@ -628,7 +624,7 @@ export default function Sidebar({
         .navbar-user-info { display: flex; flex-direction: column; gap: 2px; line-height: 1.1; }
         .navbar-user-name { font-size: 13px; font-weight: 700; }
         .navbar-user-role { font-size: 11px; color: var(--text-sub, var(--gray)); }
-        .navbar-user-chevron { color: var(--icon-color); flex-shrink: 0; transition: transform .2s ease; }
+        .navbar-user-chevron { color: var(--icon-color); flex-shrink: 0;}
         .navbar-user[aria-expanded="true"] .navbar-user-chevron { transform: rotate(180deg); }
 
         /* ---------- SIDEBAR ---------- */
@@ -641,7 +637,6 @@ export default function Sidebar({
           display: flex; flex-direction: column;
           position: fixed; top: 0; left: 0;
           z-index: 2000;
-          transition: width .45s var(--spring), box-shadow .35s ease;
         }
         .d-sidebar.collapsed { width: var(--sidebar-collapsed-width); }
 
@@ -659,9 +654,8 @@ export default function Sidebar({
         .brand-logo, .mini-logo { display: flex; align-items: center; text-decoration: none; }
         .brand-logo img, .mini-logo img {
           height: 36px; width: auto; display: block;
-          animation: logo-in .4s var(--spring) backwards;
         }
-        @keyframes logo-in { from { opacity: 0; transform: translateX(-6px) scale(.96); } to { opacity: 1; transform: none; } }
+        
 
         .sidebar-edge-toggle {
           position: absolute; top: 18px; right: -14px;
@@ -672,15 +666,14 @@ export default function Sidebar({
           cursor: pointer; z-index: 5;
           box-shadow: 0 2px 8px rgba(17, 12, 41, .12);
           opacity: 0; transform: scale(.85);
-          transition: opacity .25s, transform .35s var(--spring), background .15s, color .15s, border-color .15s;
         }
         .d-sidebar:hover .sidebar-edge-toggle,
         .sidebar-edge-toggle:focus-visible { opacity: 1; transform: scale(1); }
         .sidebar-edge-toggle:hover { background: var(--brand-primary); border-color: var(--brand-primary); color: var(--white, #fff); }
 
-        .d-scrim { position: absolute; inset: 0; background: rgba(23, 19, 38, .38); backdrop-filter: blur(2px); z-index: 1900; animation: d-scrim-in .25s ease; }
+        .d-scrim { position: absolute; inset: 0; background: rgba(23, 19, 38, .38); backdrop-filter: blur(2px); z-index: 1900;}
         .d-sidebar.as-overlay { box-shadow: 18px 0 48px -14px rgba(36, 20, 90, .3); }
-        @keyframes d-scrim-in { from { opacity: 0; } to { opacity: 1; } }
+        
 
         .d-sidebar-inner {
           flex: 1; padding: 8px 16px 16px;
@@ -698,7 +691,6 @@ export default function Sidebar({
           font-size: 11px; font-weight: 600;
           letter-spacing: .06em; text-transform: uppercase;
           color: var(--gray); white-space: nowrap; overflow: hidden;
-          transition: height .45s var(--spring), padding .45s var(--spring), margin .45s var(--spring), background .3s, color .2s;
         }
         nav > .nav-section-label:first-child { height: 30px; padding-top: 8px; }
         .d-sidebar.collapsed .nav-section-label {
@@ -712,12 +704,12 @@ export default function Sidebar({
         .nav-pill {
           position: absolute; top: 0; left: 0; z-index: 0;
           pointer-events: none; opacity: 0;
-          border-radius: var(--radius-md); will-change: transform;
-          background: var(--active-bg);
+          border-radius: var(--radius-md);          background: var(--active-bg);
         }
         .nav-pill.show { opacity: 1; }
+        /* the ONLY animation in the sidebar: slide to the clicked link */
+        .nav-pill.anim { transition: transform .3s cubic-bezier(.2, 0, 0, 1), height .25s cubic-bezier(.2, 0, 0, 1); }
         .nav-pill.anim {
-          transition: transform .3s cubic-bezier(.2, 0, 0, 1), height .25s cubic-bezier(.2, 0, 0, 1), opacity .15s ease;
         }
         .nav-pill::before {
           content: ""; position: absolute; left: -16px; top: 12px; bottom: 12px;
@@ -740,7 +732,6 @@ export default function Sidebar({
           color: var(--text-color); text-decoration: none;
           font-size: 15px; font-weight: 500; text-align: left;
           white-space: nowrap; user-select: none;
-          transition: background .2s, color .2s, transform .2s var(--spring);
         }
         .nav-item:hover { background: color-mix(in srgb, var(--dark) 4.5%, transparent); }
         .nav-item:active { transform: none; }
@@ -768,9 +759,8 @@ export default function Sidebar({
           width: 22px; height: 22px; min-width: 22px;
           display: flex; align-items: center; justify-content: center;
           color: var(--icon-color);
-          transition: color .2s, transform .35s var(--spring);
         }
-        .menu-icon svg * { transition: stroke-width .25s ease; }
+        .menu-icon svg * {}
         .nav-item:hover .menu-icon { transform: none; }
         /* free Hugeicons has no solid set, so the active icon gets a heavier stroke */
         .nav-item.active .menu-icon svg *,
@@ -785,19 +775,15 @@ export default function Sidebar({
            collapse smoothly (no pop) when it closes */
         .nav-label {
           margin-left: 14px; max-width: 190px; overflow: hidden;
-          transition: max-width .45s var(--spring), margin .45s var(--spring), opacity .2s ease .1s;
         }
         .d-sidebar.expanded .nav-label {
-          animation: label-in .45s var(--spring) backwards;
-          animation-delay: calc(var(--i, 0) * 35ms + 90ms);
         }
-        @keyframes label-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+        
         .d-sidebar.collapsed .nav-label {
           max-width: 0; margin-left: 0; opacity: 0;
-          transition: max-width .45s var(--spring), margin .45s var(--spring), opacity .12s ease;
         }
 
-        .nav-chevron { margin-left: auto; flex-shrink: 0; color: var(--icon-color); transition: transform .3s var(--spring); }
+        .nav-chevron { margin-left: auto; flex-shrink: 0; color: var(--icon-color);}
         .nav-item.dropdown-open .nav-chevron { transform: rotate(90deg); }
         .nav-item:hover:not(.dropdown-open) .nav-chevron { transform: translateX(3px); }
 
@@ -806,7 +792,6 @@ export default function Sidebar({
         .nav-submenu {
           display: grid;
           grid-template-rows: 0fr;
-          transition: grid-template-rows .4s var(--spring);
         }
         .nav-submenu.open { grid-template-rows: 1fr; }
 
@@ -816,7 +801,6 @@ export default function Sidebar({
           margin-left: 22px; padding-left: 16px;
           display: flex; flex-direction: column;
           visibility: hidden;
-          transition: visibility .4s;
         }
         .nav-submenu.open .nav-submenu-inner { visibility: visible; }
 
@@ -825,7 +809,6 @@ export default function Sidebar({
           content: ""; position: absolute; left: 0; top: 2px; bottom: 22px; width: 1px;
           background: var(--border-subtle);
           transform: scaleY(0); transform-origin: top;
-          transition: transform .5s var(--spring) .05s;
         }
         .nav-submenu.open .nav-submenu-inner::before { transform: scaleY(1); }
 
@@ -836,12 +819,10 @@ export default function Sidebar({
           border-radius: 8px; gap: 12px; flex-shrink: 0;
           color: var(--text-color); text-decoration: none;
           font-size: 14px; font-weight: 500; white-space: nowrap;
-          transition: background .15s, color .15s, transform .25s var(--spring);
         }
         .nav-submenu-item::before {
           content: ""; position: absolute; left: -16px; top: 50%;
           width: 10px; height: 1px; background: var(--border-subtle);
-          transition: background .2s, width .3s var(--spring);
         }
         .nav-submenu-item:hover::before { background: var(--gray); }
         .nav-submenu-item.active::before { background: var(--brand-primary); }
@@ -851,10 +832,8 @@ export default function Sidebar({
         .d-sidebar .nav-submenu-item.active, .d-sidebar .nav-submenu-item.active:hover { background: transparent; }
 
         .nav-submenu.open .nav-submenu-item {
-          animation: sub-in .45s var(--spring) backwards;
-          animation-delay: calc(var(--i, 0) * 45ms + 120ms);
         }
-        @keyframes sub-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+        
 
         /* ---------- COLLAPSED ---------- */
 
@@ -873,7 +852,6 @@ export default function Sidebar({
           background: var(--white);
           color: var(--text-color); text-decoration: none;
           font-size: 14px; font-weight: 600; white-space: nowrap;
-          transition: transform .3s var(--spring), box-shadow .3s ease, border-color .2s, color .2s;
         }
         .live-site:hover {
           color: var(--text-color); background: color-mix(in srgb, var(--dark) 3%, var(--white));
@@ -883,18 +861,11 @@ export default function Sidebar({
         .live-dot {
           margin-left: auto; width: 8px; height: 8px; border-radius: 50%;
           background: #22c55e; flex-shrink: 0;
-          animation: live-pulse 2.2s ease-out infinite;
-          transition: opacity .2s;
         }
-        @keyframes live-pulse {
-          0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, .5); }
-          70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
+        
         .live-arrow {
           position: absolute; right: 16px; opacity: 0; color: var(--text-color);
           transform: translate(-4px, 4px);
-          transition: opacity .2s, transform .3s var(--spring);
         }
         .live-site:hover .live-arrow { opacity: 1; transform: none; }
         .live-site:hover .live-dot { opacity: 0; }
@@ -963,7 +934,7 @@ export default function Sidebar({
           position: fixed; inset: 0;
           background: rgba(15, 23, 42, .45);
           opacity: 0; pointer-events: none;
-          transition: .25s; z-index: 4000;
+z-index: 4000;
         }
         .m-overlay.open { opacity: 1; pointer-events: auto; }
 
@@ -971,8 +942,7 @@ export default function Sidebar({
           position: absolute; left: 0; top: 0;
           width: 300px; max-width: 85vw; height: 100%;
           background: var(--white);
-          transform: translateX(-100%); transition: .25s;
-          display: flex; flex-direction: column; overflow-y: auto;
+          transform: translateX(-100%);          display: flex; flex-direction: column; overflow-y: auto;
         }
         .m-overlay.open .m-drawer { transform: translateX(0); }
 
@@ -1007,16 +977,7 @@ export default function Sidebar({
           .navbar-user-info, .nav-search kbd { display: none; }
         }
 
-        @media (prefers-reduced-motion: reduce) {
-          .d-sidebar, .top-navbar-inner, .nav-submenu, .nav-chevron, .m-drawer, .m-overlay, .d-scrim,
-          .nav-pill, .nav-label, .nav-section-label, .menu-icon, .nav-item, .nav-submenu-item,
-          .nav-submenu-inner::before, .live-site, .live-arrow, .sidebar-edge-toggle {
-            transition: none !important; animation: none !important;
-          }
-          .nav-label, .nav-submenu-item, .brand-logo img, .mini-logo img { animation: none !important; }
-          .live-dot { animation: none !important; }
-          .notification-dot { animation: none !important; }
-        }
+        
       `}</style>
     </>
   );
