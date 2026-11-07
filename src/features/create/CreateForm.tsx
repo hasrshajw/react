@@ -1,0 +1,130 @@
+import React from "react";
+import { CalendarPlus, Heart, Image as ImageIcon, LayoutTemplate, MapPin, Plus, Trash2, User, Users } from "../../components/Icons";
+import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
+import { newEvent } from "./constants";
+import { Bilingual } from "./components/Bilingual";
+import { Contacts } from "./components/Contacts";
+import { Field } from "./components/Field";
+import { PhotoPicker, GalleryPicker } from "./components/PhotoPicker";
+import { Section } from "./components/Section";
+import { TemplatePicker } from "./components/TemplatePicker";
+
+export interface CreateFormProps {
+  data: InvitationData;
+  categories: Category[];
+  templates: Template[];
+  categoryId: string;
+  onCategory: (id: string) => void;
+  set: <K extends keyof InvitationData>(key: K, value: InvitationData[K]) => void;
+  add: (field: ListField, make: () => EventItem | ContactItem) => void;
+  patch: (field: ListField, id: string, patch: Partial<EventItem & ContactItem>) => void;
+  remove: (field: ListField, id: string) => void;
+  focus: (field: string) => void;
+  vis: (key: string) => string | undefined;
+  touch: (key: string) => void;
+  tagFor: (id: SectionId) => { tone: string; text: string };
+  onSubmit: (e: React.FormEvent) => void;
+  notify: (msg: string, tone?: "ok" | "error") => void;
+}
+
+export function CreateForm({ data, categories, templates, categoryId, onCategory, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify }: CreateFormProps) {
+  const slug = data.customId?.trim();
+  const fpx = (name: string, focusKey: string) => ({ name, onFocus: () => focus(focusKey), onBlur: () => touch(name), error: vis(name) });
+  const fp = (name: string) => fpx(name, name);
+  return (
+    <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
+      <Section id="template" icon={LayoutTemplate} title="Template Options" tag={tagFor("template")}>
+        <TemplatePicker
+          categories={categories} categoryId={categoryId} onCategory={onCategory} templates={templates}
+          value={data.templateId} onSelect={(v) => set("templateId", v)} error={vis("templateId")}
+        />
+        <Field
+          label="Custom Link ID" {...fp("customId")} value={data.customId} onChange={(v) => set("customId", v)}
+          help={`Your link: ${window.location.origin}/${slug || "your-id"}`}
+        />
+      </Section>
+
+      <Section id="family" icon={Users} title="Family & Wedding" tag={tagFor("family")}>
+        <Bilingual enLabel="Family Surname EN" teLabel="Family Surname తెలుగు" enField="surnameEn" teField="surnameTe" data={data} set={set} fp={fp} />
+        <div className="grid two">
+          <Field label="Wedding Date" type="date" required {...fp("weddingDate")} value={data.weddingDate} onChange={(v) => set("weddingDate", v)} />
+          <Field label="Muhurtham Time" type="time" {...fp("muhurthamTime")} value={data.muhurthamTime} onChange={(v) => set("muhurthamTime", v)} />
+        </div>
+      </Section>
+
+      <Section id="groom" icon={User} title="Groom's Details" tag={tagFor("groom")}>
+        <Bilingual enLabel="Groom Name EN" teLabel="Groom Name తెలుగు" enField="groomEn" teField="groomTe" data={data} set={set} fp={fp} required />
+        <div className="sub">Father's Details</div>
+        <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="groomFatherEn" teField="groomFatherTe" data={data} set={set} fp={fp} />
+        <Field label="Father Phone" type="tel" inputMode="tel" {...fp("groomFatherPhone")} value={data.groomFatherPhone} onChange={(v) => set("groomFatherPhone", v)} />
+        <div className="sub">Mother's Details</div>
+        <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="groomMotherEn" teField="groomMotherTe" data={data} set={set} fp={fp} />
+        <Field label="Mother Phone" type="tel" inputMode="tel" {...fp("groomMotherPhone")} value={data.groomMotherPhone} onChange={(v) => set("groomMotherPhone", v)} />
+        <Contacts field="groomContacts" items={data.groomContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
+      </Section>
+
+      <Section id="bride" icon={Heart} title="Bride's Details" tag={tagFor("bride")}>
+        <Bilingual enLabel="Bride Name EN" teLabel="Bride Name తెలుగు" enField="brideEn" teField="brideTe" data={data} set={set} fp={fp} required />
+        <div className="sub">Father's Details</div>
+        <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="brideFatherEn" teField="brideFatherTe" data={data} set={set} fp={fp} />
+        <Field label="Father Phone" type="tel" inputMode="tel" {...fp("brideFatherPhone")} value={data.brideFatherPhone} onChange={(v) => set("brideFatherPhone", v)} />
+        <div className="sub">Mother's Details</div>
+        <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="brideMotherEn" teField="brideMotherTe" data={data} set={set} fp={fp} />
+        <Field label="Mother Phone" type="tel" inputMode="tel" {...fp("brideMotherPhone")} value={data.brideMotherPhone} onChange={(v) => set("brideMotherPhone", v)} />
+        <Contacts field="brideContacts" items={data.brideContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
+      </Section>
+
+      <Section id="venue" icon={MapPin} title="Reception & Venue" tag={tagFor("venue")}>
+        <label className="check">
+          <input type="checkbox" checked={data.receptionEnabled} onChange={(e) => set("receptionEnabled", e.target.checked)} /> Include reception
+        </label>
+        {data.receptionEnabled && (
+          <div className="grid two">
+            <Field label="Reception Date" type="date" required {...fp("receptionDate")} value={data.receptionDate} onChange={(v) => set("receptionDate", v)} />
+            <Field label="Reception Time" type="time" {...fp("receptionTime")} value={data.receptionTime} onChange={(v) => set("receptionTime", v)} />
+          </div>
+        )}
+        <Bilingual enLabel="Venue EN" teLabel="Venue తెలుగు" enField="venueEn" teField="venueTe" data={data} set={set} fp={fp} />
+        <Field label="Venue Address" {...fp("venueAddress")} value={data.venueAddress} onChange={(v) => set("venueAddress", v)} />
+        <Field label="Google Maps Link" inputMode="url" {...fp("venueMaps")} value={data.venueMaps} onChange={(v) => set("venueMaps", v)} />
+      </Section>
+
+      <Section id="photos" icon={ImageIcon} title="Photos" tag={tagFor("photos")}>
+        <PhotoPicker
+          label="Couple photo" value={data.couplePhoto} onChange={(v) => set("couplePhoto", v)}
+          onError={(m) => notify(m, "error")} onFocus={() => focus("couplePhoto")} maxSide={1000}
+          help="Shown in templates that have a photo spot. JPG, PNG or WebP."
+        />
+        <GalleryPicker
+          label="Gallery" value={data.gallery} onChange={(v) => set("gallery", v)}
+          onError={(m) => notify(m, "error")} onFocus={() => focus("gallery")}
+        />
+      </Section>
+
+      <Section id="events" icon={CalendarPlus} title="Additional Events" tag={tagFor("events")}>
+        {data.events.map((ev, i) => (
+          <div className="repeat" key={ev.id}>
+            <button type="button" className="del" aria-label="Remove event" onClick={() => remove("events", ev.id)}><Trash2 size={15} /></button>
+            <div className="sub">Event {i + 1}</div>
+            <div className="grid two">
+              <Field label="Event Name EN" {...fpx(`event-${ev.id}-name`, `event-${i + 1}-name-te`)} value={ev.name} onChange={(v) => patch("events", ev.id, { name: v })} />
+              <Field label="Event Name తెలుగు" lang="te" {...fpx(`event-${ev.id}-nameTe`, `event-${i + 1}-name-te`)} value={ev.nameTe} onChange={(v) => patch("events", ev.id, { nameTe: v })} />
+            </div>
+            <div className="grid three">
+              <Field label="Date" type="date" {...fpx(`event-${ev.id}-date`, `event-${i + 1}-date`)} value={ev.date} onChange={(v) => patch("events", ev.id, { date: v })} />
+              <Field label="Time" type="time" {...fpx(`event-${ev.id}-time`, `event-${i + 1}-time`)} value={ev.time} onChange={(v) => patch("events", ev.id, { time: v })} />
+              <Field label="Venue EN" {...fpx(`event-${ev.id}-venue`, `event-${i + 1}-venue-te`)} value={ev.venue} onChange={(v) => patch("events", ev.id, { venue: v })} />
+            </div>
+            <Field label="Venue తెలుగు" lang="te" {...fpx(`event-${ev.id}-venueTe`, `event-${i + 1}-venue-te`)} value={ev.venueTe} onChange={(v) => patch("events", ev.id, { venueTe: v })} />
+            <Field label="Google Maps Link" inputMode="url" {...fpx(`event-${ev.id}-maps`, `event-${i + 1}-venue-te`)} value={ev.maps} onChange={(v) => patch("events", ev.id, { maps: v })} />
+          </div>
+        ))}
+        {data.events.length < 2 ? (
+          <button type="button" className="outline" onClick={() => add("events", newEvent)}><Plus size={15} /> Add event</button>
+        ) : (
+          <div className="hint">This template supports two additional event slots.</div>
+        )}
+      </Section>
+    </form>
+  );
+}

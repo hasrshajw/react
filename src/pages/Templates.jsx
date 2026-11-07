@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Eye, LayoutTemplate, Plus, Search, X } from "../components/Icons";
 import { demoCategories, demoTemplates } from "../lib/demoData";
 import { compile } from "../lib/compileInvitation";
-import { SAMPLE } from "./Create";
+import { SAMPLE } from "../features/create/constants";
 
 const nameOf = (t) => t.name || t.title || `Template ${t.id}`;
 
