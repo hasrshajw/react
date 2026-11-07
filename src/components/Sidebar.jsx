@@ -85,6 +85,7 @@ export default function Sidebar({
   collapsed,
   setCollapsed,
   panelOpen = false,
+  onHoverExpand,
   onProfileClick,
   profileOpen = false,
   onSearch, // optional: pass a handler to show the search button + ⌘K shortcut
@@ -105,9 +106,9 @@ export default function Sidebar({
   }, [customizeActive]);
 
   /* ---- Hover "peek" ------------------------------------------------
-     Hovering the collapsed sidebar opens it as a floating panel on top of the
-     page (content never shifts). A short delay on enter/leave stops flicker,
-     and the Customize submenu only opens when the user clicks it. */
+     Hovering the collapsed sidebar opens it (pushing the content aside, or
+     floating over it when the preview panel is open). A short delay on
+     enter/leave stops flicker, and the Customize submenu only opens on click. */
   const [peek, setPeek] = useState(false);
   const [siteTouched, setSiteTouched] = useState(false);
   const peekTimer = useRef(null);
@@ -115,8 +116,10 @@ export default function Sidebar({
   const baseExpanded = overlayMode ? overlayOpen : !collapsed;
   const isExpanded = baseExpanded || peek;
   const peeking = peek && !baseExpanded;
-  const floating = isExpanded && (overlayMode || peeking);
-  const narrowLayout = overlayMode || collapsed;
+  /* Preview panel open  -> sidebar floats over the page (overlay).
+     Preview panel closed -> hovering pushes the content aside and uses the space. */
+  const floating = isExpanded && overlayMode;
+  const narrowLayout = overlayMode || (collapsed && !peeking);
   const sidebarOpen = baseExpanded;
   const submenuOpen = siteOpen && (!peeking || siteTouched);
 
@@ -132,6 +135,11 @@ export default function Sidebar({
   };
   useEffect(() => () => clearTimeout(peekTimer.current), []);
   useEffect(() => { if (baseExpanded) setPeek(false); }, [baseExpanded]);
+
+  useEffect(() => {
+    onHoverExpand?.(!overlayMode && peeking);
+  }, [overlayMode, peeking]);
+  useEffect(() => () => onHoverExpand?.(false), []);
 
   /* ---- Sliding active pill -----------------------------------------
      One highlight element glides to whichever link is active. */

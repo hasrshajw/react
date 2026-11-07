@@ -112,6 +112,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [hoverExpanded, setHoverExpanded] = useState(false);
   const banner = getPlanBanner(PLAN);
 
   return (
@@ -147,6 +148,7 @@ function App() {
               collapsed={sidebarCollapsed}
               setCollapsed={setSidebarCollapsed}
               panelOpen={panelOpen}
+              onHoverExpand={setHoverExpanded}
               profileOpen={profileOpen}
               onProfileClick={() => setProfileOpen((o) => !o)}
               /* onSearch={() => setPaletteOpen(true)}  <- pass this to show Search + Ctrl K */
@@ -154,7 +156,7 @@ function App() {
 
             <main
               className={`main-content ${
-                sidebarCollapsed || panelOpen ? "content-collapsed" : "content-expanded"
+                (sidebarCollapsed || panelOpen) && !hoverExpanded ? "content-collapsed" : "content-expanded"
               }`}
             >
               <Routes>
