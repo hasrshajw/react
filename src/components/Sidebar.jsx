@@ -84,7 +84,6 @@ export default function Sidebar({
   collapsed,
   setCollapsed,
   panelOpen = false,
-  onHoverExpand,
   onProfileClick,
   profileOpen = false,
   onSearch, // optional: pass a handler to show the search button + ⌘K shortcut
@@ -96,8 +95,6 @@ export default function Sidebar({
   const [siteOpen, setSiteOpen] = useState(customizeActive);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
-  const [hovering, setHovering] = useState(false);
-  const [hoverLock, setHoverLock] = useState(false);
 
   const overlayMode = panelOpen;
 
@@ -106,24 +103,12 @@ export default function Sidebar({
     if (customizeActive) setSiteOpen(true);
   }, [customizeActive]);
 
-  const handleIconEnter = () => {
-    if (!hoverLock) setHovering(true);
-  };
-
-  const handleMouseLeave = () => {
-    setHovering(false);
-    setHoverLock(false);
-  };
-
-  const isExpanded = overlayMode ? overlayOpen || hovering : !collapsed || hovering;
+  /* The sidebar only opens/closes from an explicit click (edge toggle or the
+     Customize Site button). Hovering never expands it or reveals labels. */
+  const isExpanded = overlayMode ? overlayOpen : !collapsed;
   const floating = isExpanded && overlayMode;
-  const narrowLayout = overlayMode || (collapsed && !hovering);
-  const sidebarOpen = overlayMode ? overlayOpen : !collapsed;
-
-  useEffect(() => {
-    onHoverExpand?.(!overlayMode && collapsed && hovering);
-  }, [overlayMode, collapsed, hovering]);
-  useEffect(() => () => onHoverExpand?.(false), []);
+  const narrowLayout = overlayMode || collapsed;
+  const sidebarOpen = isExpanded;
 
   useEffect(() => {
     if (!overlayMode) setOverlayOpen(false);
@@ -152,29 +137,15 @@ export default function Sidebar({
     if (overlayMode) setOverlayOpen(false);
   };
 
-  /* Collapse right away and ignore hover until the pointer leaves the sidebar,
-     otherwise the mouse still resting on the link would re-expand it */
   const collapseNow = () => {
-    setHovering(false);
-    setHoverLock(true);
     if (overlayMode) setOverlayOpen(false);
     else setCollapsed(true);
   };
 
   const handleToggle = () => {
     if (overlayMode) {
-      if (overlayOpen) {
-        setOverlayOpen(false);
-        setHovering(false);
-        setHoverLock(true);
-      } else {
-        setOverlayOpen(true);
-      }
+      setOverlayOpen(!overlayOpen);
       return;
-    }
-    if (!collapsed) {
-      setHovering(false);
-      setHoverLock(true);
     }
     setCollapsed(!collapsed);
   };
@@ -258,7 +229,6 @@ export default function Sidebar({
 
       <aside
         className={`d-sidebar ${isExpanded ? "expanded" : "collapsed"}${floating ? " as-overlay" : ""}`}
-        onMouseLeave={handleMouseLeave}
       >
         <div className="d-sidebar-header">
           {isExpanded ? (
@@ -266,7 +236,7 @@ export default function Sidebar({
               <img src={logo} alt="Logo" />
             </NavLink>
           ) : (
-            <span className="mini-logo" onMouseEnter={handleIconEnter}>
+            <span className="mini-logo">
               <img src={logoSmall} alt="Logo" />
             </span>
           )}
@@ -292,12 +262,11 @@ export default function Sidebar({
                 to={path}
                 end={path === "/"}
                 onClick={path === "/create" ? collapseNow : closeOverlay}
-                onMouseEnter={handleIconEnter}
+                aria-label={isExpanded ? undefined : name}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >
                 <MenuIcon Icon={Icon} />
                 <span className="nav-label">{name}</span>
-                <span className="collapsed-tooltip">{name}</span>
               </NavLink>
             ))}
 
@@ -307,13 +276,12 @@ export default function Sidebar({
               type="button"
               className={`nav-item${siteOpen && isExpanded ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
               onClick={handleCustomizeClick}
-              onMouseEnter={handleIconEnter}
+              aria-label={isExpanded ? undefined : "Customize Site"}
               aria-expanded={isExpanded && siteOpen}
               aria-controls="site-submenu"
             >
               <MenuIcon Icon={Palette} />
               <span className="nav-label">Customize Site</span>
-              <span className="collapsed-tooltip">Customize Site</span>
               {isExpanded && <ChevronRight className="nav-chevron" size={16} strokeWidth={2} />}
             </button>
 
@@ -321,12 +289,11 @@ export default function Sidebar({
           </nav>
 
           {/* Footer: a useful action instead of a duplicate of the profile */}
-          <div className="d-footer" onMouseEnter={handleIconEnter}>
-            <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer">
+          <div className="d-footer">
+            <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer" aria-label={isExpanded ? undefined : "View live site"}>
               <MenuIcon Icon={ExternalLink} size={18} />
               <span className="nav-label">View live site</span>
               <span className="live-dot" aria-label="Store is live" title="Store is live" />
-              <span className="collapsed-tooltip">View live site</span>
             </a>
             <div className="powered">Powered by Schedy</div>
           </div>
@@ -726,25 +693,6 @@ export default function Sidebar({
         .d-sidebar.collapsed :is(.brand-logo, .nav-label, .nav-chevron, .nav-submenu) { display: none !important; }
         .d-sidebar.collapsed .d-sidebar-inner { overflow: visible; }
         .d-sidebar.collapsed .nav-item { justify-content: center; padding: 0; }
-
-        .collapsed-tooltip {
-          display: none;
-          position: absolute; left: 100%; top: 50%;
-          transform: translateY(-50%);
-          margin-left: 12px; padding: 8px 12px;
-          background-color: var(--tooltip-bg); color: var(--white, #fff);
-          border-radius: 6px; font-size: 13px; font-weight: 500;
-          white-space: nowrap; z-index: 1000;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
-          pointer-events: none;
-        }
-        .d-sidebar.collapsed :is(.nav-item, .live-site):is(:hover, :focus-visible) .collapsed-tooltip { display: block; }
-        .collapsed-tooltip::before {
-          content: ""; position: absolute; left: -6px; top: 50%;
-          transform: translateY(-50%);
-          border-width: 6px 6px 6px 0; border-style: solid;
-          border-color: transparent var(--tooltip-bg) transparent transparent;
-        }
 
         /* ---------- FOOTER ---------- */
 
