@@ -3,6 +3,27 @@
 Branch: `feature/supabase-connection`
 Stack found in this repo: Vite + React 18 + TypeScript, react-router-dom v7, Supabase, deployed on Vercel.
 
+## Status (updated after each push)
+
+Work is done in small batches. One or two changes per commit, each pushed to this branch.
+
+| Batch | Scope | Status |
+|---|---|---|
+| 1 | Migration SQL (section 4) and `src/lib/reserved.ts` (2.5) | Done. **You must run `supabase/migrations/001_seo_previews.sql` in the Supabase SQL Editor.** |
+| 2 | Remove Photos section (section 1) | To do |
+| 3 | Types, defaults and validation for SEO fields (2.1, 2.4) | To do |
+| 4 | SEO section UI and image upload (2.2, 2.3) | To do |
+| 5 | Routes and link builders (section 3) | To do |
+| 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | To do |
+| 7 | Main domain SEO: `index.html`, `public/` files (section 6) | To do |
+| 8 | Security notes (section 8) and final testing (section 7) | To do |
+
+Notes from batch 1:
+- Migration differs slightly from the draft in section 4. Policies are dropped before they are created so the file can be re-run,
+  the slug format check ignores case (old links may contain capitals), and `favicon`, `robots`, `sitemap` are in the DB reserved list too, matching `reserved.ts`.
+- Run the diagnostic query at the top of the migration first. It lists existing slugs that would break the new constraints.
+- No existing app code uses `reserved.ts` yet. It is wired into validation in batch 3 and routes in batch 5.
+
 ## Goals
 
 1. Invitation links on the same domain: `example.com/harshajw` (today: `/i/harshajw`).
