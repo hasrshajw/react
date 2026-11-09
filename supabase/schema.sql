@@ -1,6 +1,22 @@
 -- Schedy database schema for Supabase. Run once in: Supabase dashboard > SQL Editor.
--- Safe to run again: everything uses "if not exists" / "or replace".
+--
+-- !!! WARNING: THIS SCRIPT FIRST DELETES ALL PROJECT TABLES AND THEIR DATA, THEN RECREATES THEM. !!!
+-- It wipes: categories, templates, invitations, enquiries, profiles (+ their policies, triggers, functions).
+-- Login users in Authentication (auth.users) are NOT deleted.
+-- After running this, run supabase/seed.sql to add the starter templates.
 
+-- ---------- 0. reset: remove everything this project creates ----------
+drop trigger  if exists on_auth_user_created on auth.users;
+drop function if exists public.handle_new_user() cascade;
+drop function if exists public.get_public_invitation(text) cascade;
+drop table    if exists public.invitations cascade;
+drop table    if exists public.templates   cascade;
+drop table    if exists public.categories  cascade;
+drop table    if exists public.enquiries   cascade;
+drop table    if exists public.profiles    cascade;
+drop function if exists public.touch_updated_at() cascade;
+
+-- ---------- 1. tables ----------
 create table if not exists public.categories (
   id text primary key,
   name text not null
@@ -123,3 +139,10 @@ begin
 end $$;
 revoke all on function public.get_public_invitation(text) from public;
 grant execute on function public.get_public_invitation(text) to anon, authenticated;
+
+-- ---------- backfill ----------
+-- Users who signed up before this script ran have no profile row (the trigger only fires for new users).
+insert into public.profiles (id, name)
+select u.id, coalesce(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name', split_part(u.email, '@', 1))
+from auth.users u
+on conflict (id) do nothing;

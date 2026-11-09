@@ -58,7 +58,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
 ### Set up Supabase
 
 1. Create a Supabase project.
-2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (the two starter templates).
+2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (the two starter templates). **Warning:** `schema.sql` first deletes all project tables and their data (categories, templates, invitations, enquiries, profiles) and recreates them, so only run it on a fresh or disposable database. Login users are kept.
 3. In **Authentication**, create your admin user (email + password). Optionally enable the Google provider and add `https://YOUR-DOMAIN/login` as a redirect URL.
 4. Put the three variables above in `.env.local` for local work, and in **Vercel → Project Settings → Environment Variables** for the live site, then redeploy.
 
