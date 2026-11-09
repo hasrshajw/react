@@ -1,11 +1,10 @@
 import React from "react";
-import { CalendarPlus, Heart, Image as ImageIcon, LayoutTemplate, MapPin, Plus, Trash2, User, Users } from "../../components/Icons";
+import { CalendarPlus, Heart, LayoutTemplate, MapPin, Plus, Trash2, User, Users } from "../../components/Icons";
 import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
 import { newEvent } from "./constants";
 import { Bilingual } from "./components/Bilingual";
 import { Contacts } from "./components/Contacts";
 import { Field } from "./components/Field";
-import { PhotoPicker, GalleryPicker } from "./components/PhotoPicker";
 import { Section } from "./components/Section";
 import { TemplatePicker } from "./components/TemplatePicker";
 
@@ -42,7 +41,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
     const fpx = (name: string, focusKey: string) => ({ name, onFocus: () => focus(focusKey), onBlur: () => touch(name), error: vis(name), loading });
     return { loading, fpx, fp: (name: string) => fpx(name, name) };
   };
-  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), photos = fx("photos"), events = fx("events");
+  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), events = fx("events");
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
       <Section id="template" icon={LayoutTemplate} title="Template Options" tag={tagFor("template")} loading={tpl.loading}>
@@ -100,18 +99,6 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <Bilingual enLabel="Venue EN" teLabel="Venue తెలుగు" enField="venueEn" teField="venueTe" data={data} set={set} fp={venue.fp} />
         <Field label="Venue Address" {...venue.fp("venueAddress")} value={data.venueAddress} onChange={(v) => set("venueAddress", v)} />
         <Field label="Google Maps Link" inputMode="url" {...venue.fp("venueMaps")} value={data.venueMaps} onChange={(v) => set("venueMaps", v)} />
-      </Section>
-
-      <Section id="photos" icon={ImageIcon} title="Photos" tag={tagFor("photos")} loading={photos.loading}>
-        <PhotoPicker
-          loading={photos.loading} label="Couple photo" value={data.couplePhoto} onChange={(v) => set("couplePhoto", v)}
-          onError={(m) => notify(m, "error")} onFocus={() => focus("couplePhoto")} maxSide={1000}
-          help="Shown in templates that have a photo spot. JPG, PNG or WebP."
-        />
-        <GalleryPicker
-          loading={photos.loading} label="Gallery" value={data.gallery} onChange={(v) => set("gallery", v)}
-          onError={(m) => notify(m, "error")} onFocus={() => focus("gallery")}
-        />
       </Section>
 
       <Section id="events" icon={CalendarPlus} title="Additional Events" tag={tagFor("events")} loading={events.loading}>

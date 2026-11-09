@@ -168,16 +168,15 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     groom: has(data.groomEn),
     bride: has(data.brideEn),
     venue: has(data.venueEn) || has(data.venueAddress),
-    photos: has(data.couplePhoto) || data.gallery.length > 0,
     events: data.events.length > 0,
-  }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.couplePhoto, data.gallery.length, data.events.length]);
+  }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.events.length]);
   const doneCount = PROGRESS_IDS.filter((id) => done[id]).length;
 
   /* Each section has its own loading flag, so a section can appear as soon as ITS data is there.
      (Today the invitation arrives in one piece, so its sections appear together, with a short stagger.) */
   const sectionLoading = useMemo<Record<SectionId, boolean>>(() => ({
     template: recordLoading, family: recordLoading, groom: recordLoading, bride: recordLoading,
-    venue: recordLoading, photos: recordLoading, events: recordLoading,
+    venue: recordLoading, events: recordLoading,
   }), [recordLoading]);
 
   const tagFor = useCallback((id: SectionId): { tone: string; text: string; loading?: boolean } => {
@@ -222,7 +221,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     } catch (e) {
       setSaving(false);
       if (e instanceof ApiError) notify(e.message, "error");
-      else notify("Couldn’t save the invitation. Check your connection (or remove a large photo) and try again.", "error");
+      else notify("Couldn’t save the invitation. Check your connection and try again.", "error");
       return false;
     }
     dispatch({ type: "saved", editId: id, at: Date.now() });

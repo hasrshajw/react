@@ -29,10 +29,6 @@ export interface InvitationData {
   brideMotherEn: string; brideMotherTe: string; brideMotherPhone: string;
   receptionEnabled: boolean; receptionDate: string; receptionTime: string;
   venueEn: string; venueTe: string; venueAddress: string; venueMaps: string;
-  /** Compressed JPEG data URL, or "" when no photo was added. */
-  couplePhoto: string;
-  /** Up to MAX_GALLERY compressed JPEG data URLs. */
-  gallery: string[];
   events: EventItem[];
   groomContacts: ContactItem[];
   brideContacts: ContactItem[];
@@ -59,7 +55,7 @@ export interface SectionDef {
   hint: "required" | "recommended" | "optional";
 }
 
-export type SectionId = "template" | "family" | "groom" | "bride" | "venue" | "photos" | "events";
+export type SectionId = "template" | "family" | "groom" | "bride" | "venue" | "events";
 
 export interface FieldError { section: SectionId; msg: string }
 export type ErrorMap = Record<string, FieldError>;

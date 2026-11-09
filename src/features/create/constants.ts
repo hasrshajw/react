@@ -1,4 +1,4 @@
-import { CalendarPlus, Heart, Image as ImageIcon, LayoutTemplate, MapPin, User, Users } from "../../components/Icons";
+import { CalendarPlus, Heart, LayoutTemplate, MapPin, User, Users } from "../../components/Icons";
 import type { ContactItem, EventItem, InvitationData, SectionDef } from "../../types/invitation";
 
 
@@ -17,7 +17,6 @@ export const initial: InvitationData = {
   brideEn: "", brideTe: "", brideFatherEn: "", brideFatherTe: "", brideFatherPhone: "", brideMotherEn: "", brideMotherTe: "", brideMotherPhone: "",
   receptionEnabled: false, receptionDate: "", receptionTime: "",
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
-  couplePhoto: "", gallery: [],
   events: [], groomContacts: [], brideContacts: [],
 };
 
@@ -36,7 +35,6 @@ export const TARGETS: Record<string, string> = {
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
   groomContacts: "groom-extra-1-phone", brideContacts: "bride-extra-1-phone",
-  couplePhoto: "couple-photo", gallery: "gallery",
 };
 
 const sampleDate = () => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); };
@@ -48,7 +46,6 @@ export const SECTIONS: SectionDef[] = [
   { id: "groom", label: "Groom", icon: User, hint: "required" },
   { id: "bride", label: "Bride", icon: Heart, hint: "required" },
   { id: "venue", label: "Venue", icon: MapPin, hint: "recommended" },
-  { id: "photos", label: "Photos", icon: ImageIcon, hint: "optional" },
   { id: "events", label: "Events", icon: CalendarPlus, hint: "optional" },
 ];
 /* Optional sections do not count towards progress. */

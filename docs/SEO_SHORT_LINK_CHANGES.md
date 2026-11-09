@@ -10,7 +10,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | Batch | Scope | Status |
 |---|---|---|
 | 1 | Migration SQL (section 4) and `src/lib/reserved.ts` (2.5) | Done. **You must run `supabase/migrations/001_seo_previews.sql` in the Supabase SQL Editor.** |
-| 2 | Remove Photos section (section 1) | To do |
+| 2 | Remove Photos section (section 1) | Done. **You must run `supabase/migrations/002_remove_photo_blocks_from_templates.sql` in the Supabase SQL Editor.** |
 | 3 | Types, defaults and validation for SEO fields (2.1, 2.4) | To do |
 | 4 | SEO section UI and image upload (2.2, 2.3) | To do |
 | 5 | Routes and link builders (section 3) | To do |
@@ -23,6 +23,17 @@ Notes from batch 1:
   the slug format check ignores case (old links may contain capitals), and `favicon`, `robots`, `sitemap` are in the DB reserved list too, matching `reserved.ts`.
 - Run the diagnostic query at the top of the migration first. It lists existing slugs that would break the new constraints.
 - No existing app code uses `reserved.ts` yet. It is wired into validation in batch 3 and routes in batch 5.
+
+Notes from batch 2:
+- Removed the Photos section from `constants.ts`, `types/invitation.ts`, `CreateForm.tsx`, `Create.tsx` and the token map in `compileInvitation.ts`. `tsc` and `vite build` pass.
+- `PhotoPicker.tsx` is kept on purpose. `GalleryPicker` in that file is now unused. Batch 4 reuses the drag-and-drop part for the SEO image.
+- `supabase/seed.sql` no longer has the photo and gallery blocks. Because its inserts use `on conflict do nothing`, templates that already exist in your
+  database are changed only by running migration `002`. The last query in that file lists custom templates that still use `couple-photo` or `gallery-N`. Edit those by hand.
+- Old invitations: `{ ...initial, ...details }` in `Create.tsx` still copies the stored `couplePhoto` and `gallery` into the form, so re-saving an old invitation keeps those
+  base64 values in `details`. They are harmless but keep the row large. Optional cleanup for later: drop both keys when loading in `Create.tsx` (line 90).
+  Not done yet, because it permanently deletes the stored photos.
+- The sidebar (`Sidebar.tsx`) still has an unrelated `ImageIcon` for the Hero Section page. It was left alone.
+- Until batch 3 and 4 land, the Create page has no Photos and no SEO section.
 
 ## Goals
 

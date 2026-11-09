@@ -57,7 +57,7 @@ Each invitation is served at `/i/<link-id>` (for example `/i/ravi-weds-priya`), 
 
 Limits to know about:
 
-- Photos are still stored inside the invitation record (resized in the browser). Fine for a couple photo and a few gallery photos; if invitations grow heavy, move photos to Supabase Storage.
+- The Photos section was removed from the Create page. Invitations saved earlier may still carry `couplePhoto` and `gallery` inside their `details` record. The app ignores them.
 - "Invitation views" on the Dashboard is the real total of the per-invitation view counter (no per-day history is stored yet). RSVPs, shares and the Billing page are not built yet.
 - WhatsApp link previews (title and image) need server-side tags; the page does not set them yet.
 
