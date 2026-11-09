@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import * as demo from "../../../lib/demoData";
-import { saveDeleted, savePublished } from "../../../lib/api";
+import { deleteInvitation, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
+import { USE_SUPABASE } from "../../../lib/supabase";
 import {
   DAY, LS_DEL, LS_PUB, TRASH_DAYS, isPast, normDeleted, readJSON,
 } from "../../../lib/dashboardData";
@@ -39,7 +39,10 @@ function useOptimisticMap<T>(initial: () => T, persist: (next: T) => Promise<unk
     );
   }, [persist, onFail]);
 
-  return [state, ref, commit] as const;
+  /* Replace the state with what the server says (used for the first load). */
+  const reset = useCallback((next: T) => { ref.current = next; confirmed.current = next; setState(next); }, []);
+
+  return [state, ref, commit, reset] as const;
 }
 
 /** Loads invitations and owns the "published" and "trashed" state shared by Dashboard and All Invitations.
@@ -51,37 +54,45 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   const [error, setError] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const alive = useRef(true);
   const loadedRef = useRef(false);
   const loading = busy && lastUpdated === null;
   const refreshing = busy && lastUpdated !== null;
 
   const failed = useCallback(() => notify("Couldn’t save that change, so it was undone."), [notify]);
-  const [pub, pubRef, commitPub] = useOptimisticMap<PublishMap>(() => readJSON<PublishMap>(LS_PUB, {}), savePublished, failed);
-  const [deleted, delRef, writeDeleted] = useOptimisticMap<DeletedMap>(() => normDeleted(readJSON<unknown>(LS_DEL, {})), saveDeleted, failed);
+  const [pub, pubRef, commitPub, resetPub] = useOptimisticMap<PublishMap>(() => (USE_SUPABASE ? {} : readJSON<PublishMap>(LS_PUB, {})), savePublished, failed);
+  const [deleted, delRef, writeDeleted, resetDeleted] = useOptimisticMap<DeletedMap>(() => (USE_SUPABASE ? {} : normDeleted(readJSON<unknown>(LS_DEL, {}))), saveDeleted, failed);
 
   const load = useCallback((silent = false) => {
-    clearTimeout(timer.current);
     if (!silent) setBusy(true);
     setError(false);
-    timer.current = setTimeout(() => {
-      try {
-        setRows(demo.getDemoInvitations());
+    fetchInvitations().then(
+      (res) => {
+        if (!alive.current) return;
+        setRows(res.rows);
+        /* The flags come from the server only the first time; after that the screen is ahead of the server (optimistic updates). */
+        if (!loadedRef.current) { resetPub(res.published); resetDeleted(res.deleted); }
         loadedRef.current = true;
         setLastUpdated(Date.now());
-      } catch {
+        setBusy(false);
+      },
+      () => {
+        if (!alive.current) return;
         if (silent) { /* background refresh: stay quiet */ }
         else if (loadedRef.current) notify("Couldn’t refresh. Showing the last loaded data.");
         else setError(true);
-      }
-      setBusy(false);
-    }, silent ? 0 : 350);
+        setBusy(false);
+      },
+    );
+  }, [notify, resetPub, resetDeleted]);
+  const reload = useCallback(() => {
+    fetchInvitations().then((res) => { if (alive.current) setRows(res.rows); }, () => notify("Couldn’t refresh the list."));
   }, [notify]);
-  const reload = useCallback(() => setRows(demo.getDemoInvitations()), []);
 
   useEffect(() => {
+    alive.current = true;
     load();
-    return () => clearTimeout(timer.current);
+    return () => { alive.current = false; };
   }, [load]);
 
   /* clock for "x min ago" labels and due dates */
@@ -125,16 +136,18 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
 
   useEffect(() => {
     if (!purgeExpired || !rows.length) return;
-    const hardDelete: unknown = Reflect.get(demo, "deleteDemoInvitation"); // not implemented by the demo data layer yet
-    if (typeof hardDelete !== "function") return;
     const cutoff = Date.now() - TRASH_DAYS * DAY;
     const old = rows.filter((r) => r.id in delRef.current && delRef.current[r.id] < cutoff);
     if (!old.length) return;
-    old.forEach((r) => (hardDelete as (id: string) => void)(r.id));
-    const keep = { ...delRef.current };
-    old.forEach((r) => delete keep[r.id]);
-    writeDeleted(keep);
-    reload();
+    Promise.all(old.map((r) => deleteInvitation(r.id))).then(
+      () => {
+        const keep = { ...delRef.current };
+        old.forEach((r) => delete keep[r.id]);
+        writeDeleted(keep);
+        reload();
+      },
+      () => { /* try again next time the page opens */ },
+    );
   }, [rows, purgeExpired, writeDeleted, reload]);
 
   return {

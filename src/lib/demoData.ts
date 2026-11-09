@@ -9,3 +9,4 @@ export const demoTemplates: Template[] = [
 ];
 export function getDemoInvitations():InvitationRow[]{try{const x=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(x)?x:[]}catch{return []}}
 export function saveDemoInvitation(record:InvitationRow):InvitationRow{const rows=getDemoInvitations(),i=rows.findIndex(x=>x.id===record.id),now=new Date().toISOString();const next={...record,created_at:i>=0?rows[i].created_at:now,updated_at:now};if(i>=0)rows[i]=next;else rows.unshift(next);localStorage.setItem(KEY,JSON.stringify(rows));return next}
+export function deleteDemoInvitation(id:string):void{const rows=getDemoInvitations().filter(x=>x.id!==id);localStorage.setItem(KEY,JSON.stringify(rows))}

@@ -12,6 +12,7 @@ import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
 import Templates from "./pages/Templates";
 import Login from "./pages/Login";
+import PublicInvitation from "./pages/PublicInvitation";
 import schedyMark from "./assets/schedy-mark.svg";
 import { AccountProvider, useAccount } from "./hooks/useAccount";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
@@ -485,6 +486,7 @@ function Protected() {
 
 const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
+  { path: "/i/:slug", element: <PublicInvitation /> },
   { path: "*", element: <Protected /> },
 ]);
 

@@ -84,7 +84,7 @@ export const getViews = (x: InvitationRow) => {
 };
 
 /* Public link of an invitation. Change this if your live route is different. */
-export const getInviteLink = (x: InvitationRow) => `${window.location.origin}/${x.details?.customId || x.id}`;
+export const getInviteLink = (x: InvitationRow) => `${window.location.origin}/i/${x.details?.customId || x.id}`;
 
 export const dayDiff = (d?: string | null): number | null => {
   if (!d) return null;

@@ -26,6 +26,7 @@ import { useInvitationStore } from "../features/dashboard/hooks/useInvitationSto
 import { useEnquiries } from "../features/dashboard/hooks/useEnquiries";
 import { useRowMenu } from "../features/dashboard/hooks/useRowMenu";
 import { useShortcuts } from "../features/dashboard/hooks/useShortcuts";
+import { USE_SUPABASE } from "../lib/supabase";
 import type { ActivityRange, EnquiryTab, InvitationRow, SortKey, TableFilter } from "../types/dashboard";
 
 interface Props {
@@ -207,7 +208,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         }
       />
 
-      {!hideNote && (
+      {!hideNote && !USE_SUPABASE && (
         <div className="demo-note">
           <span className="demo-dot" />
           <span className="demo-text">Demo mode is active. No database or account connection is required.</span>

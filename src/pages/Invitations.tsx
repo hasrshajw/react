@@ -2,7 +2,7 @@ import dashboardCss from "../styles/dashboard.css?inline";
 import invitationsCss from "../features/invitations/invitations.css?inline";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Archive, Copy, EyeOff, Globe, Share, Trash2 } from "../components/Icons";
-import * as demo from "../lib/demoData";
+import { saveInvitation } from "../lib/api";
 import {
   PAGE_SIZE, copyText, coupleName, fmt, getInviteLink, isPast, shareOnWhatsApp, sortInvitations, topViewedId,
 } from "../lib/dashboardData";
@@ -128,21 +128,26 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
 
   const duplicate = (x: InvitationRow) => {
     const { views, created_at, updated_at, ...rest } = x;
-    const copy = demo.saveDemoInvitation({
+    saveInvitation({
       ...rest,
       id: uid(),
       // The copy needs its own link: a custom link ID can only belong to one invitation.
       details: x.details ? { ...x.details, customId: "" } : undefined,
-    });
-    store.writePub(copy.id, false);
-    store.reload();
-    notify(`Duplicated ${coupleName(x)} as a draft`, () => store.writeDeleted({ ...store.delRef.current, [copy.id]: Date.now() }));
+    }).then(
+      (copy) => {
+        store.writePub(copy.id, false);
+        store.reload();
+        notify(`Duplicated ${coupleName(x)} as a draft`, () => store.writeDeleted({ ...store.delRef.current, [copy.id]: Date.now() }));
+      },
+      () => notify("Couldn’t duplicate that invitation."),
+    );
   };
 
   const saveLink = (x: InvitationRow, slug: string) => {
-    demo.saveDemoInvitation({ ...x, details: { ...(x.details || {}), customId: slug } });
-    store.reload();
-    notify(slug ? "Link updated" : "Custom link removed");
+    saveInvitation({ ...x, details: { ...(x.details || {}), customId: slug } }).then(
+      () => { store.reload(); notify(slug ? "Link updated" : "Custom link removed"); },
+      (e) => notify(e instanceof Error ? e.message : "Couldn’t update the link."),
+    );
   };
 
   /* ---------- bulk actions ---------- */

@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  SESSION_KEY, clearSession, getSession, signInWithEmail, signInWithGoogle, type Session,
+  SESSION_KEY, clearSession, getSession, signInWithEmail, signInWithGoogle, syncSupabaseSession, type Session,
 } from "../lib/auth";
+import { USE_SUPABASE } from "../lib/supabase";
 
 interface AuthState {
   session: Session | null;
@@ -20,6 +21,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const onStorage = (e: StorageEvent) => { if (e.key === SESSION_KEY || e.key === null) setSession(getSession()); };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  /* Supabase mode: pick up a login that happened outside this page (the Google redirect, another tab). */
+  useEffect(() => {
+    if (!USE_SUPABASE) return;
+    let live = true;
+    syncSupabaseSession().then((s) => { if (live) setSession(s); }, () => {});
+    return () => { live = false; };
   }, []);
 
   const signInGoogle = useCallback(async () => { const s = await signInWithGoogle(); setSession(s); return s; }, []);

@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import { createPortal } from "react-dom";
 import { useBlocker, useSearchParams } from "react-router-dom";
 import { AlertCircle, Check, Eye, Loader2, Save } from "../components/Icons";
-import { saveDemoInvitation } from "../lib/demoData";
-import { fetchInvitation } from "../lib/api";
+import { ApiError, fetchInvitation, saveInvitation } from "../lib/api";
 import { useTemplates } from "../hooks/useTemplates";
 import { compile } from "../lib/compileInvitation";
 import { readJSON, removeKey, writeJSON } from "../lib/storage";
@@ -190,13 +189,13 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   }, [issues, done, recordLoading]);
 
   /* ---------- save ---------- */
-  const getLink = (id: string) => `${window.location.origin}/${data.customId?.trim() || id}`;
+  const getLink = (id: string) => `${window.location.origin}/i/${data.customId?.trim() || id}`;
   const coupleName = `${has(data.groomEn) ? data.groomEn.trim() : "Groom"} & ${has(data.brideEn) ? data.brideEn.trim() : "Bride"}`;
 
   /* Returns true when the invitation is saved (or there was nothing to save).
      { leaving: true } is used by the "Save your changes?" dialog: it skips the share
      popup and the toast, because the user is on their way to another page. */
-  const doSave = ({ leaving = false } = {}): boolean => {
+  const doSave = async ({ leaving = false } = {}): Promise<boolean> => {
     if (saving) return false;
     if (editId && !dirty) return true;
     dispatch({ type: "submit" });
@@ -211,7 +210,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     setSaving(true);
     const id = editId || uid();
     try {
-      saveDemoInvitation({
+      await saveInvitation({
         id,
         bride_name: data.brideEn,
         groom_name: data.groomEn,
@@ -220,10 +219,10 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
         template_name: selected?.name || "Custom invitation",
         details: data,
       });
-    } catch {
-      /* localStorage is full: photos are the usual cause */
+    } catch (e) {
       setSaving(false);
-      notify("Browser storage is full. Remove a photo or delete old invitations, then try again.", "error");
+      if (e instanceof ApiError) notify(e.message, "error");
+      else notify("Couldn’t save the invitation. Check your connection (or remove a large photo) and try again.", "error");
       return false;
     }
     dispatch({ type: "saved", editId: id, at: Date.now() });
@@ -242,8 +241,8 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
 
   /* "Save your changes?" dialog actions */
   const leaveSave = () => {
-    if (doSave({ leaving: true })) blocker.proceed?.();
-    else blocker.reset?.(); /* validation failed: stay, and show what needs fixing */
+    /* if saving fails (validation or network) stay on the page and show what needs fixing */
+    void doSave({ leaving: true }).then((ok) => { if (ok) blocker.proceed?.(); else blocker.reset?.(); });
   };
   const leaveCancel = () => {
     /* Flush the draft now (autosave is debounced) so the Restore card appears on return. */

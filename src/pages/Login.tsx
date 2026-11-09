@@ -5,6 +5,7 @@ import schedyMark from "../assets/schedy-mark.svg";
 import loginCss from "../features/auth/login.css?inline";
 import { useAuth } from "../hooks/useAuth";
 import { AuthError, MIN_PASSWORD, isEmail } from "../lib/auth";
+import { USE_SUPABASE } from "../lib/supabase";
 
 type Busy = "google" | "email" | null;
 interface FieldErrors { email?: string; password?: string }
@@ -145,7 +146,7 @@ export default function Login() {
               {errors.password && <p className="lc-err" id="login-password-err">{errors.password}</p>}
             </div>
 
-            {resetHint && <p className="lc-hint" role="status">Password reset isn’t available in demo mode.</p>}
+            {resetHint && <p className="lc-hint" role="status">Password reset isn’t available yet. Ask the account owner to reset it in Supabase.</p>}
             {formError && <p className="lc-alert" role="alert"><AlertCircle size={16} /> {formError}</p>}
 
             <button type="submit" className={`lc-btn lc-submit${busy === "email" ? " is-busy" : ""}`} disabled={!!busy} aria-busy={busy === "email"}>
@@ -154,7 +155,7 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="lc-demo"><i aria-hidden="true" /> Demo mode: Google signs you in straight away. With email, any valid address and a password of {MIN_PASSWORD}+ characters works.</p>
+          {!USE_SUPABASE && <p className="lc-demo"><i aria-hidden="true" /> Demo mode: Google signs you in straight away. With email, any valid address and a password of {MIN_PASSWORD}+ characters works.</p>}
         </div>
       </main>
 

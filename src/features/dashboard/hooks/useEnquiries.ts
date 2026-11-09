@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { isoDay } from "../../../lib/dashboardData";
-import { fetchEnquiries } from "../../../lib/api";
+import { fetchEnquiries, saveEnquiry } from "../../../lib/api";
 import type { Enquiry, EnquiryStatus, Notify } from "../../../types/dashboard";
 
 const STATUS_TOAST: Record<EnquiryStatus, string> = {
@@ -24,6 +24,14 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
     return () => { live = false; };
   }, []);
 
+  /* Save in the background; if it fails, put the old values back and tell the user. */
+  const persist = (next: Enquiry, prev: Enquiry) => {
+    saveEnquiry(next).catch(() => {
+      setEnquiries((p) => p.map((e) => (e.id === prev.id ? prev : e)));
+      notify("Couldn’t save that change, so it was undone.");
+    });
+  };
+
   const enqNew = enquiries.filter((e) => e.status === "new").length;
   const enqFollow = enquiries.filter((e) => e.status === "followup").length;
 
@@ -37,19 +45,26 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
       followUpDate: status === "followup" ? prev.followUpDate || isoDay(1) : prev.followUpDate,
     };
     setEnquiries((p) => p.map((e) => (e.id === id ? next : e)));
-    notify(STATUS_TOAST[status], () => setEnquiries((p) => p.map((e) => (e.id === id ? prev : e))));
+    persist(next, prev);
+    notify(STATUS_TOAST[status], () => { setEnquiries((p) => p.map((e) => (e.id === id ? prev : e))); persist(prev, next); });
   };
 
   const saveNote = (id: string, value: string) => {
     const v = value.trim();
     const prev = enquiries.find((e) => e.id === id);
     if (!prev || (prev.note || "") === v) return;
-    setEnquiries((p) => p.map((e) => (e.id === id ? { ...e, note: v } : e)));
+    const next = { ...prev, note: v };
+    setEnquiries((p) => p.map((e) => (e.id === id ? next : e)));
+    persist(next, prev);
     notify("Note saved");
   };
 
   const setFollowDate = (id: string, date: string) => {
-    setEnquiries((p) => p.map((e) => (e.id === id ? { ...e, followUpDate: date } : e)));
+    const prev = enquiries.find((e) => e.id === id);
+    if (!prev) return;
+    const next = { ...prev, followUpDate: date };
+    setEnquiries((p) => p.map((e) => (e.id === id ? next : e)));
+    persist(next, prev);
   };
 
   /* unread badge: tab title + callback for the sidebar */

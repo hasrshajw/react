@@ -53,7 +53,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         />
         <Field
           label="Custom Link ID" {...tpl.fp("customId")} value={data.customId} onChange={(v) => set("customId", v)}
-          help={`Your link: ${window.location.origin}/${slug || "your-id"}`}
+          help={`Your link: ${window.location.origin}/i/${slug || "your-id"}`}
         />
       </Section>
 
