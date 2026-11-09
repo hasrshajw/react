@@ -50,8 +50,10 @@ All server reads and writes go through `src/lib/api.ts` (`fetchInvitations`, `sa
 ```
 VITE_DATA_SOURCE=supabase
 VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=YOUR-ANON-PUBLIC-KEY
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
 ```
+
+`VITE_SUPABASE_ANON_KEY` (the legacy anon key) still works; it is used only when the publishable key is not set.
 
 ### Set up Supabase
 
@@ -60,7 +62,7 @@ VITE_SUPABASE_ANON_KEY=YOUR-ANON-PUBLIC-KEY
 3. In **Authentication**, create your admin user (email + password). Optionally enable the Google provider and add `https://YOUR-DOMAIN/login` as a redirect URL.
 4. Put the three variables above in `.env.local` for local work, and in **Vercel → Project Settings → Environment Variables** for the live site, then redeploy.
 
-The anon key is meant to be public (it ships in the browser bundle); the data is protected by the row-level-security rules in `schema.sql`. Never put the `service_role` key in this project.
+The publishable (or anon) key is meant to be public (it ships in the browser bundle); the data is protected by the row-level-security rules in `schema.sql`. Never put the `service_role` key in this project.
 
 ### Share links
 
