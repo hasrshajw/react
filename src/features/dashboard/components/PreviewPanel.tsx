@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   Pencil, Smartphone, X,
 } from "../../../components/Icons";
-import * as demo from "../../../lib/demoData";
+import { useTemplates } from "../../../hooks/useTemplates";
 import { compile } from "../../../lib/compileInvitation";
 import { coupleName } from "../../../lib/dashboardData";
 import { useEscape } from "../../../hooks/useEscape";
@@ -20,10 +20,11 @@ interface Props {
 export function PreviewPanel({ slot, row, published, onClose }: Props) {
   const asideRef = useRef<HTMLElement>(null);
   useEscape(true, onClose);
+  const { templates, loading: tplLoading } = useTemplates();
   useEffect(() => { asideRef.current?.focus({ preventScroll: true }); }, []);
   const html = useMemo(() => {
     try {
-      const tpl: TemplateRecord | undefined = (demo.demoTemplates || []).find((t) => String(t.id) === String(row.template_id));
+      const tpl: TemplateRecord | undefined = templates.find((t) => String(t.id) === String(row.template_id ?? row.details?.templateId));
       const source = tpl?.html_code || tpl?.html || "";
       const data = {
         events: [], groomContacts: [], brideContacts: [],
@@ -34,7 +35,7 @@ export function PreviewPanel({ slot, row, published, onClose }: Props) {
       };
       return compile(source, data);
     } catch { return ""; }
-  }, [row]);
+  }, [row, templates]);
 
   if (!slot) return null;
   return createPortal(
@@ -53,6 +54,8 @@ export function PreviewPanel({ slot, row, published, onClose }: Props) {
         {html ? (
           /* No allow-same-origin: invitation code must not reach the app's storage or cookies. */
           <iframe key={row.id} title="Invitation preview" srcDoc={html} sandbox="allow-scripts allow-forms allow-popups" />
+        ) : tplLoading ? (
+          <div className="dx-empty-mini"><Smartphone size={22} /><b>Loading preview…</b></div>
         ) : (
           <div className="dx-empty-mini"><Smartphone size={22} /><b>No preview available</b><span>This invitation has no template yet.</span></div>
         )}

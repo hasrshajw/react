@@ -53,8 +53,6 @@
 .lc-alert { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--danger-light); color: var(--danger-dark); font-size: 13px; font-weight: 600; }
 .lc-hint { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--gray-light); color: var(--gray-dark); font-size: 12.5px; }
 
-.lc-demo { display: flex; align-items: flex-start; gap: 10px; margin: 22px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--primary-light); color: var(--primary-dark); font-size: 12.5px; line-height: 1.45; font-weight: 500; }
-.lc-demo i { width: 8px; height: 8px; margin-top: 5px; flex-shrink: 0; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 4px rgba(103, 61, 230, .16); }
 
 .login .spin { animation: login-spin .8s linear infinite; }
 @keyframes login-spin { to { transform: rotate(360deg); } }

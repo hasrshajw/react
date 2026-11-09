@@ -1,7 +1,7 @@
 import { ArrowUpRight, FilePlus2, Inbox, Users } from "../../../components/Icons";
 import { SkText } from "../../../components/Skeleton";
-import { ACTIVITY, fmt } from "../../../lib/dashboardData";
-import type { ActivityRange, TableFilter } from "../../../types/dashboard";
+import { fmt } from "../../../lib/dashboardData";
+import type { TableFilter } from "../../../types/dashboard";
 
 interface Props {
   loading: boolean;
@@ -11,8 +11,10 @@ interface Props {
   published: number;
   drafts: number;
   onFilter: (f: TableFilter) => void;
-  range: ActivityRange;
-  onRange: (r: ActivityRange) => void;
+  /** Real view counts from the database: total opens, and how many published invitations have been opened / not yet. */
+  views: number;
+  viewed: number;
+  unviewed: number;
   enqNew: number;
   enqTotal: number;
   enqFollow: number;
@@ -21,11 +23,8 @@ interface Props {
   onToggleRequests: () => void;
 }
 
-const RANGES: [ActivityRange, string][] = [["7", "7D"], ["30", "30D"], ["all", "All"]];
-
 /** The three KPI cards at the top of the Dashboard. */
 export function StatCards(p: Props) {
-  const activity = ACTIVITY[p.range];
   return (
     <div className="dashboard-grid">
       <div className="stat-card">
@@ -64,20 +63,15 @@ export function StatCards(p: Props) {
           ) : (
             <>
               <div className="stat-line">
-                <strong>{fmt(activity.views)}</strong>
+                <strong>{fmt(p.views)}</strong>
               </div>
               <div className="stat-sub plain">
-                <span>{fmt(activity.rsvps)} RSVPs</span>
+                <span>{fmt(p.viewed)} opened</span>
                 <i>·</i>
-                <span>{fmt(activity.shares)} shares</span>
+                <span>{fmt(p.unviewed)} not opened yet</span>
               </div>
             </>
           )}
-        </div>
-        <div className="seg" role="group" aria-label="Activity range">
-          {RANGES.map(([k, l]) => (
-            <button key={k} type="button" aria-pressed={p.range === k} className={p.range === k ? "on" : ""} onClick={() => p.onRange(k)}>{l}</button>
-          ))}
         </div>
       </div>
 

@@ -5,7 +5,6 @@ import schedyMark from "../assets/schedy-mark.svg";
 import loginCss from "../features/auth/login.css?inline";
 import { useAuth } from "../hooks/useAuth";
 import { AuthError, MIN_PASSWORD, isEmail } from "../lib/auth";
-import { USE_SUPABASE } from "../lib/supabase";
 
 type Busy = "google" | "email" | null;
 interface FieldErrors { email?: string; password?: string }
@@ -90,7 +89,7 @@ export default function Login() {
             ))}
           </ul>
         </div>
-        <div className="lb-foot">Schedy Admin · Demo</div>
+        <div className="lb-foot">Schedy Admin</div>
       </aside>
 
       <main className="login-main">
@@ -155,7 +154,6 @@ export default function Login() {
             </button>
           </form>
 
-          {!USE_SUPABASE && <p className="lc-demo"><i aria-hidden="true" /> Demo mode: Google signs you in straight away. With email, any valid address and a password of {MIN_PASSWORD}+ characters works.</p>}
         </div>
       </main>
 

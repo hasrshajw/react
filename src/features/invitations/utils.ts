@@ -1,4 +1,3 @@
-import * as demo from "../../lib/demoData";
 import { coupleName, dayDiff, getInviteLink, getViews, isPast, csvCell } from "../../lib/dashboardData";
 import { downloadBlob } from "../../lib/download";
 import type { InvitationRow } from "../../types/dashboard";
@@ -32,8 +31,7 @@ export const dateMatch = (x: InvitationRow, w: WhenFilter) => {
 };
 
 export const templateOf = (x: InvitationRow) => {
-  const t = (demo.demoTemplates || []).find((tpl) => String(tpl.id) === String(x.template_id));
-  const name = x.template_name || t?.name || "Custom invitation";
+  const name = x.template_name || "Custom invitation";
   return { key: String(x.template_id || name), name };
 };
 

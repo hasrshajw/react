@@ -1,5 +1,5 @@
 /* Image upload helpers: validate, downscale and re-encode as JPEG so a photo
-   stays small enough to live inside the invitation record (localStorage demo). */
+   stays small enough to be stored inside the invitation record in Supabase. */
 export const MAX_GALLERY = 4;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_INPUT_BYTES = 12 * 1024 * 1024;

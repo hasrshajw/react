@@ -26,9 +26,6 @@
         .create-btn { border: 0; background: var(--btn); color: #fff; box-shadow: none; }
         .create-btn:hover { background: var(--btn-hover); }
 
-        .demo-note { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; margin-bottom: 16px; border-radius: 14px; background: var(--primary-light); color: var(--primary-dark); font-size: 13px; font-weight: 500; line-height: 1.4; }
-        .demo-text { flex: 1; }
-        .demo-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 4px rgba(103, 61, 230, .16); }
         .note-x { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--primary-dark); cursor: pointer; }
         .note-x:hover { background: rgba(103, 61, 230, .14); }
 

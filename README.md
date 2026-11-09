@@ -1,30 +1,21 @@
-# Schedy Demo
+# Schedy
 
-Admin app for creating digital wedding invitations and sharing them as links. It runs in the browser with no setup (demo mode), or against a Supabase database for real use (see **Data layer** below).
+Admin app for creating digital wedding invitations and sharing them as links. All data and login run through Supabase (see **Data layer** below).
 
 ## Run locally
+
+Copy `.env.example` to `.env.local` and fill in your Supabase URL and publishable key first (without them the app only shows a setup message).
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Demo behavior (when Supabase is not configured)
-
-- The invitation builder includes two built-in sample templates.
-- Invitations are saved to browser `localStorage` and appear on the Dashboard and All Invitations pages.
-- Editing an invitation uses its local demo record.
-- Data stays in the current browser profile. Clearing browser site data removes the demo records.
-- Telugu fields fill in automatically as you type English names. It uses Google Input Tools when reachable and falls back to built-in offline rules (approximate), so the field never stays empty.
-- The Photos section accepts a couple photo and up to 4 gallery photos (JPG/PNG/WebP). Images are resized in the browser and stored inside the invitation, so templates can use `{{couple-photo}}` and `{{gallery-1}}` to `{{gallery-4}}`.
-
-Demo mode is a frontend demonstration, not a production data store. Use Supabase mode for real customers.
-
 ## Code layout
 
 - `src/pages/` route components (`Create.tsx` is the page shell only)
 - `src/features/create/` Create page: `formReducer.ts`, `CreateForm.tsx`, `components/`, `hooks/`, `create.css`
-- `src/components/dashboard/`, `src/hooks/`, `src/lib/dashboardData.js`, `src/styles/dashboard.css` shared Dashboard / Invitations pieces
+- `src/components/dashboard/`, `src/hooks/`, `src/lib/dashboardData.ts`, `src/styles/dashboard.css` shared Dashboard / Invitations pieces
 - `src/lib/` pure helpers (`validate.ts`, `transliterate.ts`, `telugu.ts`, `image.ts`, `storage.ts`)
 - `src/types/` shared TypeScript types
 
@@ -40,15 +31,11 @@ Every page shows a skeleton while its server data loads (most visible in Supabas
 
 Building blocks: `src/components/Skeleton.tsx` and `src/styles/skeleton.css`.
 
-## Data layer (demo or Supabase)
+## Data layer (Supabase only)
 
-All server reads and writes go through `src/lib/api.ts` (`fetchInvitations`, `saveInvitation`, `savePublished`, `saveDeleted`, `deleteInvitation`, `fetchTemplates`, `fetchEnquiries`, `saveEnquiry`, `fetchAccount`, `fetchPublicInvitation`). There are two backends, chosen at start-up:
-
-- **Demo (default):** browser `localStorage`, no setup. Links only open in the same browser.
-- **Supabase:** real database and login, no artificial delay. Turn it on with environment variables (see `.env.example`):
+All server reads and writes go through `src/lib/api.ts` (`fetchInvitations`, `saveInvitation`, `savePublished`, `saveDeleted`, `deleteInvitation`, `fetchTemplates`, `fetchEnquiries`, `saveEnquiry`, `fetchAccount`, `fetchPublicInvitation`). There is no local or demo data: nothing is stored in browser storage except small UI preferences (auto-refresh, skeleton row hints, create-form drafts) and the cached login session. Configure it with environment variables (see `.env.example`):
 
 ```
-VITE_DATA_SOURCE=supabase
 VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
 ```
@@ -58,7 +45,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
 ### Set up Supabase
 
 1. Create a Supabase project.
-2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (the two starter templates). **Warning:** `schema.sql` first deletes all project tables and their data (categories, templates, invitations, enquiries, profiles) and recreates them, so only run it on a fresh or disposable database. Login users are kept.
+2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (optional starter templates). **Warning:** `schema.sql` first deletes all project tables and their data (categories, templates, invitations, enquiries, profiles) and recreates them, so only run it on a fresh or disposable database. Login users are kept.
 3. In **Authentication**, create your admin user (email + password). Optionally enable the Google provider and add `https://YOUR-DOMAIN/login` as a redirect URL.
 4. Put the three variables above in `.env.local` for local work, and in **Vercel → Project Settings → Environment Variables** for the live site, then redeploy.
 
@@ -71,7 +58,7 @@ Each invitation is served at `/i/<link-id>` (for example `/i/ravi-weds-priya`), 
 Limits to know about:
 
 - Photos are still stored inside the invitation record (resized in the browser). Fine for a couple photo and a few gallery photos; if invitations grow heavy, move photos to Supabase Storage.
-- The Dashboard "Activity" numbers and the Billing page are still placeholders.
+- "Invitation views" on the Dashboard is the real total of the per-invitation view counter (no per-day history is stored yet). RSVPs, shares and the Billing page are not built yet.
 - WhatsApp link previews (title and image) need server-side tags; the page does not set them yet.
 
 ## Deep links on Vercel

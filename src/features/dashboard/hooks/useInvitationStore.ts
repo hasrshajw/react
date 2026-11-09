@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { deleteInvitation, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
-import { USE_SUPABASE } from "../../../lib/supabase";
 import {
-  DAY, LS_DEL, LS_PUB, TRASH_DAYS, isPast, normDeleted, readJSON,
+  DAY, TRASH_DAYS, isPast,
 } from "../../../lib/dashboardData";
 import type {
   DeletedMap, InvitationRow, Notify, PublishMap, TrashItem,
@@ -60,8 +59,8 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   const refreshing = busy && lastUpdated !== null;
 
   const failed = useCallback(() => notify("Couldn’t save that change, so it was undone."), [notify]);
-  const [pub, pubRef, commitPub, resetPub] = useOptimisticMap<PublishMap>(() => (USE_SUPABASE ? {} : readJSON<PublishMap>(LS_PUB, {})), savePublished, failed);
-  const [deleted, delRef, writeDeleted, resetDeleted] = useOptimisticMap<DeletedMap>(() => (USE_SUPABASE ? {} : normDeleted(readJSON<unknown>(LS_DEL, {}))), saveDeleted, failed);
+  const [pub, pubRef, commitPub, resetPub] = useOptimisticMap<PublishMap>(() => ({}), savePublished, failed);
+  const [deleted, delRef, writeDeleted, resetDeleted] = useOptimisticMap<DeletedMap>(() => ({}), saveDeleted, failed);
 
   const load = useCallback((silent = false) => {
     if (!silent) setBusy(true);

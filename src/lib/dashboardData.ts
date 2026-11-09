@@ -1,47 +1,22 @@
 import { downloadBlob } from "./download";
 import type {
-  ActivityRange, DeletedMap, Enquiry, EnquiryStatus, InvitationRow, Notify, SortKey, TableFilter,
+  Enquiry, EnquiryStatus, InvitationRow, Notify, SortKey, TableFilter,
 } from "../types/dashboard";
-
-export const ACTIVITY: Record<ActivityRange, { label: string; views: number; rsvps: number; shares: number }> = {
-  "7": { label: "7 days", views: 312, rsvps: 18, shares: 41 },
-  "30": { label: "30 days", views: 1284, rsvps: 86, shares: 203 },
-  all: { label: "All time", views: 5420, rsvps: 342, shares: 812 },
-};
 
 export const H = 3600000;
 export const DAY = 24 * H;
-export const ago = (h: number) => new Date(Date.now() - h * H).toISOString();
 export const isoDay = (offset = 0) => {
   const d = new Date();
   d.setDate(d.getDate() + offset);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-/* Enquiries submitted through the public website's "get a website" form.
-   status: "new" | "followup" | "called" | "cancelled"
-   createdAt is an ISO timestamp; history is [{ status, at }]. */
-export const INITIAL_ENQUIRIES: Enquiry[] = [
-  { id: "e1", name: "Ravi Kumar", phone: "+91 98765 43210", email: "ravi.kumar@example.com", message: "I run a wedding planning business and want a website with invitation templates and an enquiry form.", createdAt: ago(2), status: "new", note: "", followUpDate: "", history: [] },
-  { id: "e2", name: "Lakshmi Devi", phone: "+91 91234 56780", email: "lakshmi.devi@example.com", message: "Need a Telugu and English website for my catering service. What is the price?", createdAt: ago(26), status: "new", note: "", followUpDate: "", history: [] },
-  { id: "e3", name: "Sai Prasad", phone: "+91 99887 66554", email: "sai.prasad@example.com", message: "Interested in an online invitation website. Please call after 6 PM.", createdAt: ago(28), status: "followup", note: "Prefers evening calls.", followUpDate: isoDay(0), history: [{ status: "followup", at: ago(20) }] },
-  { id: "e4", name: "Anitha Reddy", phone: "+91 90000 11223", email: "anitha.reddy@example.com", message: "Looking for a website for my photography studio with a gallery.", createdAt: ago(50), status: "called", note: "", followUpDate: "", history: [{ status: "called", at: ago(46) }] },
-  { id: "e5", name: "Mahesh Babu", phone: "+91 98480 12345", email: "mahesh.babu@example.com", message: "Want to know the delivery time for a 5 page website.", createdAt: ago(74), status: "followup", note: "", followUpDate: isoDay(-1), history: [{ status: "followup", at: ago(70) }] },
-  { id: "e6", name: "Priya Varma", phone: "+91 97012 34567", email: "priya.varma@example.com", message: "Need a website for my boutique with WhatsApp ordering.", createdAt: ago(122), status: "called", note: "", followUpDate: "", history: [{ status: "called", at: ago(118) }] },
-];
-
 /* =========================================================
    HELPERS
    ========================================================= */
-export const LS_PUB = "schedy_published";
-export const LS_DEL = "schedy_deleted_ids";
-export const LS_NOTE = "schedy_hide_demo_note";
 export const LS_AUTO = "schedy_auto_refresh";
 export const readJSON = <T,>(k: string, f: T): T => { try { return JSON.parse(localStorage.getItem(k) ?? "null") ?? f; } catch { return f; } };
 export const writeJSON = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ } };
-/* Older versions stored deleted ids as an array; now it is { id: deletedAtMs }. */
-export const normDeleted = (v: unknown): DeletedMap =>
-  Array.isArray(v) ? Object.fromEntries(v.map((id: string) => [id, Date.now()])) : v && typeof v === "object" ? (v as DeletedMap) : {};
 
 export const PAGE_SIZE = 8;
 export const TRASH_DAYS = 30;
@@ -74,14 +49,8 @@ export const initials = (x: InvitationRow) =>
   `${(x.groom_name || "G").trim().charAt(0)}${(x.bride_name || "B").trim().charAt(0)}`.toUpperCase();
 export const coupleName = (x: InvitationRow) => `${x.groom_name || "Groom"} & ${x.bride_name || "Bride"}`;
 
-/* Uses x.views when present, otherwise a stable fake number per invitation. */
-export const getViews = (x: InvitationRow) => {
-  if (typeof x.views === "number") return x.views;
-  const s = String(x.id ?? "");
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 997;
-  return 40 + h;
-};
+/* The real view counter kept in the database (the public page bumps it on each open). */
+export const getViews = (x: InvitationRow) => (typeof x.views === "number" ? x.views : 0);
 
 /* Public link of an invitation. Change this if your live route is different. */
 export const getInviteLink = (x: InvitationRow) => `${window.location.origin}/i/${x.details?.customId || x.id}`;

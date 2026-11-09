@@ -2,10 +2,10 @@ import dashboardCss from "../styles/dashboard.css?inline";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Archive, EyeOff, Globe, MessageCircle, QrCode, Trash2, X,
+  Archive, EyeOff, Globe, MessageCircle, QrCode, Trash2,
 } from "../components/Icons";
 import {
-  DAY, LS_AUTO, LS_NOTE, PAGE_SIZE, coupleName, copyText, followDue, getInviteLink,
+  DAY, LS_AUTO, PAGE_SIZE, coupleName, copyText, followDue, getInviteLink, getViews,
   isPast, readJSON, shareOnWhatsApp, sortInvitations, topViewedId, writeJSON,
 } from "../lib/dashboardData";
 import { PreviewPanel } from "../features/dashboard/components/PreviewPanel";
@@ -26,8 +26,7 @@ import { useInvitationStore } from "../features/dashboard/hooks/useInvitationSto
 import { useEnquiries } from "../features/dashboard/hooks/useEnquiries";
 import { useRowMenu } from "../features/dashboard/hooks/useRowMenu";
 import { useShortcuts } from "../features/dashboard/hooks/useShortcuts";
-import { USE_SUPABASE } from "../lib/supabase";
-import type { ActivityRange, EnquiryTab, InvitationRow, SortKey, TableFilter } from "../types/dashboard";
+import type { EnquiryTab, InvitationRow, SortKey, TableFilter } from "../types/dashboard";
 
 interface Props {
   onPanelChange?: (open: boolean) => void;
@@ -46,7 +45,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const invSkel = invPhase !== "idle";
   const enqSkel = enqPhase !== "idle";
 
-  const [hideNote, setHideNote] = useState(() => readJSON(LS_NOTE, false));
   const [autoRefresh, setAutoRefresh] = useState(() => readJSON(LS_AUTO, false));
 
   const [q, setQ] = useState("");
@@ -54,7 +52,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const [filter, setFilter] = useState<TableFilter>("all");
   const [showAll, setShowAll] = useState(false);
   const [page, setPage] = useState(1);
-  const [range, setRange] = useState<ActivityRange>("30");
 
   const [reqOpen, setReqOpen] = useState(false);
   const [reqTab, setReqTab] = useState<EnquiryTab>("new");
@@ -136,6 +133,9 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const shown = expanded ? list.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE) : list.slice(0, 5);
   const topId = useMemo(() => topViewedId(visible), [visible]);
   const pubCount = visible.filter(isPub).length;
+  /* Real view counts: every open of a public link adds one (see get_public_invitation in schema.sql). */
+  const totalViews = visible.reduce((n, x) => n + getViews(x), 0);
+  const viewedCount = visible.filter((x) => getViews(x) > 0).length;
   const skeletonRows = useRowHint("dashboard", visible.length, store.loading, 5);
   const attnReady = !store.loading && !enq.loading;
   const [attnHint] = useState(() => Number(readJSON<number>("schedy-attn", 0)) || 0);
@@ -169,7 +169,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
     store.moveToTrash(x);
     if (preview?.id === x.id) closePanel();
   };
-  const dismissNote = () => { setHideNote(true); writeJSON(LS_NOTE, true); };
 
   const closeAll = () => {
     setQr(null);
@@ -191,7 +190,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
     >
       <PageHeader
         title="Dashboard"
-        subtitle="Manage and preview invitations using sample templates."
+        subtitle="Manage and preview your invitations."
         lastUpdated={store.lastUpdated}
         loading={invSkel}
         refreshing={store.refreshing}
@@ -208,19 +207,11 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         }
       />
 
-      {!hideNote && !USE_SUPABASE && (
-        <div className="demo-note">
-          <span className="demo-dot" />
-          <span className="demo-text">Demo mode is active. No database or account connection is required.</span>
-          <button type="button" className="note-x" aria-label="Dismiss" onClick={dismissNote}><X size={15} /></button>
-        </div>
-      )}
-
       <StatCards
         loading={invSkel} enqLoading={enqSkel}
         total={visible.length} published={pubCount} drafts={visible.length - pubCount}
         onFilter={applyFilter}
-        range={range} onRange={setRange}
+        views={totalViews} viewed={viewedCount} unviewed={visible.length - viewedCount}
         enqNew={enq.enqNew} enqTotal={enq.enquiries.length} enqFollow={enq.enqFollow}
         requestsOpen={reqOpen}
         onShowFollowups={() => showRequests("followup")}

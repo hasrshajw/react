@@ -1,6 +1,6 @@
 import type { Template } from "./invitation";
 
-/** Invitation record as stored by the demo data layer (and as the real API will return it). */
+/** Invitation record as returned by the API. */
 export interface InvitationRow {
   id: string;
   groom_name?: string;
@@ -53,6 +53,5 @@ export type DeletedMap = Record<string, number>;
 
 export type Notify = (msg: string, undo?: () => void) => void;
 
-export type ActivityRange = "7" | "30" | "all";
 export type TableFilter = "all" | "published" | "draft" | "draftSoon" | "noViews";
 export type SortKey = "recent" | "date" | "views";
