@@ -18,6 +18,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 7 | Main domain SEO: `index.html`, `public/` files (section 6) | Done. **You must replace `https://example.com` with your real domain in 3 files (see notes).** No SQL to run. |
 | 7b | Public landing page at `/`, dashboard moved to `/dashboard` (section 6) | Done. No SQL to run. |
 | 6b | Debug header `x-invite-status` in `api/invite.js` | Done. Redeploy, then follow "If previews still show Vercel's card" below. |
+| 9 | Fix: Vercel login page shown at `/<slug>` (see "Update 2026-11-10" below) | Done. `api/invite.js` now serves only link-preview crawlers. **Redeploy, and turn off Vercel Authentication for sharing.** |
 | 8 | Security notes (section 8) and final testing (section 7) | Done. `.env.local` was restored afterwards (see the update in the notes). No SQL to run. |
 
 Notes from batch 1:
@@ -76,7 +77,7 @@ Notes from batch 5:
 - `vercel.json` is not touched yet. The current SPA fallback already serves `index.html` for `/harshajw`, so short links work after deploy. Social previews need batch 6.
 - `tsc` and `vite build` pass. Not tested in a browser. Please try after deploy: `/harshajw`, `/i/harshajw`, `/invitations`, `/create`, `/customize/popup`, `/login`, `/nonexistent`, and copy a link from the dashboard.
 
-Notes from batch 6:
+Notes from batch 6 (**superseded by "Update 2026-11-10" below**: the function no longer fetches or returns `index.html`, and real visitors no longer go through it):
 - New `api/invite.js` (plain ESM JavaScript, no dependency). Steps: lowercase the slug, fetch `${origin}/index.html`, return it unchanged for reserved or invalid slugs,
   call `get_invitation_meta` over REST, build the tags, strip the shell's own `<title>`, `description`, `robots`, `canonical`, `og:*` and `twitter:*` tags, insert ours before `</head>`.
   Tags added: `title`, `description`, `robots noindex`, `canonical`, `og:type/url/title/description/image/image:width/image:height`, `twitter:card=summary_large_image` and `twitter:title/description/image`. Everything is HTML-escaped.
@@ -133,6 +134,41 @@ Final testing status (section 7):
 - If a preview is wrong, use the `x-invite-status` table in "If previews still show Vercel's card or the generic card" above.
 - Extra checks for the new landing page: `/` signed out shows the landing page and its Login button opens `/login`; signed in, `/dashboard` opens and the sidebar logo returns to `/dashboard`.
 
+## Update 2026-11-10: Vercel login page shown instead of the invitation
+
+### Symptom
+Opening an invitation link (for example `https://react-3ydskhiw4-hasrshajws-projects.vercel.app/harshajww`):
+- Incognito or signed out: redirected to `https://vercel.com/login?next=/sso-api?...`.
+- Same browser, signed in to Vercel: blank page titled "Login - Vercel" with only "Skip to content", and the console full of 404s for `_next/static/immutable/chunks/*.js`, `*.css`, `logo-github-color-*.svg`, `logo-google-color-*.svg` and `logo-open-ai-color-*.svg`.
+Commit `fdd5c16` on `main` (before short links) worked.
+
+### Root cause (two parts)
+1. **Vercel Deployment Protection.** `*.vercel.app` deployment URLs have Vercel Authentication on by default, so anyone not signed in to the owner's Vercel account is redirected to `vercel.com/login`. This is a project setting, not code.
+2. **`api/invite.js` returned Vercel's login page to everyone.** Every `/<slug>` request went through the function, and the function did `fetch(`${origin}/index.html`)`. That server-side request carries no Vercel login, so on a protected deployment it received Vercel's login HTML (a Next.js page). The function returned it with status 200, which explains the "Login - Vercel" title and the `_next/...` and `logo-*.svg` 404s: those files belong to Vercel's login page, not to this app. `fdd5c16` had no function, so it did not have this problem.
+
+### What was changed
+| Commit | Change |
+|---|---|
+| `a4069d5` | Merged `main` into `feature/supabase-connection` (only added `temp/cartoon.html` and `temp/dark.html`, no conflicts). Then `main` was fast-forwarded to the feature branch, so both branches hold the same code. |
+| `09000e5` | First attempt: `api/invite.js` read `dist/index.html` from the function bundle (`includeFiles` in `vercel.json`) instead of fetching it over HTTP. Superseded by the next commit because Vercel bundling `dist/` into the function is not guaranteed. |
+| `a0ad39b` | **Final fix.** See below. |
+
+Final fix details:
+- `vercel.json`: the two invitation rewrites (`/i/:slug` and `/:slug(...)`) now have a `has` rule on the `user-agent` header. Only link-preview crawlers are routed to `/api/invite`: `facebookexternalhit`, `Facebot`, `WhatsApp`, `Twitterbot`, `TelegramBot`, `Slackbot`, `LinkedInBot`, `Discordbot`, `Googlebot`, `bingbot`, `Pinterest`, `SkypeUriPreview`, `Applebot`. Everyone else falls through to the SPA rewrite (`/index.html`), exactly like `fdd5c16`. The `includeFiles` entry from `09000e5` was removed.
+- `api/invite.js`: no longer fetches or reads `index.html`. It returns a minimal standalone HTML page containing the title, description, `canonical`, `og:*` and `twitter:*` tags, plus a link to the invitation. The slug rules, reserved list, Supabase RPC call, 4 s timeout, key handling, caching headers and `x-invite-status` header are unchanged. Reserved or unknown slugs return the minimal page without preview tags. The 502 "shell-fetch-failed" case and the `shell-not-app-deployment-protection?` status no longer exist.
+- Not changed: the app code, the migrations, the slug rules, the share links.
+
+### What you still need to do
+1. Redeploy from the latest commit on `main` (or `feature/supabase-connection`) and open `/<slug>` on the new deployment. Signed in to Vercel it should show the invitation.
+2. For other people (and incognito) to open links, turn off Vercel > Settings > Deployment Protection > Vercel Authentication, or share your production domain. Protection is a setting and code cannot bypass it. It also hides the preview from WhatsApp and Facebook.
+3. Check which deployment you are testing: Vercel > Deployments > the one for the latest commit. Old preview URLs keep running old code.
+4. Test the preview as a crawler (real domain): `curl -s -A "WhatsApp/2" https://YOUR-DOMAIN/<slug> | grep -i "og:"` and `curl -s https://YOUR-DOMAIN/<slug> | grep -c 'id="root"'` (a normal visitor should get the app shell, so the count is 1).
+
+### Known limits
+- Not tested on Vercel from here. The handler was only run locally against an empty environment (reserved slug and missing env vars).
+- A crawler whose user agent is not in the list gets the plain app, so its preview is the generic main-domain card. Add its name to the `has` value in `vercel.json` (both rewrites).
+- Crawlers do not run JavaScript, so the minimal page is all they see. Real visitors never see it.
+
 ## If previews still show Vercel's card or the generic card
 
 Run this against your **real domain** (not `*.vercel.app`) after redeploying, using a published invitation:
@@ -147,7 +183,7 @@ Read the `x-invite-status` header:
 | Value | Meaning and fix |
 |---|---|
 | (header missing, or HTTP 401/403, or the HTML says "Vercel Authentication") | The function did not run or the request was blocked. Vercel > Settings > Deployment Protection > turn **Vercel Authentication** off for Production. Redeploy. Check the project was deployed from this branch, and that `api/invite.js` is in the deployment (Vercel > Deployment > Source / Functions). |
-| `shell-not-app-deployment-protection?` | The function fetched its own `/index.html` and got Vercel's login page. Same fix: turn off Deployment Protection. |
+| `shell-not-app-deployment-protection?` | Old versions only (before 2026-11-10). The function fetched its own `/index.html` and got Vercel's login page. The function no longer reads `index.html`, so this value is gone; if you still see it, the deployment is running old code, redeploy. |
 | `env-missing` | `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is not set for **Production**. Add them and redeploy (env changes apply only to new deployments). |
 | `rpc-http-404` | Migration `001_seo_previews.sql` was not run, so `get_invitation_meta` does not exist. Run it in the Supabase SQL Editor. |
 | `rpc-http-401` / `403` | Wrong key, or the function was not granted to `anon`. Re-run the grant lines of migration `001`. |
@@ -378,6 +414,8 @@ Put the invitation rewrites **before** the SPA fallback:
 
 ### 5.2 `api/invite.js` (plain JS, the project is ESM, no extra dependency)
 
+> Updated 2026-11-10: steps 2, 3, 5 and 7 below describe the first version. The function now returns a small standalone HTML page (no `index.html`) and only link-preview crawlers reach it. See "Update 2026-11-10".
+
 Logic:
 1. Read `slug` from the query, lowercase it.
 2. `fetch(`${origin}/index.html`)` to get the built SPA shell.
@@ -392,7 +430,7 @@ Logic:
 Env vars in Vercel (Project Settings > Environment Variables): reuse `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
 (Vercel exposes them to functions at runtime too). No service-role key is needed.
 
-Real visitors still get the normal React app because the function returns the same `index.html`.
+~~Real visitors still get the normal React app because the function returns the same `index.html`.~~ Wrong in practice, see "Update 2026-11-10": real visitors are now routed straight to the SPA and never reach the function.
 
 ### 5.3 `src/pages/PublicInvitation.tsx`
 
