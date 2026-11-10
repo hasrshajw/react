@@ -5,6 +5,7 @@ import { AlertCircle, Check, Eye, Loader2, Save } from "../components/Icons";
 import { ApiError, fetchInvitation, saveInvitation } from "../lib/api";
 import { useTemplates } from "../hooks/useTemplates";
 import { compile } from "../lib/compileInvitation";
+import { invitationUrl } from "../lib/links";
 import { readJSON, removeKey, writeJSON } from "../lib/storage";
 import { has, validateInvitation } from "../lib/validate";
 import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "../types/invitation";
@@ -192,7 +193,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   }, [issues, done, recordLoading]);
 
   /* ---------- save ---------- */
-  const getLink = (id: string) => `${window.location.origin}/i/${data.customId?.trim() || id}`;
+  const getLink = (id: string) => invitationUrl(data.customId?.trim() || id);
   const coupleName = `${has(data.groomEn) ? data.groomEn.trim() : "Groom"} & ${has(data.brideEn) ? data.brideEn.trim() : "Bride"}`;
 
   /* Returns true when the invitation is saved (or there was nothing to save).

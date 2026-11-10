@@ -13,7 +13,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 2 | Remove Photos section (section 1) | Done. **You must run `supabase/migrations/002_remove_photo_blocks_from_templates.sql` in the Supabase SQL Editor.** |
 | 3 | Types, defaults and validation for SEO fields (2.1, 2.4) | Done. No SQL to run. |
 | 4 | SEO section UI and image upload (2.2, 2.3) | Done. Needs migration `001` (bucket `invitation-previews`) to be applied, which batch 1 already asked for. |
-| 5 | Routes and link builders (section 3) | To do |
+| 5 | Routes and link builders (section 3) | Done. No SQL to run. After deploy, `example.com/<slug>` opens the invitation. Previews still show the generic card until batch 6. |
 | 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | To do |
 | 7 | Main domain SEO: `index.html`, `public/` files (section 6) | To do |
 | 8 | Security notes (section 8) and final testing (section 7) | To do |
@@ -56,6 +56,23 @@ Notes from batch 4:
 - Removing the image only clears `seoImage`. The file stays in storage until it is replaced (same path), so an unsaved removal cannot break a saved invitation. Files of deleted invitations are not cleaned up yet; optional later.
 - If the user saves while an upload is still running, the save uses the old image. Rare; not handled.
 - Not tested in a browser here (no Supabase project available). `tsc` and `vite build` pass. Please try: upload an image, save, reload, replace it, remove it.
+
+Notes from batch 5:
+- Routes (`App.tsx`): differs from the plan text. Instead of adding `{ path: "/:slug" }` and declaring every shell route, the `*` route now renders a small `Gate` component.
+  A path with exactly one segment that is not in `RESERVED` shows `PublicInvitation`; everything else shows `<Protected />` (the admin shell).
+  Reason: the shell is one mounted component, and separate route objects for each page could remount it and lose its state. `Gate` keeps returning the same element, so it stays mounted.
+  `/i/:slug` and `/login` are unchanged. Multi-segment paths such as `/customize/popup` still go to the shell.
+- The friendly 404 is the existing "This invitation isn't available" page, which `PublicInvitation` shows for any unknown one-segment path such as `/foo`.
+  A signed-out user who opens a shell page that is not reserved still gets that page instead of the login redirect. All current shell pages start with a reserved word, so this does not happen today.
+  Rule for the future: every new top-level admin route goes into `RESERVED` (`src/lib/reserved.ts`), the DB constraint and the `vercel.json` rewrite.
+- `PublicInvitation` takes an optional `slug` prop (the short-link route has no `:slug` param). The `/i/:slug` route still uses the URL param.
+- Link builder: new `src/lib/links.ts` with `invitationPath(slug)` and `invitationUrl(slug)`. The plan suggested `features/invitations/utils.ts`, but that file imports `dashboardData.ts`, which needs the builder too, so it would be a circular import.
+- Changed to `invitationUrl`: `getInviteLink` in `dashboardData.ts` (used by the dashboard, invitations table, CSV export, `QrModal`, invitations `ShareModal` and WhatsApp share), `getLink` in `Create.tsx` (create `ShareModal`, copy link, WhatsApp text), and the help text in `SeoSection.tsx`.
+  The create `ShareModal` only receives the link as a prop, so it needed no change. `RowActions.tsx` has no `/i/` link.
+- Invitations `ShareModal` (quick edit of the Custom link ID) did not use the new slug rules. It allowed 40 characters, no underscore and reserved words. It now uses `okSlug` and `isReserved`, with the same 3 to 30 limit and the same messages as the Create page.
+- Not changed on purpose: invitations without a custom link now get `example.com/<invitation id>` (a UUID) instead of `example.com/i/<id>`. This matches the plan (`/${slug}`) and the DB check (`slug = id` is allowed). The `vercel.json` rewrite in batch 6 must allow hyphens, which it does.
+- `vercel.json` is not touched yet. The current SPA fallback already serves `index.html` for `/harshajw`, so short links work after deploy. Social previews need batch 6.
+- `tsc` and `vite build` pass. Not tested in a browser. Please try after deploy: `/harshajw`, `/i/harshajw`, `/invitations`, `/create`, `/customize/popup`, `/login`, `/nonexistent`, and copy a link from the dashboard.
 
 ## Goals
 

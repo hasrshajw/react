@@ -3,9 +3,11 @@ import { useParams } from "react-router-dom";
 import { fetchPublicInvitation } from "../lib/api";
 import { compile } from "../lib/compileInvitation";
 
-/* The page a customer sees at /i/<link-id>. No login, no admin shell. */
-export default function PublicInvitation() {
-  const { slug = "" } = useParams();
+/* The page a customer sees at /<link-id> (and at the old /i/<link-id>). No login, no admin shell.
+   The short-link route in App.tsx has no :slug param, so it passes the slug as a prop. */
+export default function PublicInvitation({ slug: slugProp }: { slug?: string }) {
+  const params = useParams();
+  const slug = slugProp ?? params.slug ?? "";
   const [state, setState] = useState<{ status: "loading" } | { status: "missing" } | { status: "error" } | { status: "ready"; html: string; title: string }>({ status: "loading" });
 
   useEffect(() => {

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Copy, Download, Globe, MessageCircle } from "../../../components/Icons";
 import { coupleName, getInviteLink } from "../../../lib/dashboardData";
 import { downloadBlob } from "../../../lib/download";
+import { isReserved } from "../../../lib/reserved";
+import { SLUG_MAX, SLUG_MIN, okSlug } from "../../../lib/validate";
 import type { InvitationRow } from "../../../types/dashboard";
 import { Modal } from "../../dashboard/components/Modal";
 
@@ -26,8 +28,8 @@ export function ShareModal({ row, rows, live, onClose, onCopy, onWhatsApp, onSav
   const [busy, setBusy] = useState(false);
   const clean = slug.trim();
   const taken = !!clean && rows.some((r) => r.id !== row.id && String(r.details?.customId || r.id).toLowerCase() === clean.toLowerCase());
-  const problem = clean && !/^[a-z0-9-]+$/i.test(clean) ? "Use letters, numbers and hyphens only"
-    : clean.length > 40 ? "Keep it under 40 characters"
+  const problem = clean && !okSlug(clean) ? `Use ${SLUG_MIN} to ${SLUG_MAX} letters, numbers, hyphens or underscores`
+    : clean && isReserved(clean) ? "This link name is reserved"
     : taken ? "This link ID is already used by another invitation" : "";
   const dirty = clean !== current;
   const api = (size: number) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(link)}`;
@@ -70,7 +72,7 @@ export function ShareModal({ row, rows, live, onClose, onCopy, onWhatsApp, onSav
           <div className="share-row">
             <span className="share-prefix">{window.location.host}/</span>
             <input
-              id="share-slug" value={slug} maxLength={60} placeholder={String(row.id).slice(0, 8)} autoComplete="off" spellCheck="false"
+              id="share-slug" value={slug} maxLength={SLUG_MAX} placeholder={String(row.id).slice(0, 8)} autoComplete="off" spellCheck="false"
               aria-invalid={!!problem} aria-describedby="share-hint"
               onChange={(e) => setSlug(e.target.value)}
             />

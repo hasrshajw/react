@@ -17,6 +17,7 @@ import schedyMark from "./assets/schedy-mark.svg";
 import { AccountProvider, useAccount } from "./hooks/useAccount";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { Loading, SkText } from "./components/Skeleton";
+import { isReserved } from "./lib/reserved";
 import type { Plan } from "./lib/api";
 
 /* The plan comes from useAccount() (see lib/api.ts). */
@@ -484,10 +485,28 @@ function Protected() {
   );
 }
 
+/* Short links: example.com/<slug>.
+   A plain "/:slug" route would outrank the "*" route below and catch /invitations, /create and so on,
+   so one catch-all decides instead: a path with exactly one segment that is not a reserved word is an
+   invitation link, everything else is the admin shell. The shell stays mounted while the user moves
+   between its pages, because this component keeps returning the same <Protected /> element.
+   Unknown one-segment paths show the "invitation isn't available" page, which doubles as the 404.
+   Every new top-level app route must be added to RESERVED (src/lib/reserved.ts). */
+function Gate() {
+  const { pathname } = useLocation();
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length === 1) {
+    let slug = parts[0];
+    try { slug = decodeURIComponent(slug); } catch { /* keep the raw segment */ }
+    if (!isReserved(slug)) return <PublicInvitation slug={slug} />;
+  }
+  return <Protected />;
+}
+
 const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
-  { path: "/i/:slug", element: <PublicInvitation /> },
-  { path: "*", element: <Protected /> },
+  { path: "/i/:slug", element: <PublicInvitation /> }, /* old links that were already shared */
+  { path: "*", element: <Gate /> },
 ]);
 
 function App() {

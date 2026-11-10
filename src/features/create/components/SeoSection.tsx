@@ -3,12 +3,10 @@ import { Trash2 } from "../../../components/Icons";
 import type { InvitationData } from "../../../types/invitation";
 import { ApiError, uploadPreviewImage } from "../../../lib/api";
 import { compressToOg, ImageError, OG_HEIGHT, OG_WIDTH } from "../../../lib/image";
+import { invitationUrl } from "../../../lib/links";
 import { SEO_DESC_MAX, SEO_TITLE_MAX } from "../../../lib/validate";
 import { Field } from "./Field";
 import { DropButton } from "./PhotoPicker";
-
-/* Public link prefix. Batch 5 (short links) changes this to "/" and moves it into one helper. */
-const LINK_PREFIX = "/i/";
 
 type FieldProps = (name: string) => {
   name: string; onFocus: () => void; onBlur: () => void; error: string | undefined; loading: boolean;
@@ -69,7 +67,7 @@ export function SeoSection({ data, set, fp, loading, invitationId, notify }: Pro
       <Field
         label="Custom Link ID" {...fp("customId")} value={data.customId} onChange={(v) => set("customId", v)}
         placeholder="harshajw" maxLength={30}
-        help={`Your link: ${window.location.origin}${LINK_PREFIX}${slug || "your-link"}`}
+        help={`Your link: ${invitationUrl(slug || "your-link")}`}
       />
 
       <Field

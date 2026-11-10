@@ -1,4 +1,5 @@
 import { downloadBlob } from "./download";
+import { invitationUrl } from "./links";
 import type {
   Enquiry, EnquiryStatus, InvitationRow, Notify, SortKey, TableFilter,
 } from "../types/dashboard";
@@ -53,7 +54,7 @@ export const coupleName = (x: InvitationRow) => `${x.groom_name || "Groom"} & ${
 export const getViews = (x: InvitationRow) => (typeof x.views === "number" ? x.views : 0);
 
 /* Public link of an invitation. Change this if your live route is different. */
-export const getInviteLink = (x: InvitationRow) => `${window.location.origin}/i/${x.details?.customId || x.id}`;
+export const getInviteLink = (x: InvitationRow) => invitationUrl(String(x.details?.customId || x.id));
 
 export const dayDiff = (d?: string | null): number | null => {
   if (!d) return null;
