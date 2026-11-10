@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /create
+Disallow: /invitations
+Sitemap: https://example.com/sitemap.xml

@@ -15,7 +15,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 4 | SEO section UI and image upload (2.2, 2.3) | Done. Needs migration `001` (bucket `invitation-previews`) to be applied, which batch 1 already asked for. |
 | 5 | Routes and link builders (section 3) | Done. No SQL to run. After deploy, `example.com/<slug>` opens the invitation. Previews still show the generic card until batch 6. |
 | 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | Done. **You must redeploy on Vercel and check the env vars (see notes).** No SQL beyond migration `001`. |
-| 7 | Main domain SEO: `index.html`, `public/` files (section 6) | To do |
+| 7 | Main domain SEO: `index.html`, `public/` files (section 6) | Done. **You must replace `https://example.com` with your real domain in 3 files (see notes).** No SQL to run. |
 | 8 | Security notes (section 8) and final testing (section 7) | To do |
 
 Notes from batch 1:
@@ -91,6 +91,22 @@ Notes from batch 6:
 - `PublicInvitation.tsx`: `document.title` is now `seoTitle` when the owner set one, otherwise `Groom & Bride | Wedding invitation` as before. The slug was already looked up case-insensitively by the database, so nothing else changed there.
 - Tested locally with a script that runs the handler against a fake shell and a fake Supabase (16 checks): found, name and date fallbacks, escaping of `"`, `<`, `&`, base64 image fallback, unknown slug, reserved slug, invalid characters, and both key types. `tsc` and `vite build` pass. **Not tested on Vercel.** After deploy run `curl -A "WhatsApp/2" https://example.com/<slug>` and look for the `og:` tags (section 7 steps 3 to 5).
 - Turn off Vercel > Settings > Deployment Protection > Vercel Authentication for the production domain, or crawlers will see Vercel's login card (section 7 step 8).
+
+Notes from batch 7:
+- `index.html`: title is now `Schedy | Digital Wedding Invitations` (name taken from the README) and the description is real text. Added `canonical`, `og:type/site_name/title/description/url/image/image:width/image:height` and `twitter:card/title/description/image`.
+  Edit the wording if you prefer a different product name or text.
+- **Domain placeholder:** the real domain is not in the repo, so `https://example.com` is used in `index.html` (canonical, `og:url`, `og:image`, `twitter:image`), `public/robots.txt` (Sitemap line) and `public/sitemap.xml`. Replace it before deploying, for example:
+  `grep -rl "https://example.com" index.html public | xargs sed -i 's#https://example.com#https://YOUR-DOMAIN#g'`
+  WhatsApp and Google need absolute URLs, so a relative path would not work.
+- `public/og-main.jpg` is a simple generated placeholder (1200 x 630, about 40 KB, text "Schedy" on a cream background). Replace it with your own artwork, keeping the same file name, size and under 300 KB.
+  This is also the fallback image that `api/invite.js` uses for invitations without their own image, so they now get a preview image.
+- `public/robots.txt`: as in section 6. It disallows `/login`, `/create` and `/invitations`. Other admin paths (`/templates`, `/inventory`, `/billing`, `/customize/*`) are not listed, as in the plan; add them if you want them out of crawlers.
+  Invitation pages are `noindex` through the function.
+- `public/sitemap.xml` lists only `/`, because there are no other public pages yet.
+- `vercel.json` needed no change: paths with a dot (`/robots.txt`, `/sitemap.xml`, `/og-main.jpg`) skip both the function rewrite and the SPA fallback and are served as static files. `vite build` copies `public/` into `dist/` (checked).
+- `index.html` tags apply to every admin shell page, not only `/`. `/` is still the login-protected Dashboard, so Google cannot index real content there. For real SEO, a public landing page is still needed (or move the dashboard to `/app`). Not done, it is a bigger change.
+- JSON-LD (`WebSite` or `Organization`) is not added. The plan says to add it once the landing page exists.
+- `tsc` and `vite build` pass. After deploy check `https://YOUR-DOMAIN/robots.txt`, `/sitemap.xml`, `/og-main.jpg`, and run the Facebook Sharing Debugger on the main domain.
 
 ## Goals
 
