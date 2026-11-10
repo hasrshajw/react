@@ -18,7 +18,10 @@ export default function PublicInvitation({ slug: slugProp }: { slug?: string }) 
         if (!live) return;
         if (!res || !res.html) { setState({ status: "missing" }); return; }
         const d = { ...(res.invitation.details || {}) };
-        const title = `${res.invitation.groom_name || ""} & ${res.invitation.bride_name || ""}`.trim();
+        const names = `${res.invitation.groom_name || ""} & ${res.invitation.bride_name || ""}`.trim();
+        /* The preview title the owner typed wins; api/invite.js puts the same title in the HTML for crawlers. */
+        const custom = typeof d.seoTitle === "string" ? d.seoTitle.trim() : "";
+        const title = custom || (names !== "&" ? `${names} | Wedding invitation` : "");
         setState({ status: "ready", html: compile(res.html, d), title });
       },
       () => { if (live) setState({ status: "error" }); },
@@ -27,7 +30,7 @@ export default function PublicInvitation({ slug: slugProp }: { slug?: string }) 
   }, [slug]);
 
   useEffect(() => {
-    if (state.status === "ready" && state.title !== "&") document.title = `${state.title} | Wedding invitation`;
+    if (state.status === "ready" && state.title) document.title = state.title;
   }, [state]);
 
   if (state.status === "ready") {

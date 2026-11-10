@@ -14,7 +14,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 3 | Types, defaults and validation for SEO fields (2.1, 2.4) | Done. No SQL to run. |
 | 4 | SEO section UI and image upload (2.2, 2.3) | Done. Needs migration `001` (bucket `invitation-previews`) to be applied, which batch 1 already asked for. |
 | 5 | Routes and link builders (section 3) | Done. No SQL to run. After deploy, `example.com/<slug>` opens the invitation. Previews still show the generic card until batch 6. |
-| 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | To do |
+| 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | Done. **You must redeploy on Vercel and check the env vars (see notes).** No SQL beyond migration `001`. |
 | 7 | Main domain SEO: `index.html`, `public/` files (section 6) | To do |
 | 8 | Security notes (section 8) and final testing (section 7) | To do |
 
@@ -73,6 +73,24 @@ Notes from batch 5:
 - Not changed on purpose: invitations without a custom link now get `example.com/<invitation id>` (a UUID) instead of `example.com/i/<id>`. This matches the plan (`/${slug}`) and the DB check (`slug = id` is allowed). The `vercel.json` rewrite in batch 6 must allow hyphens, which it does.
 - `vercel.json` is not touched yet. The current SPA fallback already serves `index.html` for `/harshajw`, so short links work after deploy. Social previews need batch 6.
 - `tsc` and `vite build` pass. Not tested in a browser. Please try after deploy: `/harshajw`, `/i/harshajw`, `/invitations`, `/create`, `/customize/popup`, `/login`, `/nonexistent`, and copy a link from the dashboard.
+
+Notes from batch 6:
+- New `api/invite.js` (plain ESM JavaScript, no dependency). Steps: lowercase the slug, fetch `${origin}/index.html`, return it unchanged for reserved or invalid slugs,
+  call `get_invitation_meta` over REST, build the tags, strip the shell's own `<title>`, `description`, `robots`, `canonical`, `og:*` and `twitter:*` tags, insert ours before `</head>`.
+  Tags added: `title`, `description`, `robots noindex`, `canonical`, `og:type/url/title/description/image/image:width/image:height`, `twitter:card=summary_large_image` and `twitter:title/description/image`. Everything is HTML-escaped.
+- Fallback text is the same as `seoFallbacks()` in `SeoSection.tsx`, including the date format (`5 December 2026`). If you change one wording, change the other. The date is formatted by hand so it does not depend on the server's locale data.
+- `og:image` must be an `https` URL. If `seoImage` is empty or is not `https` (for example an old base64 value), the function uses `${origin}/og-main.jpg`. **That file does not exist until batch 7**, so until then invitations without their own image have no preview image.
+- `og:url` and `canonical` always use the short link `/<slug>`, also when the request came in as `/i/<slug>`.
+- Failure behaviour: if the database call fails, times out (4 s) or the env vars are missing, the plain shell is returned, so the page still loads and only the preview is generic. If `index.html` itself cannot be fetched the function answers 502 with a refresh message.
+- Env vars: the function reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (also accepts `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`). Check in Vercel > Settings > Environment Variables that they are enabled for **Production**.
+  New `sb_publishable_...` keys are sent in the `apikey` header only. Legacy JWT keys (`eyJ...`) are also sent as `Authorization: Bearer`.
+- Caching: found invitations `s-maxage=300, stale-while-revalidate=3600`, unknown slugs `s-maxage=60`, reserved paths `no-cache`. After you edit a title or image, the preview can take up to 5 minutes to change on our side, and WhatsApp and Instagram add their own cache on top (use `?v=2` to test).
+  The existing catch-all header in `vercel.json` (`Cache-Control: no-cache` for everything outside `/assets/`) is unchanged. If Vercel applies it on top of the function's header, previews still work but are not cached at the edge. This is harmless; check with `curl -I` after deploy.
+- `vercel.json`: added `/i/:slug` and `/:slug(...)` rewrites to `/api/invite` before the SPA fallback. The reserved words are excluded in the pattern, so admin pages (`/invitations`, `/create`, ...) do not go through the function. Multi-segment paths and anything with a dot (`/robots.txt`, `/favicon.ico`, `/og-main.jpg`) still go straight to static files or the SPA fallback.
+  The SPA fallback now also skips `api/`. Also keep this list in sync with `reserved.ts` and the DB constraint.
+- `PublicInvitation.tsx`: `document.title` is now `seoTitle` when the owner set one, otherwise `Groom & Bride | Wedding invitation` as before. The slug was already looked up case-insensitively by the database, so nothing else changed there.
+- Tested locally with a script that runs the handler against a fake shell and a fake Supabase (16 checks): found, name and date fallbacks, escaping of `"`, `<`, `&`, base64 image fallback, unknown slug, reserved slug, invalid characters, and both key types. `tsc` and `vite build` pass. **Not tested on Vercel.** After deploy run `curl -A "WhatsApp/2" https://example.com/<slug>` and look for the `og:` tags (section 7 steps 3 to 5).
+- Turn off Vercel > Settings > Deployment Protection > Vercel Authentication for the production domain, or crawlers will see Vercel's login card (section 7 step 8).
 
 ## Goals
 

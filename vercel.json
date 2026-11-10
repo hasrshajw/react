@@ -1,6 +1,11 @@
 {
   "rewrites": [
-    { "source": "/((?!assets/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
+    { "source": "/i/:slug", "destination": "/api/invite?slug=:slug" },
+    {
+      "source": "/:slug((?!api$|assets$|i$|login$|invitations$|templates$|create$|inventory$|billing$|customize$|dashboard$|admin$|privacy$|terms$|pricing$|about$|contact$|favicon$|robots$|sitemap$)[a-zA-Z0-9_-]+)",
+      "destination": "/api/invite?slug=:slug"
+    },
+    { "source": "/((?!assets/|api/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
