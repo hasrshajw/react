@@ -66,7 +66,7 @@ async function loadMeta(slug) {
   const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const key =
     process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
-  if (!url || !key) return null;
+  if (!url || !key) return { meta: null, why: "env-missing" };
   const headers = { apikey: key, "Content-Type": "application/json" };
   /* New "sb_publishable_..." keys are not JWTs and go in apikey only; legacy anon keys are JWTs. */
   if (key.startsWith("eyJ")) headers.Authorization = `Bearer ${key}`;
@@ -75,9 +75,9 @@ async function loadMeta(slug) {
     headers,
     body: JSON.stringify({ p_slug: slug }),
   });
-  if (!r.ok) return null;
+  if (!r.ok) return { meta: null, why: `rpc-http-${r.status}` };
   const data = await r.json();
-  return data && typeof data === "object" ? data : null;
+  return data && typeof data === "object" ? { meta: data, why: "found" } : { meta: null, why: "not-found-or-unpublished" };
 }
 
 function buildTags(meta, slug, origin) {
@@ -116,8 +116,10 @@ function inject(shell, tags) {
   return /<\/head>/i.test(stripped) ? stripped.replace(/<\/head>/i, `    ${tags}\n  </head>`) : stripped;
 }
 
-function send(res, status, body, cache) {
+function send(res, status, body, cache, why) {
   res.statusCode = status;
+  /* Debug aid: check with  curl -I https://your-domain/<slug>  (header x-invite-status). */
+  res.setHeader("X-Invite-Status", why);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", cache);
   res.end(body);
@@ -142,27 +144,35 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error(`index.html ${r.status}`);
     shell = await r.text();
   } catch {
-    send(res, 502, "<!doctype html><title>Temporarily unavailable</title><p>Please refresh in a moment.</p>", "no-store");
+    send(res, 502, "<!doctype html><title>Temporarily unavailable</title><p>Please refresh in a moment.</p>", "no-store", "shell-fetch-failed");
+    return;
+  }
+
+  /* If index.html is not our app (for example Vercel's login page because Deployment Protection is on), stop here. */
+  if (!/id=["']root["']/.test(shell)) {
+    send(res, 200, shell, "no-store", "shell-not-app-deployment-protection?");
     return;
   }
 
   /* 2. Not a possible invitation link: send the shell untouched (React decides what to show). */
   if (!SLUG_RE.test(slug) || RESERVED.includes(slug)) {
-    send(res, 200, shell, "no-cache");
+    send(res, 200, shell, "no-cache", "reserved-or-invalid-slug");
     return;
   }
 
   /* 3. Look the invitation up. Any failure falls back to the plain shell, so the page still loads. */
   let meta = null;
+  let why = "rpc-error";
   try {
-    meta = await loadMeta(slug);
+    ({ meta, why } = await loadMeta(slug));
   } catch {
     meta = null;
+    why = "rpc-timeout-or-network";
   }
   if (!meta) {
-    send(res, 200, shell, "public, s-maxage=60, stale-while-revalidate=300");
+    send(res, 200, shell, "public, s-maxage=60, stale-while-revalidate=300", why);
     return;
   }
 
-  send(res, 200, inject(shell, buildTags(meta, slug, origin)), "public, s-maxage=300, stale-while-revalidate=3600");
+  send(res, 200, inject(shell, buildTags(meta, slug, origin)), "public, s-maxage=300, stale-while-revalidate=3600", "found");
 }

@@ -17,6 +17,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | Done. **You must redeploy on Vercel and check the env vars (see notes).** No SQL beyond migration `001`. |
 | 7 | Main domain SEO: `index.html`, `public/` files (section 6) | Done. **You must replace `https://example.com` with your real domain in 3 files (see notes).** No SQL to run. |
 | 7b | Public landing page at `/`, dashboard moved to `/dashboard` (section 6) | Done. No SQL to run. |
+| 6b | Debug header `x-invite-status` in `api/invite.js` | Done. Redeploy, then follow "If previews still show Vercel's card" below. |
 | 8 | Security notes (section 8) and final testing (section 7) | To do |
 
 Notes from batch 1:
@@ -117,6 +118,29 @@ Notes from batch 7b:
 - `public/robots.txt` now also has `Disallow: /dashboard`.
 - Still not added: JSON-LD (`WebSite`/`Organization`). It can go into `index.html` now that a landing page exists. Add `/privacy` and `/terms` pages later if you want them in the footer (both are already reserved words).
 - `tsc` and `vite build` pass. Not tested in a browser. Please try: `/` (signed out and signed in), the Login button, `/dashboard`, the sidebar logo, sign in from `/login` (should land on `/dashboard`), and `/create` then "Go to dashboard".
+
+## If previews still show Vercel's card or the generic card
+
+Run this against your **real domain** (not `*.vercel.app`) after redeploying, using a published invitation:
+
+```
+curl -s -A "WhatsApp/2" -D - -o /dev/null https://YOUR-DOMAIN/<slug> | grep -i -E "^HTTP|x-invite-status|x-vercel"
+curl -s -A "WhatsApp/2" https://YOUR-DOMAIN/<slug> | grep -i "og:"
+```
+
+Read the `x-invite-status` header:
+
+| Value | Meaning and fix |
+|---|---|
+| (header missing, or HTTP 401/403, or the HTML says "Vercel Authentication") | The function did not run or the request was blocked. Vercel > Settings > Deployment Protection > turn **Vercel Authentication** off for Production. Redeploy. Check the project was deployed from this branch, and that `api/invite.js` is in the deployment (Vercel > Deployment > Source / Functions). |
+| `shell-not-app-deployment-protection?` | The function fetched its own `/index.html` and got Vercel's login page. Same fix: turn off Deployment Protection. |
+| `env-missing` | `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is not set for **Production**. Add them and redeploy (env changes apply only to new deployments). |
+| `rpc-http-404` | Migration `001_seo_previews.sql` was not run, so `get_invitation_meta` does not exist. Run it in the Supabase SQL Editor. |
+| `rpc-http-401` / `403` | Wrong key, or the function was not granted to `anon`. Re-run the grant lines of migration `001`. |
+| `not-found-or-unpublished` | No published, non-deleted invitation has that slug. Publish it, and check the slug spelling. |
+| `rpc-timeout-or-network` | Supabase did not answer within 4 s. Retry; check the Supabase URL. |
+| `reserved-or-invalid-slug` | The path is an app route or has invalid characters. |
+| `found` | The function works. If WhatsApp or Instagram still show an old card, it is their cache: test `?v=2` or use the Facebook Sharing Debugger > Scrape Again. |
 
 ## Goals
 
