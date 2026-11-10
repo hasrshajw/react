@@ -11,6 +11,9 @@
  * No service-role key is needed: get_invitation_meta() is granted to the anon role and does not count views.
  */
 
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 /* Keep in sync with src/lib/reserved.ts, the vercel.json rewrite and the invitations_slug_reserved constraint. */
 const RESERVED = [
   "login", "invitations", "templates", "create", "inventory", "billing", "customize",
@@ -137,15 +140,20 @@ export default async function handler(req, res) {
   const raw = Array.isArray(req.query?.slug) ? req.query.slug[0] : req.query?.slug;
   const slug = clean(raw).toLowerCase();
 
-  /* 1. The built SPA shell. Static files are not rewritten, so this does not loop back into this function. */
+  /* 1. The built SPA shell. Read it from the function's own bundle (vercel.json includeFiles), NOT over HTTP:
+        fetching our own URL hits Vercel Deployment Protection and returns Vercel's login page. HTTP is only a fallback. */
   let shell;
   try {
-    const r = await fetchWithTimeout(`${origin}/index.html`, { headers: { Accept: "text/html" } });
-    if (!r.ok) throw new Error(`index.html ${r.status}`);
-    shell = await r.text();
+    shell = await readFile(join(process.cwd(), "dist", "index.html"), "utf8");
   } catch {
-    send(res, 502, "<!doctype html><title>Temporarily unavailable</title><p>Please refresh in a moment.</p>", "no-store", "shell-fetch-failed");
-    return;
+    try {
+      const r = await fetchWithTimeout(`${origin}/index.html`, { headers: { Accept: "text/html" } });
+      if (!r.ok) throw new Error(`index.html ${r.status}`);
+      shell = await r.text();
+    } catch {
+      send(res, 502, "<!doctype html><title>Temporarily unavailable</title><p>Please refresh in a moment.</p>", "no-store", "shell-fetch-failed");
+      return;
+    }
   }
 
   /* If index.html is not our app (for example Vercel's login page because Deployment Protection is on), stop here. */
