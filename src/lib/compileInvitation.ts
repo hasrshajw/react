@@ -20,6 +20,10 @@ function stripBrokenAssets(doc:Document){
  doc.querySelectorAll("script[src]").forEach(el=>{if(own(el.getAttribute("src")))el.remove()});
  doc.querySelectorAll("link[href]").forEach(el=>{const rel=(el.getAttribute("rel")||"").toLowerCase();if(/stylesheet|preload|modulepreload|prefetch|preconnect|icon/.test(rel)&&own(el.getAttribute("href")))el.remove()});
  doc.querySelectorAll("img[src],source[src],video[src],audio[src]").forEach(el=>{if(own(el.getAttribute("src")))el.removeAttribute("src")});
+ doc.querySelectorAll("[srcset],[imagesrcset]").forEach(el=>["srcset","imagesrcset"].forEach(a=>{const v=el.getAttribute(a);if(v&&v.split(",").some(c=>own(c.trim().split(/\s+/)[0])))el.removeAttribute(a)}));
+ const css=(text:string)=>text.replace(/url\(\s*(["']?)([^)"']+)\1\s*\)/gi,(m,_q,u)=>own(u)?'url("data:,")':m);
+ doc.querySelectorAll("style").forEach(el=>{if(el.textContent)el.textContent=css(el.textContent)});
+ doc.querySelectorAll("[style]").forEach(el=>{const v=el.getAttribute("style");if(v&&/url\(/i.test(v))el.setAttribute("style",css(v))});
  doc.querySelectorAll("script:not([src])").forEach(el=>{if(/__next_f|__next|self\.__RSC|turbopack/i.test(el.textContent||""))el.remove()});
 }
 
