@@ -1,18 +1,18 @@
 /**
- * Vercel serverless function: serves the normal React shell (index.html) with per-invitation
- * link-preview tags, so WhatsApp, Instagram and Facebook crawlers (which do not run JavaScript)
- * see the right title, description and image. Real visitors get the same HTML and the React app boots as usual.
+ * Vercel serverless function: returns a tiny HTML page with per-invitation link-preview tags, so
+ * WhatsApp, Instagram, Facebook, Telegram etc. crawlers (which do not run JavaScript) see the right
+ * title, description and image.
  *
- * Reached through the rewrites in vercel.json:
- *   /i/<slug>  and  /<slug>  ->  /api/invite?slug=<slug>
+ * Only link-preview crawlers are routed here (rewrites with a user-agent "has" rule in vercel.json).
+ * Real visitors are NEVER sent to this function: they get the normal SPA (/index.html), exactly as before.
+ * The function does not fetch or read index.html, so Vercel Deployment Protection cannot leak its login page into the app.
+ *
+ *   /i/<slug>  and  /<slug>  (crawlers only)  ->  /api/invite?slug=<slug>
  *
  * Env vars (Vercel > Settings > Environment Variables, same ones the app already uses):
  *   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY  (or VITE_SUPABASE_ANON_KEY)
  * No service-role key is needed: get_invitation_meta() is granted to the anon role and does not count views.
  */
-
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 
 /* Keep in sync with src/lib/reserved.ts, the vercel.json rewrite and the invitations_slug_reserved constraint. */
 const RESERVED = [
@@ -110,13 +110,19 @@ function buildTags(meta, slug, origin) {
   ].join("\n    ");
 }
 
-/** Drops the shell's own title, description, canonical, robots, og:* and twitter:* tags, then adds ours before </head>. */
-function inject(shell, tags) {
-  const stripped = shell
-    .replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, "")
-    .replace(/<meta\b[^>]*\b(?:name|property)\s*=\s*["'](?:description|robots|og:[^"']*|twitter:[^"']*)["'][^>]*>/gi, "")
-    .replace(/<link\b[^>]*\brel\s*=\s*["']canonical["'][^>]*>/gi, "");
-  return /<\/head>/i.test(stripped) ? stripped.replace(/<\/head>/i, `    ${tags}\n  </head>`) : stripped;
+/** Minimal HTML document for crawlers. Humans never get this page (see vercel.json). */
+function page(tags, slug) {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    ${tags || "<title>Wedding Invitation</title>"}
+  </head>
+  <body>
+    <p><a href="/${esc(slug)}">Open the invitation</a></p>
+  </body>
+</html>`;
 }
 
 function send(res, status, body, cache, why) {
@@ -140,35 +146,13 @@ export default async function handler(req, res) {
   const raw = Array.isArray(req.query?.slug) ? req.query.slug[0] : req.query?.slug;
   const slug = clean(raw).toLowerCase();
 
-  /* 1. The built SPA shell. Read it from the function's own bundle (vercel.json includeFiles), NOT over HTTP:
-        fetching our own URL hits Vercel Deployment Protection and returns Vercel's login page. HTTP is only a fallback. */
-  let shell;
-  try {
-    shell = await readFile(join(process.cwd(), "dist", "index.html"), "utf8");
-  } catch {
-    try {
-      const r = await fetchWithTimeout(`${origin}/index.html`, { headers: { Accept: "text/html" } });
-      if (!r.ok) throw new Error(`index.html ${r.status}`);
-      shell = await r.text();
-    } catch {
-      send(res, 502, "<!doctype html><title>Temporarily unavailable</title><p>Please refresh in a moment.</p>", "no-store", "shell-fetch-failed");
-      return;
-    }
-  }
-
-  /* If index.html is not our app (for example Vercel's login page because Deployment Protection is on), stop here. */
-  if (!/id=["']root["']/.test(shell)) {
-    send(res, 200, shell, "no-store", "shell-not-app-deployment-protection?");
-    return;
-  }
-
-  /* 2. Not a possible invitation link: send the shell untouched (React decides what to show). */
+  /* Not a possible invitation link: plain page, no preview tags. */
   if (!SLUG_RE.test(slug) || RESERVED.includes(slug)) {
-    send(res, 200, shell, "no-cache", "reserved-or-invalid-slug");
+    send(res, 200, page("", slug), "no-cache", "reserved-or-invalid-slug");
     return;
   }
 
-  /* 3. Look the invitation up. Any failure falls back to the plain shell, so the page still loads. */
+  /* Look the invitation up. Any failure falls back to a plain page, so crawlers still get a 200. */
   let meta = null;
   let why = "rpc-error";
   try {
@@ -178,9 +162,9 @@ export default async function handler(req, res) {
     why = "rpc-timeout-or-network";
   }
   if (!meta) {
-    send(res, 200, shell, "public, s-maxage=60, stale-while-revalidate=300", why);
+    send(res, 200, page("", slug), "public, s-maxage=60, stale-while-revalidate=300", why);
     return;
   }
 
-  send(res, 200, inject(shell, buildTags(meta, slug, origin)), "public, s-maxage=300, stale-while-revalidate=3600", "found");
+  send(res, 200, page(buildTags(meta, slug, origin), slug), "public, s-maxage=300, stale-while-revalidate=3600", "found");
 }
