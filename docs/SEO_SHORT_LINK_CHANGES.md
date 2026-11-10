@@ -18,7 +18,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 7 | Main domain SEO: `index.html`, `public/` files (section 6) | Done. **You must replace `https://example.com` with your real domain in 3 files (see notes).** No SQL to run. |
 | 7b | Public landing page at `/`, dashboard moved to `/dashboard` (section 6) | Done. No SQL to run. |
 | 6b | Debug header `x-invite-status` in `api/invite.js` | Done. Redeploy, then follow "If previews still show Vercel's card" below. |
-| 8 | Security notes (section 8) and final testing (section 7) | To do |
+| 8 | Security notes (section 8) and final testing (section 7) | Done. **Read the notes: pulling this commit deletes your local `.env.local`.** No SQL to run. |
 
 Notes from batch 1:
 - Migration differs slightly from the draft in section 4. Policies are dropped before they are created so the file can be re-run,
@@ -118,6 +118,19 @@ Notes from batch 7b:
 - `public/robots.txt` now also has `Disallow: /dashboard`.
 - Still not added: JSON-LD (`WebSite`/`Organization`). It can go into `index.html` now that a landing page exists. Add `/privacy` and `/terms` pages later if you want them in the footer (both are already reserved words).
 - `tsc` and `vite build` pass. Not tested in a browser. Please try: `/` (signed out and signed in), the Login button, `/dashboard`, the sidebar logo, sign in from `/login` (should land on `/dashboard`), and `/create` then "Go to dashboard".
+
+Notes from batch 8:
+- `.env.local` was committed on this branch with a real Supabase project URL and a real publishable key (`sb_publishable_...`). It is now removed from git (`git rm --cached`) and `.gitignore` already lists it. A placeholder `.env.example` was added (this is the name the README and the file's own comment already refer to).
+- **Warning:** because the file was tracked, `git pull` or switching to this commit **deletes your local `.env.local`**. Before pulling, copy it somewhere, or copy the two values from Vercel > Settings > Environment Variables (or Supabase > Project Settings > API). After pulling run `cp .env.example .env.local` and fill it in.
+- **Git history still contains the old values** (commits `9910a21`, `a475153`, `b6a448b` and later). A publishable key is meant to be public, because it ships in the browser bundle, and what protects the data is Row Level Security. So rotating is optional, but do check that RLS is enabled on every table (Supabase > Authentication > Policies) and that the key is not a `service_role` or secret key (`sb_secret_...`). If it ever was, rotate it now. Rewriting history is not done here; it would break everyone's clone.
+- Never put a service-role key in `VITE_` variables or in this repo. `api/invite.js` needs only the publishable key.
+- **The GitHub personal access token was pasted into a chat again.** Delete it in GitHub > Settings > Developer settings > Fine-grained tokens, and create a new one with access to this repo only (Contents: read and write) if you need one.
+
+Final testing status (section 7):
+- Done here: step 1 (`npm run build`, which runs `tsc --noEmit`, passes), and the handler checks for `api/invite.js` (found, not found, reserved slug, env missing, RPC error, non-app shell).
+- Cannot be done from here, please run them after deploy (steps 2 to 9 below): the live page, `curl` with a WhatsApp user agent, the Facebook Sharing Debugger, `?v=2` cache test, admin routes and old `/i/<slug>` links, Deployment Protection off, and an image that is public, `https`, 1200 x 630 and under 300 KB.
+- If a preview is wrong, use the `x-invite-status` table in "If previews still show Vercel's card or the generic card" above.
+- Extra checks for the new landing page: `/` signed out shows the landing page and its Login button opens `/login`; signed in, `/dashboard` opens and the sidebar logo returns to `/dashboard`.
 
 ## If previews still show Vercel's card or the generic card
 
