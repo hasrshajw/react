@@ -21,7 +21,7 @@ export default function Login() {
   const loc = useLocation();
   const state = loc.state as { from?: string; loggedOut?: boolean } | null;
   const loggedOut = !!state?.loggedOut;
-  const dest = state?.from && !state.from.startsWith("/login") ? state.from : "/";
+  const dest = state?.from && !state.from.startsWith("/login") ? state.from : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

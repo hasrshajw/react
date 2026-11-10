@@ -12,6 +12,7 @@ import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
 import Templates from "./pages/Templates";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 import PublicInvitation from "./pages/PublicInvitation";
 import schedyMark from "./assets/schedy-mark.svg";
 import { AccountProvider, useAccount } from "./hooks/useAccount";
@@ -203,7 +204,7 @@ function Shell() {
               }`}
             >
               <Routes>
-                <Route path="/" element={<Dashboard onPanelChange={setPanelOpen} />} />
+                <Route path="/dashboard" element={<Dashboard onPanelChange={setPanelOpen} />} />
                 <Route path="/invitations" element={<Invitations onPanelChange={setPanelOpen} />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/create" element={<Create onPanelChange={setPanelOpen} />} />
@@ -504,6 +505,7 @@ function Gate() {
 }
 
 const router = createBrowserRouter([
+  { path: "/", element: <Landing /> }, /* public landing page; the dashboard is at /dashboard */
   { path: "/login", element: <Login /> },
   { path: "/i/:slug", element: <PublicInvitation /> }, /* old links that were already shared */
   { path: "*", element: <Gate /> },

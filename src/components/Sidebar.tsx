@@ -17,7 +17,7 @@ import logoSmall from "../assets/logo-small.png";
 ========================================================= */
 
 const menuItems = [
-  { name: "Dashboard", path: "/", Icon: LayoutDashboard },
+  { name: "Dashboard", path: "/dashboard", Icon: LayoutDashboard },
   { name: "Create Invitation", path: "/create", Icon: MailPlus },
   { name: "All Invitations", path: "/invitations", Icon: Mails },
   { name: "Manage Templates", path: "/templates", Icon: LayoutTemplate },
@@ -32,7 +32,7 @@ const submenuItems = [
 
 /* Breadcrumb comes from the route instead of being hardcoded */
 const CRUMBS = {
-  "/": ["Dashboard", "Overview"],
+  "/dashboard": ["Dashboard", "Overview"],
   "/create": ["Manage", "Create invitation"],
   "/invitations": ["Manage", "All invitations"],
   "/templates": ["Manage", "Templates"],
@@ -331,7 +331,7 @@ export default function Sidebar({
       >
         <div className="d-sidebar-header">
           {isExpanded ? (
-            <NavLink to="/" className="brand-logo" onClick={closeOverlay}>
+            <NavLink to="/dashboard" className="brand-logo" onClick={closeOverlay}>
               <img src={logo} alt="Logo" />
             </NavLink>
           ) : (
@@ -359,7 +359,7 @@ export default function Sidebar({
               <NavLink
                 key={path}
                 to={path}
-                end={path === "/"}
+                end={path === "/dashboard"}
                 style={{ "--i": i }}
                 onClick={path === "/create" ? collapseNow : closeOverlay}
                 aria-label={isExpanded ? undefined : name}
@@ -417,7 +417,7 @@ export default function Sidebar({
           <div className="m-menu-lines"><span /></div>
         </button>
 
-        <NavLink to="/" className="mobile-brand-logo">
+        <NavLink to="/dashboard" className="mobile-brand-logo">
           <img src={logo} alt="Logo" />
         </NavLink>
 
@@ -443,7 +443,7 @@ export default function Sidebar({
       >
         <div className="m-drawer">
           <div className="m-drawer-header">
-            <NavLink to="/" className="brand-logo" onClick={closeMobileDrawer}>
+            <NavLink to="/dashboard" className="brand-logo" onClick={closeMobileDrawer}>
               <img src={logo} alt="Logo" />
             </NavLink>
             <button className="m-drawer-close" onClick={closeMobileDrawer} aria-label="Close menu">
@@ -458,7 +458,7 @@ export default function Sidebar({
               <NavLink
                 key={path}
                 to={path}
-                end={path === "/"}
+                end={path === "/dashboard"}
                 onClick={closeMobileDrawer}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >

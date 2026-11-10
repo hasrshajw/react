@@ -16,6 +16,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 5 | Routes and link builders (section 3) | Done. No SQL to run. After deploy, `example.com/<slug>` opens the invitation. Previews still show the generic card until batch 6. |
 | 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | Done. **You must redeploy on Vercel and check the env vars (see notes).** No SQL beyond migration `001`. |
 | 7 | Main domain SEO: `index.html`, `public/` files (section 6) | Done. **You must replace `https://example.com` with your real domain in 3 files (see notes).** No SQL to run. |
+| 7b | Public landing page at `/`, dashboard moved to `/dashboard` (section 6) | Done. No SQL to run. |
 | 8 | Security notes (section 8) and final testing (section 7) | To do |
 
 Notes from batch 1:
@@ -107,6 +108,15 @@ Notes from batch 7:
 - `index.html` tags apply to every admin shell page, not only `/`. `/` is still the login-protected Dashboard, so Google cannot index real content there. For real SEO, a public landing page is still needed (or move the dashboard to `/app`). Not done, it is a bigger change.
 - JSON-LD (`WebSite` or `Organization`) is not added. The plan says to add it once the landing page exists.
 - `tsc` and `vite build` pass. After deploy check `https://YOUR-DOMAIN/robots.txt`, `/sitemap.xml`, `/og-main.jpg`, and run the Facebook Sharing Debugger on the main domain.
+
+Notes from batch 7b:
+- New public landing page at `/` (`src/pages/Landing.tsx`, styles in `src/features/landing/landing.css`, injected the same way as the Login page). Top nav has the Schedy logo, Features and How it works anchor links and a **Login** button that goes to `/login`. Below it: hero, four feature cards, three steps, a closing call to action and a footer. The text is placeholder copy based on the README and the Login page; edit it freely.
+- If the visitor is already signed in, the nav button and the two call-to-action buttons say "Dashboard" / "Go to dashboard" and open `/dashboard` instead of the login page.
+- **The dashboard moved from `/` to `/dashboard`.** `dashboard` was already in `RESERVED`, the DB constraint and the `vercel.json` rewrite, so no list needs changing. Updated: the route in `App.tsx`, the sidebar menu item, breadcrumb key and the three logo links in `Sidebar.tsx`, `DASHBOARD_PATH` in `create/constants.ts` ("Go to dashboard" in the share modal), and the default redirect after login in `Login.tsx`. Bookmarks to the old `/` now show the landing page.
+- `index.html` already holds the main-domain title, description and Open Graph tags from batch 7, so the landing page needs no extra head tags. It is still a client-rendered page, but Google runs JavaScript, so the text is indexable.
+- `public/robots.txt` now also has `Disallow: /dashboard`.
+- Still not added: JSON-LD (`WebSite`/`Organization`). It can go into `index.html` now that a landing page exists. Add `/privacy` and `/terms` pages later if you want them in the footer (both are already reserved words).
+- `tsc` and `vite build` pass. Not tested in a browser. Please try: `/` (signed out and signed in), the Login button, `/dashboard`, the sidebar logo, sign in from `/login` (should land on `/dashboard`), and `/create` then "Go to dashboard".
 
 ## Goals
 
