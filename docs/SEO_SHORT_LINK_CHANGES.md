@@ -18,7 +18,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 | 7 | Main domain SEO: `index.html`, `public/` files (section 6) | Done. **You must replace `https://example.com` with your real domain in 3 files (see notes).** No SQL to run. |
 | 7b | Public landing page at `/`, dashboard moved to `/dashboard` (section 6) | Done. No SQL to run. |
 | 6b | Debug header `x-invite-status` in `api/invite.js` | Done. Redeploy, then follow "If previews still show Vercel's card" below. |
-| 8 | Security notes (section 8) and final testing (section 7) | Done. **Read the notes: pulling this commit deletes your local `.env.local`.** No SQL to run. |
+| 8 | Security notes (section 8) and final testing (section 7) | Done. `.env.local` was restored afterwards (see the update in the notes). No SQL to run. |
 
 Notes from batch 1:
 - Migration differs slightly from the draft in section 4. Policies are dropped before they are created so the file can be re-run,
@@ -120,6 +120,7 @@ Notes from batch 7b:
 - `tsc` and `vite build` pass. Not tested in a browser. Please try: `/` (signed out and signed in), the Login button, `/dashboard`, the sidebar logo, sign in from `/login` (should land on `/dashboard`), and `/create` then "Go to dashboard".
 
 Notes from batch 8:
+- **Update:** `.env.local` was put back in git on request (commit after `ae08d6f`), so the next bullet about removing it and about `git pull` deleting it no longer applies. `.env.example` stays as the placeholder template. `.gitignore` still lists `.env.local`, so the file stays tracked only because it was added with `git add -f`. Because it is tracked, any edit to it will show up in `git status`. The key is a publishable key; still check RLS and never put a secret key in it.
 - `.env.local` was committed on this branch with a real Supabase project URL and a real publishable key (`sb_publishable_...`). It is now removed from git (`git rm --cached`) and `.gitignore` already lists it. A placeholder `.env.example` was added (this is the name the README and the file's own comment already refer to).
 - **Warning:** because the file was tracked, `git pull` or switching to this commit **deletes your local `.env.local`**. Before pulling, copy it somewhere, or copy the two values from Vercel > Settings > Environment Variables (or Supabase > Project Settings > API). After pulling run `cp .env.example .env.local` and fill it in.
 - **Git history still contains the old values** (commits `9910a21`, `a475153`, `b6a448b` and later). A publishable key is meant to be public, because it ships in the browser bundle, and what protects the data is Row Level Security. So rotating is optional, but do check that RLS is enabled on every table (Supabase > Authentication > Policies) and that the key is not a `service_role` or secret key (`sb_secret_...`). If it ever was, rotate it now. Rewriting history is not done here; it would break everyone's clone.
