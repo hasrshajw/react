@@ -11,7 +11,7 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 |---|---|---|
 | 1 | Migration SQL (section 4) and `src/lib/reserved.ts` (2.5) | Done. **You must run `supabase/migrations/001_seo_previews.sql` in the Supabase SQL Editor.** |
 | 2 | Remove Photos section (section 1) | Done. **You must run `supabase/migrations/002_remove_photo_blocks_from_templates.sql` in the Supabase SQL Editor.** |
-| 3 | Types, defaults and validation for SEO fields (2.1, 2.4) | To do |
+| 3 | Types, defaults and validation for SEO fields (2.1, 2.4) | Done. No SQL to run. |
 | 4 | SEO section UI and image upload (2.2, 2.3) | To do |
 | 5 | Routes and link builders (section 3) | To do |
 | 6 | `api/invite.js`, `vercel.json`, `PublicInvitation.tsx` title (section 5) | To do |
@@ -33,7 +33,17 @@ Notes from batch 2:
   base64 values in `details`. They are harmless but keep the row large. Optional cleanup for later: drop both keys when loading in `Create.tsx` (line 90).
   Not done yet, because it permanently deletes the stored photos.
 - The sidebar (`Sidebar.tsx`) still has an unrelated `ImageIcon` for the Hero Section page. It was left alone.
-- Until batch 3 and 4 land, the Create page has no Photos and no SEO section.
+- Until batch 4 lands, the Create page has no Photos and no SEO section.
+
+Notes from batch 3:
+- `InvitationData` has `seoTitle`, `seoDescription`, `seoImage`; `initial` sets them to `""`. Old invitations that lack the keys get `""` through `{ ...initial, ...details }` in `Create.tsx`.
+- `SectionId` now includes `"seo"`. `Create.tsx` got the matching `done.seo` and `sectionLoading.seo` entries (needed to keep `tsc` passing).
+- The `seo` entry is **not** added to `SECTIONS` yet. If it were, the nav would show a Link preview item with no section in the form. It is added in batch 4 together with `SeoSection.tsx`, and `Search` is already exported from `Icons.tsx`.
+- `validate.ts`: `customId` must be 3 to 30 characters of letters, numbers, `-` or `_`, and not in `RESERVED` (`isReserved` from `reserved.ts`). The letter check ignores case, same as the DB constraint, so old slugs with capitals can still be saved. Differs from the plan text, which says lowercase only.
+  Lowercase is not forced anywhere yet; the DB lookup is case-insensitive. Optional: lowercase the slug when saving.
+- `customId` errors still point to section `template`, because the field is still in the Template section. Batch 4 moves the field and changes this to `seo`.
+- `seoTitle` over 60 and `seoDescription` over 160 are reported as errors under section `seo`. Batch 4 adds `maxLength` on the inputs so users normally cannot reach them. The plan calls these soft warnings; if you want them to not block saving, that is handled in batch 4 when the UI exists.
+- Exported helpers: `okSlug`, `SEO_TITLE_MAX`, `SEO_DESC_MAX`, `SLUG_MIN`, `SLUG_MAX`.
 
 ## Goals
 

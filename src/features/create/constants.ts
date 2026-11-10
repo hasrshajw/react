@@ -18,6 +18,7 @@ export const initial: InvitationData = {
   receptionEnabled: false, receptionDate: "", receptionTime: "",
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
   events: [], groomContacts: [], brideContacts: [],
+  seoTitle: "", seoDescription: "", seoImage: "",
 };
 
 /** English field -> the Telugu field that is filled in automatically. */

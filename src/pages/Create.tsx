@@ -168,15 +168,16 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     groom: has(data.groomEn),
     bride: has(data.brideEn),
     venue: has(data.venueEn) || has(data.venueAddress),
+    seo: has(data.seoTitle) || has(data.seoDescription) || has(data.seoImage),
     events: data.events.length > 0,
-  }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.events.length]);
+  }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.events.length, data.seoTitle, data.seoDescription, data.seoImage]);
   const doneCount = PROGRESS_IDS.filter((id) => done[id]).length;
 
   /* Each section has its own loading flag, so a section can appear as soon as ITS data is there.
      (Today the invitation arrives in one piece, so its sections appear together, with a short stagger.) */
   const sectionLoading = useMemo<Record<SectionId, boolean>>(() => ({
     template: recordLoading, family: recordLoading, groom: recordLoading, bride: recordLoading,
-    venue: recordLoading, events: recordLoading,
+    venue: recordLoading, seo: recordLoading, events: recordLoading,
   }), [recordLoading]);
 
   const tagFor = useCallback((id: SectionId): { tone: string; text: string; loading?: boolean } => {
