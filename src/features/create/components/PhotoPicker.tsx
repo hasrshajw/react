@@ -19,7 +19,7 @@ async function toDataUrl(file: File, maxSide: number, onError: (m: string) => vo
   }
 }
 
-function DropButton({ label, hint, multiple, onFiles, className = "", compact = false }: {
+export function DropButton({ label, hint, multiple, onFiles, className = "", compact = false }: {
   label: string; hint: string; multiple?: boolean; onFiles: (files: File[]) => void; className?: string; compact?: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);

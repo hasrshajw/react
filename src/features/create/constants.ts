@@ -1,4 +1,4 @@
-import { CalendarPlus, Heart, LayoutTemplate, MapPin, User, Users } from "../../components/Icons";
+import { CalendarPlus, Heart, LayoutTemplate, MapPin, Search, User, Users } from "../../components/Icons";
 import type { ContactItem, EventItem, InvitationData, SectionDef } from "../../types/invitation";
 
 
@@ -47,6 +47,7 @@ export const SECTIONS: SectionDef[] = [
   { id: "groom", label: "Groom", icon: User, hint: "required" },
   { id: "bride", label: "Bride", icon: Heart, hint: "required" },
   { id: "venue", label: "Venue", icon: MapPin, hint: "recommended" },
+  { id: "seo", label: "Link preview", icon: Search, hint: "recommended" },
   { id: "events", label: "Events", icon: CalendarPlus, hint: "optional" },
 ];
 /* Optional sections do not count towards progress. */

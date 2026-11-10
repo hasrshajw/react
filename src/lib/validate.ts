@@ -28,11 +28,10 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   const e: ErrorMap = {};
   const add = (key: string, section: ErrorMap[string]["section"], msg: string) => { e[key] = { section, msg }; };
   if (!data.templateId) add("templateId", "template", "Choose a template to continue");
-  /* The Custom link field still sits in the Template section; it moves to "seo" with the SEO section UI. */
   if (has(data.customId)) {
     const slug = data.customId.trim();
-    if (!okSlug(slug)) add("customId", "template", `Use ${SLUG_MIN} to ${SLUG_MAX} letters, numbers, hyphens or underscores`);
-    else if (isReserved(slug)) add("customId", "template", "This link name is reserved");
+    if (!okSlug(slug)) add("customId", "seo", `Use ${SLUG_MIN} to ${SLUG_MAX} letters, numbers, hyphens or underscores`);
+    else if (isReserved(slug)) add("customId", "seo", "This link name is reserved");
   }
   if (!has(data.weddingDate)) add("weddingDate", "family", "Wedding date is required");
   if (!has(data.groomEn)) add("groomEn", "groom", "Groom's name is required");

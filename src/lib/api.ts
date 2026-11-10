@@ -106,6 +106,26 @@ export async function saveInvitation(record: InvitationRow): Promise<InvitationR
   return splitRow(data!).row;
 }
 
+/** Bucket created by supabase/migrations/001_seo_previews.sql (public read, owner write). */
+const PREVIEW_BUCKET = "invitation-previews";
+
+/** Uploads the link-preview image to `<userId>/<invitationId>.jpg` and returns its public https URL.
+ *  The path is reused (upsert), so a `?v=` stamp is added to make crawlers and browsers fetch the new file. */
+export async function uploadPreviewImage(image: Blob, invitationId: string): Promise<string> {
+  const { data: auth, error: authError } = await db().auth.getUser();
+  if (authError || !auth.user) throw new ApiError("Please sign in again to upload an image.");
+  const path = `${auth.user.id}/${invitationId}.jpg`;
+  const { error } = await db().storage.from(PREVIEW_BUCKET).upload(path, image, {
+    upsert: true, contentType: "image/jpeg", cacheControl: "3600",
+  });
+  if (error) {
+    if (/bucket not found/i.test(error.message)) throw new ApiError("Preview storage is not set up. Run supabase/migrations/001_seo_previews.sql first.");
+    fail(error);
+  }
+  const { data } = db().storage.from(PREVIEW_BUCKET).getPublicUrl(path);
+  return `${data.publicUrl}?v=${Date.now()}`;
+}
+
 /** Permanently removes an invitation (used when the trash is emptied after 30 days). */
 export async function deleteInvitation(id: string): Promise<void> {
   const { error } = await db().from("invitations").delete().eq("id", id);

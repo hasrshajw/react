@@ -46,6 +46,9 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   const [share, setShare] = useState<{ id: string } | null>(null);
   const headBtnRef = useRef<HTMLButtonElement>(null);
   const saveRef = useRef<() => void>(() => {});
+  /* Id for a new invitation. Created up front so the preview image can be uploaded under it before the first save. */
+  const pendingId = useRef(uid());
+  const invitationId = editId || pendingId.current;
   const { toast, notify } = useToast();
   const schedule = useTransliteration();
 
@@ -208,7 +211,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
       return false;
     }
     setSaving(true);
-    const id = editId || uid();
+    const id = invitationId;
     try {
       await saveInvitation({
         id,
@@ -257,6 +260,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
 
   const createAnother = () => {
     setShare(null);
+    pendingId.current = uid();
     dispatch({ type: "reset" });
     history.replaceState(history.state, "", "/create");
     scrollToSection("template");
@@ -329,7 +333,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
           data={data} categories={categories} templates={templates} categoryId={categoryId} onCategory={onCategory}
           sectionLoading={sectionLoading} templatesLoading={tplLoading} expectTemplate={expectTemplate}
           set={set} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch}
-          tagFor={tagFor} onSubmit={onSubmit} notify={notify}
+          tagFor={tagFor} onSubmit={onSubmit} notify={notify} invitationId={invitationId}
         />
       </div>
 

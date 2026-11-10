@@ -1,11 +1,12 @@
 import React from "react";
-import { CalendarPlus, Heart, LayoutTemplate, MapPin, Plus, Trash2, User, Users } from "../../components/Icons";
+import { CalendarPlus, Heart, LayoutTemplate, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
 import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
 import { newEvent } from "./constants";
 import { Bilingual } from "./components/Bilingual";
 import { Contacts } from "./components/Contacts";
 import { Field } from "./components/Field";
 import { Section } from "./components/Section";
+import { SeoSection } from "./components/SeoSection";
 import { TemplatePicker } from "./components/TemplatePicker";
 
 export interface CreateFormProps {
@@ -31,17 +32,18 @@ export interface CreateFormProps {
   tagFor: (id: SectionId) => { tone: string; text: string; loading?: boolean };
   onSubmit: (e: React.FormEvent) => void;
   notify: (msg: string, tone?: "ok" | "error") => void;
+  /** Id the invitation is saved under (used to name the preview image file). */
+  invitationId: string;
 }
 
-export function CreateForm({ data, categories, templates, categoryId, onCategory, sectionLoading, templatesLoading, expectTemplate, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify }: CreateFormProps) {
-  const slug = data.customId?.trim();
+export function CreateForm({ data, categories, templates, categoryId, onCategory, sectionLoading, templatesLoading, expectTemplate, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify, invitationId }: CreateFormProps) {
   /* Each section ghosts its own fields until its own data is there. */
   const fx = (sec: SectionId) => {
     const loading = sectionLoading[sec];
     const fpx = (name: string, focusKey: string) => ({ name, onFocus: () => focus(focusKey), onBlur: () => touch(name), error: vis(name), loading });
     return { loading, fpx, fp: (name: string) => fpx(name, name) };
   };
-  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), events = fx("events");
+  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), seo = fx("seo"), events = fx("events");
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
       <Section id="template" icon={LayoutTemplate} title="Template Options" tag={tagFor("template")} loading={tpl.loading}>
@@ -49,10 +51,6 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           categories={categories} categoryId={categoryId} onCategory={onCategory} templates={templates}
           value={data.templateId} onSelect={(v) => set("templateId", v)} error={vis("templateId")}
           loading={templatesLoading} pending={tpl.loading && expectTemplate} expectSelected={expectTemplate}
-        />
-        <Field
-          label="Custom Link ID" {...tpl.fp("customId")} value={data.customId} onChange={(v) => set("customId", v)}
-          help={`Your link: ${window.location.origin}/i/${slug || "your-id"}`}
         />
       </Section>
 
@@ -99,6 +97,10 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <Bilingual enLabel="Venue EN" teLabel="Venue తెలుగు" enField="venueEn" teField="venueTe" data={data} set={set} fp={venue.fp} />
         <Field label="Venue Address" {...venue.fp("venueAddress")} value={data.venueAddress} onChange={(v) => set("venueAddress", v)} />
         <Field label="Google Maps Link" inputMode="url" {...venue.fp("venueMaps")} value={data.venueMaps} onChange={(v) => set("venueMaps", v)} />
+      </Section>
+
+      <Section id="seo" icon={Search} title="Link Preview & Custom Link" tag={tagFor("seo")} loading={seo.loading}>
+        <SeoSection data={data} set={set} fp={seo.fp} loading={seo.loading} invitationId={invitationId} notify={notify} />
       </Section>
 
       <Section id="events" icon={CalendarPlus} title="Additional Events" tag={tagFor("events")} loading={events.loading}>
