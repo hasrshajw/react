@@ -12,9 +12,21 @@ function valuesFor(data:CompileData):Record<string,any>{
  const gc:Record<string,any>=(data.groomContacts||[])[0]||{},bc:Record<string,any>=(data.brideContacts||[])[0]||{};v["groom-extra-1-te"]=gc.nameTe||"";v["groom-extra-1-phone"]=gc.phone||"";v["bride-extra-1-te"]=bc.nameTe||"";v["bride-extra-1-phone"]=bc.phone||"";return v;
 }
 
+/** Templates are self-contained. A saved web page can still carry <script src>, <link> and <img> tags with relative or "/_next/..." paths.
+ *  Inside the invitation iframe those resolve against our own domain and only produce 404s in the console, so they are removed.
+ *  Absolute links to other sites (Google Fonts, CDNs, images) are kept. */
+function stripBrokenAssets(doc:Document){
+ const own=(value:string|null)=>{if(!value)return false;const v=value.trim();if(!v||/^(data:|blob:|#|mailto:|tel:)/i.test(v))return false;try{return new URL(v,"https://own.invalid/").host==="own.invalid"}catch{return false}};
+ doc.querySelectorAll("script[src]").forEach(el=>{if(own(el.getAttribute("src")))el.remove()});
+ doc.querySelectorAll("link[href]").forEach(el=>{const rel=(el.getAttribute("rel")||"").toLowerCase();if(/stylesheet|preload|modulepreload|prefetch|preconnect|icon/.test(rel)&&own(el.getAttribute("href")))el.remove()});
+ doc.querySelectorAll("img[src],source[src],video[src],audio[src]").forEach(el=>{if(own(el.getAttribute("src")))el.removeAttribute("src")});
+ doc.querySelectorAll("script:not([src])").forEach(el=>{if(/__next_f|__next|self\.__RSC|turbopack/i.test(el.textContent||""))el.remove()});
+}
+
 export function compile(source:string,data:CompileData):string{
  if(!source)return "";const v=valuesFor(data);let html=source;const conditional=/\{\{#if\s+([\w-]+)\}\}((?:(?!\{\{#if\b)[\s\S])*?)\{\{\/if\}\}/g;let previous:string;do{previous=html;html=html.replace(conditional,(_,key,body)=>v[key.trim().replaceAll("_","-")]?body:"")}while(html!==previous&&/\{\{#if\b/.test(html));
  const doc=new DOMParser().parseFromString(html,"text/html"),placeholder=/\{\{\s*([\w-]+)\s*\}\}/g,walker=doc.createTreeWalker(doc.body,NodeFilter.SHOW_TEXT),nodes:Node[]=[];let node:Node|null;while((node=walker.nextNode()))nodes.push(node);
  nodes.forEach(textNode=>{const text=textNode.nodeValue||"";placeholder.lastIndex=0;if(!placeholder.test(text))return;placeholder.lastIndex=0;const frag=doc.createDocumentFragment();let last=0,match;while((match=placeholder.exec(text))){if(match.index>last)frag.appendChild(doc.createTextNode(text.slice(last,match.index)));const key=match[1].replaceAll("_","-"),span=doc.createElement("span");span.dataset.schedyField=key;span.textContent=v[key]??"";frag.appendChild(span);last=match.index+match[0].length}if(last<text.length)frag.appendChild(doc.createTextNode(text.slice(last)));textNode.parentNode?.replaceChild(frag,textNode)});
+ stripBrokenAssets(doc);
  doc.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(attr=>{if(attr.value.includes("{{"))attr.value=attr.value.replace(placeholder,(_,key)=>v[key.replaceAll("_","-")]??"")}));return `<!doctype html>${doc.documentElement.outerHTML}`.replace(/\{\{[^}]+\}\}/g,"");
 }
