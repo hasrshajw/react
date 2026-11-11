@@ -22,15 +22,17 @@ const DAY_MS = 24 * 3600000;
 /* ---------- account ---------- */
 export async function fetchAccount(): Promise<Account> {
   const session = getSession();
-  const fallbackUser = { name: session?.name ?? "Account", email: session?.email ?? "", role: "Administrator" };
+  /* M-13: a missing profile row must never read as a paid, administrator account. The role label is display-only
+     (permissions come from RLS), and the plan falls back to an expired trial instead of "active". */
+  const fallbackUser = { name: session?.name ?? "Account", email: session?.email ?? "", role: "Member" };
 
   const { data: auth } = await db().auth.getUser();
   const uid = auth.user?.id;
   const { data: p } = uid ? await db().from("profiles").select("*").eq("id", uid).maybeSingle() : { data: null };
-  const left = p?.trial_ends_at ? Math.max(0, Math.ceil((Date.parse(p.trial_ends_at) - Date.now()) / DAY_MS)) : undefined;
+  const left = p?.trial_ends_at ? Math.max(0, Math.ceil((Date.parse(p.trial_ends_at) - Date.now()) / DAY_MS)) : 0;
   return {
-    user: { name: p?.name || fallbackUser.name, email: auth.user?.email || fallbackUser.email, role: p?.role || "Administrator" },
-    plan: { name: p?.plan_name || "Pro", status: (p?.plan_status as Plan["status"]) || "active", trialDaysLeft: left },
+    user: { name: p?.name || fallbackUser.name, email: auth.user?.email || fallbackUser.email, role: p?.role || fallbackUser.role },
+    plan: { name: p?.plan_name || "Pro", status: (p?.plan_status as Plan["status"]) || "trial", trialDaysLeft: left },
   };
 }
 

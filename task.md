@@ -26,15 +26,63 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (11 Nov 2026)
+### Where things stand (12 Nov 2026)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 2 | 3 | C-2 (public iframe) and H-1 are coded, awaiting a browser check. C-1, C-3 and the token rotation are dashboard/SQL actions for someone with Supabase/GitHub access. |
-| Phase 1 – Authorization and data safety | 1 | 1 | 3 | H-2 compiler part done; C-2 CSP part started. |
+| Phase 0 | 0 | 2 | 3 | C-2 (public iframe) and H-1 are coded, awaiting a browser check. C-1, C-3 and the token rotation are dashboard/SQL actions for someone with Supabase/GitHub access. **The GitHub token pasted in chat on 12 Nov must be revoked** (see the first Phase 0 row). |
+| Phase 1 – Authorization and data safety | 1 | 3 | 2 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. |
 | Phase 1 – Setup and schema | 0 | 1 | 2 | M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 0 | 3 | – |
+| Phase 2 | 0 | 1 | rest | M-13 coded (awaiting a check). |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 – C-2 `LivePreview` sandbox, H-2 database rule, M-13 profile fallback
+
+**What was done**
+
+1. **C-2 – `LivePreview` no longer shares an origin with the app** (`src/features/create/components/LivePreview.tsx`, new `src/features/create/previewBridge.ts`)
+   - The iframe sandbox is now `allow-scripts allow-popups allow-popups-to-escape-sandbox` (same as the public page; `allow-same-origin` and `allow-forms` removed). The editor can therefore no longer touch the frame's `contentDocument`.
+   - Replacement: the editor sends `postMessage({schedy:"patch", html})` and `({schedy:"focus", target})`. A small bridge script (with morphdom inlined from `morphdom-umd.min.js?raw`) is appended to the template's `srcDoc` and applies them. The bridge ignores messages whose `source` is not `window.parent`, and the frame never posts anything back. `targetOrigin` has to be `"*"` because the frame's origin is opaque; the payload is only this user's own compiled preview.
+   - Same behaviour as before: the frame loads the raw template once and is patched in place (no reload while typing); a new frame sends the latest compiled HTML on `load`. The "scroll to the field being edited" logic now runs inside the frame.
+   - Small side effect: the `.schedy-focus` highlight style lives in the app's CSS, which never reached the frame, so the flash was invisible before. The bridge now injects the same style, so the highlight appears.
+   - **Verified (ad hoc):** `npm run typecheck`, `npm run build`, and a throwaway jsdom script (not saved): the bridge patched `<h1 id=a>{{x}}</h1>` to the new body, ignored a message from a foreign `source`, and ignored a non-string payload. **Not run in a browser.**
+2. **H-2 – database rule for `details`** (new `supabase/migrations/003_details_validation.sql`)
+   - `is_safe_url()` uses the same allow-list as the compiler (`http`, `https`, `tel`, `mailto`; no scheme is fine) and strips spaces and control characters before reading the scheme, so `java<tab>script:` is rejected.
+   - `details_problem(jsonb)` returns `NULL` or a reason. Rules: must be an object, ≤ 64 KB, top-level strings ≤ 1000 chars (`seoTitle` ≤ 200, `seoDescription` ≤ 400), lists (`events`, `groomContacts`, `brideContacts`) ≤ 20 objects, `venueMaps` / `seoImage` / `events[].maps` use the URL allow-list, phone fields are `+0-9 ()-` with 10–13 digits, and `receptionEnabled` is a boolean. `details_is_valid()` wraps it.
+   - Enforced by a **trigger** (`invitations_check_details`) on insert and when `details` changes, not by a `CHECK`. Reason: a `CHECK` (even `NOT VALID`) is re-evaluated on every update, so the view counter in `get_public_invitation` would start failing for any old row that holds a bad value. The trigger skips updates that leave `details` unchanged.
+   - **Verified (ad hoc):** ran on a local Postgres 16 with a stub `auth` schema. All 20 cases pass: valid (`https`, `HTTPS`, `tel:`, `#top`, empty strings, text like `"><script>` and `Note: hall at 5pm`) accepted; `javascript:`, ` Java<tab>Script:`, `vbscript:`, `data:text/html`, bad phones, long text, 21 events, 70 KB and non-object values rejected. The insert and update triggers raise `23514`; a legacy bad row can still have `views` updated; running the file twice is harmless. **Not run on the real Supabase project.**
+3. **M-13 – missing profile no longer looks like a paid administrator** (`src/lib/api.ts`)
+   - No profile row, or a null `plan_status` → plan status `trial` with 0 days left (was `active`); role label `Member` (was `Administrator`). The role text is display-only; permissions come from RLS.
+
+**How this affects other tasks**
+
+- **H-2:** both halves exist now. The database half only counts once it is run in Supabase. Run first (it should return no rows, otherwise fix those invitations before relying on the rule): `select id, slug, public.details_problem(details) from public.invitations where public.details_problem(details) is not null;` (create the functions first by running the migration). Track B's `submit_change_request` (B2) should call `details_problem()` instead of writing a second copy.
+- **Migration numbering:** Track B's `003_client_edit.sql` in B2 is now **`004_client_edit.sql`**. H-3 must fold `003` into `schema.sql` as well as `001` and `002`, or a fresh project will not have the trigger.
+- **C-2:** both iframes are now sandboxed without `allow-same-origin`, which removes the blocker for enforcing the strict CSP. Still needed first: review the report-only violations on a `preview` deployment.
+- **L-9** (stop executing template scripts in the editor) is still open; the preview frame is now isolated, but template scripts still run in it.
+- **M-13:** the Dashboard banner for a user with no profile now reads "0 days left in your Pro trial" instead of "You're on the Pro plan".
+
+**Behaviour changes to check**
+
+- Live preview: templates that use `localStorage`/cookies, `<form>` submit or `alert()` behave like the public page (blocked). Typing in the form must still update the preview without flicker or reload, and the preview must scroll to the field you click.
+- Saving an invitation with a bad link or phone via the API now fails with `Invalid invitation details: …`. The app's own validation already blocks these, so normal use should not see it, but the error text is not yet shown in a friendly way (the save path surfaces `error.message`).
+
+**Browser checks to repeat (for `[~]` → `[x]`)**
+
+1. C-2 `LivePreview`: open `/create`, pick a template, type a name → the preview updates without reloading (a template animation does not restart). Click a field in a different section → the preview scrolls to it and the element shows an outline for about a second. Switch template → the new template shows your current values. In devtools, `document.querySelector("iframe").contentDocument` is `null` (cross-origin).
+2. H-2 database: in the Supabase SQL Editor run `insert into public.invitations(id,slug,details) values ('t1','t1','{"venueMaps":"javascript:alert(1)"}');` → error `Invalid invitation details: venueMaps has a link type that is not allowed`; with `"https://maps.google.com"` it succeeds (delete the test row).
+3. M-13: in a test project delete your row in `public.profiles`, reload the dashboard → banner says `0 days left in your Pro trial` and the profile menu shows role `Member`; restore the row.
+
+**Next steps, in order**
+
+1. Run the browser checks, then tick C-2 (`LivePreview`) and M-13.
+2. Run `003_details_validation.sql` in Supabase and check 2 above; then tick H-2.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, and enforce the strict CSP.
+4. H-3: fold migrations `001`–`003` into `schema.sql`; M-11: move the `drop table` block to `reset.sql`.
+5. Owner actions still open: C-1 and C-3 in Supabase, **revoke the GitHub token that was pasted in chat on 12 Nov and any earlier one**, enable GitHub secret scanning.
+
+---
 
 ### 11 Nov 2026 (2nd update) – C-2 public iframe sandbox, H-1 Create overwrite, M-12 untrack `.env.local`
 
@@ -132,9 +180,9 @@ When asked to "update based on task.md", follow these steps.
 ### Authorization and data safety
 - [ ] **C-1** Add an `is_admin` flag (or role claim) and gate the `templates`, `categories`, `enquiries` policies on it. Keep the per-owner rule on `invitations`. (`schema.sql` lines ~101–116)
   - Verify: a second non-admin account cannot update a template, write a category, or read/update enquiries.
-- [ ] **C-2** `LivePreview`: remove `allow-same-origin`; update the frame via `postMessage` instead of morphdom on `contentDocument`. (`src/features/create/components/LivePreview.tsx:85`)
+- [~] **C-2** `LivePreview`: remove `allow-same-origin`; update the frame via `postMessage` instead of morphdom on `contentDocument`. (`src/features/create/components/LivePreview.tsx`) *Coded 12 Nov: sandbox is now `allow-scripts allow-popups allow-popups-to-escape-sandbox`; updates and scroll-to-field go through `postMessage` (see Progress log). Bridge tested in jsdom only; needs the browser check below.*
 - [~] **C-2** Add a Content-Security-Policy header in `vercel.json`. *Partly done (11 Nov): `object-src 'none'; frame-ancestors 'none'` is enforced; the strict policy runs as `Content-Security-Policy-Report-Only`. To finish: review console violations on the `preview` deployment, then enforce it (see Progress log).*
-- [ ] **H-2** Enforce URL, phone, length and type rules for `details` in the database (trigger or `check`).
+- [~] **H-2** Enforce URL, phone, length and type rules for `details` in the database (trigger or `check`). *Written 12 Nov as `supabase/migrations/003_details_validation.sql` and tested on a local Postgres 16 (20 cases). Still to do: run it in the Supabase SQL Editor (dashboard action) and fold it into `schema.sql` with H-3.*
 - [x] **H-2** In `compile()`, allow-list protocols (http, https, tel, mailto) on `href`/`src`-like attributes and strip `on*` handler attributes from templates. (`src/lib/compileInvitation.ts`) *Done 11 Nov, verified with 16 automated checks (see Progress log). The database rule in the line above is still open.*
   - Verify: `venueMaps = javascript:alert(1)` and a name containing `"><script>` render as inert text.
 - [ ] **H-5** Harden enquiry inserts: route through an Edge Function with captcha and rate limit, add `check (char_length(message) <= 2000)`, and restrict insertable columns (`note`, `history`, `follow_up_date`, `status`). (`schema.sql` line ~112)
@@ -163,7 +211,7 @@ When asked to "update based on task.md", follow these steps.
 - [ ] **M-1** Session hygiene: subscribe to `onAuthStateChange` (no usage exists today); on sign-out clear create-form drafts and module caches (`knownPub`/`knownDel`) and call `signOut` before navigating.
 - [ ] **M-6** Wire `onEnquiryCountChange` from `AdminApp` to the sidebar badge (currently passed by `Dashboard` but never supplied); refresh enquiries by polling or Realtime.
 - [ ] **M-7** Login: reset the Google button's busy state on `pageshow`; persist `from` in `redirectTo`; drop the client password-length check on login; implement "Forgot password". (`src/lib/auth.ts:48–52`, `Login.tsx`)
-- [ ] **M-13** Default to `trial` (or show an explicit error) when the profile row is missing. (`src/lib/api.ts:33`, currently falls back to `"active"` and `"Pro"`)
+- [~] **M-13** Default to `trial` (or show an explicit error) when the profile row is missing. (`src/lib/api.ts:33`) *Coded 12 Nov: missing row or null `plan_status` → `trial` with 0 days left, role label `Member` instead of `Administrator`. Checked by build/typecheck and code reading only.*
 - [ ] **M-9** `api/invite.js`: take the site URL from an env var instead of `Host`/`X-Forwarded-Host`; render the stub link only for valid slugs; align `SLUG_RE` (1–64) with the DB rule (3–30).
 - [ ] **M-10** Template compiler: use `Object.create(null)` or a `Map` for values; strip only known placeholder syntax instead of every `{{…}}`; fix `PreviewPanel` fallback to the non-existent `tpl.html`.
 - [ ] **M-2** Transliteration: separate "no suggestion" from network errors so one miss does not disable online mode for 60 s; decide on a documented API; disclose in the privacy policy. (`src/lib/transliterate.ts:12–37`)
@@ -234,7 +282,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 | D7 | Conflicting edits | Each request stores `base_updated_at`. If the admin edited the invitation after the client started, approval shows a conflict warning and requires an explicit choice. |
 | D8 | Notification channels | In-app (badge + list, via Realtime) **and** email (Edge Function + Resend/Supabase SMTP). Email must never be the only record. |
 
-## B2. Database (new migration, e.g. `supabase/migrations/003_client_edit.sql`; also fold into `schema.sql` per H-3)
+## B2. Database (new migration, e.g. `supabase/migrations/004_client_edit.sql`; also fold into `schema.sql` per H-3)
 
 - [ ] **Admin role:** `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
 - [ ] **Client link:** `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.
