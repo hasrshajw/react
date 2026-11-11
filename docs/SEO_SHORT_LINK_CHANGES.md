@@ -223,7 +223,7 @@ So the server must return per-invitation `<meta property="og:...">` tags. This n
 | Edit | `src/pages/PublicInvitation.tsx` |
 | Edit (data) | templates in Supabase / `supabase/seed.sql` that use `couple-photo` and `gallery-N` |
 
-Do NOT re-run `supabase/schema.sql`. It drops every table. Use the separate migration file below.
+Use the separate migration file below. (When this was written `supabase/schema.sql` dropped every table. Since the H-3 / M-11 change it no longer deletes anything and already contains this migration; the drop block now lives in `supabase/reset.sql`.)
 
 ---
 

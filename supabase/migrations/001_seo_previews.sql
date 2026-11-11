@@ -1,6 +1,7 @@
 -- 001_seo_previews.sql
 -- Run in Supabase > SQL Editor. Safe to run more than once.
--- Do NOT run schema.sql for this: it drops every table.
+-- Already folded into schema.sql (H-3), so a new project does not need this file. Use it to upgrade an existing
+-- project without re-running schema.sql. (schema.sql no longer deletes data; the drop block moved to reset.sql.)
 --
 -- Before running section 3, check existing rows with this query. It must return no rows:
 --   select id, slug from public.invitations

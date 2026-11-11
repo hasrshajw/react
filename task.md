@@ -32,10 +32,52 @@ When asked to "update based on task.md", follow these steps.
 | --- | --- | --- | --- | --- |
 | Phase 0 | 0 | 2 | 3 | C-2 (public iframe) and H-1 are coded, awaiting a browser check. C-1, C-3 and the token rotation are dashboard/SQL actions for someone with Supabase/GitHub access. **The GitHub token pasted in chat on 12 Nov must be revoked** (see the first Phase 0 row). |
 | Phase 1 – Authorization and data safety | 1 | 3 | 2 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. |
-| Phase 1 – Setup and schema | 0 | 1 | 2 | M-12 untracked from git; secret scanning is still a GitHub setting. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 0 | 3 | – |
 | Phase 2 | 0 | 1 | rest | M-13 coded (awaiting a check). |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (2nd update) – H-3 schema consolidation, M-11 `reset.sql`, README sign-up/admin step
+
+**What was done**
+
+1. **M-11 – the destructive reset is now a separate file** (new `supabase/reset.sql`, `supabase/schema.sql`)
+   - The `drop … cascade` block moved out of `schema.sql` into `supabase/reset.sql`, which has a loud warning and the run order (`reset.sql` → `schema.sql` → `seed.sql`). `reset.sql` also drops the objects added by migrations `001` and `003` (`get_invitation_meta`, `is_safe_url`, `details_problem`, `details_is_valid`, `invitations_check_details`, the four `previews:` storage policies). It keeps `auth.users` and the `invitation-previews` bucket (Supabase does not allow deleting a bucket with SQL).
+   - `schema.sql` no longer deletes anything: tables are `create table if not exists`, functions are `create or replace`, policies and triggers are dropped and recreated, the backfill uses `on conflict do nothing`. It is safe to run any number of times and keeps all data.
+2. **H-3 – migrations folded into `schema.sql`** (`supabase/schema.sql`)
+   - From `001`: `get_invitation_meta()`, the `invitation-previews` bucket and its four storage policies, and the slug format and reserved-word constraints. The constraints are added only when missing (a `do $$` block checking `pg_constraint`), so re-running the file on a project that already has them does not fail. Consequence: **changing the reserved-word list later needs a new migration** (or dropping the constraint by hand); editing the list in `schema.sql` alone will not update an existing database.
+   - From `003`: `is_safe_url`, `details_problem`, `details_is_valid`, `invitations_check_details` and the trigger, unchanged.
+   - **Not folded in on purpose: `002`.** It only rewrites old template rows, and `seed.sql` is already clean, so a fresh project does not need it.
+   - Comments in `001`, `003`, `seed.sql` and `docs/SEO_SHORT_LINK_CHANGES.md` that said "do not run schema.sql, it drops every table" were corrected.
+3. **README – sign-up and admin step** (`README.md`, "Set up Supabase")
+   - Step 2 now explains `schema.sql` (safe to re-run), `reset.sql` (only for starting over) and what an existing project should run (the unapplied migrations in order).
+   - Step 3 now starts with "turn off public sign-ups" (Authentication → Providers → Email), creating the admin by hand (Authentication → Users → Add user, auto-confirm), keeping Google off until the admin role exists, and a `curl` check against `/auth/v1/signup`. The check uses the API because the app has no sign-up form.
+   - **Verified (ad hoc, throwaway scripts, not saved):** `npm ci`, `npm run typecheck`, `npm run build` all pass. SQL was run on a local Postgres 16 with stub `auth` and `storage` schemas. Fresh install of `schema.sql` + `seed.sql`; `schema.sql` run twice more with data kept; 23 behaviour cases pass (slug too short, bad characters, `login` and `DASHBOARD` reserved, duplicate slug ignoring case, `slug = id` allowed; `javascript:`, tab-obfuscated, `data:text/html`, bad phone, non-object and 21-event `details` rejected on insert and on update; a legacy bad row can still update `views` and be read through `get_public_invitation` but is re-checked when `details` changes; `get_invitation_meta` finds a slug ignoring case, returns null for a miss and does not count a view); `reset.sql` run twice leaves no tables, functions or storage policies, keeps `auth.users` and the bucket; `schema.sql` + `seed.sql` rebuild afterwards, the backfill creates a profile for the kept login and the signup trigger still creates one for a new login. **Not run on a real Supabase project.**
+
+**How this affects other tasks**
+
+- **H-3:** the `schema.sql` half is done. It stays `[~]` until it is run on a clean Supabase project and the acceptance check passes (below).
+- **`schema.sql` is the source of truth from now on.** Every new migration (Track B's `004_client_edit.sql` in particular) must be folded into `schema.sql` in the same commit, or fresh projects will drift from live ones.
+- **H-2:** the database rule now also ships with `schema.sql`, so a fresh project gets it. Existing projects still need `003` run once (dashboard action, unchanged).
+- **C-1 / C-3:** unchanged and still open. They will be edits to `schema.sql` (admin role, column grants) plus a migration for live projects.
+- **Behaviour change to check:** anyone who relied on `schema.sql` to wipe the database now has to run `reset.sql`. Running `schema.sql` on a live project no longer loses data.
+
+**Dashboard checks to repeat (for H-3 `[~]` → `[x]`)**
+
+1. On a new, empty Supabase project: run `schema.sql`, then `seed.sql`. Open `/<slug>` for a published invitation and `curl -sI https://YOUR-DOMAIN/<slug>` → header `x-invite-status: found`.
+2. Create an invitation with a link preview image in the app → the upload succeeds and a file appears in Storage → `invitation-previews/<user id>/`.
+3. Run `schema.sql` a second time on the same project → no error, data still there.
+4. Sign-up check from the README: the `curl` against `/auth/v1/signup` returns `signup_disabled` once the dashboard toggle is off (this is part of C-1, not H-3).
+
+**Next steps, in order**
+
+1. Run the browser checks from the previous entry below, then tick C-2 (`LivePreview`) and M-13.
+2. Run the H-3 dashboard checks above, then tick H-3. Run `003_details_validation.sql` on the live project and check it; then tick H-2.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, and enforce the strict CSP.
+4. Phase 1 app correctness: **H-6** (publish/trash sync), **M-8** (real domain in `index.html`, `robots.txt`, `sitemap.xml`).
+5. Owner actions still open: C-1 and C-3 in Supabase, **revoke the GitHub token that was pasted in chat (it was pasted again on 12 Nov; this update pushed through the session's own repository connection and did not use it)**, enable GitHub secret scanning.
+
+---
 
 ### 12 Nov 2026 – C-2 `LivePreview` sandbox, H-2 database rule, M-13 profile fallback
 
@@ -189,10 +231,11 @@ When asked to "update based on task.md", follow these steps.
   - Verify: anon insert with `note`, 1 MB `message`, or `status='called'` is rejected.
 
 ### Setup and schema
-- [ ] **H-3** Fold migrations `001` and `002` into `schema.sql` (or adopt Supabase CLI migrations): `get_invitation_meta()`, the `invitation-previews` bucket and policies, slug format and reserved-word constraints.
+- [~] **H-3** Fold migrations `001` and `002` into `schema.sql` (or adopt Supabase CLI migrations): `get_invitation_meta()`, the `invitation-previews` bucket and policies, slug format and reserved-word constraints.
   - Verify: on a clean project, `x-invite-status: found` and preview image upload both work.
-- [ ] **M-11** Move the `drop table … cascade` block (`schema.sql` lines 12–16) into a separate explicit `reset.sql`; make `schema.sql` idempotent. Update the README warning in "Set up Supabase".
-- [ ] **README** Add "disable public sign-ups" and the admin-user setup step to Set up Supabase step 3.
+  - *Coded 12 Nov: `schema.sql` now contains `001` and `003` (`002` is a one-off data fix and is not needed on a new project). Tested on local Postgres 16 with stubbed `auth`/`storage` schemas (fresh install, re-run, 23 behaviour cases). Still to do: run it on a clean Supabase project and pass the check above (see Progress log).*
+- [x] **M-11** Move the `drop table … cascade` block (`schema.sql` lines 12–16) into a separate explicit `reset.sql`; make `schema.sql` idempotent. Update the README warning in "Set up Supabase". *Done 12 Nov: `supabase/reset.sql` added; `schema.sql` can be re-run without data loss (checked twice on local Postgres); README step 2 rewritten.*
+- [x] **README** Add "disable public sign-ups" and the admin-user setup step to Set up Supabase step 3. *Done 12 Nov (`README.md`, step 3, with a `curl` check). This documents C-1; the Supabase toggle itself is still a dashboard action.*
 
 ### App correctness
 - [ ] **H-6** Take `pub`/`deleted` flags from each refreshed row, not only on first load; send publish/trash writes serially or as one batch RPC and reconcile with the server response. (`src/features/dashboard/hooks/useInvitationStore.ts`, `src/lib/api.ts`)

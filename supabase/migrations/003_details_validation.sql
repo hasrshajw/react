@@ -1,5 +1,7 @@
 -- 003_details_validation.sql  (H-2, database half)
--- Run in Supabase > SQL Editor. Safe to run more than once. Do NOT run schema.sql for this: it drops every table.
+-- Run in Supabase > SQL Editor. Safe to run more than once.
+-- Already folded into schema.sql (H-3), so a new project does not need this file. Use it to upgrade an existing
+-- project without re-running schema.sql. (schema.sql no longer deletes data; the drop block moved to reset.sql.)
 --
 -- Why: src/lib/compileInvitation.ts already neutralises bad links in the browser, but anyone holding a login can
 -- call the Supabase REST API directly and store whatever they like in invitations.details. This puts the same
