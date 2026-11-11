@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import schedyMark from "../assets/schedy-mark.svg";
 import landingCss from "../features/landing/landing.css?inline";
-import { useAuth } from "../hooks/useAuth";
+import { getSession } from "../lib/session";
+import { preloadAdmin, preloadLogin } from "../lib/preload";
 
 const FEATURES = [
   { icon: "A", title: "English and తెలుగు", text: "Write your invitation in English or Telugu. Names and details are transliterated for you." },
@@ -17,7 +19,14 @@ const STEPS = [
 ];
 
 export default function Landing() {
-  const { session } = useAuth();
+  const session = getSession(); /* cached login only; the admin app re-checks it with the server */
+
+  /* Signed-in owners almost always go to the dashboard next: fetch it quietly once the page is idle. */
+  useEffect(() => {
+    if (!session) return;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    if (w.requestIdleCallback) w.requestIdleCallback(preloadAdmin); else setTimeout(preloadAdmin, 2000);
+  }, [session]);
 
   return (
     <div className="lp">
@@ -36,8 +45,8 @@ export default function Landing() {
           </nav>
 
           {session
-            ? <Link to="/dashboard" className="lp-login">Dashboard</Link>
-            : <Link to="/login" className="lp-login">Login</Link>}
+            ? <Link to="/dashboard" className="lp-login" onMouseEnter={preloadAdmin} onFocus={preloadAdmin} onTouchStart={preloadAdmin}>Dashboard</Link>
+            : <Link to="/login" className="lp-login" onMouseEnter={preloadLogin} onFocus={preloadLogin} onTouchStart={preloadLogin}>Login</Link>}
         </div>
       </header>
 

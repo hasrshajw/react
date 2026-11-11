@@ -4,14 +4,11 @@
      VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...   (or the legacy VITE_SUPABASE_ANON_KEY) */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = ((import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)) as string | undefined;
+import { SUPABASE_CONFIGURED, SUPABASE_KEY, SUPABASE_URL } from "./config";
 
-/** False when the environment variables above are missing. main.tsx shows a setup message instead of the app. */
-export const SUPABASE_CONFIGURED = !!url && !!key;
+export { SUPABASE_CONFIGURED };
 
-export const supabase: SupabaseClient | null = SUPABASE_CONFIGURED ? createClient(url!, key!) : null;
+export const supabase: SupabaseClient | null = SUPABASE_CONFIGURED ? createClient(SUPABASE_URL!, SUPABASE_KEY!) : null;
 
 export function db(): SupabaseClient {
   if (!supabase) throw new Error("Supabase is not configured");

@@ -4,6 +4,7 @@ import { AlertCircle, Check, Eye, EyeOff, Google, Loader2, Lock, Mail } from "..
 import schedyMark from "../assets/schedy-mark.svg";
 import loginCss from "../features/auth/login.css?inline";
 import { useAuth } from "../hooks/useAuth";
+import { preloadAdmin } from "../lib/preload";
 import { AuthError, MIN_PASSWORD, isEmail } from "../lib/auth";
 
 type Busy = "google" | "email" | null;
@@ -36,6 +37,8 @@ export default function Login() {
   /* "Log out" navigates here; the session is cleared on arrival, so a blocked navigation
      (e.g. the "Save your changes?" dialog on the Create page) leaves the person signed in. */
   useEffect(() => { if (loggedOut) logout(); }, [loggedOut, logout]);
+  /* The dashboard is the next page after a login: download it while the person types their password. */
+  useEffect(() => { if (!loggedOut) preloadAdmin(); }, [loggedOut]);
 
   useEffect(() => {
     const prev = document.title;

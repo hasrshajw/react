@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import "./styles/skeleton.css";
 import App from "./App";
-import { SUPABASE_CONFIGURED } from "./lib/supabase";
+import { SUPABASE_CONFIGURED } from "./lib/config";
 
 /* The app only runs against Supabase. Without the environment variables there is nothing to show but how to fix it. */
 function SetupNeeded() {

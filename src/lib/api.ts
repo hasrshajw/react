@@ -153,16 +153,9 @@ export async function saveDeleted(map: DeletedMap): Promise<void> {
 }
 
 /* ---------- public invitation (no login needed) ---------- */
-export interface PublicInvitation { invitation: InvitationRow; html: string }
-
-/** The page a customer opens from the shared link /i/<slug>. Only published, non-deleted invitations are returned. */
-export async function fetchPublicInvitation(slug: string): Promise<PublicInvitation | null> {
-  const { data, error } = await db().rpc("get_public_invitation", { p_slug: slug });
-  if (error) fail(error);
-  if (!data) return null;
-  const { html_code, ...invitation } = data as Record<string, any>;
-  return { invitation: invitation as InvitationRow, html: html_code || "" };
-}
+/* fetchPublicInvitation lives in lib/publicInvitation.ts (no SDK), so public pages stay light. */
+export { fetchPublicInvitation } from "./publicInvitation";
+export type { PublicInvitation } from "./publicInvitation";
 
 /* ---------- enquiries ---------- */
 const toEnquiry = (r: Record<string, any>): Enquiry => ({

@@ -4,17 +4,13 @@
    so the login page and route guard stay simple. Supabase remains the source of truth:
    syncSupabaseSession() drops the cached Session whenever Supabase has no login.
    ========================================================================== */
-import { readJSON, removeKey, writeJSON } from "./storage";
+import { removeKey, writeJSON } from "./storage";
+import { SESSION_KEY, getSession, type Session } from "./session";
 import { db, supabase } from "./supabase";
 
-export interface Session {
-  provider: "google" | "email";
-  email: string;
-  name: string;
-  at: number;
-}
+export { SESSION_KEY, getSession } from "./session";
+export type { Session } from "./session";
 
-export const SESSION_KEY = "schedy_session";
 export const MIN_PASSWORD = 6;
 
 export class AuthError extends Error {}
@@ -25,11 +21,6 @@ export const isEmail = (v: string) => EMAIL_RE.test(v.trim());
 /** "jane.doe@x.com" -> "Jane Doe" */
 const nameFromEmail = (email: string) =>
   email.split("@")[0].split(/[._-]+/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(" ") || "Account";
-
-export function getSession(): Session | null {
-  const s = readJSON<Session | null>(SESSION_KEY, null);
-  return s && typeof s.email === "string" ? s : null;
-}
 
 function startSession(s: Omit<Session, "at">): Session {
   const session: Session = { ...s, at: Date.now() };

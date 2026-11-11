@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fetchPublicInvitation } from "../lib/api";
+import { fetchPublicInvitation } from "../lib/publicInvitation";
 import { compile } from "../lib/compileInvitation";
 
 /* The page a customer sees at /<link-id> (and at the old /i/<link-id>). No login, no admin shell.
