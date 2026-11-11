@@ -27,10 +27,32 @@ function stripBrokenAssets(doc:Document){
  doc.querySelectorAll("script:not([src])").forEach(el=>{if(/__next_f|__next|self\.__RSC|turbopack/i.test(el.textContent||""))el.remove()});
 }
 
+/** H-2: the only URL schemes a template or a filled-in value may link to. Keep in sync with the database rule
+ *  (H-2 trigger/check) and the Track B `submit_change_request` RPC so every layer accepts and rejects the same values. */
+export const SAFE_PROTOCOLS=new Set(["http","https","tel","mailto"]);
+/** Attributes that carry a URL and therefore need the scheme check. */
+const URL_ATTRS=new Set(["href","src","action","formaction","poster","background","xlink:href","data","ping"]);
+/** True when `value` is safe to use in the URL attribute `attr`: no scheme (relative, "#anchor"), an allowed scheme, or an inline raster image on src-like attributes.
+ *  Browsers ignore control characters and spaces inside the scheme ("java\tscript:"), so they are removed before the scheme is read. */
+export function isSafeUrl(value:string,attr="href"):boolean{
+ const v=value.replace(/[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200d\u2028\u2029\u202f\u205f\u2060\u3000\ufeff]/g,"");
+ const scheme=/^([a-z][a-z0-9+.-]*):/i.exec(v);
+ if(!scheme)return true;
+ if(SAFE_PROTOCOLS.has(scheme[1].toLowerCase()))return true;
+ return /^(src|poster|background)$/.test(attr)&&/^data:image\/(png|jpe?g|gif|webp|avif|bmp)[;,]/i.test(v);
+}
+/** H-2: drop every `on*` event-handler attribute and any URL attribute whose scheme is not allowed.
+ *  Runs after placeholders are filled, because a value such as venueMaps="javascript:alert(1)" only appears in the DOM at that point. */
+function sanitizeAttributes(doc:Document){
+ doc.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(attr=>{const name=attr.name.toLowerCase();if(/^on[a-z]+$/.test(name)||(URL_ATTRS.has(name)&&!isSafeUrl(attr.value,name)))el.removeAttribute(attr.name)}));
+}
+
 export function compile(source:string,data:CompileData):string{
  if(!source)return "";const v=valuesFor(data);let html=source;const conditional=/\{\{#if\s+([\w-]+)\}\}((?:(?!\{\{#if\b)[\s\S])*?)\{\{\/if\}\}/g;let previous:string;do{previous=html;html=html.replace(conditional,(_,key,body)=>v[key.trim().replaceAll("_","-")]?body:"")}while(html!==previous&&/\{\{#if\b/.test(html));
  const doc=new DOMParser().parseFromString(html,"text/html"),placeholder=/\{\{\s*([\w-]+)\s*\}\}/g,walker=doc.createTreeWalker(doc.body,NodeFilter.SHOW_TEXT),nodes:Node[]=[];let node:Node|null;while((node=walker.nextNode()))nodes.push(node);
  nodes.forEach(textNode=>{const text=textNode.nodeValue||"";placeholder.lastIndex=0;if(!placeholder.test(text))return;placeholder.lastIndex=0;const frag=doc.createDocumentFragment();let last=0,match;while((match=placeholder.exec(text))){if(match.index>last)frag.appendChild(doc.createTextNode(text.slice(last,match.index)));const key=match[1].replaceAll("_","-"),span=doc.createElement("span");span.dataset.schedyField=key;span.textContent=v[key]??"";frag.appendChild(span);last=match.index+match[0].length}if(last<text.length)frag.appendChild(doc.createTextNode(text.slice(last)));textNode.parentNode?.replaceChild(frag,textNode)});
  stripBrokenAssets(doc);
- doc.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(attr=>{if(attr.value.includes("{{"))attr.value=attr.value.replace(placeholder,(_,key)=>v[key.replaceAll("_","-")]??"")}));return `<!doctype html>${doc.documentElement.outerHTML}`.replace(/\{\{[^}]+\}\}/g,"");
+ doc.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(attr=>{if(attr.value.includes("{{"))attr.value=attr.value.replace(placeholder,(_,key)=>v[key.replaceAll("_","-")]??"")}));
+ sanitizeAttributes(doc);
+ return `<!doctype html>${doc.documentElement.outerHTML}`.replace(/\{\{[^}]+\}\}/g,"");
 }

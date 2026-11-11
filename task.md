@@ -10,6 +10,54 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done · **Owner** column is fo
 
 ---
 
+## Progress log (newest first)
+
+### Where things stand (11 Nov 2026)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 0 | 5 | Not started. C-1 and C-3 are dashboard/SQL actions that must be done by someone with Supabase access. |
+| Phase 1 – Authorization and data safety | 1 | 1 | 3 | H-2 compiler part done; C-2 CSP part started. |
+| Phase 1 – Setup and schema | 0 | 0 | 3 | – |
+| Phase 1 – App correctness | 0 | 0 | 3 | – |
+| Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 11 Nov 2026 – Phase 1 / Authorization and data safety: H-2 compiler hardening and C-2 CSP header
+
+**What was done**
+
+1. **H-2 – template compiler now blocks script-carrying links and event handlers** (`src/lib/compileInvitation.ts`)
+   - Added `SAFE_PROTOCOLS` (`http`, `https`, `tel`, `mailto`), an exported `isSafeUrl(value, attr)` helper and a `sanitizeAttributes(doc)` step.
+   - `sanitizeAttributes` removes every `on*` attribute (`onclick`, `onerror`, `onload`, …). It also removes any URL attribute (`href`, `src`, `action`, `formaction`, `poster`, `background`, `xlink:href`, `data`, `ping`) whose scheme is not on the allow-list. Relative links, `#anchors` and `//host` links are still allowed.
+   - **Order matters:** the step runs *after* placeholders are filled in attributes. A value such as `venueMaps = javascript:alert(1)` only exists in the DOM at that point, so checking earlier would have missed it.
+   - **Obfuscation is handled:** spaces, tabs, newlines and other control characters are stripped before the scheme is read (browsers ignore them, so `java<tab>script:` would otherwise slip through), and the check is case-insensitive.
+   - **One deliberate exception:** inline raster images (`data:image/png|jpeg|gif|webp|avif|bmp`) are allowed on `src`, `poster` and `background`, because templates embed base64 images. `data:image/svg+xml` and `data:text/html` are *not* allowed.
+   - A name such as `"><script>` was already safe in text (inserted with `textContent`) and in attributes (the browser escapes quotes when serializing). The tests now lock that behaviour in.
+   - **Where it takes effect:** `compile()` is used by the public invitation (`PublicInvitation.tsx`, what guests see), the Create live preview, the dashboard `PreviewPanel`, `TemplatePicker` and the Templates page, so all of them now render the same sanitized output.
+   - **Verified:** 16 jsdom checks (kept outside the repo) all pass: `javascript:` and `vbscript:` removed, tab/space-obfuscated `javascript:` removed, `"><script>` rendered as inert text, `on*` stripped, `tel:`/`mailto:`/`https:`/`#`/relative kept, `data:image/png` kept, `data:text/html` and `data:image/svg+xml` removed. `npm run typecheck` and `npm run build` are green.
+
+2. **C-2 – Content-Security-Policy headers** (`vercel.json`, new rule for every path except `/assets/` and `/api/`)
+   - **Enforced now:** `object-src 'none'; frame-ancestors 'none'`. This blocks plugin content and stops other sites from framing the app (clickjacking). Nothing in the app depends on either.
+   - **Report-only (not enforced yet):** a strict policy (`script-src 'self'`, styles/fonts from Google Fonts, `connect-src` limited to Supabase and `inputtools.google.com`, `base-uri 'self'`, `form-action 'self'`). Browsers only log violations to the console for this header.
+   - **Why the strict policy is not enforced yet:** invitations render in an iframe with `srcDoc`, and a `srcDoc` frame *inherits the parent page's CSP*. Enforcing `script-src 'self'` today would stop every template's inline script and likely its CDN fonts and images, so live invitations would break. Because this cannot be tested without a browser session, it is staged as report-only first.
+
+**How this affects other tasks**
+
+- **H-2 is only half done.** `compile()` runs in the browser, so it is defence in depth; someone calling the Supabase API directly can still store a bad `details` value. The database `check`/trigger (line above) is still needed and must use the **same allow-list** (`http`, `https`, `tel`, `mailto`). Track B's `submit_change_request` RPC (B2) and `validate.ts` should reuse it too; import `isSafeUrl` rather than writing a second copy.
+- **C-2 is not closed by this.** The `sandbox` attribute on `PublicInvitation` (Phase 0) and removing `allow-same-origin` from `LivePreview` (Phase 1) are still the real fix for "a template script reads app storage". Template `<script>` tags still run; this change only removes the handler and link routes.
+- **Behaviour change to check:** a template that uses inline handlers (for example `onclick` for a music button or RSVP) or links with other schemes (`sms:`, `whatsapp:`, `intent:`) will stop working. The repo's own templates and seed data contain none, but templates saved in the database were not scanned. Run in Supabase: `select id from public.templates where html_code ~* '\son[a-z]+\s*=' or html_code ~* '(href|src)\s*=\s*["'']\s*(javascript|vbscript|data:text)';`
+- **Enforcing the strict CSP depends on:** the sandbox work above and L-9 (stop executing template scripts in the editor). The long-term item "serve invitations from a separate origin" removes the clash completely, because the invitation page could then have its own looser policy.
+- **Track B:** B-M0 requires C-1, C-2, C-3 and H-2. After this update, only the compile-side of H-2 and the baseline CSP are ready; the rest of B-M0 is unchanged.
+
+**Next steps, in order**
+
+1. Run the SQL check above; fix or whitelist any template it finds.
+2. Deploy `preview`, open an invitation and the admin pages with the browser console open, and list the `Content-Security-Policy-Report-Only` violations.
+3. Finish C-2 (`sandbox` on both iframes), then move the strict policy from report-only to enforced.
+4. Do the H-2 database constraint using the same allow-list.
+
+---
+
 ## Phase 0 – Now (hours, ~0.5–1 day)
 
 | Done | ID | Task | Where | Acceptance check |
@@ -28,9 +76,9 @@ Legend: `[ ]` to do · `[~]` in progress · `[x]` done · **Owner** column is fo
 - [ ] **C-1** Add an `is_admin` flag (or role claim) and gate the `templates`, `categories`, `enquiries` policies on it. Keep the per-owner rule on `invitations`. (`schema.sql` lines ~101–116)
   - Verify: a second non-admin account cannot update a template, write a category, or read/update enquiries.
 - [ ] **C-2** `LivePreview`: remove `allow-same-origin`; update the frame via `postMessage` instead of morphdom on `contentDocument`. (`src/features/create/components/LivePreview.tsx:85`)
-- [ ] **C-2** Add a Content-Security-Policy header in `vercel.json`.
+- [~] **C-2** Add a Content-Security-Policy header in `vercel.json`. *Partly done (11 Nov): `object-src 'none'; frame-ancestors 'none'` is enforced; the strict policy runs as `Content-Security-Policy-Report-Only`. To finish: review console violations on the `preview` deployment, then enforce it (see Progress log).*
 - [ ] **H-2** Enforce URL, phone, length and type rules for `details` in the database (trigger or `check`).
-- [ ] **H-2** In `compile()`, allow-list protocols (http, https, tel, mailto) on `href`/`src`-like attributes and strip `on*` handler attributes from templates. (`src/lib/compileInvitation.ts`)
+- [x] **H-2** In `compile()`, allow-list protocols (http, https, tel, mailto) on `href`/`src`-like attributes and strip `on*` handler attributes from templates. (`src/lib/compileInvitation.ts`) *Done 11 Nov, verified with 16 automated checks (see Progress log). The database rule in the line above is still open.*
   - Verify: `venueMaps = javascript:alert(1)` and a name containing `"><script>` render as inert text.
 - [ ] **H-5** Harden enquiry inserts: route through an Edge Function with captcha and rate limit, add `check (char_length(message) <= 2000)`, and restrict insertable columns (`note`, `history`, `follow_up_date`, `status`). (`schema.sql` line ~112)
   - Verify: anon insert with `note`, 1 MB `message`, or `status='called'` is rejected.
