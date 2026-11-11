@@ -11,6 +11,12 @@ npm install
 npm run dev
 ```
 
+## Deploying
+
+- `main` is the production branch on Vercel.
+- `preview` is deployed as a Vercel Preview. Push to it to get a fresh preview URL.
+- Set the same Supabase environment variables (see `.env.example`) for the Preview environment in Vercel, not only Production.
+
 ## Code layout
 
 - `src/pages/` route components (`Create.tsx` is the page shell only)
