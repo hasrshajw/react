@@ -15,21 +15,25 @@ interface Options {
 
 /** State that changes on screen immediately and is saved afterwards (optimistic update).
  *  If the save fails, the screen goes back to the last state that was saved and `onFail` runs.
- *  Assumes saves finish in the order they were sent, which a real database client does. */
+ *  Saves finish in the order they were sent (the data layer runs them one at a time, see lib/api.ts).
+ *  `adopt` lets a refresh from the server replace the state, but only when no local change is waiting to be saved. */
 function useOptimisticMap<T>(initial: () => T, persist: (next: T) => Promise<unknown>, onFail: () => void) {
   const [state, setState] = useState<T>(initial);
   const ref = useRef(state);
   const confirmed = useRef(state);
   const sent = useRef(0);
   const settled = useRef(0);
+  const waiting = useRef(0); // saves that were sent and have not finished yet
 
   const commit = useCallback((next: T) => {
     ref.current = next;
     setState(next);
     const id = ++sent.current;
+    waiting.current++;
     persist(next).then(
-      () => { if (id > settled.current) { settled.current = id; confirmed.current = next; } },
+      () => { waiting.current--; if (id > settled.current) { settled.current = id; confirmed.current = next; } },
       () => {
+        waiting.current--;
         if (id !== sent.current) return; // a newer change is already on its way and includes this one
         ref.current = confirmed.current;
         setState(confirmed.current);
@@ -41,7 +45,15 @@ function useOptimisticMap<T>(initial: () => T, persist: (next: T) => Promise<unk
   /* Replace the state with what the server says (used for the first load). */
   const reset = useCallback((next: T) => { ref.current = next; confirmed.current = next; setState(next); }, []);
 
-  return [state, ref, commit, reset] as const;
+  /* H-6: take what the server says after a refresh. `since` is `version()` read before the request started.
+     Skipped when a change was made, or is still being saved, in the meantime: the screen is then newer than the answer. */
+  const adopt = useCallback((next: T, since: number) => {
+    if (waiting.current > 0 || sent.current !== since) return;
+    reset(next);
+  }, [reset]);
+  const version = useCallback(() => sent.current, []);
+
+  return [state, ref, commit, reset, adopt, version] as const;
 }
 
 /** Loads invitations and owns the "published" and "trashed" state shared by Dashboard and All Invitations.
@@ -58,19 +70,29 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   const loading = busy && lastUpdated === null;
   const refreshing = busy && lastUpdated !== null;
 
-  const failed = useCallback(() => notify("Couldn’t save that change, so it was undone."), [notify]);
-  const [pub, pubRef, commitPub, resetPub] = useOptimisticMap<PublishMap>(() => ({}), savePublished, failed);
-  const [deleted, delRef, writeDeleted, resetDeleted] = useOptimisticMap<DeletedMap>(() => ({}), saveDeleted, failed);
+  const loadRef = useRef<(silent?: boolean) => void>(() => {});
+  /* After a failed save the screen goes back to the last state it knew was saved, which can differ from the server
+     (a bulk change may have been partly applied). Ask the server and show what it holds. */
+  const failed = useCallback(() => {
+    notify("Couldn’t save that change, so it was undone.");
+    loadRef.current(true);
+  }, [notify]);
+  const [pub, pubRef, commitPub, resetPub, adoptPub, pubVersion] = useOptimisticMap<PublishMap>(() => ({}), savePublished, failed);
+  const [deleted, delRef, writeDeleted, resetDeleted, adoptDeleted, delVersion] = useOptimisticMap<DeletedMap>(() => ({}), saveDeleted, failed);
 
   const load = useCallback((silent = false) => {
     if (!silent) setBusy(true);
     setError(false);
+    const pubSince = pubVersion();
+    const delSince = delVersion();
     fetchInvitations().then(
       (res) => {
         if (!alive.current) return;
         setRows(res.rows);
-        /* The flags come from the server only the first time; after that the screen is ahead of the server (optimistic updates). */
+        /* First load: the server decides. Later loads (H-6): the server decides too, unless a change made here is
+           still being saved or was made after the request started, because then the screen is newer than the answer. */
         if (!loadedRef.current) { resetPub(res.published); resetDeleted(res.deleted); }
+        else { adoptPub(res.published, pubSince); adoptDeleted(res.deleted, delSince); }
         loadedRef.current = true;
         setLastUpdated(Date.now());
         setBusy(false);
@@ -83,7 +105,8 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
         setBusy(false);
       },
     );
-  }, [notify, resetPub, resetDeleted]);
+  }, [notify, resetPub, resetDeleted, adoptPub, adoptDeleted, pubVersion, delVersion]);
+  loadRef.current = load;
   const reload = useCallback(() => {
     fetchInvitations().then((res) => { if (alive.current) setRows(res.rows); }, () => notify("Couldn’t refresh the list."));
   }, [notify]);

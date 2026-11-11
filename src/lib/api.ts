@@ -54,6 +54,25 @@ export interface InvitationList { rows: InvitationRow[]; published: PublishMap; 
 let knownPub: PublishMap = {};
 let knownDel: DeletedMap = {};
 
+/* H-6: list reads and flag writes run strictly one after another, in the order they were asked for.
+   Without this, two quick toggles ran side by side and could reach the server in either order, and a
+   list read could finish with a value from before a write and overwrite what `knownPub` / `knownDel` hold.
+   A failed task does not block the ones behind it. */
+let flagQueue: Promise<unknown> = Promise.resolve();
+function inOrder<T>(task: () => Promise<T>): Promise<T> {
+  const result = flagQueue.then(task);
+  flagQueue = result.catch(() => undefined);
+  return result;
+}
+
+/* PostgREST puts the ids in the URL, so very large groups are split. */
+const CHUNK = 100;
+function chunks<T>(list: T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += CHUNK) out.push(list.slice(i, i + CHUNK));
+  return out;
+}
+
 const slugOf = (x: InvitationRow) => (x.details?.customId || "").trim() || x.id;
 
 /** Splits the database-only columns (published, deleted_at) out of a row. */
@@ -62,21 +81,24 @@ function splitRow(r: Record<string, any>): { row: InvitationRow; published: bool
   return { row: row as InvitationRow, published: published !== false, deletedAt: deleted_at ? Date.parse(deleted_at) : null };
 }
 
-export async function fetchInvitations(): Promise<InvitationList> {
-  const { data, error } = await db().from("invitations").select("*").order("created_at", { ascending: false });
-  if (error) fail(error);
-  const rows: InvitationRow[] = [];
-  const published: PublishMap = {};
-  const deleted: DeletedMap = {};
-  for (const r of data ?? []) {
-    const s = splitRow(r);
-    rows.push(s.row);
-    published[s.row.id] = s.published;
-    if (s.deletedAt) deleted[s.row.id] = s.deletedAt;
-  }
-  knownPub = { ...published };
-  knownDel = { ...deleted };
-  return { rows, published, deleted };
+/** Reads run after any flag writes that were already sent, so the list always includes them (H-6). */
+export function fetchInvitations(): Promise<InvitationList> {
+  return inOrder(async () => {
+    const { data, error } = await db().from("invitations").select("*").order("created_at", { ascending: false });
+    if (error) fail(error);
+    const rows: InvitationRow[] = [];
+    const published: PublishMap = {};
+    const deleted: DeletedMap = {};
+    for (const r of data ?? []) {
+      const s = splitRow(r);
+      rows.push(s.row);
+      published[s.row.id] = s.published;
+      if (s.deletedAt) deleted[s.row.id] = s.deletedAt;
+    }
+    knownPub = { ...published };
+    knownDel = { ...deleted };
+    return { rows, published, deleted };
+  });
 }
 
 export async function fetchInvitation(id: string): Promise<InvitationRow | null> {
@@ -134,24 +156,49 @@ export async function deleteInvitation(id: string): Promise<void> {
   if (error) fail(error);
 }
 
-/** Writes the "published" flags. Takes the whole map and saves only what changed. */
-export async function savePublished(map: PublishMap): Promise<void> {
-  const changed = Object.keys(map).filter((id) => (map[id] !== false) !== (knownPub[id] !== false));
-  const results = await Promise.all(changed.map((id) => db().from("invitations").update({ published: map[id] !== false }).eq("id", id)));
-  const bad = results.find((r) => r.error);
-  if (bad) fail(bad.error);
-  knownPub = { ...map };
+/** Writes the "published" flags. Takes the whole map and saves only what changed.
+ *  Runs in order with other flag writes and list reads. Ids that go to the same value are sent in one
+ *  statement, so a bulk change is all-or-nothing for each value. `knownPub` moves forward only for what the
+ *  server accepted, so after a failure the next call tries the rest again. */
+export function savePublished(map: PublishMap): Promise<void> {
+  return inOrder(async () => {
+    const groups = new Map<boolean, string[]>();
+    for (const id of Object.keys(map)) {
+      const want = map[id] !== false;
+      if (want === (knownPub[id] !== false)) continue;
+      groups.set(want, [...(groups.get(want) ?? []), id]);
+    }
+    for (const [want, ids] of groups) {
+      for (const part of chunks(ids)) {
+        const { error } = await db().from("invitations").update({ published: want }).in("id", part);
+        if (error) fail(error);
+        knownPub = { ...knownPub, ...Object.fromEntries(part.map((id) => [id, want])) };
+      }
+    }
+  });
 }
 
-/** Writes the trash flags. Takes the whole map and saves only what changed. */
-export async function saveDeleted(map: DeletedMap): Promise<void> {
-  const ids = new Set([...Object.keys(map), ...Object.keys(knownDel)]);
-  const changed = [...ids].filter((id) => map[id] !== knownDel[id]);
-  const results = await Promise.all(changed.map((id) =>
-    db().from("invitations").update({ deleted_at: map[id] ? new Date(map[id]).toISOString() : null }).eq("id", id)));
-  const bad = results.find((r) => r.error);
-  if (bad) fail(bad.error);
-  knownDel = { ...map };
+/** Writes the trash flags. Takes the whole map and saves only what changed (same rules as savePublished). */
+export function saveDeleted(map: DeletedMap): Promise<void> {
+  return inOrder(async () => {
+    const ids = new Set([...Object.keys(map), ...Object.keys(knownDel)]);
+    const groups = new Map<number | null, string[]>();
+    for (const id of ids) {
+      if (map[id] === knownDel[id]) continue;
+      const at = map[id] ?? null;
+      groups.set(at, [...(groups.get(at) ?? []), id]);
+    }
+    for (const [at, list] of groups) {
+      for (const part of chunks(list)) {
+        const { error } = await db().from("invitations")
+          .update({ deleted_at: at ? new Date(at).toISOString() : null }).in("id", part);
+        if (error) fail(error);
+        const next = { ...knownDel };
+        for (const id of part) { if (at) next[id] = at; else delete next[id]; }
+        knownDel = next;
+      }
+    }
+  });
 }
 
 /* ---------- public invitation (no login needed) ---------- */

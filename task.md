@@ -26,16 +26,65 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026)
+### Where things stand (12 Nov 2026, 3rd update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
 | Phase 0 | 0 | 2 | 3 | C-2 (public iframe) and H-1 are coded, awaiting a browser check. C-1, C-3 and the token rotation are dashboard/SQL actions for someone with Supabase/GitHub access. **The GitHub token pasted in chat on 12 Nov must be revoked** (see the first Phase 0 row). |
 | Phase 1 – Authorization and data safety | 1 | 3 | 2 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
-| Phase 1 – App correctness | 0 | 0 | 3 | – |
+| Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 0 | 1 | rest | M-13 coded (awaiting a check). |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (3rd update) – H-6 publish/trash sync, M-8 real domain from an env var
+
+**What was done**
+
+1. **H-6 – publish and trash flags now follow the server, and writes go out in order** (`src/lib/api.ts`, `src/features/dashboard/hooks/useInvitationStore.ts`)
+   - **Refresh picks up changes from other devices.** Before, the flags were read from the server only on the first load, so unpublishing on device 1 never showed on device 2 until a full page reload. Now every refresh (the 60 s background refresh on the Dashboard and the Refresh buttons) adopts the server's `published` and `deleted_at` values.
+   - **Local changes are never overwritten by an older answer.** A refresh result is ignored for a flag map if a change was made after the request started, or a save is still in flight (`adopt(next, since)` in `useOptimisticMap`). The next refresh then picks up the server state.
+   - **Writes are serial.** `fetchInvitations`, `savePublished` and `saveDeleted` run through one in-order queue (`inOrder` in `api.ts`). Before, `savePublished` sent one request per row in parallel and two quick toggles overlapped, so the server could end in a different state than the screen. A failed task does not block the ones behind it. A list read is queued behind pending writes, so it always includes them.
+   - **Bulk changes are one statement per value.** Ids going to the same value are sent as one `update … in("id", ids)` (split every 100 ids), so a bulk publish of 50 rows is 1 request and is all-or-nothing for that value. Trash writes are grouped by timestamp, restores by `null`. `knownPub` / `knownDel` move forward only for what the server accepted, so a retry sends only what is still missing.
+   - **After a failed save** the screen goes back to the last saved state, shows the existing "undone" message, and then does a silent refresh so it shows what the server really holds (a bulk change could have been partly applied).
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** `npm run typecheck` and `npm run build` pass. (a) `api.ts` against a fake Supabase client with random delays, 11 checks: bulk of 50 = 1 update; 10 rapid toggles ended in the last value and the writes alternated in order; a read queued behind a slow write saw it; a forced failure rejected, left the server unchanged, did not block the queue and a retry then applied; trash grouping gave 2 statements for 2 timestamps, 0 writes for no change and 1 statement (`null`) for a restore of 2 rows. (b) The hook with React 18 + jsdom and a fake data layer, 9 checks: first load; refresh picks up another device's unpublish and trash; a toggle made during a refresh is kept; a refresh that returns while a save is pending does not overwrite it; 10 rapid toggles leave UI equal to server; a failed save and a failed bulk save leave UI equal to server and show the message. **Not run in a browser or on real Supabase.**
+2. **M-8 – the site address comes from an environment variable** (`vite.config.ts`, `index.html`, `.env.example`, `README.md`, `docs/SEO_SHORT_LINK_CHANGES.md`; `public/robots.txt` and `public/sitemap.xml` removed)
+   - `index.html` now uses `%SITE_URL%` for `canonical`, `og:url`, `og:image` and `twitter:image`. A small Vite plugin fills it at build time and **generates** `robots.txt` (with the `Sitemap:` line) and `sitemap.xml` in the build output. The dev server serves them too.
+   - Source of the address, in order: `SITE_URL`; on Vercel, `VERCEL_PROJECT_PRODUCTION_URL` (the production domain Vercel exposes). The value is reduced to scheme + host (`new URL(...).origin`), so a path, query or quote cannot get into an HTML attribute. `javascript:` values and the old `example.com` placeholder are rejected.
+   - **If no usable address exists, the tags that need one are left out** (not guessed), no `sitemap.xml` is written, `robots.txt` has no `Sitemap:` line, and the production build prints a warning. A missing tag is better than a wrong canonical.
+   - **Verified (ad hoc):** builds with `SITE_URL=schedy.in` (a test value only, not committed), with only `VERCEL_PROJECT_PRODUCTION_URL`, with nothing set, with `javascript:alert(1)`, with `https://example.com` and with `https://x.test/a"b?q=1` all gave the expected output (`https://x.test/` for the last). `npm run typecheck` passes.
+   - **The real domain is not in the repo and was not guessed.** The owner must set `SITE_URL` in Vercel (see below).
+
+**How this affects other tasks**
+
+- **H-6 / M-1:** `knownPub` and `knownDel` are still module-level caches, now kept correct by the queue. M-1 (clear them on sign-out) is still open and still needed.
+- **H-6 / M-5:** when invitations are paginated, the flag maps and the adopt logic must work per loaded page. Keep reading `published` and `deleted_at` from each returned row.
+- **H-6 / H-4 / M-6:** the 60 s refresh now changes flags on screen, so a row can move to draft or trash while the person is looking at it. That is intended.
+- **M-9:** `api/invite.js` should read the same `SITE_URL` instead of the `Host` header (one setting for both).
+- **Hosting:** `public/robots.txt` and `public/sitemap.xml` no longer exist in the repo; do not add them back, or the generated ones will clash.
+- **Known gap, not changed:** *Duplicate* in `Invitations.tsx` saves the copy first (published by default) and only then flips it to draft, so the copy is public for a moment. Fix it by saving with `published: false` in the same write. Not part of H-6's acceptance check.
+
+**Behaviour changes to check**
+
+- Another device's publish, unpublish, trash or restore now appears after the next refresh. A change you make while a refresh is running is not lost.
+- A failed publish/trash shows the "undone" message and then the screen matches the server.
+- With no `SITE_URL`, the page `<head>` has no canonical or `og:url`/`og:image`.
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. H-6, two devices: unpublish an invitation on device 1; on device 2 click Refresh (or wait 60 s on the Dashboard) → status updates without reloading. Do the same with trash and restore.
+2. H-6, rapid toggles: click publish/unpublish 10 times quickly, wait 2 s, reload → UI and server (`select published from invitations where id = '…'`) show the same state.
+3. H-6, bulk with a failure: select 50 invitations, temporarily break the write (for example turn on airplane mode in devtools → Network → Offline just before clicking Publish) → message "undone" and the list matches the database after you go back online and refresh. With the network on, bulk publish of 50 appears as one `PATCH` request in the Network tab.
+4. M-8: set `SITE_URL=https://YOUR-DOMAIN` in Vercel for Production and Preview, redeploy, then `curl -s https://YOUR-DOMAIN/ | grep -E "canonical|og:"`, `curl -s https://YOUR-DOMAIN/robots.txt`, `curl -s https://YOUR-DOMAIN/sitemap.xml` → all show the real domain and no `example.com`.
+
+**Next steps, in order**
+
+1. Run the checks above and the earlier browser checks (C-2 `LivePreview`, H-1, M-13), then tick H-6, M-8, C-2, M-13.
+2. Owner actions: set `SITE_URL` on Vercel; run the H-3 dashboard checks and `003_details_validation.sql`; **revoke the GitHub token that was pasted in chat (it was pasted again on 12 Nov and was used for this push; revoke it now)**; C-1 and C-3 in Supabase; enable GitHub secret scanning.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, and enforce the strict CSP.
+4. Next code items: **H-5** (enquiry insert hardening) and **M-9** (`api/invite.js` site URL and slug rule), which can reuse `SITE_URL`.
+
+---
 
 ### 12 Nov 2026 (2nd update) – H-3 schema consolidation, M-11 `reset.sql`, README sign-up/admin step
 
@@ -238,9 +287,9 @@ When asked to "update based on task.md", follow these steps.
 - [x] **README** Add "disable public sign-ups" and the admin-user setup step to Set up Supabase step 3. *Done 12 Nov (`README.md`, step 3, with a `curl` check). This documents C-1; the Supabase toggle itself is still a dashboard action.*
 
 ### App correctness
-- [ ] **H-6** Take `pub`/`deleted` flags from each refreshed row, not only on first load; send publish/trash writes serially or as one batch RPC and reconcile with the server response. (`src/features/dashboard/hooks/useInvitationStore.ts`, `src/lib/api.ts`)
+- [~] **H-6** *Coded 12 Nov (3rd update); tested with a fake Supabase client and a jsdom hook test, not yet in a browser or on real Supabase; see Progress log.* Take `pub`/`deleted` flags from each refreshed row, not only on first load; send publish/trash writes serially or as one batch RPC and reconcile with the server response. (`src/features/dashboard/hooks/useInvitationStore.ts`, `src/lib/api.ts`)
   - Verify: unpublish on device 1, refresh on device 2 → status updates; rapid publish/unpublish ×10 ends in the same state on server and UI; bulk publish of 50 rows with one forced failure leaves UI and server in agreement.
-- [ ] **M-8** Replace `https://example.com` with the real domain in `index.html` (lines 18, 27, 28, 38), `public/robots.txt`, `public/sitemap.xml`; inject at build time from an env var.
+- [~] **M-8** *Coded 12 Nov (3rd update): `%SITE_URL%` in `index.html`, generated `robots.txt` and `sitemap.xml`, address from `SITE_URL`; still needs `SITE_URL` set on Vercel and the curl check in the Progress log.* Replace `https://example.com` with the real domain in `index.html` (lines 18, 27, 28, 38), `public/robots.txt`, `public/sitemap.xml`; inject at build time from an env var.
 - [~] **M-12** `git rm --cached .env.local`; keep only `.env.example`; enable GitHub secret scanning. *Untracked 11 Nov. Still open: enable secret scanning (GitHub setting); the file remains in git history (it holds only `VITE_` values, which ship in the browser bundle anyway, but rotate the Supabase key if it ever held anything private).*
 
 ---

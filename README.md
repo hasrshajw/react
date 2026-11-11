@@ -59,6 +59,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
    - Leave the **Google** provider off for now. Turn it on only after the admin role is in place, then add `https://YOUR-DOMAIN/login` as a redirect URL.
    - Check: the app has no sign-up form, but anyone can call the sign-up API with the public key, so test that. `curl -s -X POST "$VITE_SUPABASE_URL/auth/v1/signup" -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" -H "Content-Type: application/json" -d '{"email":"nobody@example.com","password":"Test-12345!"}'` must answer with an error (`signup_disabled`), and no new user may appear under **Authentication → Users**.
 4. Put the three variables above in `.env.local` for local work, and in **Vercel → Project Settings → Environment Variables** for the live site, then redeploy.
+   - Also set `SITE_URL` (your real domain, for example `https://your-domain.com`) for the build. It fills the canonical and social-preview tags and generates `robots.txt` and `sitemap.xml`. See `.env.example`.
 
 The publishable (or anon) key is meant to be public (it ships in the browser bundle); the data is protected by the row-level-security rules in `schema.sql`. Never put the `service_role` key in this project.
 
