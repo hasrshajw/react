@@ -122,6 +122,15 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
 }
 
 /* Sidebar links that have no page yet land here instead of a blank screen */
+/* H-1: remount Create on every navigation to it (location.key changes even when the URL is the same).
+   Create rewrites the address bar with history.replaceState after a save, so the router's own `search`
+   can be stale; keying on `search` alone would keep a saved invitation in the form when the user clicks
+   "Create Invitation" again, and the next Save would overwrite it. */
+function CreateRoute({ onPanelChange }: { onPanelChange: (open: boolean) => void }) {
+  const loc = useLocation();
+  return <Create key={loc.key} onPanelChange={onPanelChange} />;
+}
+
 function ComingSoon({ title }: { title: string }) {
   return (
     <div className="coming-soon">
@@ -207,7 +216,7 @@ function Shell() {
                 <Route path="/dashboard" element={<Dashboard onPanelChange={setPanelOpen} />} />
                 <Route path="/invitations" element={<Invitations onPanelChange={setPanelOpen} />} />
                 <Route path="/templates" element={<Templates />} />
-                <Route path="/create" element={<Create onPanelChange={setPanelOpen} />} />
+                <Route path="/create" element={<CreateRoute onPanelChange={setPanelOpen} />} />
                 {PLACEHOLDER_ROUTES.map(([path, title]) => (
                   <Route key={path} path={path} element={<ComingSoon title={title} />} />
                 ))}

@@ -60,7 +60,10 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   const dirtyRef = useRef(false);
   dirtyRef.current = dirty;
   const blocker = useBlocker(
-    useCallback(({ currentLocation, nextLocation }: { currentLocation: { pathname: string }; nextLocation: { pathname: string } }) => dirtyRef.current && currentLocation.pathname !== nextLocation.pathname, [])
+    /* Any router navigation (even to the same URL, such as the sidebar "Create Invitation" link) remounts this page
+       via CreateRoute's key, which would discard unsaved edits, so it must ask first. Create's own address-bar
+       updates use history.replaceState and never reach the router. */
+    useCallback(({ currentLocation, nextLocation }: { currentLocation: { key: string }; nextLocation: { key: string } }) => dirtyRef.current && currentLocation.key !== nextLocation.key, [])
   );
   useBeforeUnload(dirty);
   useSaveShortcut(useCallback(() => saveRef.current(), []));

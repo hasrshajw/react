@@ -34,7 +34,7 @@ export default function PublicInvitation({ slug: slugProp }: { slug?: string }) 
   }, [state]);
 
   if (state.status === "ready") {
-    return <iframe title="Invitation" srcDoc={state.html} style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, background: "#fff" }} />;
+    return <iframe title="Invitation" srcDoc={state.html} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, background: "#fff" }} />;
   }
   const text = state.status === "loading" ? "Loading invitation…"
     : state.status === "missing" ? "This invitation isn’t available. It may have been unpublished or the link is wrong."

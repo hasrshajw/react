@@ -30,11 +30,49 @@ When asked to "update based on task.md", follow these steps.
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 0 | 5 | Not started. C-1 and C-3 are dashboard/SQL actions that must be done by someone with Supabase access. |
+| Phase 0 | 0 | 2 | 3 | C-2 (public iframe) and H-1 are coded, awaiting a browser check. C-1, C-3 and the token rotation are dashboard/SQL actions for someone with Supabase/GitHub access. |
 | Phase 1 – Authorization and data safety | 1 | 1 | 3 | H-2 compiler part done; C-2 CSP part started. |
-| Phase 1 – Setup and schema | 0 | 0 | 3 | – |
+| Phase 1 – Setup and schema | 0 | 1 | 2 | M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 0 | 3 | – |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 11 Nov 2026 (2nd update) – C-2 public iframe sandbox, H-1 Create overwrite, M-12 untrack `.env.local`
+
+**What was done**
+
+1. **C-2 (Phase 0 row) – sandbox on the public invitation iframe** (`src/pages/PublicInvitation.tsx`)
+   - Added `sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"` (no `allow-same-origin`). Template scripts still run, but the frame now has an opaque origin, so it cannot read the app's `localStorage`/cookies or the Supabase session.
+   - Status `[~]`: the attribute is in place and the build passes, but no browser was available to run the acceptance check.
+2. **H-1 – Create no longer reuses an old form** (`src/AdminApp.tsx`, `src/pages/Create.tsx`)
+   - New `CreateRoute` wrapper renders `<Create key={location.key}>`, so every router navigation to `/create` remounts the page with fresh state.
+   - **Why `location.key` and not `location.search`:** after a save, `Create` rewrites the address bar with `history.replaceState`, which the router does not see. Its `search` stays `""`, so keying on `search` would not remount when the user clicks "Create Invitation" again after saving, and the next Save would overwrite the invitation that was just saved. `location.key` changes on every navigation, even to the same URL.
+   - The unsaved-changes blocker now compares `location.key` instead of `pathname`. Without this, a remount triggered by a same-path navigation (for example `/create?edit=A` → `/create`) would silently drop unsaved edits.
+   - **Verified (ad hoc):** `npm run typecheck`, `npm run build`, and a throwaway jsdom + `MemoryRouter` script (not saved). It showed the keyed component mounts once initially, again for `/create?edit=A` → `/create`, and again for `/create` → `/create` (3 mounts total). The full UI flow was **not** run in a browser.
+3. **M-12 – `.env.local` removed from git tracking** (`git rm --cached`; `.gitignore` already lists it, `.env.example` stays). The file is untouched in your working copy.
+
+**How this affects other tasks**
+
+- **C-2:** the public-page half of C-2 is now coded. Still open: `LivePreview` (`allow-same-origin` + morphdom) and enforcing the strict CSP. Do the CSP enforcement only after both iframes are sandboxed and the report-only violations are reviewed.
+- **Behaviour change to check (public page):** a sandboxed frame cannot use `localStorage`/`sessionStorage`/cookies, and `document.domain` is not shared. Templates that store a "muted music" flag or RSVP state in `localStorage` will throw. Open a few live invitations and check the console. Forms are blocked (no `allow-forms`) and `allow-modals` is not set, so `alert()` does nothing; add only the flag a template really needs.
+- **Behaviour change to check (Create):** clicking "Create Invitation" (or any in-app link to `/create`) while you have unsaved changes now shows the leave dialog, even if you are already on `/create`. Browser back/forward is covered too.
+- **Track B:** B-M0 still needs C-1, C-3, the `LivePreview` part of C-2 and the H-2 database rule. The client editor reuses `Create`, so the `key` remount also stops one client's form state leaking into the next invitation they open.
+
+**Browser checks to repeat (for `[~]` → `[x]`)**
+
+1. Public sandbox: temporarily save a template containing `<script>try{document.title=localStorage.getItem("sb-x")}catch(e){document.title="blocked"}</script>`, open it at `/<slug>`; expect the tab title `blocked` and a normal-looking page otherwise.
+2. H-1, case 1: edit invitation A → click sidebar "Create Invitation" → form is empty, Save creates a new row (A is unchanged).
+3. H-1, case 2: create and save a new invitation, then click "Create Invitation" again → form is empty, Save creates another row.
+4. H-1, case 3: type in the form, click "Create Invitation" → the leave dialog appears; "Stay" keeps your text.
+5. M-12: `git ls-files .env.local` prints nothing; `git status` shows no `.env.local` changes.
+
+**Next steps, in order**
+
+1. Run the browser checks above, then tick C-2 (public) and H-1.
+2. C-2: `LivePreview` without `allow-same-origin` (use `postMessage` to update the frame), then review CSP report-only violations and enforce.
+3. H-2: database constraint using the same protocol allow-list (`http`, `https`, `tel`, `mailto`).
+4. Owner actions still needed: C-1 and C-3 in Supabase, rotating the GitHub token used for this push, enabling GitHub secret scanning.
+
+---
 
 ### 11 Nov 2026 – Phase 1 / Authorization and data safety: H-2 compiler hardening and C-2 CSP header
 
@@ -83,9 +121,9 @@ When asked to "update based on task.md", follow these steps.
 | --- | --- | --- | --- | --- |
 | [ ] | – | Rotate any GitHub / Supabase token that was pasted in chat, email or tickets. Use short-lived, repo-scoped tokens only | GitHub settings, Supabase dashboard | Old tokens show as revoked |
 | [ ] | C-1 | **Supabase dashboard:** disable public sign-ups (Auth → Providers → Email), and restrict or disable Google sign-in until the admin role exists. *Temporary: Track B re-opens sign-up only after B1 (admin role + least-privilege RLS) is live* | Supabase dashboard | A new email cannot register; Google login by a stranger is blocked |
-| [ ] | C-2 | Add `sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"` (no `allow-same-origin`) to the public invitation iframe | `src/pages/PublicInvitation.tsx:37` | A template with `<script>localStorage.getItem(...)</script>` cannot read app storage |
+| [~] | C-2 | Add `sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"` (no `allow-same-origin`) to the public invitation iframe. *Coded 11 Nov (see Progress log); needs the browser check below.* | `src/pages/PublicInvitation.tsx:37` | A template with `<script>localStorage.getItem(...)</script>` cannot read app storage |
 | [ ] | C-3 | Revoke self-update on profiles: `REVOKE UPDATE ON public.profiles FROM authenticated; GRANT UPDATE (name) ON public.profiles TO authenticated;` | `supabase/schema.sql` policy `profiles: self update` (line ~121) | Console call setting `plan_status='active'` is rejected |
-| [ ] | H-1 | Fix Create overwriting an existing invitation: add `key={location.search}` to the Create route, or read `edit` via `useSearchParams()` and re-run the load effect; treat a search change as navigation for the unsaved-changes blocker | `src/AdminApp.tsx:210`, `src/pages/Create.tsx:35` | Edit A → click sidebar "Create Invitation" → form is empty and Save creates a new row |
+| [~] | H-1 | *Coded 11 Nov, needs the browser check below.* Fix Create overwriting an existing invitation: add `key={location.search}` to the Create route, or read `edit` via `useSearchParams()` and re-run the load effect; treat a search change as navigation for the unsaved-changes blocker | `src/AdminApp.tsx:210`, `src/pages/Create.tsx:35` | Edit A → click sidebar "Create Invitation" → form is empty and Save creates a new row |
 
 ---
 
@@ -112,7 +150,7 @@ When asked to "update based on task.md", follow these steps.
 - [ ] **H-6** Take `pub`/`deleted` flags from each refreshed row, not only on first load; send publish/trash writes serially or as one batch RPC and reconcile with the server response. (`src/features/dashboard/hooks/useInvitationStore.ts`, `src/lib/api.ts`)
   - Verify: unpublish on device 1, refresh on device 2 → status updates; rapid publish/unpublish ×10 ends in the same state on server and UI; bulk publish of 50 rows with one forced failure leaves UI and server in agreement.
 - [ ] **M-8** Replace `https://example.com` with the real domain in `index.html` (lines 18, 27, 28, 38), `public/robots.txt`, `public/sitemap.xml`; inject at build time from an env var.
-- [ ] **M-12** `git rm --cached .env.local`; keep only `.env.example`; enable GitHub secret scanning.
+- [~] **M-12** `git rm --cached .env.local`; keep only `.env.example`; enable GitHub secret scanning. *Untracked 11 Nov. Still open: enable secret scanning (GitHub setting); the file remains in git history (it holds only `VITE_` values, which ship in the browser bundle anyway, but rotate the Supabase key if it ever held anything private).*
 
 ---
 
