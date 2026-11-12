@@ -6,6 +6,7 @@
    ========================================================================== */
 import { getSession } from "./auth";
 import { db } from "./supabase";
+import { PREVIEW_BUCKET } from "./previewUrl";
 import { onUserDataReset } from "./userData";
 import type { DeletedMap, Enquiry, InvitationRow, PublishMap } from "../types/dashboard";
 import type { Category, Template } from "../types/invitation";
@@ -160,8 +161,7 @@ export async function saveInvitation(record: InvitationRow): Promise<InvitationR
   return splitRow(data!).row;
 }
 
-/** Bucket created by supabase/migrations/001_seo_previews.sql (public read, owner write). */
-const PREVIEW_BUCKET = "invitation-previews";
+/* The bucket (PREVIEW_BUCKET, lib/previewUrl.ts) is created by supabase/schema.sql: public read, owner write, JPEG only, 300 KB at most. */
 
 /** Uploads the link-preview image to `<userId>/<invitationId>.jpg` and returns its public https URL.
  *  The path is reused (upsert), so a `?v=` stamp is added to make crawlers and browsers fetch the new file. */
@@ -180,10 +180,30 @@ export async function uploadPreviewImage(image: Blob, invitationId: string): Pro
   return `${data.publicUrl}?v=${Date.now()}`;
 }
 
-/** Permanently removes an invitation (used when the trash is emptied after 30 days). */
+/** Permanently removes an invitation (used when the trash is emptied after 30 days), then its link-preview file. */
 export async function deleteInvitation(id: string): Promise<void> {
   const { error } = await db().from("invitations").delete().eq("id", id);
   if (error) fail(error);
+  await removePreviewImage(id);
+}
+
+/** M-4: deletes `<user id>/<invitation id>.jpg` after its invitation is gone. Best effort: the invitation is already deleted, so a problem
+ *  here must not fail the purge (and make it retry); a file left behind is for the orphan cleanup job (still open in M-4).
+ *  "Duplicate" copies `details`, so a copy can point at the original's file. If any remaining invitation still uses the file, or the
+ *  check itself fails, the file is kept. */
+async function removePreviewImage(id: string): Promise<void> {
+  try {
+    const { data } = await db().auth.getSession();
+    const uid = data.session?.user.id;
+    if (!uid) return;
+    const path = `${uid}/${id}.jpg`;
+    const { count, error } = await db().from("invitations").select("id", { count: "exact", head: true }).like("details->>seoImage", `%/${path}%`);
+    if (error || (count ?? 0) > 0) return;
+    const { error: removeError } = await db().storage.from(PREVIEW_BUCKET).remove([path]);
+    if (removeError) console.warn("Could not delete the preview image:", removeError.message);
+  } catch (e) {
+    console.warn("Could not delete the preview image:", e);
+  }
 }
 
 /** Writes the "published" flags. Takes the whole map and saves only what changed.

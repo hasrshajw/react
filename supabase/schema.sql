@@ -186,9 +186,12 @@ grant execute on function public.get_invitation_meta(text) to anon, authenticate
 
 -- ---------- link-preview images: storage bucket (was migration 001, part 1) ----------
 -- Public bucket; files are stored as <user id>/<invitation id>.jpg, so the first folder must be the signed-in user.
-insert into storage.buckets (id, name, public)
-values ('invitation-previews', 'invitation-previews', true)
-on conflict (id) do nothing;
+-- M-4: JPEG only, 300 KB at most (the app shrinks every preview image to fit, src/lib/image.ts OG_MAX_BYTES). The limits are
+-- re-applied on every run, so an existing bucket gets them too.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('invitation-previews', 'invitation-previews', true, 307200, array['image/jpeg'])
+on conflict (id) do update
+  set public = true, file_size_limit = 307200, allowed_mime_types = array['image/jpeg'];
 
 drop policy if exists "previews: public read"  on storage.objects;
 drop policy if exists "previews: owner write"  on storage.objects;
@@ -251,7 +254,8 @@ $$;
 
 -- Returns NULL when `details` is acceptable, otherwise a short reason. Rules: object, <= 64 KB, every top-level string
 -- <= 1000 chars, lists <= 20 items, URL fields use the allow-list, phone fields look like phone numbers (10-13 digits),
--- seoTitle <= 200 and seoDescription <= 400 (hard caps; the UI warns earlier at 60 / 160).
+-- seoTitle <= 200 and seoDescription <= 400 (hard caps; the UI warns earlier at 60 / 160), seoImage empty or a file of the
+-- preview bucket (M-4).
 create or replace function public.details_problem(d jsonb) returns text
 language plpgsql immutable as $$
 declare
@@ -277,6 +281,9 @@ begin
         if k = 'seoTitle' and char_length(s) > 200 then return 'seoTitle is too long'; end if;
         if k = 'seoDescription' and char_length(s) > 400 then return 'seoDescription is too long'; end if;
         if k = any (url_keys) and not public.is_safe_url(s) then return k || ' has a link type that is not allowed'; end if;
+        -- M-4: the preview image must be a file from this app's own preview bucket (same shape as src/lib/previewUrl.ts).
+        if k = 'seoImage' and btrim(s) <> '' and s !~ '^https://[^/?#[:space:]@]+/storage/v1/object/public/invitation-previews/[^/?#[:space:]]+/[^/?#[:space:]]+\.jpg(\?v=[0-9]+)?$' then
+          return 'seoImage must be a preview image uploaded in this app'; end if;
         if k = any (phone_keys) and btrim(s) <> '' and not (
              s ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(s, '\D', '', 'g')) between 10 and 13) then
           return k || ' is not a valid phone number'; end if;

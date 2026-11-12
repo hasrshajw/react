@@ -1,5 +1,6 @@
 import type { ErrorMap, InvitationData } from "../types/invitation";
 import { isReserved } from "./reserved";
+import { isOwnPreviewImage } from "./previewUrl";
 
 export const has = (v: unknown): boolean => String(v ?? "").trim() !== "";
 
@@ -49,6 +50,6 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   /* Soft warnings: the inputs also have maxLength, so these only appear for pasted or old data. */
   if (data.seoTitle.length > SEO_TITLE_MAX) add("seoTitle", "seo", `Keep the title under ${SEO_TITLE_MAX} characters`);
   if (data.seoDescription.length > SEO_DESC_MAX) add("seoDescription", "seo", `Keep the description under ${SEO_DESC_MAX} characters`);
-  if (has(data.seoImage) && !okUrl(data.seoImage)) add("seoImage", "seo", "Preview image must be a public https link");
+  if (has(data.seoImage) && !isOwnPreviewImage(data.seoImage)) add("seoImage", "seo", "Preview image must be uploaded here. Remove it and upload the picture again");
   return e;
 }

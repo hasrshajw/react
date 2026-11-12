@@ -51,9 +51,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
 ### Set up Supabase
 
 1. Create a Supabase project.
-2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (optional starter templates). `schema.sql` is safe to re-run: it never deletes tables or data, and it already includes everything in `supabase/migrations/` that a new project needs (preview-image bucket, link-name rules, `details` validation, enquiry insert limits).
+2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (optional starter templates). `schema.sql` is safe to re-run: it never deletes tables or data, and it already includes everything in `supabase/migrations/` that a new project needs (preview-image bucket and its limits, link-name rules, `details` validation, enquiry insert limits).
    - **Starting over:** `supabase/reset.sql` is the only script that deletes data (categories, templates, invitations, enquiries, profiles; login users are kept). Run it, then `schema.sql`, then `seed.sql`. Never run it on a live site.
-   - **Existing project:** you do not need to re-run `schema.sql`. Run the files in `supabase/migrations/` you have not applied yet, in numeric order (`001` to `005`; each is safe to run twice). **`005_admin_role.sql` needs one edit first:** put your sign-in email in step 1 of the file. It stops with an error, before changing any policy, if no admin is found.
+   - **Existing project:** you do not need to re-run `schema.sql`. Run the files in `supabase/migrations/` you have not applied yet, in numeric order (`001` to `006`; each is safe to run twice). **`005_admin_role.sql` needs one edit first:** put your sign-in email in step 1 of the file. It stops with an error, before changing any policy, if no admin is found.
 3. In **Authentication**, **turn off public sign-ups first**: **Authentication → Providers → Email**, switch off "Allow new users to sign up" (in some dashboard versions it is under **Authentication → Sign In / Providers**). Templates, categories and enquiries are readable and writable only by rows in the `admins` table (task C-1), but turning sign-ups off is still the first line of defence.
    - Create the admin user by hand: **Authentication → Users → Add user → Create new user** (email + password, tick "Auto Confirm User").
    - Make that user an admin (new project: **SQL Editor**; existing project: migration `005` does this for you): `insert into public.admins (user_id, email) select id, email from auth.users where lower(email) = lower('you@example.com');`. Without this row the dashboard shows no templates, categories or enquiries. Nobody can add or read admin rows through the API; only the SQL Editor can.
@@ -74,6 +74,22 @@ Limits to know about:
 - The Photos section was removed from the Create page. Invitations saved earlier may still carry `couplePhoto` and `gallery` inside their `details` record. The app ignores them.
 - "Invitation views" on the Dashboard is the real total of the per-invitation view counter (no per-day history is stored yet). RSVPs, shares and the Billing page are not built yet.
 - WhatsApp link previews (title and image) need server-side tags; the page does not set them yet.
+
+### Preview images
+
+The link-preview picture of an invitation (the "Preview image" field) is uploaded to the public `invitation-previews` bucket as `<user id>/<invitation id>.jpg`. The rules (task M-4), all from `schema.sql` / migration `006`:
+
+- The bucket accepts **JPEG only, at most 300 KB** per file. The app shrinks every picture to fit before uploading.
+- `details.seoImage` must be empty or a file of that bucket on your own project (`https://<project>.supabase.co/storage/v1/object/public/invitation-previews/<user>/<file>.jpg`, optional `?v=<digits>`). Links to other sites are refused by the form, by the database (`details_problem()`), and ignored by `api/invite.js` (it falls back to the site image). Before running `006` on a live project, run the query at the top of that file to list invitations that hold another kind of link; they stay readable, but cannot be edited until their preview image is removed or uploaded again. This rule needs an `https` Supabase URL, so it does not apply to a local `http://localhost` Supabase.
+- Deleting an invitation for good (the trash is emptied after 30 days) also deletes its picture, unless another invitation still uses the same file (*Duplicate* copies the link to the original's picture).
+- Not yet done: a scheduled job that removes pictures left behind (an upload for an invitation that was never saved, or a file whose deletion failed). Until then, such files stay in the bucket.
+
+### Telugu typing
+
+The Telugu name and venue fields fill in as you type in English. `src/lib/transliterate.ts` asks the **Google Input Tools** endpoint (`inputtools.google.com`, the one behind Google's own Telugu typing) for each word and falls back to the offline rules in `src/lib/telugu.ts` when it cannot answer. That endpoint is **not a documented, supported API**: it has no key, no quota and no promise to keep working, which is why the offline fallback exists and the Telugu field is never left empty.
+
+- **Privacy:** the English words typed in those fields are sent to Google, one request per word. Say so in your privacy policy. To send nothing, set `VITE_TRANSLITERATION=offline` (see `.env.example`) and rebuild; only the offline rules are then used.
+- When the service answers but has no suggestion for a word, the offline result is used for that word and online lookups continue. Only a real failure (network error, timeout, HTTP error, unexpected answer) pauses online lookups for 60 seconds; those words are looked up again later.
 
 ## Deep links on Vercel
 

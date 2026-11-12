@@ -62,6 +62,10 @@ function fallbacks(meta) {
 /* The site address comes from configuration, never from request headers (M-9). "" when not configured. */
 const originOf = () => resolveSiteUrl(process.env);
 
+/* M-4: same shape as isOwnPreviewImage() in src/lib/previewUrl.ts and the database rule: https, the preview bucket, <user>/<file>.jpg, optional ?v=digits.
+   The host is not compared here (the function already trusts the database it reads from); the bucket path is what keeps other sites out. */
+const PREVIEW_URL = /^https:\/\/[^/?#\s@]+\/storage\/v1\/object\/public\/invitation-previews\/[^/?#\s]+\/[^/?#\s]+\.jpg(\?v=\d+)?$/;
+
 async function fetchWithTimeout(url, init) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -95,9 +99,9 @@ function buildTags(meta, slug, origin) {
   const title = clean(meta.seo_title) || fb.title;
   const description = clean(meta.seo_description) || fb.description;
   const own = clean(meta.seo_image);
-  /* Crawlers need a public https URL. Anything else (for example an old base64 value) falls back to the site image. */
+  /* Only a file from the app\u2019s own preview bucket is used (M-4). Anything else (an old base64 value, a link to another site) falls back to the site image. */
   /* Without a configured site address there is no safe fallback image, so the image tags are left out. */
-  const image = /^https:\/\/\S+$/.test(own) ? own : origin ? `${origin}/og-main.jpg` : "";
+  const image = PREVIEW_URL.test(own) ? own : origin ? `${origin}/og-main.jpg` : "";
   const pageUrl = origin ? `${origin}/${slug}` : "";
   return [
     `<title>${esc(title)}</title>`,
