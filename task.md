@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 14th update)
+### Where things stand (12 Nov 2026, 15th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,60 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 5 | 2 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). Nothing else in Phase 3 is started (no lint, tests or CI yet). |
+| Phase 3 | 5 | 3 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. Nothing else in Phase 3 is started (no lint, tests or CI yet). |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (15th update) – L-8 trash date and 30-day purge belong to the server
+
+**What was done**
+
+1. **L-8 – the trash date is written by the database** (new `supabase/migrations/009_trash_server_time.sql`, `supabase/schema.sql`, `supabase/reset.sql`, `README.md` new "Trash" section)
+   - **Trigger `invitations_trash_stamp`** (before insert or update): for calls through the API (roles `anon` / `authenticated`), when `deleted_at` is set it is replaced by the server's `now()`. A time sent for an invitation that is **already in the trash is ignored** (the first date stays, so a client cannot extend or shorten the 30 days), and restoring (`null`) is always allowed. **The SQL Editor (role `postgres`) and `service_role` are not stamped**, so you can still backdate a row by hand to test the purge (`update public.invitations set deleted_at = now() - interval '31 days' where id = '<id>';`, as the 9th update's check 4 does).
+   - **Why:** before, the browser wrote `deleted_at` from its own clock *and* decided which trashed rows were old enough to delete for good. A device with a clock a year ahead made every trashed invitation look expired (deleted on the next Dashboard open, with its picture); a clock behind kept things for ever; any signed-in session could backdate a row with the REST API.
+   - **`trash_retention()`** returns `30 days` in one place. **`expired_trash_ids()`** (security invoker, `authenticated` only, row level security limits it to the caller's rows) lists the caller's invitations past the retention. **`purge_expired_trash()`** (security definer, execute revoked from `public`, `anon` and `authenticated`) deletes every expired invitation for all owners and returns the count.
+   - **Scheduled job:** the migration schedules `purge-expired-trash` daily at 03:17 UTC with **pg_cron** when the extension is available (Supabase: Database → Extensions). If it is not, or scheduling fails, it prints a notice and goes on (it does not fail the migration); enable pg_cron and run the file again. Re-running replaces the job (same name). `reset.sql` unschedules it if pg_cron exists.
+   - **Honest limit:** the scheduled job removes **rows only**. SQL cannot delete stored files, so the preview image of a row purged by the job stays in the bucket until the M-4 orphan cleanup job exists. The Dashboard purge below does remove the picture. Because the job runs daily, an owner who rarely opens the Dashboard will mostly have the job win, so more orphaned files are expected until M-4's last part is built.
+2. **Client** (`src/lib/api.ts`, `src/features/dashboard/hooks/useInvitationStore.ts`)
+   - New `fetchExpiredTrashIds()` calls the `expired_trash_ids` function. The Dashboard purge now asks the server once per visit (a ref, so the 60 s refresh does not repeat it), deletes each returned id that is in the loaded list with `deleteInvitation` (row, then picture, M-4 rules unchanged), and then refreshes the list. If the function is missing (migration not run) or fails, nothing is purged, quietly, and it is not retried until the next visit.
+   - The old code compared each trash date with `Date.now()` in the browser and, after purging, wrote the trash map back with `writeDeleted`, which sent useless updates for rows that no longer exist. Both are gone; the refresh replaces them.
+   - `saveDeleted` still sends a time (it is a hint; the screen uses it until the next list read, which brings the server's value back). Labels in the Trash dialog ("removed for good …") and the 30-day display filter still use `TRASH_DAYS` and the device clock; they are display only and cannot delete anything.
+3. **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** `npm run typecheck` and `npm run build` pass (main bundle 260.05 kB, unchanged). *Database,* local Postgres 16.15 with stub `auth` / `storage` schemas, roles and Supabase-style default grants. Fresh `schema.sql` loads; 19 checks as the real roles: a browser time of year 2000 and of year 2099 are both replaced by the server time (within 5 s); re-trashing keeps the first date; an unrelated update leaves `deleted_at` alone; restore with `null` works and trashing again gets a new stamp; an insert with `deleted_at` set is stamped; nothing is expired for a fresh trash; `authenticated` and `anon` get `permission denied` on `purge_expired_trash()` and `anon` on `expired_trash_ids()`; `postgres` and `service_role` can backdate (not overridden); the owner sees exactly the two expired ids, another user sees none and cannot change the owner's rows (0 rows); the purge deletes exactly the 2 expired rows and keeps a 29-day row and a not-trashed row, a second purge deletes 0; a view count on a trashed row still works and does not bump `updated_at`. *Upgrade path:* previous commit's `schema.sql` + `009` run twice + new `schema.sql` run twice: no error, trigger present, the same behaviour checks pass. `reset.sql` run twice removes the four new functions, and `schema.sql` rebuilds them. *Client:* `fetchExpiredTrashIds` against a fake Supabase client, 6 checks (right function name and no arguments, ids returned, non-strings dropped, `null` and empty give an empty list, an error rejects). The real `useInvitationStore` in jsdom with React 18 and a fake data layer, 12 checks: an expired id is deleted once and the list is read again (2 reads) and the row is gone; one server call only; an id that is not in the list is ignored; **a device clock a year ahead with old-looking trash dates deletes nothing when the server says nothing is expired**; a failing server call deletes nothing and is not repeated by later refreshes; with `purgeExpired` off the server is never asked; three extra refreshes do not repeat the call; two expired ids are both deleted. **Not run on real Supabase, with pg_cron (the extension is not in the local test database, so the `cron.schedule` line itself was never executed; only the "not available" branch ran), or in a browser.**
+
+**How this affects other tasks**
+
+- **Track B migration number:** `009` is now taken, so Track B's client-edit migration is **`010_client_edit.sql`** (B2 heading updated). Fold it into `schema.sql` in the same commit.
+- **Order of running on the live project:** run `009`, then deploy `preview`. If the new site is live first, trashing and restoring work as before but nothing is purged until `009` runs (the Dashboard's server call fails quietly). If `009` runs first, the old site keeps working; its browser-side purge still deletes expired rows (and their pictures) on its own clock until the new site is deployed.
+- **M-4 (orphan job):** the scheduled purge makes the orphan cleanup job more useful, not less: it should also skip files a remaining invitation still names in `seoImage`, as planned.
+- **H-6 / M-6:** the 60 s refresh brings the server's `deleted_at` back, so the trash dates on screen settle to the server values within a minute of trashing.
+- **M-5 / Track B:** `expired_trash_ids()` reads only the caller's rows through RLS. Track B's client SELECT policy on `invitations` (`client_email = current_user_email()`) would let a client see their linked invitations in it: harmless (clients cannot delete), but the Dashboard purge runs only in the admin app.
+- **C-1:** `purge_expired_trash()` is not callable from the API at all; only the database owner (and pg_cron) can run it.
+
+**Behaviour changes to check**
+
+- Trashing an invitation shows "Deleted <today>" in the Trash dialog; after the next refresh the time is the server's (the same minute, normally).
+- A device with a wrong clock no longer changes what is deleted.
+- Someone who calls the REST API with their login and sets `deleted_at` to an old date gets today's date.
+- Invitations older than 30 days in the trash disappear without opening the Dashboard once pg_cron is on (rows only; see the limit above).
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. Supabase SQL Editor: run `009_trash_server_time.sql` (twice is fine). If it prints "pg_cron is not available", turn on **Database → Extensions → pg_cron** and run it again. Then `select jobname, schedule from cron.job;` shows `purge-expired-trash` at `17 3 * * *`.
+2. Stamp: in the app move a test invitation to the trash. `select id, deleted_at, now() from public.invitations where id = '<id>';` shows `deleted_at` within a few seconds of `now()`. With DevTools, set the computer clock a day back first, trash another one: the stored time is still the server's.
+3. REST: with your login JWT, `PATCH /rest/v1/invitations?id=eq.<trashed id>` with `{"deleted_at":"2000-01-01T00:00:00Z"}`: the stored date does not change. `POST /rest/v1/rpc/purge_expired_trash` with the publishable key and your JWT answers `permission denied` (HTTP 401/403).
+4. Purge in the app: in the SQL Editor `update public.invitations set deleted_at = now() - interval '31 days' where id = '<id>';`, open the Dashboard: the row and its picture file are gone (the picture only if it had one; the Network tab shows one `rpc/expired_trash_ids` request per visit).
+5. Purge by the job: set another test row to `now() - interval '31 days'` and run `select public.purge_expired_trash();` in the SQL Editor: it returns `1` and the row is gone. Wait for 03:17 UTC (or change the schedule temporarily to `* * * * *` with `select cron.schedule('purge-expired-trash', '* * * * *', 'select public.purge_expired_trash()');`, then set it back) and check `select * from cron.job_run_details order by start_time desc limit 3;` shows `succeeded`.
+6. Wrong clock: set the computer's date a year ahead, open the Dashboard with a trashed (today) invitation: it is not deleted.
+
+**Next steps, in order**
+
+1. Owner actions: run `007`, `008` and `009`, then deploy `preview`; turn on pg_cron; per-IP rate limit; set `VITE_DOCS_URL` / `VITE_SUPPORT_URL` if you want the links; everything in the 6th to 14th updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 15th updates and the older ones; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: the M-5 "load more" UI, **L-9** (render the compiled document in the live preview and stop running template scripts in the editor), or Phase 3 tooling (**M-14**: ESLint, then Vitest with the cases already written in the 8th to 15th updates).
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (14th update) – L-1 dead links and unknown admin URLs, L-2 unused files removed
 
@@ -852,7 +904,7 @@ When asked to "update based on task.md", follow these steps.
 - [x] **L-5** `uid()` fallback: remove the `.` from the generated id (breaks the `/<slug>` rewrite on Vercel). *Done 12 Nov (11th update): new `src/lib/uid.ts`, used by `features/create/constants.ts` and `features/invitations/utils.ts`; the fallback now gives letters, digits and `-` only. Tested in Node with `crypto` removed.*
 - [x] **L-6** Merge duplicate `readJSON`/`writeJSON` in `lib/storage.ts` and `lib/dashboardData.ts`. *Done 12 Nov (13th update): `dashboardData.ts` re-exports the `storage.ts` versions.*
 - [~] **L-7** `saveEnquiry`: append to `history` server-side instead of overwriting the array. *Coded 12 Nov (13th update): trigger `enquiries_history` in `supabase/migrations/008_enquiry_history.sql` and `schema.sql` appends `{status, at}` with the server time when `status` changes and ignores any client `history`; `saveEnquiry` no longer sends `history`. Tested on local Postgres 16; still to do: run `008` in Supabase and the browser check in the Progress log.*
-- [ ] **L-8** Use a server timestamp for `deleted_at`; run the 30-day trash purge as a scheduled job.
+- [~] **L-8** Use a server timestamp for `deleted_at`; run the 30-day trash purge as a scheduled job. *Coded 12 Nov (15th update): trigger `invitations_trash_stamp`, `trash_retention()`, `expired_trash_ids()` and `purge_expired_trash()` in `supabase/migrations/009_trash_server_time.sql` and `schema.sql`, daily pg_cron job when the extension exists; the Dashboard purge asks the server instead of the device clock. Tested on local Postgres 16 (19 cases, upgrade and reset paths) and with jsdom (12 checks). Still to do: run `009` in Supabase, enable pg_cron, the browser/dashboard checks in the Progress log. The scheduled job removes rows only; pictures of rows it purges wait for the M-4 orphan job.*
 - [ ] **L-9** Live preview: render the compiled document so `<head>`/`<style>` changes show; stop executing template scripts in the editor.
 - [ ] Longer term: serve invitations from a separate origin or subdomain.
 
@@ -898,7 +950,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 | D7 | Conflicting edits | Each request stores `base_updated_at`. If the admin edited the invitation after the client started, approval shows a conflict warning and requires an explicit choice. |
 | D8 | Notification channels | In-app (badge + list, via Realtime) **and** email (Edge Function + Resend/Supabase SMTP). Email must never be the only record. |
 
-## B2. Database (new migration, e.g. `supabase/migrations/009_client_edit.sql`; also fold into `schema.sql` per H-3)
+## B2. Database (new migration, e.g. `supabase/migrations/010_client_edit.sql`; also fold into `schema.sql` per H-3)
 
 - [~] **Admin role** *(done early as part of C-1: `admins` table and `is_admin()` exist from `005_admin_role.sql`; B1 only needs to reuse them and seed nothing new)*: `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
 - [ ] **Client link:** `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.

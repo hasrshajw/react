@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { deleteInvitation, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
+import { deleteInvitation, fetchExpiredTrashIds, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
 import {
   DAY, TRASH_DAYS, isPast,
 } from "../../../lib/dashboardData";
@@ -156,21 +156,21 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
       .sort((a, b) => b.at - a.at);
   }, [rows, deleted]);
 
+  /* L-8: which trashed invitations are old enough to delete for good is decided by the server (its clock, its stamp), once per
+     visit, not by comparing this device's clock with the trash dates. Each one is removed with its preview image (deleteInvitation). */
+  const purgedRef = useRef(false);
   useEffect(() => {
-    if (!purgeExpired || !rows.length) return;
-    const cutoff = Date.now() - TRASH_DAYS * DAY;
-    const old = rows.filter((r) => r.id in delRef.current && delRef.current[r.id] < cutoff);
-    if (!old.length) return;
-    Promise.all(old.map((r) => deleteInvitation(r.id))).then(
-      () => {
-        const keep = { ...delRef.current };
-        old.forEach((r) => delete keep[r.id]);
-        writeDeleted(keep);
-        reload();
-      },
-      () => { /* try again next time the page opens */ },
-    );
-  }, [rows, purgeExpired, writeDeleted, reload]);
+    if (!purgeExpired || purgedRef.current || !rows.length) return;
+    purgedRef.current = true;
+    fetchExpiredTrashIds()
+      .then((ids) => {
+        const known = new Set(rows.map((r) => r.id));
+        const old = ids.filter((id) => known.has(id));
+        if (!old.length) return;
+        return Promise.all(old.map((id) => deleteInvitation(id))).then(() => { if (alive.current) loadRef.current(true); });
+      })
+      .catch(() => { /* try again next time the page opens */ });
+  }, [rows, purgeExpired]);
 
   return {
     rows, loading, refreshing, error, lastUpdated, now, load, reload,

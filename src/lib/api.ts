@@ -184,6 +184,15 @@ export async function uploadPreviewImage(image: Blob, invitationId: string): Pro
   return `${data.publicUrl}?v=${Date.now()}`;
 }
 
+/** L-8: ids of this person's invitations whose time in the trash is over. The server compares its own clock with the date it
+ *  stamped itself (see `expired_trash_ids()` in supabase/schema.sql), so a wrong clock on this device cannot empty the trash early
+ *  or keep things for ever. If the function is missing (migration 009 not run yet) or fails, this rejects and nothing is purged. */
+export async function fetchExpiredTrashIds(): Promise<string[]> {
+  const { data, error } = await db().rpc("expired_trash_ids");
+  if (error) fail(error);
+  return Array.isArray(data) ? data.filter((x): x is string => typeof x === "string") : [];
+}
+
 /** Permanently removes an invitation (used when the trash is emptied after 30 days), then its link-preview file. */
 export async function deleteInvitation(id: string): Promise<void> {
   const { error } = await db().from("invitations").delete().eq("id", id);
@@ -232,7 +241,9 @@ export function savePublished(map: PublishMap): Promise<void> {
   });
 }
 
-/** Writes the trash flags. Takes the whole map and saves only what changed (same rules as savePublished). */
+/** Writes the trash flags. Takes the whole map and saves only what changed (same rules as savePublished).
+ *  L-8: the time sent here is only a hint. The database stamps `deleted_at` with its own clock when an invitation is trashed
+ *  (a time sent for one that is already in the trash is ignored too), and the next list read brings the real value back. */
 export function saveDeleted(map: DeletedMap): Promise<void> {
   return inOrder(async () => {
     const ids = new Set([...Object.keys(map), ...Object.keys(knownDel)]);

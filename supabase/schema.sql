@@ -1,7 +1,7 @@
 -- Schedy database schema for Supabase. Run in: Supabase dashboard > SQL Editor.
 --
 -- This file is SAFE TO RE-RUN: it never deletes tables or data (tables use "if not exists"; functions, policies and
--- triggers are replaced). It already includes everything from supabase/migrations/001, 003, 007 and 008, so a NEW project only
+-- triggers are replaced). It already includes everything from supabase/migrations/001, 003, 007, 008 and 009, so a NEW project only
 -- needs this file, then supabase/seed.sql (optional starter templates).
 -- (Migration 002 only cleans old template rows; seed.sql is already clean, so a new project does not need it.)
 --
@@ -98,6 +98,61 @@ end $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- ---------- trash: server time and scheduled purge (was migration 009, task L-8) ----------
+-- The trash date is stamped by the server for API callers; the SQL Editor may set any value. expired_trash_ids() is what the
+-- Dashboard asks, purge_expired_trash() is the daily job (pg_cron, if available). Details: supabase/migrations/009_trash_server_time.sql.
+create or replace function public.trash_retention() returns interval language sql stable as $$
+  select interval '30 days'
+$$;
+
+create or replace function public.invitations_trash_stamp() returns trigger language plpgsql as $$
+begin
+  if current_user in ('anon', 'authenticated') then
+    if tg_op = 'INSERT' then
+      if new.deleted_at is not null then new.deleted_at := now(); end if;
+    elsif new.deleted_at is distinct from old.deleted_at and new.deleted_at is not null then
+      new.deleted_at := coalesce(old.deleted_at, now());
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists invitations_trash_stamp on public.invitations;
+create trigger invitations_trash_stamp before insert or update on public.invitations
+  for each row execute function public.invitations_trash_stamp();
+
+-- the caller's own expired invitations (row level security limits it to their rows)
+create or replace function public.expired_trash_ids() returns setof text
+  language sql stable set search_path = public as $$
+  select id from public.invitations where deleted_at is not null and deleted_at < now() - public.trash_retention()
+$$;
+revoke all on function public.expired_trash_ids() from public, anon;
+grant execute on function public.expired_trash_ids() to authenticated;
+
+-- deletes every expired invitation (all owners); for the scheduled job only
+create or replace function public.purge_expired_trash() returns integer
+  language plpgsql security definer set search_path = public as $$
+declare n integer;
+begin
+  delete from public.invitations where deleted_at is not null and deleted_at < now() - public.trash_retention();
+  get diagnostics n = row_count;
+  return n;
+end $$;
+revoke all on function public.purge_expired_trash() from public, anon, authenticated;
+
+-- schedule it every day at 03:17 UTC (needs the pg_cron extension)
+do $$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    create extension if not exists pg_cron;
+    perform cron.schedule('purge-expired-trash', '17 3 * * *', 'select public.purge_expired_trash()');
+  else
+    raise notice 'pg_cron is not available: the trash purge is NOT scheduled. Enable it (Database > Extensions) and run this file again.';
+  end if;
+exception when others then
+  raise notice 'Could not schedule the trash purge (%). Enable pg_cron (Database > Extensions) and run this file again.', sqlerrm;
+end $$;
 
 -- ---------- admin role (C-1) ----------
 -- Who is an administrator lives in this table, not in the browser. Nobody can read or write it through the API

@@ -40,6 +40,18 @@ drop function if exists public.enquiries_check_insert() cascade;
 drop function if exists public.enquiries_history() cascade;
 drop function if exists public.touch_updated_at() cascade;
 drop function if exists public.invitations_touch() cascade;
+drop function if exists public.invitations_trash_stamp() cascade;
+drop function if exists public.expired_trash_ids() cascade;
+drop function if exists public.purge_expired_trash() cascade;
+drop function if exists public.trash_retention() cascade;
+
+-- the daily trash purge job (only if pg_cron is installed)
+do $$ begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    perform cron.unschedule('purge-expired-trash');
+  end if;
+exception when others then null;
+end $$;
 
 -- storage policies for link-preview images (the bucket itself is kept, see above)
 drop policy if exists "previews: public read"  on storage.objects;
