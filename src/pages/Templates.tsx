@@ -12,7 +12,7 @@ import type { TemplateRecord } from "../types/dashboard";
 const nameOf = (t: TemplateRecord) => t.name || t.title || `Template ${t.id}`;
 
 function useCompiled(t: TemplateRecord) {
-  const src = t.html_code || t.html || "";
+  const src = t.html_code || "";
   return useMemo(() => {
     if (!src) return "";
     try { return compile(src, SAMPLE); } catch { return ""; }

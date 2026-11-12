@@ -7,11 +7,11 @@ import { compile } from "../../../lib/compileInvitation";
 import type { Category, Template } from "../../../types/invitation";
 import { SAMPLE } from "../constants";
 
-interface ThumbSource extends Template { thumbnail?: string; thumbnail_url?: string; image?: string; preview_image?: string; html?: string; title?: string }
+interface ThumbSource extends Template { thumbnail?: string; thumbnail_url?: string; image?: string; preview_image?: string; title?: string }
 
 export function TemplateThumb({ t }: { t: ThumbSource }) {
   const img = t.thumbnail || t.thumbnail_url || t.image || t.preview_image;
-  const src = t.html_code || t.html || "";
+  const src = t.html_code || "";
   const doc = useMemo(() => {
     if (img || !src) return "";
     try { return compile(src, SAMPLE); } catch { return ""; }

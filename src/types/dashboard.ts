@@ -19,7 +19,6 @@ export interface InvitationRow {
 /** A template plus the optional fields a real API may add (thumbnail, alternate name/html keys). */
 export interface TemplateRecord extends Template {
   title?: string;
-  html?: string;
   thumbnail?: string;
   thumbnail_url?: string;
   image?: string;

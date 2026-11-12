@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 7th update)
+### Where things stand (12 Nov 2026, 8th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -34,8 +34,55 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
-| Phase 2 | 0 | 6 | rest | M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). |
+| Phase 2 | 1 | 7 | 3 | **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Still untouched: H-4, M-4, M-2. |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (8th update) – M-10 compiler placeholder handling, M-5 paged reads and column lists
+
+**What was done**
+
+1. **M-10 – template compiler (`src/lib/compileInvitation.ts`, `PreviewPanel.tsx`, `TemplatePicker.tsx`, `Templates.tsx`, `src/types/dashboard.ts`)**
+   - **Values live in a null-prototype object.** `valuesFor()` returns `Object.assign(Object.create(null), {...})`. Before, `{{constructor}}`, `{{toString}}`, `{{hasOwnProperty}}` printed text such as `function Object() { [native code] }`, and `{{#if constructor}}…{{/if}}` always showed its body (a function is truthy). Now they resolve to nothing, like any unknown key.
+   - **Only the compiler's own syntax is stripped.** The old last step ran `.replace(/\{\{[^}]+\}\}/g, "")` over the finished HTML. That also deleted text a person had typed into a field (a name containing `{{x}}`) and any `{{ … }}` inside template CSS or JavaScript. It is replaced by `stripLeftoverSyntax(doc)`, which works on the parsed document, removes only `{{key}}`, `{{#if key}}` and `{{/if}}` (placeholders in `<head>` that are not walked, unmatched control tags), and skips the `span[data-schedy-field]` elements that hold filled-in values. Attributes need no extra pass: every `{{key}}` in them was already replaced.
+   - **`tpl.html` fallback removed** in `PreviewPanel`, `TemplatePicker` and `Templates`, and the unused `html?` field removed from `TemplateRecord`. `fetchTemplates` selects only `html_code`, so `html` was never present; the preview showed "No preview available" only when `html_code` was empty, as it still does.
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** `npm run typecheck` and `npm run build` pass. A jsdom script, 18 checks: `{{constructor}}`, `{{toString}}`, `{{__proto__}}`, `{{hasOwnProperty}}` in text give an empty string; `{{#if constructor}}` and `{{#if toString}}` hide their body; `title="{{constructor}}"` gives an empty attribute; normal fill (`{{groom-en}} & {{bride_en}}` with an underscore key) still works and an unknown key gives an empty string; `{{#if}}` true and false still work; a name `{{secret}} {{#if x}} {x}` is kept exactly, in text and in an attribute; template `<style>` (including `@media` nesting) and a `<script>` with nested braces are kept; a placeholder in `<title>` is removed and stray `{{/if}}` / `{{#if zz}}` are removed; the H-2 cases still hold (`javascript:` href removed, `onerror` removed). **Not run in a browser.**
+2. **M-5 – data layer (`src/lib/api.ts`)**
+   - **Reads go past the 1,000-row cap.** Supabase answers a plain `select` with at most 1,000 rows and does not say when it cuts the list, so the oldest rows of a long list would have vanished without an error. `readAllPages()` reads `fetchInvitations` and `fetchEnquiries` in pages of 500 with `.range()`, orders by `created_at` then `id` (so equal timestamps never swap places between pages), drops a row that arrives twice (an insert between two pages), rejects the whole read if any page fails (no half list), and stops at 10,000 rows with a console warning.
+   - **Explicit column lists** replace `select("*")` for invitations (`INVITATION_COLUMNS`: no `slug`, no `owner`) and enquiries (`ENQUIRY_COLUMNS`), including `fetchInvitation` and the row `saveInvitation` returns. A column added later (Track B's `client_email`) does not reach the lists until it is added on purpose. `details` is still read for every row on the lists: the preview panel and the couple names need it.
+   - **Not done (why M-5 stays `[~]`):** there is still no "load more" in the UI and no server-side search, filter or sort, because filters, search, sort and bulk selection run in the browser over the whole list. Downloading up to 10,000 rows with their `details` is the cost until that is built. The 60 s refresh (H-6, M-6) re-reads the whole list through the same paged read.
+   - **Verified (ad hoc):** a fake Supabase client that enforces the 1,000-row cap, 18 checks: 2,300 invitations arrive complete, unique, newest first, in 5 requests (`0-499 … 2000-2499`); the column list has no `*`, `slug` or `owner`; every request has the `id` tie-break; the `published` and `deleted` maps are right; exactly 1,000 rows ends after one empty extra page; empty and 3-row lists; 1,200 rows with one identical `created_at` come back once each; an error on page 2 rejects, and the flag queue still works for the next read; the duplicate drop; 1,500 enquiries; a 10,500-row table stops at 10,000 rows (20 requests) and warns. **Not run on real Supabase or in a browser.**
+
+**How this affects other tasks**
+
+- **M-5 / H-6 / M-6:** `fetchInvitations` and `fetchEnquiries` keep their return types, so `useInvitationStore`, `useEnquiries` and the 60 s refresh are unchanged. `knownPub` / `knownDel` are still set from the full list. When real pagination is added, the flag maps must work per loaded page (3rd update note still stands).
+- **M-4 / Track B:** the invitation column list is the place to add `client_email` (or a `client_invitations` view) later.
+- **H-2 / C-2:** nothing changed. The compiler still sanitizes attributes after filling them.
+- **L-9** (stop executing template scripts in the editor) is still open. Note: `{{x}}` placeholders inside a `<script>` in `<body>` are still turned into spans by the existing text walker; this update did not change that.
+- **Seen, not changed:** `PreviewPanel`'s iframe uses `sandbox="allow-scripts allow-forms allow-popups"`. It has no `allow-same-origin` (so the C-2 risk is covered), but it differs from the other two frames (`allow-forms` present, `allow-popups-to-escape-sandbox` missing). Align it when the strict CSP is enforced.
+
+**Behaviour changes to check**
+
+- A guest or client who types `{{…}}` into a name field now sees it as typed; before it vanished.
+- A template with `{{constructor}}` or similar no longer prints function text.
+- Lists with more than 1,000 invitations or enquiries now show all rows. With a few hundred rows nothing looks different, but the first load makes one request per 500 rows.
+- Template CSS or JS that contains a double brace such as `{{a:1}}` is no longer cut. (If `{{a}}`-style words, with only letters, digits, `_` or `-` between the braces, appear in a `<head>` script, they are still removed as placeholders.)
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. M-10, browser: open a template in Create, type `{{hello}} {{#if x}}` in the groom name: the preview and the public page show the text as typed. Open the Templates page and the template picker: thumbnails still render. Dashboard → preview an invitation: it renders.
+2. M-5, browser, Network tab: Dashboard load makes `invitations?...&offset=0&limit=500` requests (one per 500 rows) and the Invitations count matches `select count(*) from invitations`. To test the cap without real data, in the SQL Editor run `insert into public.invitations(id, slug, details) select 'bulk'||g, 'bulk'||g, '{}' from generate_series(1,1200) g;` (set `owner` if the default `auth.uid()` is null in the editor), reload: all 1,200 rows are listed; then `delete from public.invitations where id like 'bulk%';`.
+3. M-5, enquiries: with more than 1,000 test rows the Enquiries list shows all of them (same method), then delete them.
+
+**Next steps, in order**
+
+1. Owner actions: everything in the 6th and 7th updates' lists (including the Supabase redirect URL for password reset). **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th, 7th and 8th updates plus the older ones (C-2 `LivePreview`, H-1, M-13, H-6) and the M-8/M-9 curl checks; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP (narrow `img-src`, align the `PreviewPanel` sandbox).
+4. H-5 remainder (captcha, per-IP limit).
+5. Next code items, two at a time: **M-4** (storage limits and cleanup) with **M-2** (transliteration error handling), or **H-4** (view counting) on its own, since it touches the database; also the *Duplicate* gap from the 3rd update, and the M-5 "load more" UI.
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (7th update) – M-3 client-side QR codes, M-7 login fixes and forgot password
 
@@ -494,7 +541,7 @@ When asked to "update based on task.md", follow these steps.
 ## Phase 2 – Next sprint (~1 week)
 
 - [ ] **H-4** Separate view counting from `get_public_invitation` (rate-limited or deduped per visitor); return only fields the template needs; add Vercel/Supabase rate limiting; consider longer random default slugs.
-- [ ] **M-5** Server-side pagination for invitations and enquiries; select only needed columns instead of `select("*")`. (`src/lib/api.ts:63,167`)
+- [~] **M-5** *Data layer coded 12 Nov (8th update): `fetchInvitations` and `fetchEnquiries` read in pages of 500 (past the 1,000-row cap), with an `id` tie-break, explicit column lists (`INVITATION_COLUMNS`, `ENQUIRY_COLUMNS`), tested with a fake client (18 checks). Still open: a "load more" UI and server-side search/filter/sort, which the lists still do in the browser.* Server-side pagination for invitations and enquiries; select only needed columns instead of `select("*")`. (`src/lib/api.ts`)
 - [ ] **M-4** Storage: bucket limits (≤300 KB, `image/jpeg`); delete the object when an invitation is purged or deleted; scheduled job to clean orphans; restrict `seoImage` to the app's own bucket.
 - [~] **M-3** *Coded 12 Nov (7th update): `src/lib/qr.ts` + `useQr` draw the QR in the browser with the `qrcode` package (loaded only when a QR dialog opens); `api.qrserver.com` is gone from `src`. The generated PNG was decoded back to the exact link in a test; needs the browser check in the Progress log.* Generate QR codes client-side with a small library and remove `api.qrserver.com`. (`QrModal.tsx:18`, `ShareModal.tsx:35`)
 - [~] **M-1** *Coded 12 Nov (6th update): `watchAuthChanges` (Supabase `onAuthStateChange`), `signOut()` that waits for Supabase, `resetUserData()` clears create drafts and the `knownPub`/`knownDel` caches, login form locked until sign-out finishes. Tested with a fake Supabase client and jsdom (36 checks); not yet run in a browser or on real Supabase; see Progress log.* Session hygiene: subscribe to `onAuthStateChange` (no usage exists today); on sign-out clear create-form drafts and module caches (`knownPub`/`knownDel`) and call `signOut` before navigating.
@@ -502,7 +549,7 @@ When asked to "update based on task.md", follow these steps.
 - [~] **M-7** *Coded 12 Nov (7th update), all four parts: Google button reset on `pageshow` (bfcache), return page kept through the Google redirect, no client password-length check on sign-in, working "Forgot password" with a set-new-password form. Tested with the real `Login` component in jsdom and a fake client; needs a real reset email and the Supabase redirect URL (see Progress log).* Login: reset the Google button's busy state on `pageshow`; persist `from` in `redirectTo`; drop the client password-length check on login; implement "Forgot password". (`src/lib/auth.ts:48–52`, `Login.tsx`)
 - [~] **M-13** Default to `trial` (or show an explicit error) when the profile row is missing. (`src/lib/api.ts:33`) *Coded 12 Nov: missing row or null `plan_status` → `trial` with 0 days left, role label `Member` instead of `Administrator`. Checked by build/typecheck and code reading only.*
 - [~] **M-9** *Coded 12 Nov (4th update): site URL from `SITE_URL` through `api/_siteUrl.js` (no `Host` header), slug rule 3–30 or uuid, stub link only for valid slugs. Tested with a mock handler (19 checks); needs the curl check on a deployment (see Progress log).* `api/invite.js`: take the site URL from an env var instead of `Host`/`X-Forwarded-Host`; render the stub link only for valid slugs; align `SLUG_RE` (1–64) with the DB rule (3–30).
-- [ ] **M-10** Template compiler: use `Object.create(null)` or a `Map` for values; strip only known placeholder syntax instead of every `{{…}}`; fix `PreviewPanel` fallback to the non-existent `tpl.html`.
+- [x] **M-10** Template compiler: use `Object.create(null)` or a `Map` for values; strip only known placeholder syntax instead of every `{{…}}`; fix `PreviewPanel` fallback to the non-existent `tpl.html`. *Done 12 Nov (8th update): null-prototype values, `stripLeftoverSyntax()` on the parsed document, the `tpl.html` fallback removed in three places; 18 jsdom checks pass (see Progress log). Not run in a browser.*
 - [ ] **M-2** Transliteration: separate "no suggestion" from network errors so one miss does not disable online mode for 60 s; decide on a documented API; disclose in the privacy policy. (`src/lib/transliterate.ts:12–37`)
 
 ---

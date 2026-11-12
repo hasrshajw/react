@@ -25,7 +25,7 @@ export function PreviewPanel({ slot, row, published, onClose }: Props) {
   const html = useMemo(() => {
     try {
       const tpl: TemplateRecord | undefined = templates.find((t) => String(t.id) === String(row.template_id ?? row.details?.templateId));
-      const source = tpl?.html_code || tpl?.html || "";
+      const source = tpl?.html_code || "";
       const data = {
         events: [], groomContacts: [], brideContacts: [],
         ...(row.details || {}),

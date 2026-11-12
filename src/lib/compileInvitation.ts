@@ -7,7 +7,8 @@ const dayText=(v?:string)=>{if(!v)return "";const d=new Date(`${v}T00:00:00`);re
 const timeText=(v?:string)=>{if(!v)return "";const [h,m]=v.split(":").map(Number);if(!Number.isFinite(h)||!Number.isFinite(m))return "";const d=new Date();d.setHours(h,m,0,0);return new Intl.DateTimeFormat("en-IN",{hour:"numeric",minute:"2-digit"}).format(d)};
 
 function valuesFor(data:CompileData):Record<string,any>{
- const v={"surname-en":data.surnameEn,"surname-te":data.surnameTe,"bride-en":data.brideEn,"bride-te":data.brideTe,"groom-en":data.groomEn,"groom-te":data.groomTe,"groom-father-en":data.groomFatherEn,"groom-father-te":data.groomFatherTe,"groom-father-phone":data.groomFatherPhone,"groom-mother-en":data.groomMotherEn,"groom-mother-te":data.groomMotherTe,"groom-mother-phone":data.groomMotherPhone,"bride-father-en":data.brideFatherEn,"bride-father-te":data.brideFatherTe,"bride-father-phone":data.brideFatherPhone,"bride-mother-en":data.brideMotherEn,"bride-mother-te":data.brideMotherTe,"bride-mother-phone":data.brideMotherPhone,"event-wedding-date":dateText(data.weddingDate),"event-wedding-day":dayText(data.weddingDate),"event-wedding-time":timeText(data.muhurthamTime),"wedding-date":data.weddingDate,"event-reception-date":dateText(data.receptionDate),"event-reception-day":dayText(data.receptionDate),"event-reception-time":timeText(data.receptionTime),"venue-en":data.venueEn,"venue-te":data.venueTe,"venue-address":data.venueAddress,"venue-maps":data.venueMaps,"reception-date":dateText(data.receptionDate),"reception-time":timeText(data.receptionTime),"reception-venue-te":data.venueTe,"same-venue":data.receptionEnabled&&data.venueTe?"1":""};
+ /* M-10: a null-prototype object, so a placeholder named `constructor`, `toString` or `__proto__` finds nothing instead of an inherited member. */
+ const v:Record<string,any>=Object.assign(Object.create(null),{"surname-en":data.surnameEn,"surname-te":data.surnameTe,"bride-en":data.brideEn,"bride-te":data.brideTe,"groom-en":data.groomEn,"groom-te":data.groomTe,"groom-father-en":data.groomFatherEn,"groom-father-te":data.groomFatherTe,"groom-father-phone":data.groomFatherPhone,"groom-mother-en":data.groomMotherEn,"groom-mother-te":data.groomMotherTe,"groom-mother-phone":data.groomMotherPhone,"bride-father-en":data.brideFatherEn,"bride-father-te":data.brideFatherTe,"bride-father-phone":data.brideFatherPhone,"bride-mother-en":data.brideMotherEn,"bride-mother-te":data.brideMotherTe,"bride-mother-phone":data.brideMotherPhone,"event-wedding-date":dateText(data.weddingDate),"event-wedding-day":dayText(data.weddingDate),"event-wedding-time":timeText(data.muhurthamTime),"wedding-date":data.weddingDate,"event-reception-date":dateText(data.receptionDate),"event-reception-day":dayText(data.receptionDate),"event-reception-time":timeText(data.receptionTime),"venue-en":data.venueEn,"venue-te":data.venueTe,"venue-address":data.venueAddress,"venue-maps":data.venueMaps,"reception-date":dateText(data.receptionDate),"reception-time":timeText(data.receptionTime),"reception-venue-te":data.venueTe,"same-venue":data.receptionEnabled&&data.venueTe?"1":""});
  [0,1].forEach(i=>{const e:Record<string,any>=(data.events||[])[i]||{},n=i+1;v[`event-${n}-name-te`]=e.nameTe||"";v[`event-${n}-date`]=dateText(e.date);v[`event-${n}-day`]=dayText(e.date);v[`event-${n}-time`]=timeText(e.time);v[`event-${n}-venue-te`]=e.venueTe||"";v[`event-${n}-maps`]=e.maps||"";v[`event-${n}-name-en`]=e.name||"";v[`event-${n}-venue-en`]=e.venue||""});
  const gc:Record<string,any>=(data.groomContacts||[])[0]||{},bc:Record<string,any>=(data.brideContacts||[])[0]||{};v["groom-extra-1-te"]=gc.nameTe||"";v["groom-extra-1-phone"]=gc.phone||"";v["bride-extra-1-te"]=bc.nameTe||"";v["bride-extra-1-phone"]=bc.phone||"";return v;
 }
@@ -47,6 +48,17 @@ function sanitizeAttributes(doc:Document){
  doc.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(attr=>{const name=attr.name.toLowerCase();if(/^on[a-z]+$/.test(name)||(URL_ATTRS.has(name)&&!isSafeUrl(attr.value,name)))el.removeAttribute(attr.name)}));
 }
 
+/** M-10: syntax the compiler itself defines: `{{key}}`, `{{#if key}}` and `{{/if}}`. Anything else with braces (template CSS, JS, JSON, a person's text) is left alone. */
+const LEFTOVER_SYNTAX=/\{\{\s*(?:#if\s+[\w-]+|\/if|[\w-]+)\s*\}\}/g;
+/** Removes placeholders that were not filled (for example one in `<head>`, which is not walked) and unmatched `{{#if}}` / `{{/if}}` tags.
+ *  Works on the parsed document and skips the spans that hold filled-in values, so text a person typed (even "{{x}}") is never altered.
+ *  Attributes need no pass: every `{{key}}` in them was already replaced above. */
+function stripLeftoverSyntax(doc:Document){
+ const walker=doc.createTreeWalker(doc.documentElement,NodeFilter.SHOW_TEXT),nodes:Node[]=[];let node:Node|null;
+ while((node=walker.nextNode()))nodes.push(node);
+ nodes.forEach(n=>{if(n.parentElement?.closest("[data-schedy-field]"))return;const text=n.nodeValue||"";LEFTOVER_SYNTAX.lastIndex=0;if(LEFTOVER_SYNTAX.test(text)){LEFTOVER_SYNTAX.lastIndex=0;n.nodeValue=text.replace(LEFTOVER_SYNTAX,"")}});
+}
+
 export function compile(source:string,data:CompileData):string{
  if(!source)return "";const v=valuesFor(data);let html=source;const conditional=/\{\{#if\s+([\w-]+)\}\}((?:(?!\{\{#if\b)[\s\S])*?)\{\{\/if\}\}/g;let previous:string;do{previous=html;html=html.replace(conditional,(_,key,body)=>v[key.trim().replaceAll("_","-")]?body:"")}while(html!==previous&&/\{\{#if\b/.test(html));
  const doc=new DOMParser().parseFromString(html,"text/html"),placeholder=/\{\{\s*([\w-]+)\s*\}\}/g,walker=doc.createTreeWalker(doc.body,NodeFilter.SHOW_TEXT),nodes:Node[]=[];let node:Node|null;while((node=walker.nextNode()))nodes.push(node);
@@ -54,5 +66,6 @@ export function compile(source:string,data:CompileData):string{
  stripBrokenAssets(doc);
  doc.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(attr=>{if(attr.value.includes("{{"))attr.value=attr.value.replace(placeholder,(_,key)=>v[key.replaceAll("_","-")]??"")}));
  sanitizeAttributes(doc);
- return `<!doctype html>${doc.documentElement.outerHTML}`.replace(/\{\{[^}]+\}\}/g,"");
+ stripLeftoverSyntax(doc);
+ return `<!doctype html>${doc.documentElement.outerHTML}`;
 }

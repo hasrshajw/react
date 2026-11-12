@@ -76,6 +76,33 @@ function chunks<T>(list: T[]): T[][] {
   return out;
 }
 
+/* M-5: PostgREST answers a plain `select` with at most 1,000 rows (the Supabase default) and says nothing when it
+   cuts the list, so a long list would silently lose its oldest rows. Lists are therefore read in pages with `.range()`.
+   Every ordered read adds `id` as a tie-break so two rows with the same `created_at` never swap places between pages,
+   and rows that arrive twice (something was inserted while paging) are dropped by id. */
+const PAGE_SIZE = 500;
+/* Hard stop so a runaway table cannot freeze the browser. Reaching it is logged; real UI pagination (load more) is still open in M-5. */
+const MAX_ROWS = 10000;
+type PageResult = { data: Record<string, any>[] | null; error: { message: string } | null };
+export async function readAllPages(page: (from: number, to: number) => PromiseLike<PageResult>): Promise<Record<string, any>[]> {
+  const seen = new Set<string>();
+  const out: Record<string, any>[] = [];
+  for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
+    const { data, error } = await page(from, from + PAGE_SIZE - 1);
+    if (error) fail(error);
+    const got = data ?? [];
+    for (const r of got) { const key = String(r.id); if (!seen.has(key)) { seen.add(key); out.push(r); } }
+    if (got.length < PAGE_SIZE) return out;
+  }
+  console.warn(`List stopped at ${MAX_ROWS} rows.`);
+  return out;
+}
+
+/* Columns the admin lists read. `slug` and `owner` stay on the server (splitRow dropped them anyway), and a column added later
+   (for example the Track B client email) does not reach the list until it is added here on purpose. */
+const INVITATION_COLUMNS = "id, groom_name, bride_name, event_date, template_id, template_name, details, views, published, deleted_at, created_at, updated_at";
+const ENQUIRY_COLUMNS = "id, name, phone, email, message, status, note, follow_up_date, history, created_at";
+
 const slugOf = (x: InvitationRow) => (x.details?.customId || "").trim() || x.id;
 
 /** Splits the database-only columns (published, deleted_at) out of a row. */
@@ -87,12 +114,12 @@ function splitRow(r: Record<string, any>): { row: InvitationRow; published: bool
 /** Reads run after any flag writes that were already sent, so the list always includes them (H-6). */
 export function fetchInvitations(): Promise<InvitationList> {
   return inOrder(async () => {
-    const { data, error } = await db().from("invitations").select("*").order("created_at", { ascending: false });
-    if (error) fail(error);
+    const data = await readAllPages((from, to) => db().from("invitations").select(INVITATION_COLUMNS)
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to));
     const rows: InvitationRow[] = [];
     const published: PublishMap = {};
     const deleted: DeletedMap = {};
-    for (const r of data ?? []) {
+    for (const r of data) {
       const s = splitRow(r);
       rows.push(s.row);
       published[s.row.id] = s.published;
@@ -105,7 +132,7 @@ export function fetchInvitations(): Promise<InvitationList> {
 }
 
 export async function fetchInvitation(id: string): Promise<InvitationRow | null> {
-  const { data, error } = await db().from("invitations").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await db().from("invitations").select(INVITATION_COLUMNS).eq("id", id).maybeSingle();
   if (error) fail(error);
   return data ? splitRow(data).row : null;
 }
@@ -124,7 +151,7 @@ export async function saveInvitation(record: InvitationRow): Promise<InvitationR
       template_name: record.template_name ?? null,
       details: record.details ?? {},
     })
-    .select("*")
+    .select(INVITATION_COLUMNS)
     .single();
   if (error) {
     if (error.code === "23505") throw new ApiError("That link ID is already used by another invitation.");
@@ -217,9 +244,9 @@ const toEnquiry = (r: Record<string, any>): Enquiry => ({
 });
 
 export async function fetchEnquiries(): Promise<Enquiry[]> {
-  const { data, error } = await db().from("enquiries").select("*").order("created_at", { ascending: false });
-  if (error) fail(error);
-  return (data ?? []).map(toEnquiry);
+  const data = await readAllPages((from, to) => db().from("enquiries").select(ENQUIRY_COLUMNS)
+    .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to));
+  return data.map(toEnquiry);
 }
 
 /** M-6: number of enquiries still marked "new", for the navbar badge. Counts on the server, so no rows are downloaded. */
