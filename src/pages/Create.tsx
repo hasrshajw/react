@@ -203,7 +203,9 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
      { leaving: true } is used by the "Save your changes?" dialog: it skips the share
      popup and the toast, because the user is on their way to another page. */
   const doSave = async ({ leaving = false } = {}): Promise<boolean> => {
-    if (saving) return false;
+    /* The buttons are disabled in these states, but Ctrl+S and the leave dialog call this directly. After a failed
+       load the form is empty, and saving it would overwrite the real invitation. */
+    if (saving || recordLoading || loadError) return false;
     if (editId && !dirty) return true;
     dispatch({ type: "submit" });
     const entries = Object.entries(errors);
