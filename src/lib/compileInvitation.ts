@@ -36,6 +36,7 @@ const URL_ATTRS=new Set(["href","src","action","formaction","poster","background
 /** True when `value` is safe to use in the URL attribute `attr`: no scheme (relative, "#anchor"), an allowed scheme, or an inline raster image on src-like attributes.
  *  Browsers ignore control characters and spaces inside the scheme ("java\tscript:"), so they are removed before the scheme is read. */
 export function isSafeUrl(value:string,attr="href"):boolean{
+ // eslint-disable-next-line no-control-regex -- the control characters are the point: browsers ignore them inside a scheme
  const v=value.replace(/[\u0000-\u0020\u007f-\u00a0\u1680\u180e\u2000-\u200d\u2028\u2029\u202f\u205f\u2060\u3000\ufeff]/g,"");
  const scheme=/^([a-z][a-z0-9+.-]*):/i.exec(v);
  if(!scheme)return true;

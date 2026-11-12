@@ -1,0 +1,15 @@
+{
+  "name": "schedy-lint",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ESLint for the app in ../../src. Kept in its own folder because typescript-eslint cannot run on TypeScript 7 (it needs the compiler's JavaScript API, which 7 does not have), so this folder pins TypeScript 5.9 for linting only. The app itself is still type-checked with the root TypeScript (npm run typecheck). Merge this into the root package.json once typescript-eslint supports TypeScript 7.",
+  "type": "module",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "globals": "^16.0.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}

@@ -56,7 +56,7 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
   const onTabKey = (ev: KeyboardEvent) => {
     if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(ev.key)) return;
     ev.preventDefault();
-    let n = idx;
+    let n: number;
     if (ev.key === "ArrowRight") n = (idx + 1) % tabs.length;
     else if (ev.key === "ArrowLeft") n = (idx - 1 + tabs.length) % tabs.length;
     else if (ev.key === "Home") n = 0;

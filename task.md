@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 15th update)
+### Where things stand (12 Nov 2026, 16th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,49 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 5 | 3 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. Nothing else in Phase 3 is started (no lint, tests or CI yet). |
+| Phase 3 | 6 | 4 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors) and 102 unit tests run (`npm test`); the Playwright, database tests, CI and type tightening are not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (16th update) – M-14 first part: ESLint and Vitest
+
+**What was done**
+
+1. **ESLint** (`tools/lint/`, `package.json` scripts `lint` and `lint:install`, `.gitignore` already ignores `node_modules`)
+   - **Why a separate folder:** `typescript-eslint` supports TypeScript up to 6.0 (`peer typescript >=4.8.4 <6.1.0`) and needs the compiler's JavaScript API, which TypeScript 7 (the app's `^7.0.2`) does not have (`require("typescript")` has no `createSourceFile`). An npm `overrides` entry does not help, because npm resolves peers from the root. So `tools/lint/package.json` has its own pinned `typescript` 5.9.3, `eslint` 10, `typescript-eslint`, `eslint-plugin-react-hooks` 7, `globals`, and the root keeps TypeScript 7 for `tsc`. Run `npm run lint:install` once, then `npm run lint`. When `typescript-eslint` supports TypeScript 7, move these packages into the root and delete the folder.
+   - **Rules:** ESLint recommended + `typescript-eslint` recommended (syntax level, not type-aware; `tsc` covers types) + `react-hooks/rules-of-hooks` (error) and `exhaustive-deps` (warning). The newer React Compiler rules that `eslint-plugin-react-hooks` 7 ships in its "recommended" preset (`refs`, `set-state-in-effect`, ...) gave 93 errors on working code (for example `useFadeIn` refs) and are **not** turned on; add them one at a time later. `no-explicit-any` and `no-unused-vars` are warnings (task M-14 says to tighten types later).
+   - **Result:** 0 errors, 36 warnings (14 `any`, 14 `exhaustive-deps`, 8 unused variables). Three real findings were fixed with no behaviour change: an unused first assignment in `EnquiriesPanel` (`let n: number`), a ternary used as a statement in `Select.tsx` (now `if / else`), and `compileInvitation.ts`'s control-character regex, which is deliberate (it strips tabs and control characters inside a URL scheme, H-2) and now carries a documented `eslint-disable-next-line`.
+   - **Not changed:** the 14 `exhaustive-deps` warnings. Adding the listed dependencies can change when effects run (for example the Dashboard refresh timers), so each needs a look with the app open, not a bulk edit.
+2. **Vitest** (`vitest.config.ts`, `npm test`, dev dependencies `vitest` 5.1 and `jsdom`)
+   - 102 tests in `src/lib/*.test.ts`, the cases that earlier updates only ran as throwaway scripts: `compileInvitation.test.ts` (H-2 / M-10: `isSafeUrl`, hostile names in text and attributes, `javascript:` and obfuscated links, `on*` handlers, `constructor` / `toString` placeholders, `{{#if}}`, braces in CSS and script, leftover tags in `<head>`; jsdom), `dashboardData.test.ts` (L-3 `looksLikeFormula` / `csvCell`, L-4 `waNumber` / `waLink`), `helpLinks.test.ts` (L-1, 23 cases), `uid.test.ts` (L-5, with and without `crypto`), `previewUrl.test.ts` (M-4 `isOwnPreviewImage`, 16 cases).
+   - **The tests can fail:** a deliberate break was tried (no guard for a leading tab or carriage return in `looksLikeFormula`, and `javascript:` allowed in `isSafeUrl`): 5 tests failed; after restoring, all 102 pass.
+   - Test files sit in `src/`, so `npm run typecheck` and `npm run build` check them too (both pass; the main bundle is unchanged at 260.05 kB because Vite never imports them).
+3. **Not done on purpose:** CI (GitHub Actions) and Dependabot, Playwright, database tests, and the type tightening. The tests that need a fake Supabase client (`api.ts` read, queue and purge cases, the hooks) are the next batch.
+
+**How this affects other tasks**
+
+- **Track B (B9):** the unit-test layer exists; B9's allow-list, diff and banner tests can be added next to it. `validate` is the first thing Track B's allow-list work will touch, so it is a good next test file.
+- **M-14 type tightening:** `typescript ^7.0.2` is still a caret range; pinning it is still open. Pin it together with the `@types/react` ^19 vs `react` ^18 mismatch.
+- **Database changes:** none, nothing to run in Supabase.
+
+**Behaviour changes to check**
+
+- None for users. Source changes are three no-op lint fixes (`let n: number`, `if / else`, a comment).
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint:install && npm run lint && npm test && npm run typecheck && npm run build` all finish with no errors (lint prints 36 warnings).
+2. In `EnquiriesPanel`, with the keyboard on the tab row: Arrow keys, Home and End still move between tabs; in the select control, Enter, Space and Arrow keys still open and close the list.
+
+**Next steps, in order**
+
+1. Owner actions: run `007`, `008` and `009`, then deploy `preview`; turn on pg_cron; per-IP rate limit; everything in the earlier updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 16th updates; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: more Vitest files (`validate`, `reserved`, `transliterate`, then the fake-Supabase cases), GitHub Actions for typecheck, build, lint and tests (M-14), the M-5 "load more" UI, or **L-9**.
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (15th update) – L-8 trash date and 30-day purge belong to the server
 
@@ -888,9 +929,9 @@ When asked to "update based on task.md", follow these steps.
 
 ## Phase 3 – Ongoing
 
-### Test and tooling baseline (**M-14**, nothing exists today)
-- [ ] ESLint with `react-hooks` and `@typescript-eslint`; add `npm run lint`.
-- [ ] Vitest unit tests for `compile`, `validate`, `slug`, `dashboardData` helpers.
+### Test and tooling baseline (**M-14**; lint and the first unit tests exist since the 16th update)
+- [x] ESLint with `react-hooks` and `@typescript-eslint`; add `npm run lint`. *Done 12 Nov (16th update): `tools/lint` (own `package.json`, ESLint 10, TypeScript 5.9 pinned for linting only), `npm run lint:install` once, then `npm run lint`: 0 errors, 36 warnings (14 `any`, 14 `exhaustive-deps`, 8 unused variables). Only the two classic hook rules are on; the React Compiler rules of `eslint-plugin-react-hooks` 7 are not.*
+- [~] Vitest unit tests for `compile`, `validate`, `slug`, `dashboardData` helpers. *Started 12 Nov (16th update): `npm test`, 102 tests for `compile` / `isSafeUrl`, the `dashboardData` CSV and WhatsApp helpers, `helpLink`, `uid` and `isOwnPreviewImage`. Still to do: `validate`, `slug`/`reserved`, `transliterate` and the hook and `api.ts` cases from the 3rd to 15th updates (they need a fake Supabase client), plus the database cases.*
 - [ ] Playwright e2e: login → create → publish → public view.
 - [ ] RLS tests (pgTAP or Supabase CLI) covering the authorization checklist in the audit, section 6.
 - [ ] GitHub Actions: typecheck, build, tests, `npm audit`; add Dependabot.

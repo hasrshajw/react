@@ -67,7 +67,7 @@ export function Select({ value, onChange, options, label }: SelectProps) {
   }, [active, open]);
 
   const onBtnKey = (e: KeyboardEvent) => {
-    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) { e.preventDefault(); open ? close() : openList(); }
+    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) { e.preventDefault(); if (open) close(); else openList(); }
   };
   const onListKey = (e: KeyboardEvent) => {
     const n = options.length;

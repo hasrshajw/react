@@ -105,3 +105,5 @@ The Telugu name and venue fields fill in as you type in English. `src/lib/transl
 - `npm run dev` start the dev server
 - `npm run typecheck` TypeScript check (the whole project is TypeScript, including `vite.config.ts`)
 - `npm run build` type-check, then production build
+- `npm test` unit tests (Vitest, task M-14): `src/**/*.test.ts`, run once. A test that needs a DOM starts with `// @vitest-environment jsdom`.
+- `npm run lint:install` once, then `npm run lint` ESLint (`@typescript-eslint`, `react-hooks/rules-of-hooks` as an error, `exhaustive-deps` as a warning). The lint tools live in `tools/lint` with their own `package.json` and TypeScript 5.9, because `typescript-eslint` cannot run on the TypeScript 7 used by the app (7 has no JavaScript compiler API). The app is still checked by `npm run typecheck`. Move the lint packages into the root `package.json` once `typescript-eslint` supports TypeScript 7. Warnings (unused variables, `any`, hook dependencies) are shown but do not fail the run; errors do.
