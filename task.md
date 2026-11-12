@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 9th update)
+### Where things stand (12 Nov 2026, 10th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -34,8 +34,57 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
-| Phase 2 | 1 | 9 | 1 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Still untouched: H-4. |
+| Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (10th update) – H-4 view counting is separate, deduplicated and capped
+
+**What was done**
+
+1. **H-4 – reading an invitation no longer counts a view** (`supabase/schema.sql`, new `supabase/migrations/007_view_counting.sql`, `supabase/reset.sql`)
+   - Before, every call of `get_public_invitation()` ran `views = views + 1`. A loop of requests with the public key could push any published invitation's counter up, a link-preview bot that ran the page counted as a guest, and each view also moved `updated_at`.
+   - **`get_public_invitation(slug)` now only reads** and returns four keys: `groom_name`, `bride_name`, `details`, `html_code`. `id`, `template_id`, `template_name` and `event_date` are no longer returned (the public page never used them; `details` is still returned whole because the template needs it).
+   - **New `record_invitation_view(slug, visitor)`** (`security definer`, callable by `anon` and signed-in users). It counts only a published, non-deleted invitation. `visitor` must match `[A-Za-z0-9_-]{16,64}`. The same visitor counts **once per invitation per UTC day** (table `invitation_view_seen`, primary key `invitation_id, visitor, day`). At most **120 views per invitation per minute** are counted (table `invitation_view_rate`; the number is the `max_per_minute` constant at the top of the function). It returns `true` only when the view was counted. Both tables have RLS on and no privileges for `anon` / `authenticated`; they can be read only in the SQL Editor. Old rows of the invitation being viewed are removed on each call (seen rows older than a day, rate rows older than an hour), so no cleanup job is needed; deleting an invitation removes its rows (`on delete cascade`).
+   - **A view no longer changes `updated_at`.** The trigger function is now `invitations_touch()` (replaces `touch_updated_at()` on `invitations`): when only `views` changed, `updated_at` is kept. Track B's conflict check (D7, `base_updated_at`) needs this, otherwise every guest visit would look like an admin edit. The old `touch_updated_at()` function stays in a live database, unused and harmless.
+   - **Client** (`src/lib/publicInvitation.ts`, `src/pages/PublicInvitation.tsx`): after the invitation has loaded, `recordInvitationView(slug)` is called once, fire and forget (a failure never affects the page). The visitor id is a random value kept in `localStorage` (`schedy_visitor`); if storage is blocked a fresh id is used for that page load. A missing or unpublished link never calls it.
+   - **Honest limit:** the database cannot see the visitor's IP. A script that sends a new id each time can still add up to 120 views a minute to one invitation (about 170,000 a day) until a per-IP rate limit is set in Vercel or Supabase (dashboard action, not code). Crawlers that execute JavaScript (for example Googlebot) count as visitors; link-preview bots that only read the HTML (`api/invite.js`) do not.
+   - **Not done:** per-day view history; a rate limit per IP; the *Duplicate* gap from the 3rd update.
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** `npm run typecheck` and `npm run build` pass. *Database,* local Postgres 16 with stub `auth` / `storage` schemas: fresh `schema.sql` + `seed.sql`, `schema.sql` run again, the old `schema.sql` (previous commit) + `007` run twice + `schema.sql` over it, `reset.sql` run twice (the two new tables are gone) and a rebuild: no errors. Behaviour, 10 groups: a read returns exactly the four keys and does not count (20 reads: no change); first view counts, same visitor again does not (slug compared ignoring case), a second visitor counts; draft, trashed, unknown slug, short or long or `null` or spaced visitor ids all return `false` and change nothing; 300 different visitors in one minute: **exactly 120** counted (this test found an off-by-one first: the first insert of a minute left `n` at 0, so 121 were counted; fixed by inserting `n = 1`); the same visitor counts again the next day; seen rows older than a day are removed by the next call; `anon` and `authenticated` cannot read or write the two tables, cannot update `invitations`; a view-only update keeps `updated_at` while a real edit (`groom_name`) bumps it; deleting an invitation deletes its bookkeeping rows; an old row with `views = 7` is kept and counts on from there. *Client,* esbuild bundle in Node with a fake `fetch` and `localStorage`, 11 checks: id matches the database rule, is reused and stored, an invalid stored value is replaced, blocked storage gives a valid fresh id without throwing, right URL / body / headers (no `Authorization` for a publishable key), `true` / `false` results, HTTP error and network error return `false` without throwing, `fetchPublicInvitation` works with the four-key answer and returns `null` for a missing invitation. **Not run on real Supabase or in a browser.**
+
+**How this affects other tasks**
+
+- **Track B migration number:** `007` is now taken, so Track B's client-edit migration is **`008_client_edit.sql`** (B2 heading updated). Fold it into `schema.sql` in the same commit. Track B's D7 conflict check can now rely on `updated_at` meaning "edited".
+- **Order of running on the live project:** run `007`, then deploy `preview`, close together. After `007` and before the deploy, the old site still opens invitations (it never used the four keys that were removed) but views are not counted, because the old page counts through the old function behaviour that is gone. If the site is deployed first, the page works and the counting call fails quietly until `007` is run. Either way only the views of that short gap are lost.
+- **H-2 / C-1 / H-5:** untouched. `get_public_invitation` is still `security definer` and returns only published rows; `details` is still validated by the trigger on write.
+- **M-9 / `api/invite.js`:** unchanged; it already used `get_invitation_meta`, which never counted.
+- **M-5 / H-6:** the Dashboard still reads `views` as a plain column, so lists and the "Most viewed" sort need no change. The numbers will be lower than before for returning guests, which is the intent.
+- **Privacy:** the browser stores one random id (`schedy_visitor`) and the database keeps it for about a day. It is not linked to a person. Mention it in the privacy policy together with the M-2 line (owner action).
+
+**Behaviour changes to check**
+
+- A guest who opens the same invitation five times in a day adds one view, not five. The owner opening their own link counts too (once a day).
+- A refresh, a crawler that only reads HTML and an invalid or unpublished link add nothing.
+- `updated_at` (and so the "recent" sort) no longer moves when a guest opens an invitation.
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. Supabase SQL Editor: run `007_view_counting.sql` (twice is fine). `select views, updated_at from public.invitations where slug = '<published slug>';` and note both values.
+2. Browser (private window): open `https://YOUR-DOMAIN/<published slug>`. Network tab shows a `get_public_invitation` request and then one `record_invitation_view` request answering `true`. The query again: `views` is +1, `updated_at` unchanged. Reload: the call answers `false`, `views` unchanged. Open it in another browser: +1.
+3. Unpublished link: the page says it is not available and no `record_invitation_view` request is sent.
+4. Cap (optional), with the publishable key: a loop of 150 `curl` calls to `/rest/v1/rpc/record_invitation_view` with different 20-character visitor ids in one minute; afterwards `views` has risen by at most 120.
+5. `select * from public.invitation_view_seen;` shows visitor ids and days, which are only visible in the SQL Editor; `curl` on `/rest/v1/invitation_view_seen` with the publishable key is refused.
+6. Set a per-IP rate limit for `/rest/v1/rpc/*` in Vercel (WAF / firewall rule) or Supabase if your plan allows it.
+
+**Next steps, in order**
+
+1. Owner actions: run `007` (then deploy `preview`), set the per-IP limit, plus everything in the 6th to 9th updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 10th updates and the older ones; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job, needs a decision on where it runs and a `service_role` secret); H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: the *Duplicate* gap from the 3rd update (small), the M-5 "load more" UI, **L-5** (`uid()` fallback with a `.`), then Phase 3 tooling (M-14: ESLint, Vitest).
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (9th update) – M-4 storage limits, own-bucket preview images and file cleanup; M-2 transliteration errors
 
@@ -597,7 +646,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Phase 2 – Next sprint (~1 week)
 
-- [ ] **H-4** Separate view counting from `get_public_invitation` (rate-limited or deduped per visitor); return only fields the template needs; add Vercel/Supabase rate limiting; consider longer random default slugs.
+- [~] **H-4** *Coded 12 Nov (10th update): `get_public_invitation` only reads and returns 4 keys (`groom_name`, `bride_name`, `details`, `html_code`); `record_invitation_view(slug, visitor)` counts once per visitor per invitation per day, capped at 120 per invitation per minute; a view no longer bumps `updated_at`; `supabase/migrations/007_view_counting.sql` + `schema.sql` + `reset.sql`; client in `src/lib/publicInvitation.ts` and `PublicInvitation.tsx`. Tested on local Postgres 16 (fresh, re-run, upgrade, reset) and with a mocked `fetch`. Still open: run `007` in Supabase; per-IP rate limit in Vercel/Supabase (dashboard); browser check. Default link IDs are already random UUIDs, so that sub-point is met.* Separate view counting from `get_public_invitation` (rate-limited or deduped per visitor); return only fields the template needs; add Vercel/Supabase rate limiting; consider longer random default slugs.
 - [~] **M-5** *Data layer coded 12 Nov (8th update): `fetchInvitations` and `fetchEnquiries` read in pages of 500 (past the 1,000-row cap), with an `id` tie-break, explicit column lists (`INVITATION_COLUMNS`, `ENQUIRY_COLUMNS`), tested with a fake client (18 checks). Still open: a "load more" UI and server-side search/filter/sort, which the lists still do in the browser.* Server-side pagination for invitations and enquiries; select only needed columns instead of `select("*")`. (`src/lib/api.ts`)
 - [~] **M-4** *Coded 12 Nov (9th update) except the last part: `006_storage_limits.sql` + `schema.sql` (bucket `file_size_limit` 300 KB, `image/jpeg` only; `details_problem()` accepts `seoImage` only from the preview bucket), `src/lib/previewUrl.ts` (same rule in the form), `api/invite.js` (same rule for crawlers), `deleteInvitation` removes `<user>/<id>.jpg` unless another invitation still uses it. Tested on local Postgres 16, with fake clients and a mocked handler. Still open: the scheduled job for orphaned files; `006` still has to be run in Supabase.* Storage: bucket limits (≤300 KB, `image/jpeg`); delete the object when an invitation is purged or deleted; scheduled job to clean orphans; restrict `seoImage` to the app's own bucket.
 - [~] **M-3** *Coded 12 Nov (7th update): `src/lib/qr.ts` + `useQr` draw the QR in the browser with the `qrcode` package (loaded only when a QR dialog opens); `api.qrserver.com` is gone from `src`. The generated PNG was decoded back to the exact link in a test; needs the browser check in the Progress log.* Generate QR codes client-side with a small library and remove `api.qrserver.com`. (`QrModal.tsx:18`, `ShareModal.tsx:35`)
@@ -675,7 +724,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 | D7 | Conflicting edits | Each request stores `base_updated_at`. If the admin edited the invitation after the client started, approval shows a conflict warning and requires an explicit choice. |
 | D8 | Notification channels | In-app (badge + list, via Realtime) **and** email (Edge Function + Resend/Supabase SMTP). Email must never be the only record. |
 
-## B2. Database (new migration, e.g. `supabase/migrations/007_client_edit.sql`; also fold into `schema.sql` per H-3)
+## B2. Database (new migration, e.g. `supabase/migrations/008_client_edit.sql`; also fold into `schema.sql` per H-3)
 
 - [~] **Admin role** *(done early as part of C-1: `admins` table and `is_admin()` exist from `005_admin_role.sql`; B1 only needs to reuse them and seed nothing new)*: `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
 - [ ] **Client link:** `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.

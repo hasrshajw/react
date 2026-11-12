@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { fetchPublicInvitation } from "../lib/publicInvitation";
+import { fetchPublicInvitation, recordInvitationView } from "../lib/publicInvitation";
 import { compile } from "../lib/compileInvitation";
 
 /* The page a customer sees at /<link-id> (and at the old /i/<link-id>). No login, no admin shell.
@@ -23,6 +23,8 @@ export default function PublicInvitation({ slug: slugProp }: { slug?: string }) 
         const custom = typeof d.seoTitle === "string" ? d.seoTitle.trim() : "";
         const title = custom || (names !== "&" ? `${names} | Wedding invitation` : "");
         setState({ status: "ready", html: compile(res.html, d), title });
+        /* Counted only after the page has loaded, and never for a missing or unpublished link (task H-4). */
+        void recordInvitationView(slug);
       },
       () => { if (live) setState({ status: "error" }); },
     );

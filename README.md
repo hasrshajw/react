@@ -67,12 +67,12 @@ The publishable (or anon) key is meant to be public (it ships in the browser bun
 
 ### Share links
 
-Each invitation is served at `/i/<link-id>` (for example `/i/ravi-weds-priya`), with no login. The link ID is the "Custom Link ID" field, or the invitation id if it is empty. Only **published**, non-deleted invitations open; others show a "not available" page. The page is read through the `get_public_invitation` database function, so customers can never list or browse other invitations. Each open counts as a view.
+Each invitation is served at `/i/<link-id>` (for example `/i/ravi-weds-priya`), with no login. The link ID is the "Custom Link ID" field, or the invitation id if it is empty. Only **published**, non-deleted invitations open; others show a "not available" page. The page is read through the `get_public_invitation` database function, so customers can never list or browse other invitations. The function only reads. A view is counted by a second call, `record_invitation_view` (task H-4, migration `007`): the browser sends a random id it keeps in its own storage, the same id counts once per invitation per day, and at most 120 views a minute are counted per invitation. A link-preview crawler does not count.
 
 Limits to know about:
 
 - The Photos section was removed from the Create page. Invitations saved earlier may still carry `couplePhoto` and `gallery` inside their `details` record. The app ignores them.
-- "Invitation views" on the Dashboard is the real total of the per-invitation view counter (no per-day history is stored yet). RSVPs, shares and the Billing page are not built yet.
+- "Invitation views" on the Dashboard is the real total of the per-invitation view counter: one per visitor per day (no per-day history is stored yet; a guest who clears their browser data or uses another browser counts again). RSVPs, shares and the Billing page are not built yet.
 - WhatsApp link previews (title and image) need server-side tags; the page does not set them yet.
 
 ### Preview images

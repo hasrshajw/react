@@ -133,7 +133,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const shown = expanded ? list.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE) : list.slice(0, 5);
   const topId = useMemo(() => topViewedId(visible), [visible]);
   const pubCount = visible.filter(isPub).length;
-  /* Real view counts: every open of a public link adds one (see get_public_invitation in schema.sql). */
+  /* Real view counts: a visitor's first open of a public link each day adds one (see record_invitation_view in schema.sql). */
   const totalViews = visible.reduce((n, x) => n + getViews(x), 0);
   const viewedCount = visible.filter((x) => getViews(x) > 0).length;
   const skeletonRows = useRowHint("dashboard", visible.length, store.loading, 5);

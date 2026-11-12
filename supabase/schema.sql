@@ -1,7 +1,7 @@
 -- Schedy database schema for Supabase. Run in: Supabase dashboard > SQL Editor.
 --
 -- This file is SAFE TO RE-RUN: it never deletes tables or data (tables use "if not exists"; functions, policies and
--- triggers are replaced). It already includes everything from supabase/migrations/001 and 003, so a NEW project only
+-- triggers are replaced). It already includes everything from supabase/migrations/001, 003 and 007, so a NEW project only
 -- needs this file, then supabase/seed.sql (optional starter templates).
 -- (Migration 002 only cleans old template rows; seed.sql is already clean, so a new project does not need it.)
 --
@@ -50,11 +50,20 @@ create table if not exists public.invitations (
 create unique index if not exists invitations_slug_key on public.invitations (lower(slug));
 create index if not exists invitations_owner_idx on public.invitations (owner, created_at desc);
 
-create or replace function public.touch_updated_at() returns trigger language plpgsql as $$
-begin new.updated_at = now(); return new; end $$;
+-- keeps updated_at current, but a view-count change alone is not an edit (task H-4)
+create or replace function public.invitations_touch() returns trigger language plpgsql as $$
+begin
+  if new.views is distinct from old.views
+     and (to_jsonb(new) - 'views' - 'updated_at') = (to_jsonb(old) - 'views' - 'updated_at') then
+    new.updated_at = old.updated_at;
+  else
+    new.updated_at = now();
+  end if;
+  return new;
+end $$;
 drop trigger if exists invitations_touch on public.invitations;
 create trigger invitations_touch before update on public.invitations
-  for each row execute function public.touch_updated_at();
+  for each row execute function public.invitations_touch();
 
 create table if not exists public.enquiries (
   id uuid primary key default gen_random_uuid(),
@@ -150,8 +159,9 @@ revoke update on public.profiles from anon, authenticated;
 grant update (name) on public.profiles to authenticated;
 
 -- ---------- public invitation page ----------
--- Customers are not signed in, so they cannot read the table. This function hands out exactly one
--- published, non-deleted invitation (plus its template HTML) for a link ID, and counts the view.
+-- Customers are not signed in, so they cannot read the table. get_public_invitation() hands out exactly one
+-- published, non-deleted invitation (plus its template HTML) for a link ID. Counting is separate, see below.
+-- reads one published invitation and does NOT count the view (record_invitation_view does, task H-4)
 create or replace function public.get_public_invitation(p_slug text) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare r public.invitations; t public.templates;
@@ -160,17 +170,73 @@ begin
    where lower(slug) = lower(p_slug) and published and deleted_at is null limit 1;
   if not found then return null; end if;
   select * into t from public.templates where id = coalesce(r.template_id, r.details->>'templateId');
-  update public.invitations set views = views + 1 where id = r.id;
   return jsonb_build_object(
-    'id', r.id, 'groom_name', r.groom_name, 'bride_name', r.bride_name, 'event_date', r.event_date,
-    'template_id', r.template_id, 'template_name', r.template_name, 'details', r.details,
-    'html_code', t.html_code);
+    'groom_name', r.groom_name, 'bride_name', r.bride_name,
+    'details', r.details, 'html_code', t.html_code);
 end $$;
 revoke all on function public.get_public_invitation(text) from public;
 grant execute on function public.get_public_invitation(text) to anon, authenticated;
 
+-- bookkeeping tables (not readable or writable through the API; only the function below touches them)
+create table if not exists public.invitation_view_seen (
+  invitation_id text not null references public.invitations(id) on delete cascade,
+  visitor text not null,
+  day date not null default (now() at time zone 'utc')::date,
+  primary key (invitation_id, visitor, day)
+);
+create table if not exists public.invitation_view_rate (
+  invitation_id text not null references public.invitations(id) on delete cascade,
+  minute timestamptz not null,
+  n integer not null default 0,
+  primary key (invitation_id, minute)
+);
+alter table public.invitation_view_seen enable row level security;
+alter table public.invitation_view_rate enable row level security;
+revoke all on public.invitation_view_seen from anon, authenticated;
+revoke all on public.invitation_view_rate from anon, authenticated;
+
+-- the counter. Returns true only when the view was counted.
+create or replace function public.record_invitation_view(p_slug text, p_visitor text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare
+  r_id text;
+  added integer;
+  hits integer;
+  max_per_minute constant integer := 120;
+begin
+  if p_visitor is null or p_visitor !~ '^[A-Za-z0-9_-]{16,64}$' then return false; end if;
+  select id into r_id from public.invitations
+   where lower(slug) = lower(p_slug) and published and deleted_at is null limit 1;
+  if r_id is null then return false; end if;
+
+  -- housekeeping for this invitation only (cheap: both tables are keyed by invitation_id first)
+  delete from public.invitation_view_seen
+   where invitation_id = r_id and day < (now() at time zone 'utc')::date - 1;
+  delete from public.invitation_view_rate
+   where invitation_id = r_id and minute < now() - interval '1 hour';
+
+  -- once per visitor per day
+  insert into public.invitation_view_seen (invitation_id, visitor) values (r_id, p_visitor)
+    on conflict do nothing;
+  get diagnostics added = row_count;
+  if added = 0 then return false; end if;
+
+  -- cap per invitation per minute
+  insert into public.invitation_view_rate (invitation_id, minute, n)
+    values (r_id, date_trunc('minute', now()), 1)
+    on conflict (invitation_id, minute) do update set n = invitation_view_rate.n + 1
+    returning n into hits;
+  if hits > max_per_minute then return false; end if;
+
+  update public.invitations set views = views + 1 where id = r_id;
+  return true;
+end $$;
+revoke all on function public.record_invitation_view(text, text) from public;
+grant execute on function public.record_invitation_view(text, text) to anon, authenticated;
+
+
 -- ---------- link-preview lookup (was migration 001, part 2) ----------
--- get_public_invitation() also increments views, so crawlers (api/invite.js) must not call it.
+-- Crawlers (api/invite.js) use this lookup, which never counts a view.
 create or replace function public.get_invitation_meta(p_slug text) returns jsonb
 language sql security definer set search_path = public as $$
   select jsonb_build_object(

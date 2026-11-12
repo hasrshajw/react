@@ -18,8 +18,11 @@ drop trigger  if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user() cascade;
 drop function if exists public.get_public_invitation(text) cascade;
 drop function if exists public.get_invitation_meta(text) cascade;
+drop function if exists public.record_invitation_view(text, text) cascade;
 
 -- tables (dropping a table also drops its policies and triggers)
+drop table    if exists public.invitation_view_seen cascade;
+drop table    if exists public.invitation_view_rate cascade;
 drop table    if exists public.invitations cascade;
 drop table    if exists public.templates   cascade;
 drop table    if exists public.categories  cascade;
@@ -35,6 +38,7 @@ drop function if exists public.details_problem(jsonb) cascade;
 drop function if exists public.is_safe_url(text) cascade;
 drop function if exists public.enquiries_check_insert() cascade;
 drop function if exists public.touch_updated_at() cascade;
+drop function if exists public.invitations_touch() cascade;
 
 -- storage policies for link-preview images (the bucket itself is kept, see above)
 drop policy if exists "previews: public read"  on storage.objects;
