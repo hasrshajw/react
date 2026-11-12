@@ -133,7 +133,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
       id: uid(),
       // The copy needs its own link: a custom link ID can only belong to one invitation.
       details: x.details ? { ...x.details, customId: "" } : undefined,
-    }).then(
+    }, { published: false }).then(
       (copy) => {
         store.writePub(copy.id, false);
         store.reload();

@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 10th update)
+### Where things stand (12 Nov 2026, 11th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,7 +35,49 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+| Phase 3 | 1 | 0 | all but L-5 | **L-5** done (one shared `uid()` without a `.`). The *Duplicate* gap from the 3rd update is closed (a copy is saved as a draft in the same write). Nothing else in Phase 3 is started (no lint, tests or CI yet). |
+| Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (11th update) – Duplicate no longer goes public, L-5 `uid()` fallback
+
+**What was done**
+
+1. **Duplicate gap (from the 3rd update) – a copy is never public, not even for a moment** (`src/lib/api.ts`, `src/pages/Invitations.tsx`)
+   - Before, *Duplicate* saved the copy without a `published` value, so the database default (`true`) made it public, and only then did a second request set it to draft. During that gap anyone with the link could open the copy.
+   - `saveInvitation(record, { published })` takes an optional second argument. The key is sent only when given; a normal save does not send it, so an existing row keeps its value. *Duplicate* now passes `{ published: false }`, so the row is created as a draft in the same write. After a successful save the module's `knownPub` is set to that value, so the following `writePub(copy.id, false)` does not send a second request.
+   - The copy still has its own link (`customId` cleared, default link = its new id), as before. The copy and the original still share the preview-image file; the purge check from the 9th update still protects it.
+2. **L-5 – `uid()` fallback has no `.`** (new `src/lib/uid.ts`; `src/features/create/constants.ts`, `src/features/invitations/utils.ts` re-export it)
+   - The fallback (used only where `crypto.randomUUID` is missing) was `Date.now()-Math.random()`, which contains a `.`. An id is the default link ID (`/<id>`), and Vercel treats a path with a `.` as a file, so such a link would not open the app. It is now `<time in base 36>-<24 hex-like characters>` from `getRandomValues` (or `Math.random` if that is missing too): letters, digits and `-` only, under 40 characters. It also fits the database rule (`slug = id` is allowed) and the preview-image rule.
+   - The two identical `uid` definitions are now one (a small step of L-6; the `readJSON`/`writeJSON` duplicate there is still open).
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** `npm run typecheck` and `npm run build` pass. Node, 8 checks: `uid()` matches `[A-Za-z0-9-]+` with `randomUUID`, with no `crypto` (2,000 ids, all unique, no `.`, ≤ 40 characters) and with `getRandomValues` only. `api.ts` against a fake client (the real file bundled with a fake Supabase module): *Duplicate* path sends `published: false` in the upsert; a normal save sends no `published` key; `savePublished({copy: false})` sends no extra request afterwards; a later publish still sends its update; saving with `published: true` sends no extra update. **Not run in a browser or on real Supabase.**
+
+**How this affects other tasks**
+
+- **H-6:** nothing changes for list refresh. A copy now appears as a draft from its first read.
+- **Track B:** the client-edit RPCs create no invitations, so nothing to align. Any future code that creates an invitation that must not be public should use the same option.
+- **L-6:** `uid` is merged; `readJSON`/`writeJSON` still duplicated.
+- **No database change in this update**, so nothing to run in Supabase.
+
+**Behaviour changes to check**
+
+- Duplicating an invitation shows the copy as *Draft* at once; opening its link before publishing shows "not available".
+- Ids made in browsers without `crypto.randomUUID` look like `m3k9x2ab-0f3a…` instead of containing a `.`.
+
+**Checks to repeat**
+
+1. Dashboard → Invitations → a published invitation → Duplicate. Network tab: one `POST/PATCH …/invitations` upsert with `published:false` and no following `PATCH` that sets `published`. The copy is Draft; `select id, published from public.invitations order by created_at desc limit 1;` shows `false`. Opening `https://YOUR-DOMAIN/<copy id>` says it is not available. Undo in the toast still moves the copy to the trash.
+2. DevTools console on a page served over plain `http` (no `randomUUID`): create a new invitation; its id has no `.`.
+
+**Next steps, in order**
+
+1. Owner actions: run `007` then deploy `preview`; per-IP rate limit; everything in the 6th to 10th updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 11th updates and the older ones; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: the M-5 "load more" UI with server-side search/filter, or Phase 3: **L-3** (CSV formula guard) with **L-4** (`waLink`), then M-14 tooling (ESLint, Vitest).
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (10th update) – H-4 view counting is separate, deduplicated and capped
 
@@ -675,7 +717,7 @@ When asked to "update based on task.md", follow these steps.
 - [ ] **L-2** Remove or relocate repo-root `assets/` (~4.4 MB, not shipped), `src/assets/1.html`, `src/assets/test.html`, `src/assets/txt`. (`temp/*.html` was already deleted in the last two commits.)
 - [ ] **L-3** CSV formula guard: also cover values starting with tab or carriage return; tighten the `^\+?[\d\s]+$` exemption; avoid prefixing harmless text beginning with `-`.
 - [ ] **L-4** `waLink`: handle 11-digit numbers with a leading 0; avoid "Hi , thanks…" when the name is empty.
-- [ ] **L-5** `uid()` fallback: remove the `.` from the generated id (breaks the `/<slug>` rewrite on Vercel).
+- [x] **L-5** `uid()` fallback: remove the `.` from the generated id (breaks the `/<slug>` rewrite on Vercel). *Done 12 Nov (11th update): new `src/lib/uid.ts`, used by `features/create/constants.ts` and `features/invitations/utils.ts`; the fallback now gives letters, digits and `-` only. Tested in Node with `crypto` removed.*
 - [ ] **L-6** Merge duplicate `readJSON`/`writeJSON` in `lib/storage.ts` and `lib/dashboardData.ts`.
 - [ ] **L-7** `saveEnquiry`: append to `history` server-side instead of overwriting the array.
 - [ ] **L-8** Use a server timestamp for `deleted_at`; run the 30-day trash purge as a scheduled job.

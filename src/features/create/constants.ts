@@ -1,12 +1,13 @@
 import { CalendarPlus, Heart, LayoutTemplate, MapPin, Search, User, Users } from "../../components/Icons";
 import type { ContactItem, EventItem, InvitationData, SectionDef } from "../../types/invitation";
+import { uid } from "../../lib/uid";
 
 
 /* Where "Go to dashboard" leads. Change if your dashboard route is different. */
 export const DASHBOARD_PATH = "/dashboard";
 export { LS_DRAFT } from "../../lib/storageKeys";
 
-export const uid = (): string => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+export { uid };
 export const newEvent = (): EventItem => ({ id: uid(), name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "" });
 export const newContact = (): ContactItem => ({ id: uid(), nameEn: "", nameTe: "", phone: "" });
 

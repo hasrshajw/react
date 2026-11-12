@@ -139,10 +139,13 @@ export async function fetchInvitation(id: string): Promise<InvitationRow | null>
 }
 
 /** Creates or updates one invitation. The link ID (details.customId) must be unique. */
-export async function saveInvitation(record: InvitationRow): Promise<InvitationRow> {
+export async function saveInvitation(record: InvitationRow, opts: { published?: boolean } = {}): Promise<InvitationRow> {
+  /* `published` is written only when the caller says so (a new copy that must never be public, task H-6 gap). Left out,
+     a new row takes the column default (true) and an existing row keeps its value. */
   const { data, error } = await db()
     .from("invitations")
     .upsert({
+      ...(opts.published === undefined ? {} : { published: opts.published }),
       id: record.id,
       slug: slugOf(record),
       groom_name: record.groom_name ?? null,
@@ -158,6 +161,7 @@ export async function saveInvitation(record: InvitationRow): Promise<InvitationR
     if (error.code === "23505") throw new ApiError("That link ID is already used by another invitation.");
     fail(error);
   }
+  if (opts.published !== undefined) knownPub = { ...knownPub, [record.id]: opts.published };
   return splitRow(data!).row;
 }
 

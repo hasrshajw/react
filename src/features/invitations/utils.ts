@@ -1,6 +1,7 @@
 import { coupleName, dayDiff, getInviteLink, getViews, isPast, csvCell } from "../../lib/dashboardData";
 import { downloadBlob } from "../../lib/download";
 import type { InvitationRow } from "../../types/dashboard";
+import { uid } from "../../lib/uid";
 
 export type StatusFilter = "all" | "published" | "draft";
 export type WhenFilter = "all" | "upcoming" | "week" | "past";
@@ -35,7 +36,7 @@ export const templateOf = (x: InvitationRow) => {
   return { key: String(x.template_id || name), name };
 };
 
-export const uid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+export { uid };
 
 const todayStamp = () => {
   const d = new Date();
