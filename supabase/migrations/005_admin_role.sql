@@ -12,7 +12,7 @@ create table if not exists public.admins (
   created_at timestamptz not null default now()
 );
 insert into public.admins (user_id, email)
-select id, email from auth.users where lower(email) = lower('CHANGE-ME@example.com')
+select id, email from auth.users where lower(email) = lower('test@gmail.com')
 on conflict (user_id) do nothing;
 
 do $$
