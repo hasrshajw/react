@@ -6,7 +6,7 @@ import {
 
 interface AuthState {
   session: Session | null;
-  signInGoogle: () => Promise<Session>;
+  signInGoogle: (from?: string) => Promise<Session>;
   signInEmail: (email: string, password: string) => Promise<Session>;
   /** Signs out now; the promise settles when Supabase has finished (wait for it before the next sign-in). */
   logout: () => Promise<void>;
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastEmail.current = now;
   }, [session]);
 
-  const signInGoogle = useCallback(async () => { const s = await signInWithGoogle(); setSession(s); return s; }, []);
+  const signInGoogle = useCallback(async (from?: string) => { const s = await signInWithGoogle(from); setSession(s); return s; }, []);
   const signInEmail = useCallback(async (email: string, password: string) => { const s = await signInWithEmail(email, password); setSession(s); return s; }, []);
   const logout = useCallback(() => { setSession(null); return signOut(); }, []);
 

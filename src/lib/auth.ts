@@ -88,7 +88,35 @@ export async function syncSupabaseSession(): Promise<Session | null> {
   return startSession({ provider: u.app_metadata?.provider === "google" ? "google" : "email", email, name: meta.full_name || meta.name || nameFromEmail(email) });
 }
 
-export async function signInWithGoogle(): Promise<Session> {
+/* M-7: where to go after the Google round trip. The login page's own navigation state is lost when the browser
+   leaves for Google, and a query string on `redirectTo` would have to be added to Supabase's allowed redirect list,
+   so the target waits in sessionStorage (this tab only, 10 minutes) and is read once when the login page loads again. */
+const TARGET_KEY = "schedy_login_target";
+const TARGET_TTL = 10 * 60 * 1000;
+
+/** Only in-app paths: "/x" but not "//host", not a backslash trick, not the login page itself. */
+export const isSafeTarget = (p: unknown): p is string =>
+  typeof p === "string" && p.length < 300 && /^\/(?![/\\])/.test(p) && !p.startsWith("/login");
+
+function rememberTarget(from?: string) {
+  try {
+    if (isSafeTarget(from)) sessionStorage.setItem(TARGET_KEY, JSON.stringify({ p: from, t: Date.now() }));
+    else sessionStorage.removeItem(TARGET_KEY);
+  } catch { /* ignore */ }
+}
+
+/** Returns the remembered target once (and forgets it), or null. */
+export function takeLoginTarget(): string | null {
+  try {
+    const raw = sessionStorage.getItem(TARGET_KEY);
+    sessionStorage.removeItem(TARGET_KEY);
+    const v = raw ? (JSON.parse(raw) as { p?: unknown; t?: unknown }) : null;
+    return v && isSafeTarget(v.p) && typeof v.t === "number" && Date.now() - v.t < TARGET_TTL ? v.p : null;
+  } catch { return null; }
+}
+
+export async function signInWithGoogle(from?: string): Promise<Session> {
+  rememberTarget(from);
   const { error } = await db().auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/login` } });
   if (error) throw new AuthError(error.message);
   return new Promise<Session>(() => { /* the browser is redirected to Google */ });
@@ -96,10 +124,27 @@ export async function signInWithGoogle(): Promise<Session> {
 
 export async function signInWithEmail(email: string, password: string): Promise<Session> {
   if (!isEmail(email)) throw new AuthError("Enter a valid email address.");
-  if (password.length < MIN_PASSWORD) throw new AuthError(`Password must be at least ${MIN_PASSWORD} characters.`);
+  /* M-7: no length rule on sign-in. The server decides; an older account may have a password the current rule would refuse. */
+  if (!password) throw new AuthError("Enter your password.");
   const { data, error } = await db().auth.signInWithPassword({ email: email.trim(), password });
   if (error) throw new AuthError(error.message);
   const meta = (data.user.user_metadata ?? {}) as Record<string, string | undefined>;
   const clean = (data.user.email ?? email).trim().toLowerCase();
   return startSession({ provider: "email", email: clean, name: meta.full_name || nameFromEmail(clean) });
+}
+
+/* M-7: "Forgot password". Supabase emails a link that returns to /login with `type=recovery` in the address; the login
+   page then asks for a new password. The flag is read when this module loads, before Supabase tidies the address. */
+export const RECOVERY_LINK = typeof window !== "undefined" && /[#&?]type=recovery(&|$)/.test(window.location.hash + window.location.search);
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  if (!isEmail(email)) throw new AuthError("Enter a valid email address.");
+  const { error } = await db().auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/login` });
+  if (error) throw new AuthError(error.message);
+}
+
+export async function setNewPassword(password: string): Promise<void> {
+  if (password.length < MIN_PASSWORD) throw new AuthError(`Password must be at least ${MIN_PASSWORD} characters.`);
+  const { error } = await db().auth.updateUser({ password });
+  if (error) throw new AuthError(error.message);
 }

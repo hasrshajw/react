@@ -5,7 +5,7 @@ import schedyMark from "../assets/schedy-mark.svg";
 import loginCss from "../features/auth/login.css?inline";
 import { useAuth } from "../hooks/useAuth";
 import { preloadAdmin } from "../lib/preload";
-import { AuthError, MIN_PASSWORD, isEmail } from "../lib/auth";
+import { AuthError, MIN_PASSWORD, RECOVERY_LINK, isEmail, isSafeTarget, requestPasswordReset, setNewPassword, takeLoginTarget } from "../lib/auth";
 
 type Busy = "google" | "email" | null;
 interface FieldErrors { email?: string; password?: string }
@@ -22,7 +22,9 @@ export default function Login() {
   const loc = useLocation();
   const state = loc.state as { from?: string; loggedOut?: boolean } | null;
   const loggedOut = !!state?.loggedOut;
-  const dest = state?.from && !state.from.startsWith("/login") ? state.from : "/dashboard";
+  /* M-7: the page we came from, kept through the Google redirect (read once; see lib/auth.ts). */
+  const [returnTo] = useState(takeLoginTarget);
+  const dest = isSafeTarget(state?.from) ? state.from : returnTo ?? "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +32,9 @@ export default function Login() {
   const [busy, setBusy] = useState<Busy>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
-  const [resetHint, setResetHint] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [recovering, setRecovering] = useState(RECOVERY_LINK);
   const emailRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
 
@@ -44,7 +48,7 @@ export default function Login() {
     void logout().finally(() => { if (live) setSigningOut(false); });
     return () => { live = false; };
   }, [loggedOut, logout]);
-  const locked = !!busy || signingOut;
+  const locked = !!busy || signingOut || resetting;
   /* The dashboard is the next page after a login: download it while the person types their password. */
   useEffect(() => { if (!loggedOut) preloadAdmin(); }, [loggedOut]);
 
@@ -54,7 +58,15 @@ export default function Login() {
     return () => { document.title = prev; };
   }, []);
 
-  if (session && !loggedOut) return <Navigate to={dest} replace />;
+  /* M-7: coming back with the browser's Back button (or from the back/forward cache) after starting Google sign-in
+     must not leave the button stuck on "Signing in…". */
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) setBusy((b) => (b === "google" ? null : b)); };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
+
+  if (session && !loggedOut && !recovering) return <Navigate to={dest} replace />;
 
   const finish = () => navigate(dest, { replace: true });
   const fail = (e: unknown) => {
@@ -65,7 +77,7 @@ export default function Login() {
   const google = async () => {
     if (locked) return;
     setFormError(""); setErrors({}); setBusy("google");
-    try { await signInGoogle(); finish(); } catch (e) { fail(e); }
+    try { await signInGoogle(state?.from ?? undefined); finish(); } catch (e) { fail(e); }
   };
 
   const submit = async (e: FormEvent) => {
@@ -75,13 +87,27 @@ export default function Login() {
     if (!email.trim()) next.email = "Enter your email address.";
     else if (!isEmail(email)) next.email = "Enter a valid email address.";
     if (!password) next.password = "Enter your password.";
-    else if (password.length < MIN_PASSWORD) next.password = `Password must be at least ${MIN_PASSWORD} characters.`;
     setErrors(next);
     setFormError("");
     if (next.email) { emailRef.current?.focus(); return; }
     if (next.password) { pwRef.current?.focus(); return; }
     setBusy("email");
     try { await signInEmail(email, password); finish(); } catch (err) { fail(err); }
+  };
+
+  /* M-7: "Forgot password?" sends the reset email for the address typed above. The answer is the same whether or not
+     an account exists, so the form cannot be used to find out who has one. */
+  const forgot = async () => {
+    if (locked) return;
+    setFormError(""); setResetSent(false);
+    if (!email.trim() || !isEmail(email)) {
+      setErrors({ email: "Enter your email address above, then choose “Forgot password?”." });
+      emailRef.current?.focus();
+      return;
+    }
+    setErrors({}); setResetting(true);
+    try { await requestPasswordReset(email); setResetSent(true); } catch (e) { fail(e); }
+    setResetting(false);
   };
 
   return (
@@ -116,6 +142,10 @@ export default function Login() {
             <p className="lc-note" role="status"><Check size={16} /> You’ve been logged out.</p>
           )}
 
+          {recovering ? (
+            <NewPasswordForm onDone={() => { setRecovering(false); finish(); }} onCancel={() => setRecovering(false)} />
+          ) : (
+            <>
           <button type="button" className={`lc-btn lc-google${busy === "google" ? " is-busy" : ""}`} onClick={google} disabled={locked} aria-busy={busy === "google"}>
             {busy === "google" ? <Loader2 className="spin" size={18} /> : <Google size={18} />}
             {busy === "google" ? "Signing in…" : "Continue with Google"}
@@ -140,7 +170,7 @@ export default function Login() {
             <div className="lc-field">
               <div className="lc-label">
                 <label htmlFor="login-password">Password</label>
-                <button type="button" className="lc-link" onClick={() => setResetHint((v) => !v)}>Forgot password?</button>
+                <button type="button" className="lc-link" onClick={forgot} disabled={locked}>Forgot password?</button>
               </div>
               <div className={`lc-input${errors.password ? " bad" : ""}`}>
                 <Lock size={18} />
@@ -156,7 +186,7 @@ export default function Login() {
               {errors.password && <p className="lc-err" id="login-password-err">{errors.password}</p>}
             </div>
 
-            {resetHint && <p className="lc-hint" role="status">Password reset isn’t available yet. Ask the account owner to reset it in Supabase.</p>}
+            {resetSent && <p className="lc-hint" role="status">If an account exists for that email, a reset link is on its way. Check your inbox and spam folder.</p>}
             {formError && <p className="lc-alert" role="alert"><AlertCircle size={16} /> {formError}</p>}
 
             <button type="submit" className={`lc-btn lc-submit${busy === "email" ? " is-busy" : ""}`} disabled={locked} aria-busy={busy === "email"}>
@@ -164,11 +194,54 @@ export default function Login() {
               {busy === "email" ? "Signing in…" : "Sign in"}
             </button>
           </form>
+            </>
+          )}
 
         </div>
       </main>
 
       <style>{loginCss}</style>
     </div>
+  );
+}
+
+/* M-7: shown after the person opens the link from the reset email. */
+function NewPasswordForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    if (pw !== pw2) { setErr("The two passwords don’t match."); return; }
+    setErr(""); setBusy(true);
+    try { await setNewPassword(pw); onDone(); }
+    catch (x) { setErr(x instanceof AuthError ? x.message : "Something went wrong. Please try again."); setBusy(false); }
+  };
+
+  return (
+    <form className="lc-form" onSubmit={submit} noValidate>
+      <p className="lc-hint" role="status">Choose a new password for your account (at least {MIN_PASSWORD} characters).</p>
+      <div className="lc-field">
+        <label className="lc-label" htmlFor="new-password">New password</label>
+        <div className="lc-input"><Lock size={18} />
+          <input id="new-password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} disabled={busy} />
+        </div>
+      </div>
+      <div className="lc-field">
+        <label className="lc-label" htmlFor="new-password-2">Repeat the new password</label>
+        <div className="lc-input"><Lock size={18} />
+          <input id="new-password-2" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} disabled={busy} />
+        </div>
+      </div>
+      {err && <p className="lc-alert" role="alert"><AlertCircle size={16} /> {err}</p>}
+      <button type="submit" className={`lc-btn lc-submit${busy ? " is-busy" : ""}`} disabled={busy} aria-busy={busy}>
+        {busy && <Loader2 className="spin" size={18} />}
+        {busy ? "Saving…" : "Save new password"}
+      </button>
+      <button type="button" className="lc-link" onClick={onCancel} disabled={busy}>Back to sign in</button>
+    </form>
   );
 }

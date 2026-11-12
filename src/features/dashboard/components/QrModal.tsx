@@ -3,7 +3,9 @@ import {
   Link2, Check, Download, Copy,
 } from "../../../components/Icons";
 import { coupleName, getInviteLink } from "../../../lib/dashboardData";
+import { useQr } from "../../../hooks/useQr";
 import { downloadBlob } from "../../../lib/download";
+import { qrPngBlob } from "../../../lib/qr";
 import type { InvitationRow } from "../../../types/dashboard";
 import { Modal } from "./Modal";
 
@@ -15,21 +17,15 @@ interface Props {
 
 export function QrModal({ row, onClose, onCopy }: Props) {
   const link = getInviteLink(row);
-  const api = (size: number) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(link)}`;
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const { url, failed } = useQr(link, 240);
+  const loaded = !!url;
   const [busy, setBusy] = useState(false);
   const fileName = `${coupleName(row).replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase()}-qr.png`;
 
-  /* Fetch as a blob so the browser saves a file instead of opening the image in a new tab. */
+  /* Drawn in the browser (M-3) and saved as a file, so nothing is sent to another site. */
   const download = async () => {
     setBusy(true);
-    try {
-      const blob = await (await fetch(api(720))).blob();
-      downloadBlob(blob, fileName);
-    } catch {
-      window.open(api(720), "_blank", "noopener");
-    }
+    try { downloadBlob(await qrPngBlob(link), fileName); } catch { /* the button just becomes usable again */ }
     setBusy(false);
   };
 
@@ -38,15 +34,11 @@ export function QrModal({ row, onClose, onCopy }: Props) {
       <div className="dx-qr">
         <div className="dx-qr-ph">
           {failed ? (
-            "Couldn't load the QR code. Check your connection."
+            "Couldn't create the QR code."
           ) : (
             <>
               {!loaded && <i className="sk" />}
-              <img
-                src={api(240)} alt={`QR code for ${coupleName(row)}`} width="220" height="220"
-                style={loaded ? undefined : { display: "none" }}
-                onLoad={() => setLoaded(true)} onError={() => setFailed(true)}
-              />
+              {url && <img src={url} alt={`QR code for ${coupleName(row)}`} width="220" height="220" />}
             </>
           )}
         </div>

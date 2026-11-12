@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 6th update)
+### Where things stand (12 Nov 2026, 7th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -34,8 +34,56 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
-| Phase 2 | 0 | 4 | rest | M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). |
+| Phase 2 | 0 | 6 | rest | M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (7th update) – M-3 client-side QR codes, M-7 login fixes and forgot password
+
+**What was done**
+
+1. **M-3 – the QR code is drawn in the browser, the link is no longer sent to another site** (`src/lib/qr.ts` new, `src/hooks/useQr.ts` new, `src/features/dashboard/components/QrModal.tsx`, `src/features/invitations/components/ShareModal.tsx`, `package.json`, `package-lock.json`)
+   - New dependency **`qrcode`** (+ `@types/qrcode`), loaded with a dynamic `import()` only when a QR dialog opens, so the main bundle does not grow. `qrDataUrl(text, size)` gives a PNG data URL (error correction level M, 2-module margin); `qrPngBlob()` makes the 720 px file for **Download**. `dataUrlToBlob()` avoids `fetch()` on a `data:` URL, which the CSP `connect-src` would refuse.
+   - Both dialogs now show the generated image. The old "Couldn't load the QR code. Check your connection." became "Couldn't create the QR code." The old fallback that opened `api.qrserver.com` in a new tab on download failure is removed.
+   - Side effect: the strict CSP (report-only) never allowed `api.qrserver.com` in `connect-src`, so the old Download button would have failed once the policy is enforced. That problem is gone. `img-src` still lists `https:`; tighten it when the CSP is enforced (Phase 1, C-2).
+2. **M-7 – login fixes** (`src/lib/auth.ts`, `src/hooks/useAuth.tsx`, `src/pages/Login.tsx`)
+   - **Google button no longer stays on "Signing in…"** after the Back button: a `pageshow` listener clears the busy state when the page comes from the back/forward cache (`event.persisted`).
+   - **The page you came from is kept through the Google redirect.** The target waits in `sessionStorage` (this tab, 10 minutes, read once) rather than as `?from=` on `redirectTo`, because a query string would have to be added to Supabase's allowed redirect list. Only in-app paths are accepted (`isSafeTarget`: starts with a single `/`, no `//`, no backslash, not `/login`, under 300 characters); anything else falls back to `/dashboard`.
+   - **No password-length check on sign-in.** The client now only requires a non-empty password; the server's message is shown. The 6-character rule (`MIN_PASSWORD`) is kept only for choosing a new password.
+   - **"Forgot password?" works.** It uses the email typed above (asks for it if empty or invalid), calls `resetPasswordForEmail` with `redirectTo = <origin>/login`, and shows the same neutral message whether or not an account exists. The link in the email returns to `/login` with `type=recovery`; the page then shows **Set a new password** (new + repeat, minimum 6 characters, `updateUser`) instead of redirecting into the app, and goes to the dashboard after saving. "Back to sign in" leaves that form.
+   - **Known limit:** the recovery link signs the person in (that is how Supabase recovery sessions work). If they close the page before saving a new password they stay signed in with the old one.
+   - **Verified (ad hoc, throwaway scripts in the session scratchpad, not saved in the repo):** `npm run typecheck` and `npm run build` pass. Script 1 (jsdom, fake Supabase client, the real `Login` component with a stubbed router), 60 checks over two runs (normal address, and an address with `#…&type=recovery`): *QR (4):* data URL is a PNG, the download blob is a real PNG, the 720 px image and the 240 px image **both decode back to the exact link** (decoded with jsQR). *Helpers (17):* 10 target cases (`/dashboard`, `/create?edit=abc` accepted; `//evil.com`, `/\evil.com`, `https://…`, `/login`, `/login?x=1`, empty, null, 400 characters rejected), redirectTo stays the plain `/login`, target readable once, unsafe target not stored, a target older than 10 minutes ignored, a 3-character password reaches the server and the server's message is shown, empty password still asks for one, reset with an invalid email sends nothing, reset requested with the trimmed email and `/login` redirect, new password under 6 refused, valid one sent, `RECOVERY_LINK` true only with the recovery address. *Login page (7 + 3):* Google busy after click, `pageshow` without bfcache leaves it, `pageshow` from bfcache frees it, forgot password with no email asks for one and sends nothing, with an email it requests the reset and shows the neutral message, a 3-character password shows no length error and shows the server message; with the recovery address the set-password form replaces the sign-in form, mismatched passwords are refused without a request, matching ones are saved and the form closes. The earlier 36-check script (M-1, M-6) still passes. **Not run in a browser, with a real reset email, or on real Supabase.**
+
+**How this affects other tasks**
+
+- **Supabase dashboard (new owner action):** Authentication → URL Configuration must allow `https://YOUR-DOMAIN/login` (and `http://localhost:5173/login` for testing) as a redirect URL, or the reset email link is refused. The reset email template can stay the default.
+- **C-1 (sign-ups off):** password reset still works for existing users; it does not create accounts.
+- **M-1:** `signInWithGoogle(from?)` and `useAuth().signInGoogle(from?)` take an optional page path. The target in `sessionStorage` is not cleared by `resetUserData()` (it only holds a path, expires in 10 minutes and is read once).
+- **Track B:** the client edit flow can reuse `takeLoginTarget()` to send a client back to the page they opened from an email link.
+- **C-2 CSP:** the QR change removes the only third-party image/fetch use in the admin; `img-src https:` can then be narrowed to `'self' data: blob:` plus the Supabase storage host, once the public invitation page's own images are checked.
+
+**Behaviour changes to check**
+
+- "Forgot password?" now sends a real email; before it showed "isn't available yet".
+- Signing in with a very short password now shows Supabase's message ("Invalid login credentials") instead of a length message.
+- The QR image is slightly different in look (library output, 2-module margin) and appears instantly with no network request.
+- The admin bundle gains the `qrcode` code as a separate chunk loaded when a QR dialog opens.
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. M-3, browser: Dashboard → a published invitation → QR code. DevTools → Network shows no request to `qrserver.com`. Scan the screen QR with a phone: it opens the invitation link. Download PNG: a PNG file is saved (not a new tab) and scans too. Same in the Invitations page → Share dialog; change the custom link ID and see the QR change.
+2. M-7, Google: open `/create?edit=<id>` while signed out, sign in with Google: you land on that page, not the dashboard. Start Google sign-in, press Back from the Google page: the button is usable again.
+3. M-7, reset: add the redirect URL (see above), type your email on the login page, click Forgot password: the neutral message appears and an email arrives. Open its link: the "Set a new password" form shows. Save: you reach the dashboard and can sign in with the new password after logging out. Try an expired or reused link: saving shows an error and "Back to sign in" works.
+4. M-7, short password: sign in with a 3-character password: the message comes from Supabase, not from the form.
+
+**Next steps, in order**
+
+1. Owner actions: everything in the 6th update's list, plus the redirect URL above. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th and 7th updates plus the older ones (C-2 `LivePreview`, H-1, M-13, H-6) and the M-8/M-9 curl checks; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP (narrow `img-src` as noted).
+4. H-5 remainder (captcha, per-IP limit).
+5. Next code items, two at a time: **M-10** (compiler placeholder handling) with **M-5** (pagination and column lists), or **M-4** (storage limits and cleanup); also the *Duplicate* gap from the 3rd update.
+
+---
 
 ### 12 Nov 2026 (6th update) – M-1 session hygiene, M-6 enquiry badge and refresh
 
@@ -448,10 +496,10 @@ When asked to "update based on task.md", follow these steps.
 - [ ] **H-4** Separate view counting from `get_public_invitation` (rate-limited or deduped per visitor); return only fields the template needs; add Vercel/Supabase rate limiting; consider longer random default slugs.
 - [ ] **M-5** Server-side pagination for invitations and enquiries; select only needed columns instead of `select("*")`. (`src/lib/api.ts:63,167`)
 - [ ] **M-4** Storage: bucket limits (≤300 KB, `image/jpeg`); delete the object when an invitation is purged or deleted; scheduled job to clean orphans; restrict `seoImage` to the app's own bucket.
-- [ ] **M-3** Generate QR codes client-side with a small library and remove `api.qrserver.com`. (`QrModal.tsx:18`, `ShareModal.tsx:35`)
+- [~] **M-3** *Coded 12 Nov (7th update): `src/lib/qr.ts` + `useQr` draw the QR in the browser with the `qrcode` package (loaded only when a QR dialog opens); `api.qrserver.com` is gone from `src`. The generated PNG was decoded back to the exact link in a test; needs the browser check in the Progress log.* Generate QR codes client-side with a small library and remove `api.qrserver.com`. (`QrModal.tsx:18`, `ShareModal.tsx:35`)
 - [~] **M-1** *Coded 12 Nov (6th update): `watchAuthChanges` (Supabase `onAuthStateChange`), `signOut()` that waits for Supabase, `resetUserData()` clears create drafts and the `knownPub`/`knownDel` caches, login form locked until sign-out finishes. Tested with a fake Supabase client and jsdom (36 checks); not yet run in a browser or on real Supabase; see Progress log.* Session hygiene: subscribe to `onAuthStateChange` (no usage exists today); on sign-out clear create-form drafts and module caches (`knownPub`/`knownDel`) and call `signOut` before navigating.
 - [~] **M-6** *Coded 12 Nov (6th update): the shell owns the new-enquiry count (`useEnquiryBadge`, server-side count every 60 s and on tab focus), the Dashboard reports into it, the bell dot shows only when the count is above 0, and the Dashboard list refreshes every 60 s without overwriting local edits. Tested with a fake client and jsdom; needs the browser check in the Progress log.* Wire `onEnquiryCountChange` from `AdminApp` to the sidebar badge (currently passed by `Dashboard` but never supplied); refresh enquiries by polling or Realtime.
-- [ ] **M-7** Login: reset the Google button's busy state on `pageshow`; persist `from` in `redirectTo`; drop the client password-length check on login; implement "Forgot password". (`src/lib/auth.ts:48–52`, `Login.tsx`)
+- [~] **M-7** *Coded 12 Nov (7th update), all four parts: Google button reset on `pageshow` (bfcache), return page kept through the Google redirect, no client password-length check on sign-in, working "Forgot password" with a set-new-password form. Tested with the real `Login` component in jsdom and a fake client; needs a real reset email and the Supabase redirect URL (see Progress log).* Login: reset the Google button's busy state on `pageshow`; persist `from` in `redirectTo`; drop the client password-length check on login; implement "Forgot password". (`src/lib/auth.ts:48–52`, `Login.tsx`)
 - [~] **M-13** Default to `trial` (or show an explicit error) when the profile row is missing. (`src/lib/api.ts:33`) *Coded 12 Nov: missing row or null `plan_status` → `trial` with 0 days left, role label `Member` instead of `Administrator`. Checked by build/typecheck and code reading only.*
 - [~] **M-9** *Coded 12 Nov (4th update): site URL from `SITE_URL` through `api/_siteUrl.js` (no `Host` header), slug rule 3–30 or uuid, stub link only for valid slugs. Tested with a mock handler (19 checks); needs the curl check on a deployment (see Progress log).* `api/invite.js`: take the site URL from an env var instead of `Host`/`X-Forwarded-Host`; render the stub link only for valid slugs; align `SLUG_RE` (1–64) with the DB rule (3–30).
 - [ ] **M-10** Template compiler: use `Object.create(null)` or a `Map` for values; strip only known placeholder syntax instead of every `{{…}}`; fix `PreviewPanel` fallback to the non-existent `tpl.html`.

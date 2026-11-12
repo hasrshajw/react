@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Copy, Download, Globe, MessageCircle } from "../../../components/Icons";
 import { coupleName, getInviteLink } from "../../../lib/dashboardData";
+import { useQr } from "../../../hooks/useQr";
 import { downloadBlob } from "../../../lib/download";
+import { qrPngBlob } from "../../../lib/qr";
 import { isReserved } from "../../../lib/reserved";
 import { SLUG_MAX, SLUG_MIN, okSlug } from "../../../lib/validate";
 import type { InvitationRow } from "../../../types/dashboard";
@@ -23,8 +25,6 @@ export function ShareModal({ row, rows, live, onClose, onCopy, onWhatsApp, onSav
   const link = getInviteLink(row);
   const current = row.details?.customId || "";
   const [slug, setSlug] = useState(current);
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
   const clean = slug.trim();
   const taken = !!clean && rows.some((r) => r.id !== row.id && String(r.details?.customId || r.id).toLowerCase() === clean.toLowerCase());
@@ -32,20 +32,14 @@ export function ShareModal({ row, rows, live, onClose, onCopy, onWhatsApp, onSav
     : clean && isReserved(clean) ? "This link name is reserved"
     : taken ? "This link ID is already used by another invitation" : "";
   const dirty = clean !== current;
-  const api = (size: number) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=10&data=${encodeURIComponent(link)}`;
+  const { url, failed } = useQr(link, 240);
+  const loaded = !!url;
   const fileName = `${coupleName(row).replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase()}-qr.png`;
 
-  useEffect(() => { setLoaded(false); setFailed(false); }, [link]);
-
-  /* Fetch as a blob so the browser saves a file instead of opening the image in a new tab. */
+  /* Drawn in the browser (M-3) and saved as a file, so nothing is sent to another site. */
   const download = async () => {
     setBusy(true);
-    try {
-      const blob = await (await fetch(api(720))).blob();
-      downloadBlob(blob, fileName);
-    } catch {
-      window.open(api(720), "_blank", "noopener");
-    }
+    try { downloadBlob(await qrPngBlob(link), fileName); } catch { /* the button just becomes usable again */ }
     setBusy(false);
   };
 
@@ -85,14 +79,15 @@ export function ShareModal({ row, rows, live, onClose, onCopy, onWhatsApp, onSav
 
         <div className="share-qr">
           <div className="share-qr-img">
-            {failed ? <span>Couldn’t load the QR code. Check your connection.</span> : (
+            {failed ? <span>Couldn’t create the QR code.</span> : (
               <>
                 {!loaded && <i className="sk" />}
-                <img
-                  src={api(240)} alt={`QR code for ${coupleName(row)}`} width="150" height="150"
-                  style={loaded && live ? undefined : { display: "none" }}
-                  onLoad={() => setLoaded(true)} onError={() => setFailed(true)}
-                />
+                {url && (
+                  <img
+                    src={url} alt={`QR code for ${coupleName(row)}`} width="150" height="150"
+                    style={live ? undefined : { display: "none" }}
+                  />
+                )}
               </>
             )}
           </div>
