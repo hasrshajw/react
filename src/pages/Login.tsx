@@ -36,7 +36,15 @@ export default function Login() {
 
   /* "Log out" navigates here; the session is cleared on arrival, so a blocked navigation
      (e.g. the "Save your changes?" dialog on the Create page) leaves the person signed in. */
-  useEffect(() => { if (loggedOut) logout(); }, [loggedOut, logout]);
+  /* M-1: the form stays locked until Supabase has finished signing out; a late sign-out must not end the next login. */
+  const [signingOut, setSigningOut] = useState(loggedOut);
+  useEffect(() => {
+    if (!loggedOut) return;
+    let live = true;
+    void logout().finally(() => { if (live) setSigningOut(false); });
+    return () => { live = false; };
+  }, [loggedOut, logout]);
+  const locked = !!busy || signingOut;
   /* The dashboard is the next page after a login: download it while the person types their password. */
   useEffect(() => { if (!loggedOut) preloadAdmin(); }, [loggedOut]);
 
@@ -55,14 +63,14 @@ export default function Login() {
   };
 
   const google = async () => {
-    if (busy) return;
+    if (locked) return;
     setFormError(""); setErrors({}); setBusy("google");
     try { await signInGoogle(); finish(); } catch (e) { fail(e); }
   };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (busy) return;
+    if (locked) return;
     const next: FieldErrors = {};
     if (!email.trim()) next.email = "Enter your email address.";
     else if (!isEmail(email)) next.email = "Enter a valid email address.";
@@ -108,7 +116,7 @@ export default function Login() {
             <p className="lc-note" role="status"><Check size={16} /> You’ve been logged out.</p>
           )}
 
-          <button type="button" className={`lc-btn lc-google${busy === "google" ? " is-busy" : ""}`} onClick={google} disabled={!!busy} aria-busy={busy === "google"}>
+          <button type="button" className={`lc-btn lc-google${busy === "google" ? " is-busy" : ""}`} onClick={google} disabled={locked} aria-busy={busy === "google"}>
             {busy === "google" ? <Loader2 className="spin" size={18} /> : <Google size={18} />}
             {busy === "google" ? "Signing in…" : "Continue with Google"}
           </button>
@@ -123,7 +131,7 @@ export default function Login() {
                 <input
                   ref={emailRef} id="login-email" type="email" inputMode="email" autoComplete="email" placeholder="you@example.com"
                   value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((x) => ({ ...x, email: undefined })); }}
-                  disabled={!!busy} aria-invalid={!!errors.email} aria-describedby={errors.email ? "login-email-err" : undefined}
+                  disabled={locked} aria-invalid={!!errors.email} aria-describedby={errors.email ? "login-email-err" : undefined}
                 />
               </div>
               {errors.email && <p className="lc-err" id="login-email-err">{errors.email}</p>}
@@ -139,7 +147,7 @@ export default function Login() {
                 <input
                   ref={pwRef} id="login-password" type={showPw ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password"
                   value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((x) => ({ ...x, password: undefined })); }}
-                  disabled={!!busy} aria-invalid={!!errors.password} aria-describedby={errors.password ? "login-password-err" : undefined}
+                  disabled={locked} aria-invalid={!!errors.password} aria-describedby={errors.password ? "login-password-err" : undefined}
                 />
                 <button type="button" className="lc-eye" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? "Hide password" : "Show password"} aria-pressed={showPw}>
                   {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -151,7 +159,7 @@ export default function Login() {
             {resetHint && <p className="lc-hint" role="status">Password reset isn’t available yet. Ask the account owner to reset it in Supabase.</p>}
             {formError && <p className="lc-alert" role="alert"><AlertCircle size={16} /> {formError}</p>}
 
-            <button type="submit" className={`lc-btn lc-submit${busy === "email" ? " is-busy" : ""}`} disabled={!!busy} aria-busy={busy === "email"}>
+            <button type="submit" className={`lc-btn lc-submit${busy === "email" ? " is-busy" : ""}`} disabled={locked} aria-busy={busy === "email"}>
               {busy === "email" && <Loader2 className="spin" size={18} />}
               {busy === "email" ? "Signing in…" : "Sign in"}
             </button>

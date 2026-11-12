@@ -1,13 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { resetUserData } from "../lib/userData";
 import {
-  SESSION_KEY, clearSession, getSession, signInWithEmail, signInWithGoogle, syncSupabaseSession, type Session,
+  SESSION_KEY, getSession, signInWithEmail, signInWithGoogle, signOut, syncSupabaseSession, watchAuthChanges, type Session,
 } from "../lib/auth";
 
 interface AuthState {
   session: Session | null;
   signInGoogle: () => Promise<Session>;
   signInEmail: (email: string, password: string) => Promise<Session>;
-  logout: () => void;
+  /** Signs out now; the promise settles when Supabase has finished (wait for it before the next sign-in). */
+  logout: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthState | null>(null);
@@ -29,9 +31,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { live = false; };
   }, []);
 
+  /* M-1: follow Supabase's own events: a refresh token that stopped working, or a sign-out/sign-in in another tab. */
+  useEffect(() => watchAuthChanges(setSession), []);
+
+  /* M-1: whenever the person is gone or has changed (any path: logout, another tab, expired login), drop their drafts and caches. */
+  const lastEmail = useRef<string | null>(session?.email ?? null);
+  useEffect(() => {
+    const now = session?.email ?? null;
+    if (lastEmail.current !== null && lastEmail.current !== now) resetUserData();
+    lastEmail.current = now;
+  }, [session]);
+
   const signInGoogle = useCallback(async () => { const s = await signInWithGoogle(); setSession(s); return s; }, []);
   const signInEmail = useCallback(async (email: string, password: string) => { const s = await signInWithEmail(email, password); setSession(s); return s; }, []);
-  const logout = useCallback(() => { clearSession(); setSession(null); }, []);
+  const logout = useCallback(() => { setSession(null); return signOut(); }, []);
 
   const value = useMemo(() => ({ session, signInGoogle, signInEmail, logout }), [session, signInGoogle, signInEmail, logout]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

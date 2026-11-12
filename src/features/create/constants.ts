@@ -4,7 +4,7 @@ import type { ContactItem, EventItem, InvitationData, SectionDef } from "../../t
 
 /* Where "Go to dashboard" leads. Change if your dashboard route is different. */
 export const DASHBOARD_PATH = "/dashboard";
-export const LS_DRAFT = "schedy_create_draft_";
+export { LS_DRAFT } from "../../lib/storageKeys";
 
 export const uid = (): string => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 export const newEvent = (): EventItem => ({ id: uid(), name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "" });

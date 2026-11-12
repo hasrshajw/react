@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isoDay } from "../../../lib/dashboardData";
 import { fetchEnquiries, saveEnquiry } from "../../../lib/api";
 import type { Enquiry, EnquiryStatus, Notify } from "../../../types/dashboard";
@@ -15,6 +15,12 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /* Changes made on this screen, and saves still on their way. A refresh that started before a change, or
+     while a save is pending, is thrown away (the next one picks up the server state), so polling never
+     overwrites what the person just did. Same rule as the invitation flags (H-6). */
+  const changes = useRef(0);
+  const saving = useRef(0);
+
   useEffect(() => {
     let live = true;
     fetchEnquiries().then(
@@ -24,12 +30,31 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
     return () => { live = false; };
   }, []);
 
+  /* M-6: pick up enquiries that arrive while the Dashboard stays open: every 60 s and when the tab is shown again. */
+  const refresh = useCallback(() => {
+    if (document.hidden || saving.current > 0) return;
+    const started = changes.current;
+    fetchEnquiries().then(
+      (rows) => { if (changes.current === started && saving.current === 0) setEnquiries(rows); },
+      () => { /* silent: the list on screen stays as it is */ },
+    );
+  }, []);
+  useEffect(() => {
+    if (loading) return;
+    const t = setInterval(refresh, 60000);
+    const onVisible = () => { if (!document.hidden) refresh(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", onVisible); };
+  }, [loading, refresh]);
+
   /* Save in the background; if it fails, put the old values back and tell the user. */
   const persist = (next: Enquiry, prev: Enquiry) => {
+    changes.current++;
+    saving.current++;
     saveEnquiry(next).catch(() => {
       setEnquiries((p) => p.map((e) => (e.id === prev.id ? prev : e)));
       notify("Couldn’t save that change, so it was undone.");
-    });
+    }).finally(() => { saving.current--; changes.current++; });
   };
 
   const enqNew = enquiries.filter((e) => e.status === "new").length;
@@ -67,13 +92,9 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
     persist(next, prev);
   };
 
-  /* unread badge: tab title + callback for the sidebar */
-  useEffect(() => {
-    const base = document.title.replace(/^\(\d+\)\s/, "");
-    document.title = enqNew > 0 ? `(${enqNew}) ${base}` : base;
-    return () => { document.title = base; };
-  }, [enqNew]);
-  useEffect(() => { onCountChange?.(enqNew); }, [enqNew]);
+  /* unread badge: reported to the shell (sidebar badge and tab title) once the first list has loaded; before that the
+     count is still 0 and would wipe the number the shell fetched on its own. */
+  useEffect(() => { if (!loading) onCountChange?.(enqNew); }, [enqNew, loading]);
 
   return { enquiries, loading, enqNew, enqFollow, setStatus, saveNote, setFollowDate };
 }

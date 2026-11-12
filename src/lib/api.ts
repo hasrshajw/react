@@ -6,6 +6,7 @@
    ========================================================================== */
 import { getSession } from "./auth";
 import { db } from "./supabase";
+import { onUserDataReset } from "./userData";
 import type { DeletedMap, Enquiry, InvitationRow, PublishMap } from "../types/dashboard";
 import type { Category, Template } from "../types/invitation";
 
@@ -53,6 +54,8 @@ export interface InvitationList { rows: InvitationRow[]; published: PublishMap; 
 /* The flags as the server last had them. savePublished / saveDeleted compare against this to see what changed. */
 let knownPub: PublishMap = {};
 let knownDel: DeletedMap = {};
+/* M-1: forget the flags when the person signs out, so the next login starts from the server's state. */
+onUserDataReset(() => { knownPub = {}; knownDel = {}; });
 
 /* H-6: list reads and flag writes run strictly one after another, in the order they were asked for.
    Without this, two quick toggles ran side by side and could reach the server in either order, and a
@@ -217,6 +220,13 @@ export async function fetchEnquiries(): Promise<Enquiry[]> {
   const { data, error } = await db().from("enquiries").select("*").order("created_at", { ascending: false });
   if (error) fail(error);
   return (data ?? []).map(toEnquiry);
+}
+
+/** M-6: number of enquiries still marked "new", for the navbar badge. Counts on the server, so no rows are downloaded. */
+export async function fetchNewEnquiryCount(): Promise<number> {
+  const { count, error } = await db().from("enquiries").select("id", { count: "exact", head: true }).eq("status", "new");
+  if (error) fail(error);
+  return count ?? 0;
 }
 
 export async function saveEnquiry(e: Enquiry): Promise<void> {

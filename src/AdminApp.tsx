@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
 import Templates from "./pages/Templates";
+import { useEnquiryBadge } from "./features/dashboard/hooks/useEnquiryBadge";
 import schedyMark from "./assets/schedy-mark.svg";
 import { AccountProvider, useAccount } from "./hooks/useAccount";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
@@ -155,6 +156,8 @@ function Shell() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [hoverExpanded, setHoverExpanded] = useState(false);
   const { loading: accountLoading, plan } = useAccount();
+  /* M-6: the new-enquiry count lives here so the badge is right on every page, not only on the Dashboard. */
+  const enquiries = useEnquiryBadge();
   const banner = plan ? getPlanBanner(plan) : null;
 
   return (
@@ -203,6 +206,7 @@ function Shell() {
               panelOpen={panelOpen}
               onHoverExpand={setHoverExpanded}
               profileOpen={profileOpen}
+              enquiryCount={enquiries.count}
               onProfileClick={() => setProfileOpen((o) => !o)}
               /* onSearch={() => setPaletteOpen(true)}  <- pass this to show Search + Ctrl K */
             />
@@ -213,7 +217,7 @@ function Shell() {
               }`}
             >
               <Routes>
-                <Route path="/dashboard" element={<Dashboard onPanelChange={setPanelOpen} />} />
+                <Route path="/dashboard" element={<Dashboard onPanelChange={setPanelOpen} onEnquiryCountChange={enquiries.report} />} />
                 <Route path="/invitations" element={<Invitations onPanelChange={setPanelOpen} />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/create" element={<CreateRoute onPanelChange={setPanelOpen} />} />

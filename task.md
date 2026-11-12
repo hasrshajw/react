@@ -26,16 +26,70 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 5th update)
+### Where things stand (12 Nov 2026, 6th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov must be revoked** (see the first Phase 0 row). |
+| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov (pasted again for the 6th update) must be revoked** (see the first Phase 0 row). |
 | Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
-| Phase 2 | 0 | 2 | rest | M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). |
+| Phase 2 | 0 | 4 | rest | M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (6th update) – M-1 session hygiene, M-6 enquiry badge and refresh
+
+**What was done**
+
+1. **M-1 – signing out (or losing the login) leaves nothing of the previous person behind** (`src/lib/auth.ts`, `src/lib/userData.ts` new, `src/lib/storageKeys.ts` new, `src/lib/storage.ts`, `src/lib/api.ts`, `src/hooks/useAuth.tsx`, `src/pages/Login.tsx`, `src/features/create/constants.ts`)
+   - **Cleanup registry.** `resetUserData()` removes every `schedy_create_draft_*` key and runs reset functions that modules register with `onUserDataReset()`. `api.ts` registers one that empties `knownPub` / `knownDel`. Other user settings (`schedy_auto_refresh`) are kept. `LS_DRAFT` moved to `storageKeys.ts` (no imports) and is re-exported from `constants.ts`, so `Create.tsx` is unchanged.
+   - **`signOut()` replaces `clearSession()`.** It removes the cached session and runs `resetUserData()` first (so the app is signed out at once), then awaits Supabase. If the server answers with an error or the network fails, it falls back to `signOut({ scope: "local" })` so the login is still removed from this browser. `useAuth().logout` now returns that promise.
+   - **`onAuthStateChange` is subscribed** (`watchAuthChanges`, used by `AuthProvider`). `SIGNED_OUT` (refresh token failed, signed out in another tab) clears the cached session, drafts and caches and sets the session to null. A `SIGNED_IN` for a different email while a session is cached (another tab switched account) swaps to the new person and clears the old drafts. A normal sign-in in this tab, `TOKEN_REFRESHED` and a same-email `SIGNED_IN` are ignored. The callback only touches localStorage and never awaits a Supabase call (awaiting one inside it can dead-lock the client).
+   - **Expired login on startup:** `syncSupabaseSession()` now also clears drafts when a cached person exists but Supabase has no login. `AuthProvider` also runs `resetUserData()` whenever the session email changes to null or to someone else.
+   - **Login form locks until sign-out has finished** (`Login.tsx`: `signingOut` state, `locked` replaces `busy` for the buttons and inputs). Before, "Log out" navigated to `/login` and fired the sign-out without waiting, so a quick sign-in could be ended by the late sign-out.
+   - The "Save your changes?" flow is unchanged: Log out still navigates to `/login` first and the sign-out runs on arrival, so cancelling the dialog keeps the person signed in. The draft the dialog saves ("Leave") is written before navigation and is then removed by the sign-out, as intended.
+2. **M-6 – the new-enquiry count is right on every admin page, and the Dashboard list stays current** (`src/features/dashboard/hooks/useEnquiryBadge.ts` new, `useEnquiries.ts`, `src/lib/api.ts`, `src/AdminApp.tsx`, `src/components/Sidebar.tsx`)
+   - **`fetchNewEnquiryCount()`** asks the server for a count of `status = 'new'` rows (`head: true`, no rows downloaded). `useEnquiryBadge` (used in `Shell`) polls it every 60 s while the tab is visible and again when the tab becomes visible or gets focus. `report(n)` lets the Dashboard set the number at once; a poll that started before a `report` is ignored.
+   - **Sidebar:** new `enquiryCount` prop. The bell's red dot is shown only when it is above 0 (before, it was always on) and the button's `aria-label` says how many. The tab title prefix `(n)` moved from `useEnquiries` to `useEnquiryBadge`, so it also shows on Invitations, Create and Templates.
+   - **Bug fixed on the way:** `useEnquiries` reported a count of 0 on mount, before its list had loaded. It now reports only after the first load.
+   - **Dashboard list refresh:** `useEnquiries` re-reads the list every 60 s and when the tab becomes visible. A result is dropped if the person changed something after the request started or a save is still in flight (same rule as H-6); the next refresh picks up the server state. A failed refresh is silent.
+   - **Not done:** Realtime (push) updates; the bell still opens nothing when clicked. The 60 s poll is the chosen "polling" option from the task.
+   - **Verified (ad hoc, throwaway scripts in the session scratchpad, not saved in the repo):** `npm ci`, `npm run typecheck` and `npm run build` pass. A jsdom + React 18 script with a fake Supabase client, 36 checks. *Sign-out (11):* session, all drafts removed, auto-refresh setting kept, one global `signOut` call, flag caches cleared (the same maps cause 2 writes afterwards), fallback to local scope on a server error and on a network exception, double reset is safe, a throwing reset function does not stop the others. *Auth events (7):* same-email sign-in ignored (any case), `TOKEN_REFRESHED` ignored, different person switches the session and clears their draft, a normal sign-in with no cached session is untouched, `SIGNED_OUT` clears everything, unsubscribe works. *Expired login (2).* *Badge (8):* first load and title, poll updates without stacking the prefix, an older in-flight poll cannot overwrite `report(7)`, the next poll applies the server count, no requests while the tab is hidden, refresh when it is shown again, a failed poll keeps the last number, title restored on unmount. *Enquiries hook (8):* no false 0 before the first load, count reported after load, an enquiry added elsewhere appears with the count, a refresh that started before a local change does not overwrite it, a refresh during a pending save is skipped, the next refresh after the save adopts the server state, a failed save puts the value back and shows the message. **Not run in a browser, on real Supabase, or through the real `Login` component (no render test for the locked form).**
+
+**How this affects other tasks**
+
+- **Track B (client self-service):** the shared-device session risk named in B is now handled (sign-out clears drafts and caches). B's draft key is still not per user; add that when B is built.
+- **H-6:** `knownPub` / `knownDel` are now cleared on sign-out, which closes the "M-1 still needed" note in the 3rd update.
+- **M-5 (pagination):** `fetchEnquiries` still selects `*`; the new count query selects only `id`. When M-5 is done, the Dashboard refresh should use the same page size.
+- **M-7 (login fixes):** `Login.tsx` now has a `locked` flag (`busy` or signing out); M-7's Google busy-state reset on `pageshow` should clear `busy` only.
+- **`clearSession()` is gone** (replaced by `signOut()`); nothing else in `src` used it.
+
+**Behaviour changes to check**
+
+- The bell's red dot is gone when there are no new enquiries.
+- After "Log out" the sign-in form is disabled for a moment (until Supabase confirms), then usable.
+- Create-form drafts do not survive a sign-out. A person who logs out with unsaved changes and signs in again will not see the "Restore draft" card.
+- The tab title count `(n)` now appears on every admin page, not only the Dashboard.
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. M-1, browser: sign in, open Create, type a name (do not save), wait 1 s so the draft is stored (DevTools → Application → Local Storage shows `schedy_create_draft_new`). Log out via the profile menu and choose to leave. The key is gone. Sign in again: no "Restore draft" card.
+2. M-1, two tabs: sign in on both. Log out in tab A. Tab B goes to the login page without a reload, and its drafts are gone.
+3. M-1, expired login: in DevTools delete the Supabase `sb-…-auth-token` key but keep `schedy_session`, reload: you land on the login page and drafts are gone.
+4. M-1, quick re-login: log out and sign in again as fast as you can. The form is disabled until the sign-out finishes, and you stay signed in.
+5. M-6, browser: insert a test enquiry (SQL Editor, or the public form). Within 60 s (or on switching back to the tab) the bell dot and the tab title `(1)` appear on the Invitations page, not only the Dashboard. Mark it as called in the Dashboard: the dot and title count go away at once. Delete the test row.
+6. M-6: leave the Dashboard open, add an enquiry in another tab; it appears in the list within 60 s. Change a status while a slow refresh runs: your change is kept.
+
+**Next steps, in order**
+
+1. Owner actions (unchanged from the 5th update): run `005` (with your email) in Supabase and do its checks; turn off public sign-ups; **revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time**; run `003` and `004` on the live project; set `SITE_URL` on Vercel; enable GitHub secret scanning.
+2. Run the browser checks (C-2 `LivePreview`, H-1, M-13, H-6, and the two new lists above) and the M-8/M-9 curl checks; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. H-5 remainder (captcha, per-IP limit).
+5. Next code items, two at a time: **M-10** (compiler placeholder handling) with **M-7** (login fixes), or **M-3** (client-side QR codes); also the *Duplicate* gap from the 3rd update.
+6. **Testing env file stays:** the owner asked on 12 Nov (6th update) not to delete the testing env file, and renamed it on GitHub from `env.local` to `.env.local` (commit `4bc0ffb`). It is still tracked in git even though `.gitignore` lists `.env.local`. Leave it in place: the "delete `env.local`" note in the 5th update's step 6 and the `git rm --cached` step of M-12 are on hold while it is the testing file. It holds only the public `VITE_` values. Never upload a file containing the `service_role` key.
+
+---
 
 ### 12 Nov 2026 (5th update) – C-3 profile lockdown, C-1 admin role (database half)
 
@@ -395,8 +449,8 @@ When asked to "update based on task.md", follow these steps.
 - [ ] **M-5** Server-side pagination for invitations and enquiries; select only needed columns instead of `select("*")`. (`src/lib/api.ts:63,167`)
 - [ ] **M-4** Storage: bucket limits (≤300 KB, `image/jpeg`); delete the object when an invitation is purged or deleted; scheduled job to clean orphans; restrict `seoImage` to the app's own bucket.
 - [ ] **M-3** Generate QR codes client-side with a small library and remove `api.qrserver.com`. (`QrModal.tsx:18`, `ShareModal.tsx:35`)
-- [ ] **M-1** Session hygiene: subscribe to `onAuthStateChange` (no usage exists today); on sign-out clear create-form drafts and module caches (`knownPub`/`knownDel`) and call `signOut` before navigating.
-- [ ] **M-6** Wire `onEnquiryCountChange` from `AdminApp` to the sidebar badge (currently passed by `Dashboard` but never supplied); refresh enquiries by polling or Realtime.
+- [~] **M-1** *Coded 12 Nov (6th update): `watchAuthChanges` (Supabase `onAuthStateChange`), `signOut()` that waits for Supabase, `resetUserData()` clears create drafts and the `knownPub`/`knownDel` caches, login form locked until sign-out finishes. Tested with a fake Supabase client and jsdom (36 checks); not yet run in a browser or on real Supabase; see Progress log.* Session hygiene: subscribe to `onAuthStateChange` (no usage exists today); on sign-out clear create-form drafts and module caches (`knownPub`/`knownDel`) and call `signOut` before navigating.
+- [~] **M-6** *Coded 12 Nov (6th update): the shell owns the new-enquiry count (`useEnquiryBadge`, server-side count every 60 s and on tab focus), the Dashboard reports into it, the bell dot shows only when the count is above 0, and the Dashboard list refreshes every 60 s without overwriting local edits. Tested with a fake client and jsdom; needs the browser check in the Progress log.* Wire `onEnquiryCountChange` from `AdminApp` to the sidebar badge (currently passed by `Dashboard` but never supplied); refresh enquiries by polling or Realtime.
 - [ ] **M-7** Login: reset the Google button's busy state on `pageshow`; persist `from` in `redirectTo`; drop the client password-length check on login; implement "Forgot password". (`src/lib/auth.ts:48–52`, `Login.tsx`)
 - [~] **M-13** Default to `trial` (or show an explicit error) when the profile row is missing. (`src/lib/api.ts:33`) *Coded 12 Nov: missing row or null `plan_status` → `trial` with 0 days left, role label `Member` instead of `Administrator`. Checked by build/typecheck and code reading only.*
 - [~] **M-9** *Coded 12 Nov (4th update): site URL from `SITE_URL` through `api/_siteUrl.js` (no `Host` header), slug rule 3–30 or uuid, stub link only for valid slugs. Tested with a mock handler (19 checks); needs the curl check on a deployment (see Progress log).* `api/invite.js`: take the site URL from an env var instead of `Host`/`X-Forwarded-Host`; render the stub link only for valid slugs; align `SLUG_RE` (1–64) with the DB rule (3–30).
@@ -512,7 +566,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [ ] **Post-login routing** (`Login.tsx`, `lib/auth.ts`): admin → `/dashboard` (existing), client → `/my`. Preserve `from` through the OAuth redirect (this also fixes M-7).
 - [ ] **Routing:** add a separate lazy-loaded **`ClientApp`** chunk (same pattern as `AdminApp` in `src/App.tsx`) so clients never download admin code and admins' bundle stays small. Add `my` (and any sub-path words) to `RESERVED` in `src/lib/reserved.ts`, the DB reserved list, and `vercel.json`, per the "keep in sync" rule.
 - [ ] **Guards:** `AdminApp` redirects non-admins to `/my`; `ClientApp` redirects admins to `/dashboard` and anonymous users to `/login`. Real enforcement is RLS; guards are UX.
-- [ ] **Session:** implement `onAuthStateChange` (M-1) first, since client accounts are on shared devices more often; clear drafts and caches on sign-out.
+- [~] **Session:** `onAuthStateChange` is coded (M-1, 6th update; needs the browser check). Still to do for Track B: scope the draft key per user. Original note: implement `onAuthStateChange` (M-1) first, since client accounts are on shared devices more often; clear drafts and caches on sign-out.
 - [ ] **API layer:** add to `src/lib/api.ts`: `fetchMyInvitations`, `submitChangeRequest`, `withdrawChangeRequest`, `acknowledgeRejection`, `fetchReviewQueue`, `reviewChangeRequest`, `fetchNotifications`, `markNotificationRead`.
 
 ## B5. Frontend – admin side

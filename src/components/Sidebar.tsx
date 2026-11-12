@@ -93,6 +93,8 @@ interface SidebarProps {
   /** Optional: pass a handler to show the search button + Ctrl K shortcut. */
   onSearch?: () => void;
   liveSiteUrl?: string;
+  /** Enquiries still marked "new"; the bell shows its dot only when this is above 0. */
+  enquiryCount?: number;
 }
 
 interface Pill { x: number; y: number; w: number; h: number; sub: boolean }
@@ -107,6 +109,7 @@ export default function Sidebar({
   profileOpen = false,
   onSearch,
   liveSiteUrl = "/",
+  enquiryCount = 0,
 }: SidebarProps) {
   const { pathname } = useLocation();
   const { loading: accountLoading, user } = useAccount();
@@ -290,9 +293,12 @@ export default function Sidebar({
               </NavLink>
             )}
 
-            <button type="button" className="navbar-icon-button" aria-label="Notifications">
+            <button
+              type="button" className="navbar-icon-button"
+              aria-label={enquiryCount > 0 ? `Notifications, ${enquiryCount} new enquir${enquiryCount === 1 ? "y" : "ies"}` : "Notifications"}
+            >
               <Bell size={19} strokeWidth={1.8} />
-              <i className="notification-dot" />
+              {enquiryCount > 0 && <i className="notification-dot" />}
             </button>
 
             <i className="navbar-divider" aria-hidden="true" />
