@@ -1,4 +1,4 @@
-import type { Template } from "./invitation";
+import type { InvitationData, Template } from "./invitation";
 
 /** Invitation record as returned by the API. */
 export interface InvitationRow {
@@ -12,8 +12,8 @@ export interface InvitationRow {
   views?: number;
   template_id?: string | number | null;
   template_name?: string;
-  details?: { customId?: string; [key: string]: any };
-  [key: string]: any;
+  /** The form data as saved. The same shape the editor and the compiler use (Partial because old rows may lack newer fields). */
+  details?: Partial<InvitationData>;
 }
 
 /** A template plus the optional fields a real API may add (thumbnail, alternate name/html keys). */

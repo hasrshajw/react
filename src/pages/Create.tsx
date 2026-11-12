@@ -95,7 +95,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
           const details = row.details || {};
           base = {
             ...initial, ...details,
-            templateId: row.template_id || details.templateId || "",
+            templateId: (row.template_id != null && row.template_id !== "" ? String(row.template_id) : "") || details.templateId || "",
             brideEn: row.bride_name || details.brideEn || "",
             groomEn: row.groom_name || details.groomEn || "",
             weddingDate: row.event_date || details.weddingDate || "",

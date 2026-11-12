@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 18th update)
+### Where things stand (12 Nov 2026, 19th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,51 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors), 160 unit tests run (`npm test`), TypeScript is pinned and the React types match React 18 and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); Playwright, database tests and type tightening are not started. |
+| Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors), 199 unit tests run (`npm test`; the data layer `api.ts` is now covered with a fake Supabase client), TypeScript is pinned, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); Playwright, database tests and type tightening are not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (19th update) – M-14: tests for the data layer (`api.ts`) and `InvitationRow` typing
+
+**What was done**
+
+1. **39 unit tests for `src/lib/api.ts`** (`src/lib/api.test.ts`; 199 tests in total). A small fake Supabase client records every call (table, chained operations, arguments) and answers from a function each test supplies, so the tests check what was **sent** and in what order. The module is loaded fresh for each test, so the in-memory publish/trash flags never leak between cases.
+   - **M-5 paging (`readAllPages`):** one page when it is not full; keeps reading while pages are full, with ranges 0–499, 500–999, ...; an empty page after a full one ends the read; a row that arrives twice is dropped by id; an error throws the server's message; it stops at 10,000 rows and logs a warning.
+   - **Lists:** `fetchInvitations` orders by `created_at` then `id` (both descending), reads by range and does not select `*`; `published`, `deleted_at`, `slug` and `owner` are split out of the rows; a null `published` counts as published.
+   - **H-6 flags:** `savePublished` sends nothing when nothing changed, sends only the changed ids, groups ids with the same value into one statement, splits more than 100 ids (100 / 100 / 50), and after a failure the next call sends the part that did not go through again. A list read asked for after a write waits for the write; a failed write does not block the read behind it.
+   - **L-8:** `saveDeleted` sends an ISO time to trash and `null` to restore, and nothing when the map equals what the server had; `fetchExpiredTrashIds` keeps only string ids, returns `[]` for a non-array answer and rejects when the function is missing (so nothing is purged).
+   - **`saveInvitation`:** the slug is the trimmed link id (or the id), the template id is sent as a string, `published` is written only when asked, error 23505 becomes the "already used" `ApiError`, other errors keep the server's message.
+   - **M-4 `deleteInvitation`:** the preview file is removed when nothing else uses it; kept while another invitation (a duplicate) still points at it; kept when the check itself fails; a failed file removal does not fail the purge; nothing is touched when the row could not be deleted or nobody is signed in.
+   - **Enquiries (L-7, M-6) and account (M-13):** column mapping and blanks, the new-count is done on the server (`head: true`, no rows), `saveEnquiry` does not send `history`, sends an empty follow-up date as `null` and returns the server's history; a missing profile is a "Member" on an expired trial, never an active admin.
+   - **The tests can fail:** three deliberate breaks were tried, and each was caught by the matching tests: no ordering queue (the "waits for the write" test failed), no duplicate-id filter (the "arrives twice" test failed), and no "still in use" check before removing a preview file (2 tests failed). `api.ts` was restored and is unchanged.
+2. **Typing (M-14)** (`src/types/dashboard.ts`, `src/pages/Create.tsx`): `InvitationRow` no longer has `[key: string]: any`, and `details` is `Partial<InvitationData>` instead of a loose object. The 10 errors this showed were all one thing; the only code change is in `Create.tsx`: `row.template_id` (typed `string | number`) is now converted with `String(...)`, with the same fallback order as before. No other runtime code changed.
+3. **Lint:** `no-explicit-any` is switched off for `*.test.ts(x)` files only (`tools/lint/eslint.config.js`), because fakes are untyped on purpose. Lint is at 0 errors and 34 warnings (36 before; two `any` went away with the typing change).
+4. **Verified:** `npm run typecheck` clean, `npm run lint` 0 errors, `npm test` 199 pass, `npm run build` passes (main bundle 260.05 kB, unchanged). `.env.local` was not touched.
+
+**How this affects other tasks**
+
+- **Track B (B9, `submit_change_request`):** the fake-client helper in `api.test.ts` (`makeDb` / `load`) can be copied for the change-request calls.
+- **M-5 "load more":** when the UI is built, `readAllPages` is the function to change; its 6 tests describe today's behaviour (reads everything up to 10,000 rows) and will need updating with it.
+- **Database:** no change, nothing to run in Supabase. The fake client does not prove the SQL; the migrations are still checked on Postgres and in Supabase.
+
+**Behaviour changes to check**
+
+- None for users. The only runtime edit is the `String(row.template_id)` conversion when an invitation is opened for editing: open an existing invitation and confirm its template is selected, as before.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint:install && npm run lint && npm test && npm run typecheck && npm run build` all finish with no errors (199 tests; lint prints 34 warnings).
+2. Edit an existing invitation: the template, names and wedding date are filled in.
+
+**Next steps, in order**
+
+1. Owner actions: copy `docs/ci.yml` to `.github/workflows/ci.yml`; run `007`, `008` and `009`, then deploy `preview`; turn on pg_cron; per-IP rate limit; everything in the earlier updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 19th updates; then tick those items (L-9 included).
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: tests for the hooks (`useEnquiries`, the store) with the same fake client, the M-5 "load more" UI, or `noImplicitAny` and the remaining `any` in M-14.
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (18th update) – L-9 (live preview) and M-14 type alignment
 
@@ -1016,11 +1059,11 @@ When asked to "update based on task.md", follow these steps.
 
 ### Test and tooling baseline (**M-14**; lint and the first unit tests exist since the 16th update)
 - [x] ESLint with `react-hooks` and `@typescript-eslint`; add `npm run lint`. *Done 12 Nov (16th update): `tools/lint` (own `package.json`, ESLint 10, TypeScript 5.9 pinned for linting only), `npm run lint:install` once, then `npm run lint`: 0 errors, 36 warnings (14 `any`, 14 `exhaustive-deps`, 8 unused variables). Only the two classic hook rules are on; the React Compiler rules of `eslint-plugin-react-hooks` 7 are not.*
-- [~] Vitest unit tests for `compile`, `validate`, `slug`, `dashboardData` helpers. *Started 12 Nov (16th update), extended in the 17th: `npm test`, 151 tests for `compile` / `isSafeUrl`, `validate` (phone, URL, link name, whole-form rules), `reserved`, `transliterate` (M-2: cache, no-suggestion, failures, 60 s pause, timeout, 1,000-word cap), the `dashboardData` CSV and WhatsApp helpers, `helpLink`, `uid` and `isOwnPreviewImage`. Still to do: the cases that need a fake Supabase client (`api.ts` reads, write queue, purge; the hooks; `useEnquiries`), `PublicInvitation`, and the database (pgTAP) cases.*
+- [~] Vitest unit tests for `compile`, `validate`, `slug`, `dashboardData` helpers. *Started 12 Nov (16th update), extended in the 17th: `npm test`, 199 tests (151 in the 17th update, 9 for the preview bridge in the 18th, 39 for `api.ts` in the 19th) for `compile` / `isSafeUrl`, `validate` (phone, URL, link name, whole-form rules), `reserved`, `transliterate` (M-2: cache, no-suggestion, failures, 60 s pause, timeout, 1,000-word cap), the `dashboardData` CSV and WhatsApp helpers, `helpLink`, `uid` and `isOwnPreviewImage`. `api.test.ts` (19th update) uses a fake Supabase client for paging (M-5), the flag queue (H-6), the purge and preview-file rules (M-4, L-8), enquiries (L-7) and the account fallback (M-13). Still to do: the hooks (`useEnquiries`, the store), `PublicInvitation`, and the database (pgTAP) cases.*
 - [ ] Playwright e2e: login → create → publish → public view.
 - [ ] RLS tests (pgTAP or Supabase CLI) covering the authorization checklist in the audit, section 6.
 - [~] GitHub Actions: typecheck, build, tests, `npm audit`; add Dependabot. *Written 12 Nov (17th update): `docs/ci.yml` (**not active yet: copy it to `.github/workflows/ci.yml`**, because the push token had no `workflow` permission) (typecheck, lint, tests, build on push and pull request to `preview` and `main`; a separate `npm audit --omit=dev --audit-level=high` job that reports but does not fail the run) and `.github/dependabot.yml` (weekly, grouped, root + `tools/lint` + Actions). Every step was run from a clean copy and passes. It has not been seen running on GitHub yet; Dependabot (`.github/dependabot.yml`) is already in place.*
-- [~] Tighten types: remove `[key: string]: any` on core types, enable `noImplicitAny`, align `@types/react` (^19) with `react` (^18.3.1), pin TypeScript instead of using a caret. *Part done 12 Nov (18th update): TypeScript pinned to `7.0.2` (no caret), `@types/react` ^18.3 and `@types/react-dom` ^18.3 now match React 18, and the 19 errors that showed up were fixed with type-only edits. Still open: remove `[key: string]: any` and turn on `noImplicitAny` (14 `any` warnings in lint).*
+- [~] Tighten types: remove `[key: string]: any` on core types, enable `noImplicitAny`, align `@types/react` (^19) with `react` (^18.3.1), pin TypeScript instead of using a caret. *Part done 12 Nov (18th update): TypeScript pinned to `7.0.2` (no caret), `@types/react` ^18.3 and `@types/react-dom` ^18.3 now match React 18, and the 19 errors that showed up were fixed with type-only edits. 19th update: the `[key: string]: any` signature is gone from `InvitationRow`, and `details` is now typed as `Partial<InvitationData>` (the same shape the editor and compiler use). Still open: turn on `noImplicitAny`, and the remaining `any` in the code (lint shows 34 warnings in total, including `details?: ... [key: string]: any` style spots in `dashboardData`, `api.ts` row helpers and the store).*
 
 ### Cleanup and low-priority fixes
 - [~] **L-1** Replace `href="#"` Docs/Support links, add handlers for profile-menu items, add a catch-all route for unknown admin URLs. *Coded 12 Nov (14th update): Docs/Support come from `VITE_DOCS_URL` / `VITE_SUPPORT_URL` and are hidden when unset; menu items with no page yet are disabled ("Soon"); `Page not found` route inside the admin shell. Tested only for the link rules (26 checks) and by typecheck/build; needs the browser check in the Progress log and the two addresses from you.*
