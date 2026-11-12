@@ -21,10 +21,10 @@ export async function fetchPublicInvitation(slug: string): Promise<PublicInvitat
     method: "POST", headers, body: JSON.stringify({ p_slug: slug }),
   });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  const data = (await res.json()) as Record<string, any> | null;
+  const data = (await res.json()) as (Record<string, unknown> & { html_code?: string | null }) | null;
   if (!data) return null;
   const { html_code, ...invitation } = data;
-  return { invitation: invitation as InvitationRow, html: html_code || "" };
+  return { invitation: invitation as unknown as InvitationRow, html: html_code || "" };
 }
 
 const VISITOR_KEY = "schedy_visitor";
