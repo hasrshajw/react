@@ -16,7 +16,7 @@ interface Props {
   sort: SortKey;
   templates: { key: string; name: string; n: number }[];
   trashedCount: number;
-  searchRef: RefObject<HTMLInputElement | null>;
+  searchRef: RefObject<HTMLInputElement>;
   onParams: (patch: Partial<Record<ParamKey, string>>) => void;
   onClearFilters: () => void;
   onOpenTrash: (e: MouseEvent<HTMLButtonElement>) => void;

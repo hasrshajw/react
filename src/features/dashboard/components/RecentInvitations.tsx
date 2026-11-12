@@ -9,8 +9,8 @@ import { RowActions } from "./RowActions";
 import { ErrorState, InvitationsTableSkeleton, NoInvitationsState, NoMatchState } from "./ListStates";
 
 interface Props {
-  tableRef: RefObject<HTMLDivElement | null>;
-  searchRef: RefObject<HTMLInputElement | null>;
+  tableRef: RefObject<HTMLDivElement>;
+  searchRef: RefObject<HTMLInputElement>;
   loading: boolean;
   /** Loading is still quick: reserve the skeleton's space but draw nothing yet (see useSkeletonPhase). */
   holdSkeleton?: boolean;

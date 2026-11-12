@@ -3,13 +3,12 @@ import { createPortal } from "react-dom";
 import { LayoutTemplate, X } from "../../../components/Icons";
 import { Loading, Sk, SkText } from "../../../components/Skeleton";
 import { TARGETS } from "../constants";
-import { withPreviewBridge, type PreviewMessage } from "../previewBridge";
+import { previewShell, type PreviewMessage } from "../previewBridge";
 
 export interface FocusRequest { field: string; id: string }
 
 interface Props {
   slot: HTMLElement;
-  source: string;
   compiled: string;
   selected?: { id: string; name: string };
   open: boolean;
@@ -22,12 +21,12 @@ interface Props {
 
 /* React.memo: typing in the form changes `compiled`, but nothing else here, and
    unrelated renders of the page (toasts, save state, nav) skip this panel entirely.
-   The iframe is patched in place (morphdom runs inside the frame, driven by postMessage) instead of being reloaded. */
-export const LivePreview = memo(function LivePreview({ slot, source, compiled, selected, open, loading = false, focusRequest, onClose, onChoose }: Props) {
+   The iframe is patched in place (morphdom runs inside the frame, driven by postMessage; L-9: the frame holds the compiled document without its scripts) instead of being reloaded. */
+export const LivePreview = memo(function LivePreview({ slot, compiled, selected, open, loading = false, focusRequest, onClose, onChoose }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   /* C-2: the frame has an opaque origin (no allow-same-origin), so everything goes through postMessage.
      `targetOrigin` must be "*" for an opaque origin; the content sent is only this user's own compiled preview. */
-  const framedSource = useMemo(() => withPreviewBridge(source), [source]);
+  const shell = useMemo(() => previewShell(), []);
   const loadedRef = useRef(false);
   const compiledRef = useRef(compiled);
   const focusRef = useRef<string | null>(null);
@@ -35,7 +34,7 @@ export const LivePreview = memo(function LivePreview({ slot, source, compiled, s
   const send = (msg: PreviewMessage) => frameRef.current?.contentWindow?.postMessage(msg, "*");
 
   /* a new frame (other template) starts unloaded; its onLoad sends the current content */
-  useEffect(() => { loadedRef.current = false; }, [selected?.id, framedSource]);
+  useEffect(() => { loadedRef.current = false; }, [selected?.id]);
 
   const onFrameLoad = () => {
     loadedRef.current = true;
@@ -80,7 +79,7 @@ export const LivePreview = memo(function LivePreview({ slot, source, compiled, s
             <Loading label="Loading template" />
           </div>
         ) : selected ? (
-          <iframe key={selected.id} ref={frameRef} title="Invitation preview" srcDoc={framedSource} onLoad={onFrameLoad} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" />
+          <iframe key={selected.id} ref={frameRef} title="Invitation preview" srcDoc={shell} onLoad={onFrameLoad} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" />
         ) : (
           <div className="empty">
             <LayoutTemplate size={28} />

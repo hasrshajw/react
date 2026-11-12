@@ -4,7 +4,7 @@ import type { RowMenuState } from "../hooks/useRowMenu";
 
 interface Props {
   menu: RowMenuState;
-  menuRef: RefObject<HTMLDivElement | null>;
+  menuRef: RefObject<HTMLDivElement>;
   onKeyDown: (e: KeyboardEvent<HTMLElement>) => void;
   children: ReactNode;
 }

@@ -351,7 +351,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
 
       {slot && (
         <LivePreview
-          slot={slot} source={source} compiled={compiled} selected={selectedInfo} loading={previewLoading} open={previewOpen}
+          slot={slot} compiled={compiled} selected={selectedInfo} loading={previewLoading} open={previewOpen}
           focusRequest={focusRequest} onClose={closePreview} onChoose={chooseTemplate}
         />
       )}

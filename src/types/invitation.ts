@@ -1,3 +1,4 @@
+import type { IconComponent } from "../components/Icons";
 export interface EventItem {
   id: string;
   name: string;
@@ -55,7 +56,7 @@ export interface Category {
 export interface SectionDef {
   id: SectionId;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: IconComponent;
   hint: "required" | "recommended" | "optional";
 }
 

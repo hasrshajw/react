@@ -4,7 +4,8 @@ import morphdomUmd from "morphdom/dist/morphdom-umd.min.js?raw";
    document. Instead the editor posts messages and this small script, injected into the frame, applies them.
 
    Messages (parent -> frame), all plain objects:
-     { schedy: "patch", html }    morph the frame's <body> to match the compiled invitation
+     { schedy: "patch", html }    morph the frame's <head> and <body> to match the compiled invitation
+                                  (L-9: so <style> and <link> changes show; every <script> is dropped, the editor never runs template scripts)
      { schedy: "focus", target }  scroll to a field and flash it
    Only messages whose `source` is the parent window are handled. The frame never sends anything back, so
    a template script cannot use this channel to reach the editor. */
@@ -12,15 +13,24 @@ const BRIDGE = `
 (function(){
   if (window.__schedyBridge) return; window.__schedyBridge = true;
   var st = document.createElement("style");
-  st.textContent = ".schedy-focus{outline:3px solid #a5b4fc;outline-offset:4px;border-radius:4px}";
+  st.setAttribute("data-schedy-bridge", "1"); st.textContent = ".schedy-focus{outline:3px solid #a5b4fc;outline-offset:4px;border-radius:4px}";
   (document.head || document.documentElement).appendChild(st);
   function patch(html){
     if (typeof html !== "string" || !document.body) return;
     var parsed = new DOMParser().parseFromString(html, "text/html");
-    morphdom(document.body, parsed.body, {
-      childrenOnly: true,
-      getNodeKey: function(n){ return n.id || (n.dataset && n.dataset.previewKey) || null; }
-    });
+    /* L-9: template scripts are never executed in the editor. they are removed from the parsed copy first, so no browser rule about parsed scripts can matter. */
+    Array.prototype.forEach.call(parsed.querySelectorAll("script"), function(n){ n.remove(); });
+    var attrs = parsed.documentElement.attributes;
+    Array.prototype.forEach.call(document.documentElement.getAttributeNames(), function(a){ if (!parsed.documentElement.hasAttribute(a)) document.documentElement.removeAttribute(a); });
+    Array.prototype.forEach.call(attrs, function(a){ document.documentElement.setAttribute(a.name, a.value); });
+    var key = function(n){ return n.id || (n.dataset && n.dataset.previewKey) || null; };
+    /* morphdom matches elements by tag name, so it would rewrite the bridge's own <style> into the template's first <style>.
+       The bridge nodes are set aside during the head patch and put back after it (moving a script does not run it again). */
+    var own = Array.prototype.slice.call(document.head.querySelectorAll("[data-schedy-bridge]"));
+    own.forEach(function(n){ n.parentNode.removeChild(n); });
+    morphdom(document.head, parsed.head, { childrenOnly: true, getNodeKey: key });
+    own.forEach(function(n){ document.head.appendChild(n); });
+    morphdom(document.body, parsed.body, { childrenOnly: true, getNodeKey: key });
   }
   function focusField(name, attempts){
     if (typeof name !== "string") return;
@@ -44,9 +54,11 @@ const BRIDGE = `
 
 const escapeScript = (s: string) => s.replace(/<\/script/gi, "<\\/script");
 
-/** The template source plus the bridge (morphdom is inlined because the frame cannot import from the app). */
-export function withPreviewBridge(source: string): string {
-  return `${source}<script>${escapeScript(morphdomUmd)}</script><script>${escapeScript(BRIDGE)}</script>`;
+/** L-9: the frame starts as an empty shell that holds only the bridge. The compiled invitation (head, styles and body, without its
+ *  scripts) arrives in the first "patch" message, so nothing from the raw template is ever executed in the editor. morphdom is
+ *  inlined because the frame cannot import from the app. */
+export function previewShell(): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script data-schedy-bridge="1">${escapeScript(morphdomUmd)}</script><script data-schedy-bridge="1">${escapeScript(BRIDGE)}</script></head><body></body></html>`;
 }
 
 export type PreviewMessage = { schedy: "patch"; html: string } | { schedy: "focus"; target: string };

@@ -16,7 +16,7 @@ interface Props {
   pages: number;
   sel: Set<string>;
   allOnPage: boolean;
-  headCheck: RefObject<HTMLInputElement | null>;
+  headCheck: RefObject<HTMLInputElement>;
   topId: string | null;
   topTemplate?: { name: string; n: number };
   previewId?: string;

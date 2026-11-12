@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 17th update)
+### Where things stand (12 Nov 2026, 18th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,53 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 6 | 5 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors), 151 unit tests run (`npm test`) and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); Playwright, database tests and type tightening are not started. |
+| Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors), 160 unit tests run (`npm test`), TypeScript is pinned and the React types match React 18 and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); Playwright, database tests and type tightening are not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (18th update) – L-9 (live preview) and M-14 type alignment
+
+**What was done**
+
+1. **L-9: the live preview now shows the compiled document and runs no template scripts** (`src/features/create/previewBridge.ts`, `src/features/create/components/LivePreview.tsx`, `src/pages/Create.tsx`)
+   - **Before:** the frame loaded the raw template (with its own `<head>`, `<style>` and scripts) and only `<body>` was patched afterwards. So changes that affect the head or styles never showed, and any script in the template ran inside the editor frame.
+   - **Now:** `withPreviewBridge(source)` is replaced by `previewShell()`: an empty page with only the bridge (morphdom plus the message handler). The frame never loads the raw template. Each `patch` message carries the whole compiled document; the bridge removes every `<script>` from it, copies the `<html>` attributes, and morphs `<head>` and `<body>`. `focus` messages work as before. The `source` prop of `LivePreview` is gone (the one caller, `Create.tsx`, was updated).
+   - **A bug found by the new tests and fixed:** morphdom matches elements by tag, so the bridge's own focus `<style>` was rewritten into the template's first `<style>`. The bridge nodes (marked `data-schedy-bridge`) are now set aside during the head patch and put back afterwards (moving a script does not run it again).
+   - The sandbox from C-2 (`allow-scripts` without `allow-same-origin`) is unchanged: scripts are still allowed only so the bridge can run.
+2. **M-14: types aligned** (`package.json`, `package-lock.json`)
+   - TypeScript is pinned to `7.0.2` (was `^7.0.2`). `@types/react` and `@types/react-dom` went from `^19.3.0` to `^18.3` to match `react` 18.3.1.
+   - The change showed 19 type errors, all fixed with type-only edits: five ref props written as `RefObject<T | null>` (React 19 style) are now `RefObject<T>`, and two icon prop types (`SectionDef.icon` in `types/invitation.ts`, `Section.tsx`) now use the app's own `IconComponent`. No runtime code changed.
+3. **Tests:** 9 new jsdom tests in `src/features/create/previewBridge.test.ts` that load the real shell and bridge with scripts enabled and send real `message` events: empty shell; body patch; `<style>` and `<link>` in the head appear, change and go away; the bridge's own scripts and style survive; no template script runs (inline or `src`, in head or body); `<html>` attributes follow; an element with an id is kept, not rebuilt; messages from another source or with bad data are ignored; the focus flash is added and removed. **The tests can fail:** with the script removal switched off on purpose, the "does not run a template script" test failed; after restoring, all 9 pass.
+4. **Verified:** `npm run typecheck` clean, `npm run lint` 0 errors (36 warnings, unchanged), `npm test` 160 pass (151 + 9), `npm run build` passes (main bundle 260.05 kB, unchanged). `.env.local` was not touched.
+
+**How this affects other tasks**
+
+- **C-2 / strict CSP:** the CSP note said enforcing the strict policy depends on L-9. The editor frame now runs only the bridge (inline). When you enforce the policy, check the `Content-Security-Policy-Report-Only` log for the editor page, because the frame still needs `script-src 'unsafe-inline'` for the bridge (a `srcdoc` frame inherits the parent's policy).
+- **Templates that rely on scripts** (for example a countdown or a gallery) will look static in the editor preview. The public invitation page still runs them. Check one such template.
+- **Track B (B9):** the jsdom bridge test file is a pattern for testing the change-request preview.
+- **No database change** in this update, so nothing to run in Supabase.
+
+**Behaviour changes to check (in a browser)**
+
+1. Create → pick a template that has its own `<style>` in the head → type a name: the text updates and the template's styles and fonts are applied from the first moment, with no flash of unstyled content that stays.
+2. Pick a template that contains a `<script>` (for example an animation): the editor preview does not run it; the public page `/<slug>` still does.
+3. Click a field in the form: the preview scrolls to it and flashes it, as before. Switch to another template: the preview shows the new template, not a mix of both.
+4. Edit an existing invitation and use the mobile "Preview" button: the panel opens with the content already in it.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint:install && npm run lint && npm test && npm run typecheck && npm run build` all finish with no errors (160 tests; lint prints 36 warnings).
+2. `npm ls typescript @types/react` shows `7.0.2` and `18.3.x`.
+
+**Next steps, in order**
+
+1. Owner actions: copy `docs/ci.yml` to `.github/workflows/ci.yml`; run `007`, `008` and `009`, then deploy `preview`; turn on pg_cron; per-IP rate limit; everything in the earlier updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 18th updates; then tick those items (L-9 included).
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: Vitest cases with a fake Supabase client (`api.ts`, the store and enquiry hooks), the M-5 "load more" UI, or the rest of the type tightening in M-14 (remove `[key: string]: any`, turn on `noImplicitAny`).
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (17th update) – M-14: more unit tests, CI and Dependabot
 
@@ -975,7 +1020,7 @@ When asked to "update based on task.md", follow these steps.
 - [ ] Playwright e2e: login → create → publish → public view.
 - [ ] RLS tests (pgTAP or Supabase CLI) covering the authorization checklist in the audit, section 6.
 - [~] GitHub Actions: typecheck, build, tests, `npm audit`; add Dependabot. *Written 12 Nov (17th update): `docs/ci.yml` (**not active yet: copy it to `.github/workflows/ci.yml`**, because the push token had no `workflow` permission) (typecheck, lint, tests, build on push and pull request to `preview` and `main`; a separate `npm audit --omit=dev --audit-level=high` job that reports but does not fail the run) and `.github/dependabot.yml` (weekly, grouped, root + `tools/lint` + Actions). Every step was run from a clean copy and passes. It has not been seen running on GitHub yet; Dependabot (`.github/dependabot.yml`) is already in place.*
-- [ ] Tighten types: remove `[key: string]: any` on core types, enable `noImplicitAny`, align `@types/react` (^19) with `react` (^18.3.1), pin TypeScript instead of using a caret.
+- [~] Tighten types: remove `[key: string]: any` on core types, enable `noImplicitAny`, align `@types/react` (^19) with `react` (^18.3.1), pin TypeScript instead of using a caret. *Part done 12 Nov (18th update): TypeScript pinned to `7.0.2` (no caret), `@types/react` ^18.3 and `@types/react-dom` ^18.3 now match React 18, and the 19 errors that showed up were fixed with type-only edits. Still open: remove `[key: string]: any` and turn on `noImplicitAny` (14 `any` warnings in lint).*
 
 ### Cleanup and low-priority fixes
 - [~] **L-1** Replace `href="#"` Docs/Support links, add handlers for profile-menu items, add a catch-all route for unknown admin URLs. *Coded 12 Nov (14th update): Docs/Support come from `VITE_DOCS_URL` / `VITE_SUPPORT_URL` and are hidden when unset; menu items with no page yet are disabled ("Soon"); `Page not found` route inside the admin shell. Tested only for the link rules (26 checks) and by typecheck/build; needs the browser check in the Progress log and the two addresses from you.*
@@ -986,7 +1031,7 @@ When asked to "update based on task.md", follow these steps.
 - [x] **L-6** Merge duplicate `readJSON`/`writeJSON` in `lib/storage.ts` and `lib/dashboardData.ts`. *Done 12 Nov (13th update): `dashboardData.ts` re-exports the `storage.ts` versions.*
 - [~] **L-7** `saveEnquiry`: append to `history` server-side instead of overwriting the array. *Coded 12 Nov (13th update): trigger `enquiries_history` in `supabase/migrations/008_enquiry_history.sql` and `schema.sql` appends `{status, at}` with the server time when `status` changes and ignores any client `history`; `saveEnquiry` no longer sends `history`. Tested on local Postgres 16; still to do: run `008` in Supabase and the browser check in the Progress log.*
 - [~] **L-8** Use a server timestamp for `deleted_at`; run the 30-day trash purge as a scheduled job. *Coded 12 Nov (15th update): trigger `invitations_trash_stamp`, `trash_retention()`, `expired_trash_ids()` and `purge_expired_trash()` in `supabase/migrations/009_trash_server_time.sql` and `schema.sql`, daily pg_cron job when the extension exists; the Dashboard purge asks the server instead of the device clock. Tested on local Postgres 16 (19 cases, upgrade and reset paths) and with jsdom (12 checks). Still to do: run `009` in Supabase, enable pg_cron, the browser/dashboard checks in the Progress log. The scheduled job removes rows only; pictures of rows it purges wait for the M-4 orphan job.*
-- [ ] **L-9** Live preview: render the compiled document so `<head>`/`<style>` changes show; stop executing template scripts in the editor.
+- [~] **L-9** Live preview: render the compiled document so `<head>`/`<style>` changes show; stop executing template scripts in the editor. *Coded 12 Nov (18th update): the frame starts as an empty shell with only the bridge (`previewShell()`), and every update sends the compiled document; the bridge patches `<head>`, `<body>` and the `<html>` attributes and drops all `<script>` elements. 9 jsdom tests (`previewBridge.test.ts`). Needs the browser check in the 18th update's list.*
 - [ ] Longer term: serve invitations from a separate origin or subdomain.
 
 ---

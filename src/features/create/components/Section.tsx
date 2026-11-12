@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { SectionId } from "../../../types/invitation";
+import type { IconComponent } from "../../../components/Icons";
 import { SECTIONS } from "../constants";
 
 interface Props {
   id: SectionId;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: IconComponent;
   title: string;
   tag?: { tone: string; text: string; loading?: boolean };
   /** This section's own data is still on its way (its fields are ghosts). When it turns false the section fades in. */
