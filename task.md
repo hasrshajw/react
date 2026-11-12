@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 11th update)
+### Where things stand (12 Nov 2026, 12th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,49 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 1 | 0 | all but L-5 | **L-5** done (one shared `uid()` without a `.`). The *Duplicate* gap from the 3rd update is closed (a copy is saved as a draft in the same write). Nothing else in Phase 3 is started (no lint, tests or CI yet). |
+| Phase 3 | 3 | 0 | all the rest | **L-3** (CSV formula guard), **L-4** (`waLink`) and **L-5** (`uid()`) are done. The *Duplicate* gap from the 3rd update is closed. Nothing else in Phase 3 is started (no lint, tests or CI yet). |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (12th update) – L-3 CSV formula guard, L-4 WhatsApp link
+
+**What was done**
+
+1. **L-3 – CSV export guard** (`src/lib/dashboardData.ts`; `csvCell` is used by the Enquiries export and the Invitations export)
+   - New `looksLikeFormula(text)`. A cell is prefixed with `'` when it starts with `=`, `@`, a **tab** or a **carriage return** (the last two were missed before), or with `+` / `-` unless it is one of the harmless shapes below.
+   - **Left alone:** a phone number written with a plus and only digits, spaces, `()` and `-` (`+91 98765-43210`, `+91 (98765) 43210`); a plain number (`-5`, `-2.5`); a dash used as a bullet, `- ` followed by text with none of `= + @ | ( )` or a line break (`- call me`).
+   - **Tighter than before:** the old exemption `^\+?[\d\s]+$` also let through a value made only of digits and whitespace, including tab and line-break characters, and anything starting with `-` was guarded even when harmless. Now whitespace other than a plain space no longer exempts anything, and `- thanks, see you` is no longer changed. A value starting with `-` that has letters or a formula character right after the dash (`-cmd`, `-2+3+cmd|…`, `- =cmd`) is still guarded.
+   - **Known limit:** the apostrophe is written into the file as text; Excel and Sheets show it when a CSV is opened (the CSV format has no "text cell" marker). That is the price of the guard and is unchanged. Text that merely contains `=` or `+` later in the cell is not touched, as before.
+2. **L-4 – WhatsApp link** (`src/lib/dashboardData.ts`, used by the Enquiries panel)
+   - New `waNumber(phone)`: digits only; a leading `00` is dropped (`0091 98765 43210`); an **11-digit number with a leading `0`** loses it (`09876543210`); then a 10-digit number gets `91`. Other lengths are kept (`+1 (415) 555-0100` → `14155550100`). Before, `09876543210` stayed 11 digits and the link opened a wrong number.
+   - The greeting uses the first word of the trimmed name; with an empty or blank name it reads `Hi, thanks for your enquiry…` instead of `Hi , thanks…`. A missing phone no longer throws (the link opens WhatsApp with no number chosen).
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** `npm run typecheck` and `npm run build` pass. Node, the real file bundled: 15 values guarded (`=1+1`, `=HYPERLINK(…)`, `@SUM(A1)`, `+cmd|…`, `-2+3+cmd|…`, `-cmd`, tab and carriage-return starts, `+1+1`, `+91 98765 43210 x`, `- =cmd`, `- a|b`, `- (x)`, `-@x`, a lone `+`); 12 left alone (the three phone shapes above, `-5`, `-2.5`, two bullets, `hello`, empty, digits, `a=b`, `x+y`, `Hi -there`); `null`, `undefined` and numbers; quote doubling, also together with the guard; 9 `waNumber` cases and 6 `waLink` cases (first name, empty and blank name, extra spaces, `0`-prefixed number, missing phone). **Not run in Excel or a browser.**
+
+**How this affects other tasks**
+
+- **H-5:** the database already limits `phone` to `+0-9 ()-`, so real phone values fall in the "left alone" shapes; `name`, `message` and `note` are the free-text fields the guard is for.
+- **L-6 / M-14:** `csvCell`, `looksLikeFormula`, `waNumber` and `waLink` are pure functions and are good first Vitest cases; the cases above can be copied into the test file when Phase 3 tooling exists.
+- **No database change in this update**, nothing to run in Supabase.
+
+**Behaviour changes to check**
+
+- Enquiries export: a phone number starting with `+` is no longer prefixed; a message such as `- call me tomorrow` is no longer prefixed; a message starting with a tab or `=` is.
+- WhatsApp button on an enquiry whose phone is `09876543210` opens the chat with `+91 98765 43210`; an enquiry with no name shows `Hi, thanks…` in the prefilled text.
+
+**Checks to repeat**
+
+1. Dashboard → Enquiries: create test enquiries (SQL Editor) with messages `=1+1`, `- call me`, `+91 98765-43210` and a phone `09876543210`. Export CSV, open in Excel or Sheets: `=1+1` shows as text with a leading `'`, nothing is calculated; the other two show unchanged.
+2. Click WhatsApp on the `09876543210` row: the chat is with +91 98765 43210. Delete the test rows.
+
+**Next steps, in order**
+
+1. Owner actions: run `007` then deploy `preview`; per-IP rate limit; everything in the 6th to 10th updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 12th updates and the older ones; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: **L-6** (merge `readJSON`/`writeJSON`) with **L-7** (`saveEnquiry` appends to `history` on the server; touches the database), **L-1** (dead links and catch-all route), or the M-5 "load more" UI.
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (11th update) – Duplicate no longer goes public, L-5 `uid()` fallback
 
@@ -715,8 +756,8 @@ When asked to "update based on task.md", follow these steps.
 ### Cleanup and low-priority fixes
 - [ ] **L-1** Replace `href="#"` Docs/Support links, add handlers for profile-menu items, add a catch-all route for unknown admin URLs.
 - [ ] **L-2** Remove or relocate repo-root `assets/` (~4.4 MB, not shipped), `src/assets/1.html`, `src/assets/test.html`, `src/assets/txt`. (`temp/*.html` was already deleted in the last two commits.)
-- [ ] **L-3** CSV formula guard: also cover values starting with tab or carriage return; tighten the `^\+?[\d\s]+$` exemption; avoid prefixing harmless text beginning with `-`.
-- [ ] **L-4** `waLink`: handle 11-digit numbers with a leading 0; avoid "Hi , thanks…" when the name is empty.
+- [x] **L-3** CSV formula guard: also cover values starting with tab or carriage return; tighten the `^\+?[\d\s]+$` exemption; avoid prefixing harmless text beginning with `-`. *Done 12 Nov (12th update): `looksLikeFormula()` in `src/lib/dashboardData.ts`; see the progress log for the exact rule.*
+- [x] **L-4** `waLink`: handle 11-digit numbers with a leading 0; avoid "Hi , thanks…" when the name is empty. *Done 12 Nov (12th update): `waNumber()` and `waLink()` in `src/lib/dashboardData.ts`.*
 - [x] **L-5** `uid()` fallback: remove the `.` from the generated id (breaks the `/<slug>` rewrite on Vercel). *Done 12 Nov (11th update): new `src/lib/uid.ts`, used by `features/create/constants.ts` and `features/invitations/utils.ts`; the fallback now gives letters, digits and `-` only. Tested in Node with `crypto` removed.*
 - [ ] **L-6** Merge duplicate `readJSON`/`writeJSON` in `lib/storage.ts` and `lib/dashboardData.ts`.
 - [ ] **L-7** `saveEnquiry`: append to `history` server-side instead of overwriting the array.

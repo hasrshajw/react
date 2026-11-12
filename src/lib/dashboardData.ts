@@ -82,16 +82,34 @@ export const followDue = (e: Enquiry): "overdue" | "today" | "upcoming" | null =
   const today = isoDay(0);
   return e.followUpDate < today ? "overdue" : e.followUpDate === today ? "today" : "upcoming";
 };
-export const waLink = (e: Enquiry) => {
-  let n = e.phone.replace(/\D/g, "");
+/** Phone number for wa.me: digits only, with India's country code (91) added to a local number (task L-4).
+ *  Local forms handled: `9876543210`, `09876543210` (trunk 0) and `0091 98765 43210` / `00` + country code. */
+export const waNumber = (phone: string): string => {
+  let n = phone.replace(/\D/g, "");
+  if (n.startsWith("00")) n = n.slice(2);
+  else if (n.length === 11 && n.startsWith("0")) n = n.slice(1);
   if (n.length === 10) n = "91" + n;
-  const first = e.name.split(" ")[0];
-  const text = `Hi ${first}, thanks for your enquiry about a website with Schedy. When is a good time to talk?`;
-  return `https://wa.me/${n}?text=${encodeURIComponent(text)}`;
+  return n;
+};
+export const waLink = (e: Enquiry) => {
+  const first = (e.name || "").trim().split(/\s+/)[0] || "";
+  const text = `${first ? `Hi ${first}` : "Hi"}, thanks for your enquiry about a website with Schedy. When is a good time to talk?`;
+  return `https://wa.me/${waNumber(e.phone || "")}?text=${encodeURIComponent(text)}`;
+};
+/** True when a spreadsheet could read the text as a formula (task L-3). Excel and Sheets treat a cell that starts with
+ *  `=`, `+`, `-`, `@`, a tab or a carriage return that way. Left alone because they are harmless and common:
+ *  a phone number written with a plus (`+91 98765-43210`), a plain number (`-5`, `-2.5`) and a dash used as a bullet
+ *  (`- call me`) that has none of the characters a formula needs (`= + @ | ( )`). */
+export const looksLikeFormula = (s: string): boolean => {
+  const c = s[0];
+  if (c === "=" || c === "@" || c === "\t" || c === "\r") return true;
+  if (c === "+") return !/^\+[\d ()-]+$/.test(s);
+  if (c === "-") return !(/^-\d+([.,]\d+)?$/.test(s) || /^- [^=+@|()\t\r\n]*$/.test(s));
+  return false;
 };
 export const csvCell = (v: unknown) => {
   let s = String(v ?? "");
-  if (/^[=+\-@]/.test(s) && !/^\+?[\d\s]+$/.test(s)) s = "'" + s; // avoid spreadsheet formula injection
+  if (looksLikeFormula(s)) s = "'" + s; // avoid spreadsheet formula injection
   return `"${s.replace(/"/g, '""')}"`;
 };
 export const exportCsv = (rows: Enquiry[], notify: Notify) => {
