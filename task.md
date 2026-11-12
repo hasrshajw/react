@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 23rd update)
+### Where things stand (12 Nov 2026, 24th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,42 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors, 28 warnings), 287 unit tests run (`npm test`; the data layer `api.ts`, the dashboard hooks, `useAuth` and the small UI hooks are covered with fakes), TypeScript is pinned, **`noImplicitAny` is on (21st update)**, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); Playwright, database tests and type tightening are not started. |
+| Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors, 28 warnings), 287 unit tests ran on the 23rd update (`npm test`; the data layer `api.ts`, the dashboard hooks, `useAuth` and the small UI hooks are covered with fakes); **the 24th update adds 3 more test files (about 23 tests) that were written but not run, see below**, TypeScript is pinned, **`noImplicitAny` is on (21st update)**, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); Playwright, database tests and type tightening are not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (24th update) – M-14: tests for `useRowHint`, `useUnsavedWarnings` and `useTransliteration` (written, NOT yet run)
+
+**What was done**
+
+1. **Three new test files, no app code changed** (all use the `renderHook` helper; the transliteration one mocks `lib/transliterate`):
+   - `src/hooks/useRowHint.test.tsx` (10 tests): fallback / `max` on first visit; the count of the last visit is remembered and used next time; the hint does not change while the list is on screen; nothing is written while loading or for an empty list, and an empty list does not overwrite a stored count; clamped to `max` and to `min` (default 3, lowered to `max` when `min > max`), also for stored values; a stored non-number or broken JSON falls back; each key is separate; a refused write (quota) does not throw.
+   - `src/features/create/hooks/useUnsavedWarnings.test.tsx` (8 tests): `useBeforeUnload` warns only while active, follows the flag, and removes its listener; `useSaveShortcut` handles Ctrl+S and Cmd+S in either case and blocks the browser dialog, ignores S without Ctrl/Cmd, other Ctrl keys and Alt+S, calls the newest function, and stops after unmount.
+   - `src/features/create/hooks/useTransliteration.test.tsx` (8 tests): 450 ms debounce; a newer request for the same field cancels the older; different fields do not cancel each other; a late answer never overwrites newer typing; a blank value clears the field at once and cancels a waiting request; an empty answer leaves the field alone; the returned function keeps its identity; waiting requests are cancelled on unmount.
+2. **NOT verified:** this update ran in a sandbox with no network for `npm ci`, so `vitest`, `jsdom` and the React types were not installed. The files were only checked for syntax (TypeScript transpile, 0 errors). **They have not been run, `typecheck` and `lint` were not run, and the "tests can fail" break-checks were not done.** So this item is `[~]`, not `[x]`.
+3. `.env.local` was not touched.
+
+**How this affects other tasks**
+
+- None. No app, database or Supabase change.
+
+**Behaviour changes to check**
+
+- None for users.
+
+**Checks to repeat (do these first next time)**
+
+1. `npm ci && npm run lint:install && npm run lint && npm test && npm run typecheck && npm run build`. Expect about 23 new tests (310 in total). Fix any test that fails; if one fails because the test is wrong, fix the test, not the hook.
+2. Break-checks: remove the `latest` check in `useTransliteration` (expect the "late answer" test to fail); drop the `Math.max(floor, ...)` in `useRowHint` (expect the `min` tests to fail); drop `e.preventDefault()` in `useSaveShortcut` (expect the Ctrl+S test to fail). Restore each.
+3. Then update the status table counts and tick this item.
+
+**Next steps, in order**
+
+1. Run the checks above and finish this item.
+2. Owner actions from the 23rd update's list (CI green, run `007`/`008`/`009` in Supabase, pg_cron, per-IP rate limit, browser checks). **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+3. Next code items, one or two at a time: the M-5 "load more" UI; the 11 remaining `any` (`api.ts`, `compileInvitation.ts`); M-4 orphan-cleanup job.
+4. **Testing env file stays:** `.env.local` was not touched.
+
+---
 
 ### 12 Nov 2026 (23rd update) – M-14: tests for the small UI hooks (`useRowMenu`, `useNotify`, `useToast`, `useShortcuts`)
 
