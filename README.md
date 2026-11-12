@@ -51,15 +51,15 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
 ### Set up Supabase
 
 1. Create a Supabase project.
-2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (optional starter templates). `schema.sql` is safe to re-run: it never deletes tables or data, and it already includes everything in `supabase/migrations/` that a new project needs (preview-image bucket, link-name rules, `details` validation).
+2. In **SQL Editor**, run `supabase/schema.sql`, then `supabase/seed.sql` (optional starter templates). `schema.sql` is safe to re-run: it never deletes tables or data, and it already includes everything in `supabase/migrations/` that a new project needs (preview-image bucket, link-name rules, `details` validation, enquiry insert limits).
    - **Starting over:** `supabase/reset.sql` is the only script that deletes data (categories, templates, invitations, enquiries, profiles; login users are kept). Run it, then `schema.sql`, then `seed.sql`. Never run it on a live site.
-   - **Existing project:** you do not need to re-run `schema.sql`. Run the files in `supabase/migrations/` you have not applied yet, in numeric order (`001`, `002`, `003`; each is safe to run twice).
+   - **Existing project:** you do not need to re-run `schema.sql`. Run the files in `supabase/migrations/` you have not applied yet, in numeric order (`001`, `002`, `003`, `004`; each is safe to run twice).
 3. In **Authentication**, **turn off public sign-ups first**: **Authentication → Providers → Email**, switch off "Allow new users to sign up" (in some dashboard versions it is under **Authentication → Sign In / Providers**). Until the admin role exists (task C-1 in `task.md`), every signed-in user has full access to templates, categories and enquiries, so a stranger who can register can edit them.
    - Create the admin user by hand: **Authentication → Users → Add user → Create new user** (email + password, tick "Auto Confirm User").
    - Leave the **Google** provider off for now. Turn it on only after the admin role is in place, then add `https://YOUR-DOMAIN/login` as a redirect URL.
    - Check: the app has no sign-up form, but anyone can call the sign-up API with the public key, so test that. `curl -s -X POST "$VITE_SUPABASE_URL/auth/v1/signup" -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" -H "Content-Type: application/json" -d '{"email":"nobody@example.com","password":"Test-12345!"}'` must answer with an error (`signup_disabled`), and no new user may appear under **Authentication → Users**.
 4. Put the three variables above in `.env.local` for local work, and in **Vercel → Project Settings → Environment Variables** for the live site, then redeploy.
-   - Also set `SITE_URL` (your real domain, for example `https://your-domain.com`) for the build. It fills the canonical and social-preview tags and generates `robots.txt` and `sitemap.xml`. See `.env.example`.
+   - Also set `SITE_URL` (your real domain, for example `https://your-domain.com`) for the build. It fills the canonical and social-preview tags and generates `robots.txt` and `sitemap.xml`. The link-preview function `api/invite.js` reads the same variable at runtime (it never trusts the `Host` header), so after changing `SITE_URL` redeploy. See `.env.example`.
 
 The publishable (or anon) key is meant to be public (it ships in the browser bundle); the data is protected by the row-level-security rules in `schema.sql`. Never put the `service_role` key in this project.
 

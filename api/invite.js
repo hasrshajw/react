@@ -11,8 +11,14 @@
  *
  * Env vars (Vercel > Settings > Environment Variables, same ones the app already uses):
  *   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY  (or VITE_SUPABASE_ANON_KEY)
+ *   SITE_URL  (your real domain, for example https://your-domain.com). Also used by the build (vite.config.ts).
+ *             On Vercel, if it is missing, the production domain (VERCEL_PROJECT_PRODUCTION_URL) is used.
+ *             The Host / X-Forwarded-Host headers are never trusted. With no usable address, the tags that
+ *             need an absolute URL (canonical, og:url and the fallback og:image) are left out.
  * No service-role key is needed: get_invitation_meta() is granted to the anon role and does not count views.
  */
+
+import { resolveSiteUrl } from "./_siteUrl.js";
 
 /* Keep in sync with src/lib/reserved.ts, the vercel.json rewrite and the invitations_slug_reserved constraint. */
 const RESERVED = [
@@ -22,7 +28,11 @@ const RESERVED = [
 ];
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const SLUG_RE = /^[a-z0-9_-]{1,64}$/;
+/* Same rule as the database (invitations_slug_format) and validate.ts: 3 to 30 letters, numbers, - or _, or the
+   invitation's own uuid id, which is used as the link when no custom link was chosen. The lookup is lower-cased first. */
+const SLUG_RE = /^[a-z0-9_-]{3,30}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const isValidSlug = (s) => SLUG_RE.test(s) || UUID_RE.test(s);
 const TIMEOUT_MS = 4000;
 
 const esc = (v) =>
@@ -49,11 +59,8 @@ function fallbacks(meta) {
   };
 }
 
-function originOf(req) {
-  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
-  const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
-  return `${local ? "http" : "https"}://${host}`;
-}
+/* The site address comes from configuration, never from request headers (M-9). "" when not configured. */
+const originOf = () => resolveSiteUrl(process.env);
 
 async function fetchWithTimeout(url, init) {
   const ctrl = new AbortController();
@@ -89,28 +96,30 @@ function buildTags(meta, slug, origin) {
   const description = clean(meta.seo_description) || fb.description;
   const own = clean(meta.seo_image);
   /* Crawlers need a public https URL. Anything else (for example an old base64 value) falls back to the site image. */
-  const image = /^https:\/\/\S+$/.test(own) ? own : `${origin}/og-main.jpg`;
-  const pageUrl = `${origin}/${slug}`;
+  /* Without a configured site address there is no safe fallback image, so the image tags are left out. */
+  const image = /^https:\/\/\S+$/.test(own) ? own : origin ? `${origin}/og-main.jpg` : "";
+  const pageUrl = origin ? `${origin}/${slug}` : "";
   return [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(description)}" />`,
     `<meta name="robots" content="noindex" />`,
-    `<link rel="canonical" href="${esc(pageUrl)}" />`,
+    pageUrl && `<link rel="canonical" href="${esc(pageUrl)}" />`,
     `<meta property="og:type" content="website" />`,
-    `<meta property="og:url" content="${esc(pageUrl)}" />`,
+    pageUrl && `<meta property="og:url" content="${esc(pageUrl)}" />`,
     `<meta property="og:title" content="${esc(title)}" />`,
     `<meta property="og:description" content="${esc(description)}" />`,
-    `<meta property="og:image" content="${esc(image)}" />`,
-    `<meta property="og:image:width" content="1200" />`,
-    `<meta property="og:image:height" content="630" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
+    image && `<meta property="og:image" content="${esc(image)}" />`,
+    image && `<meta property="og:image:width" content="1200" />`,
+    image && `<meta property="og:image:height" content="630" />`,
+    `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}" />`,
     `<meta name="twitter:title" content="${esc(title)}" />`,
     `<meta name="twitter:description" content="${esc(description)}" />`,
-    `<meta name="twitter:image" content="${esc(image)}" />`,
-  ].join("\n    ");
+    image && `<meta name="twitter:image" content="${esc(image)}" />`,
+  ].filter(Boolean).join("\n    ");
 }
 
-/** Minimal HTML document for crawlers. Humans never get this page (see vercel.json). */
+/** Minimal HTML document for crawlers. Humans never get this page (see vercel.json).
+ *  The "Open the invitation" link is written only for a valid slug (pass "" for none). */
 function page(tags, slug) {
   return `<!doctype html>
 <html lang="en">
@@ -120,7 +129,7 @@ function page(tags, slug) {
     ${tags || "<title>Wedding Invitation</title>"}
   </head>
   <body>
-    <p><a href="/${esc(slug)}">Open the invitation</a></p>
+    ${slug ? `<p><a href="/${esc(slug)}">Open the invitation</a></p>` : ""}
   </body>
 </html>`;
 }
@@ -142,13 +151,13 @@ export default async function handler(req, res) {
     return;
   }
 
-  const origin = originOf(req);
+  const origin = originOf();
   const raw = Array.isArray(req.query?.slug) ? req.query.slug[0] : req.query?.slug;
   const slug = clean(raw).toLowerCase();
 
   /* Not a possible invitation link: plain page, no preview tags. */
-  if (!SLUG_RE.test(slug) || RESERVED.includes(slug)) {
-    send(res, 200, page("", slug), "no-cache", "reserved-or-invalid-slug");
+  if (!isValidSlug(slug) || RESERVED.includes(slug)) {
+    send(res, 200, page("", ""), "no-cache", "reserved-or-invalid-slug");
     return;
   }
 

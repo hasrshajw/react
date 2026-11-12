@@ -26,16 +26,64 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 3rd update)
+### Where things stand (12 Nov 2026, 4th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
 | Phase 0 | 0 | 2 | 3 | C-2 (public iframe) and H-1 are coded, awaiting a browser check. C-1, C-3 and the token rotation are dashboard/SQL actions for someone with Supabase/GitHub access. **The GitHub token pasted in chat on 12 Nov must be revoked** (see the first Phase 0 row). |
-| Phase 1 – Authorization and data safety | 1 | 3 | 2 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. Only C-1 is untouched. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
-| Phase 2 | 0 | 1 | rest | M-13 coded (awaiting a check). |
+| Phase 2 | 0 | 2 | rest | M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (4th update) – H-5 enquiry insert hardening (database half), M-9 link-preview function uses `SITE_URL`
+
+**What was done**
+
+1. **H-5 – what a stranger can write into `enquiries` is now limited by the database** (new `supabase/migrations/004_enquiry_hardening.sql`, folded into `supabase/schema.sql`; `supabase/reset.sql` drops the new function)
+   - **Column grants.** `anon` and signed-in users can insert only `name`, `phone`, `email`, `message`. `note`, `status`, `follow_up_date`, `history`, `id` and `created_at` always take their defaults. Naming any other column, even `status = 'new'`, fails with `permission denied`. Admins still change those columns with `UPDATE` as before.
+   - **Insert policy** now also requires `note = ''`, `follow_up_date is null` and `history = '[]'` (a second lock behind the grants).
+   - **Trigger `enquiries_check_insert`** (before insert): trims the four fields; `message` ≤ 2000 characters, `name` ≤ 100; `phone` (if given) only `+0-9 ()-`, ≤ 20 characters and 10–13 digits (same rule as `details`); `email` (if given) ≤ 254 characters, lower-cased, basic `a@b.c` shape; and **a 6th enquiry with the same phone or the same email within one hour is refused** (`Too many enquiries from this contact…`). A trigger, not a `CHECK`, so old rows stay updatable. It runs `security definer` because `anon` cannot read the table, so a plain count would always see 0. Two small indexes support the count.
+   - **Not done (still open in H-5):** the Edge Function / Vercel route with **captcha** and a **per-IP rate limit**. The database cannot see the visitor's IP, and a captcha needs a provider key and the public form, which is **not in this repo**. The per-contact limit above only slows repeat spam from one phone/email; a bot that varies them is not stopped.
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** on a local Postgres 16 with stub `auth`/`storage` schemas, both after running `004` on an old-schema database and on a fresh `schema.sql` + `seed.sql` (and `schema.sql` run twice). 34 cases: normal insert accepted (also one with only a name); `note`, `status` (`called` and `new`), `follow_up_date`, `history`, `id`, `created_at` all `permission denied`; 1 MB message, 2001-char message and 101-char name rejected, 2000-char message accepted; letters-only phone, 5-digit phone, bad emails rejected; as `anon` the table shows 0 rows and an `update` changes 0 rows; `insert … returning` is refused; phone and email throttle: 5 accepted (email compared case-insensitively), 6th refused, a different email unaffected; as `authenticated` read and the admin `update` (status, note, follow-up date, history) still work, while an insert with `note` is denied. **Not run on a real Supabase project.**
+2. **M-9 – the link-preview function trusts configuration, not request headers** (`api/invite.js`, new `api/_siteUrl.js`, `vite.config.ts`, `.env.example`, `README.md`, `docs/SEO_SHORT_LINK_CHANGES.md`)
+   - **Site address:** the `Host` / `X-Forwarded-Host` code is gone. The function uses `SITE_URL`, then on Vercel `VERCEL_PROJECT_PRODUCTION_URL`, through the same rule as the build. That rule now lives once in `api/_siteUrl.js` (the underscore stops Vercel from making it a function), and `vite.config.ts` imports it. With no usable address the `canonical`, `og:url` and fallback `og:image` / `twitter:image` tags are left out (an own `https` preview image is still used) and `twitter:card` becomes `summary`.
+   - **Why it mattered:** the response is cached by Vercel's CDN (`s-maxage`), so a request with a forged `Host` could put the attacker's domain into the cached canonical and `og:url` tags that WhatsApp and Google read.
+   - **Slug rule** is now the database rule: 3–30 of `a-z 0-9 _ -` (after lower-casing), or a uuid (an invitation's own id is used when no custom link is set). Before it was 1–64.
+   - **Stub link:** "Open the invitation" is written only for a valid slug that is not reserved. Invalid and reserved values get a page with no link and no echo of the input.
+   - **Verified (ad hoc):** a mock-request script, 19 checks: `SITE_URL` used and a hostile `Host` header ignored; `VERCEL_PROJECT_PRODUCTION_URL` fallback; nothing configured → no url/image tags and no host guess; own https image kept; slugs `ab`, 31 chars, `bad slug`, `x.y`, `<b>` rejected, `abc`, 30 chars, `AbC-12_x` and a uuid accepted; `login` rejected; unknown valid slug keeps the stub link; `https://example.com` ignored. `npm run typecheck` passes. `npm run build` with `SITE_URL=https://x.test`, with only `VERCEL_PROJECT_PRODUCTION_URL`, and with nothing set gives the same `index.html`, `robots.txt` and `sitemap.xml` results as before, and the "SITE_URL is not set" warning still prints. **Not run on a Vercel deployment.**
+
+**How this affects other tasks**
+
+- **Track B migration numbering:** `004` is now taken. Track B's client-edit migration is **`005_client_edit.sql`** (B2 heading updated). Fold it into `schema.sql` in the same commit.
+- **Public enquiry form (outside this repo):** it must send **only** `name`, `phone`, `email`, `message`, and must not ask for the new row back (no `.select()` / `Prefer: return=representation`), because `anon` has no read access. A form that sends `status: "new"` or any other column now gets `permission denied`. Check the form before running `004` on the live project.
+- **H-5 / Track B (B3):** a future Edge Function for enquiries can reuse the trigger's rules; keep the column grants so it cannot be bypassed by calling the REST API directly.
+- **M-6 / enquiries pagination (M-5):** unchanged; the new indexes do not affect admin reads.
+- **M-9 / M-8:** one setting (`SITE_URL`) now drives the HTML tags, `robots.txt`, `sitemap.xml` and the crawler pages. After changing it, redeploy.
+- **`vercel.json`:** its slug rewrite still accepts `[a-zA-Z0-9_-]+`; the function does the strict 3–30 check, so nothing changes there.
+
+**Behaviour changes to check**
+
+- Link previews for a **short slug (1–2 characters)** or a 31–64 character one no longer get preview tags (the database never allowed them, so no real invitation is affected).
+- Without `SITE_URL` the crawler page has no canonical/`og:url`/`og:image`. Before it silently used whatever `Host` was sent.
+- Enquiries: a 6th submission from the same phone or email within an hour is refused with a readable message; the form should show it.
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. H-5, Supabase SQL Editor: run `004_enquiry_hardening.sql`, then check as the anon role (REST with the anon key): `curl -s -X POST "$SUPABASE_URL/rest/v1/enquiries" -H "apikey: $ANON_KEY" -H "Content-Type: application/json" -d '{"name":"t","note":"x"}'` → `permission denied`; same with `"status":"called"` → `permission denied`; `{"name":"t","message":"<2001 characters>"}` → `Enquiry message is longer than 2000 characters`; `{"name":"t","phone":"9876543210"}` → `201`. Delete the test rows. Six posts with the same phone in an hour → the 6th is refused.
+2. H-5, public form: submit a real enquiry from the live form → it appears in the dashboard Enquiries list.
+3. M-9, after setting `SITE_URL` on Vercel and redeploying: `curl -s -A "WhatsApp/2.0" https://YOUR-DOMAIN/<published slug> | grep -E "canonical|og:url|og:image"` → all show `YOUR-DOMAIN`; `curl -s -A "WhatsApp/2.0" -H "Host: evil.test" https://YOUR-DOMAIN/<published slug>` → no `evil.test`; `curl -sI -A "WhatsApp/2.0" https://YOUR-DOMAIN/ab` → `x-invite-status: reserved-or-invalid-slug`.
+
+**Next steps, in order**
+
+1. Run the browser checks from the earlier entries (C-2 `LivePreview`, H-1, M-13, H-6) and the M-8 curl check, then tick those items.
+2. Owner actions: set `SITE_URL` on Vercel; run `003_details_validation.sql` and `004_enquiry_hardening.sql` on the live project (after checking the public form, see above); run the H-3 dashboard checks; **revoke the GitHub token that was pasted in chat on 12 Nov (it was used again for this push; revoke it now and use a new short-lived one next time)**; C-1 and C-3 in Supabase; enable GitHub secret scanning.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, and enforce the strict CSP.
+4. H-5 remainder: captcha plus a per-IP limit in front of the enquiry insert (needs the form and a captcha key).
+5. Next code items, two at a time: **M-1** (session hygiene) with **M-6** (enquiry badge wiring), or **M-10** (compiler placeholder handling); also the *Duplicate* gap noted in the 3rd update.
+
+---
 
 ### 12 Nov 2026 (3rd update) – H-6 publish/trash sync, M-8 real domain from an env var
 
@@ -106,7 +154,7 @@ When asked to "update based on task.md", follow these steps.
 **How this affects other tasks**
 
 - **H-3:** the `schema.sql` half is done. It stays `[~]` until it is run on a clean Supabase project and the acceptance check passes (below).
-- **`schema.sql` is the source of truth from now on.** Every new migration (Track B's `004_client_edit.sql` in particular) must be folded into `schema.sql` in the same commit, or fresh projects will drift from live ones.
+- **`schema.sql` is the source of truth from now on.** Every new migration (Track B's `005_client_edit.sql` in particular; `004` is now the enquiry hardening) must be folded into `schema.sql` in the same commit, or fresh projects will drift from live ones.
 - **H-2:** the database rule now also ships with `schema.sql`, so a fresh project gets it. Existing projects still need `003` run once (dashboard action, unchanged).
 - **C-1 / C-3:** unchanged and still open. They will be edits to `schema.sql` (admin role, column grants) plus a migration for live projects.
 - **Behaviour change to check:** anyone who relied on `schema.sql` to wipe the database now has to run `reset.sql`. Running `schema.sql` on a live project no longer loses data.
@@ -276,7 +324,7 @@ When asked to "update based on task.md", follow these steps.
 - [~] **H-2** Enforce URL, phone, length and type rules for `details` in the database (trigger or `check`). *Written 12 Nov as `supabase/migrations/003_details_validation.sql` and tested on a local Postgres 16 (20 cases). Still to do: run it in the Supabase SQL Editor (dashboard action) and fold it into `schema.sql` with H-3.*
 - [x] **H-2** In `compile()`, allow-list protocols (http, https, tel, mailto) on `href`/`src`-like attributes and strip `on*` handler attributes from templates. (`src/lib/compileInvitation.ts`) *Done 11 Nov, verified with 16 automated checks (see Progress log). The database rule in the line above is still open.*
   - Verify: `venueMaps = javascript:alert(1)` and a name containing `"><script>` render as inert text.
-- [ ] **H-5** Harden enquiry inserts: route through an Edge Function with captcha and rate limit, add `check (char_length(message) <= 2000)`, and restrict insertable columns (`note`, `history`, `follow_up_date`, `status`). (`schema.sql` line ~112)
+- [~] **H-5** *Database half coded 12 Nov (4th update) as `supabase/migrations/004_enquiry_hardening.sql` and in `schema.sql`: column grants (only `name`, `phone`, `email`, `message`), insert policy, trigger with length/format checks and a per-phone/email limit of 5 per hour; tested on local Postgres 16 (34 cases). Still open: Edge Function / route with captcha and per-IP rate limit; run `004` in Supabase (see Progress log).* Harden enquiry inserts: route through an Edge Function with captcha and rate limit, add `check (char_length(message) <= 2000)`, and restrict insertable columns (`note`, `history`, `follow_up_date`, `status`). (`schema.sql` line ~112)
   - Verify: anon insert with `note`, 1 MB `message`, or `status='called'` is rejected.
 
 ### Setup and schema
@@ -304,7 +352,7 @@ When asked to "update based on task.md", follow these steps.
 - [ ] **M-6** Wire `onEnquiryCountChange` from `AdminApp` to the sidebar badge (currently passed by `Dashboard` but never supplied); refresh enquiries by polling or Realtime.
 - [ ] **M-7** Login: reset the Google button's busy state on `pageshow`; persist `from` in `redirectTo`; drop the client password-length check on login; implement "Forgot password". (`src/lib/auth.ts:48–52`, `Login.tsx`)
 - [~] **M-13** Default to `trial` (or show an explicit error) when the profile row is missing. (`src/lib/api.ts:33`) *Coded 12 Nov: missing row or null `plan_status` → `trial` with 0 days left, role label `Member` instead of `Administrator`. Checked by build/typecheck and code reading only.*
-- [ ] **M-9** `api/invite.js`: take the site URL from an env var instead of `Host`/`X-Forwarded-Host`; render the stub link only for valid slugs; align `SLUG_RE` (1–64) with the DB rule (3–30).
+- [~] **M-9** *Coded 12 Nov (4th update): site URL from `SITE_URL` through `api/_siteUrl.js` (no `Host` header), slug rule 3–30 or uuid, stub link only for valid slugs. Tested with a mock handler (19 checks); needs the curl check on a deployment (see Progress log).* `api/invite.js`: take the site URL from an env var instead of `Host`/`X-Forwarded-Host`; render the stub link only for valid slugs; align `SLUG_RE` (1–64) with the DB rule (3–30).
 - [ ] **M-10** Template compiler: use `Object.create(null)` or a `Map` for values; strip only known placeholder syntax instead of every `{{…}}`; fix `PreviewPanel` fallback to the non-existent `tpl.html`.
 - [ ] **M-2** Transliteration: separate "no suggestion" from network errors so one miss does not disable online mode for 60 s; decide on a documented API; disclose in the privacy policy. (`src/lib/transliterate.ts:12–37`)
 
@@ -374,7 +422,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 | D7 | Conflicting edits | Each request stores `base_updated_at`. If the admin edited the invitation after the client started, approval shows a conflict warning and requires an explicit choice. |
 | D8 | Notification channels | In-app (badge + list, via Realtime) **and** email (Edge Function + Resend/Supabase SMTP). Email must never be the only record. |
 
-## B2. Database (new migration, e.g. `supabase/migrations/004_client_edit.sql`; also fold into `schema.sql` per H-3)
+## B2. Database (new migration, e.g. `supabase/migrations/005_client_edit.sql`; also fold into `schema.sql` per H-3)
 
 - [ ] **Admin role:** `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
 - [ ] **Client link:** `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.

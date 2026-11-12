@@ -490,3 +490,4 @@ For real SEO on `example.com`, add a public landing page (or move the dashboard 
 5. `api/invite.js` and `vercel.json` (section 5)
 6. Main domain SEO files (section 6)
 7. Test (section 7)
+- **Link-preview function (changed 12 Nov 2026, M-9):** `api/invite.js` no longer builds the site address from the `Host` / `X-Forwarded-Host` headers (anyone can send any value, and the response is cached by the CDN). It uses the same `SITE_URL` rule as the build, shared in `api/_siteUrl.js` (the underscore keeps Vercel from making it a function). With no usable address, the canonical, `og:url` and fallback `og:image` tags are left out. The slug check now matches the database: 3 to 30 letters, numbers, `-` or `_`, or the invitation's own uuid id. The "Open the invitation" link is written only for a valid slug.

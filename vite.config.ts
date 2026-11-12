@@ -1,22 +1,14 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+// @ts-ignore  plain JS file shared with the serverless function; vite.config.ts is outside the tsc "include"
+import { resolveSiteUrl as resolveSiteUrlShared } from "./api/_siteUrl.js";
 
-/* M-8: the public address of the site, used for the canonical link, the social-preview tags, robots.txt and sitemap.xml.
-   Set SITE_URL (for example https://schedy.in) in the build environment: Vercel > Settings > Environment Variables,
-   or .env.local for a local build. On Vercel, if SITE_URL is not set, the production domain that Vercel
-   provides (VERCEL_PROJECT_PRODUCTION_URL) is used instead. Returns "" when neither is usable. */
-function resolveSiteUrl(env: Record<string, string>): string {
-  const raw = (env.SITE_URL || (env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : "")).trim();
-  if (!raw) return "";
-  try {
-    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
-    if (u.protocol !== "https:" && u.protocol !== "http:") return "";
-    if (/(^|\.)example\.(com|org|net)$/i.test(u.hostname)) return ""; // the old placeholder is never a real address
-    return u.origin; // scheme + host only, no path and no trailing slash, so it is safe inside an HTML attribute
-  } catch {
-    return "";
-  }
-}
+/* M-8 / M-9: the public address of the site, used for the canonical link, the social-preview tags, robots.txt and
+   sitemap.xml. Set SITE_URL (for example https://schedy.in) in the build environment: Vercel > Settings > Environment
+   Variables, or .env.local for a local build. On Vercel, if SITE_URL is not set, the production domain that Vercel
+   provides (VERCEL_PROJECT_PRODUCTION_URL) is used instead. The rule lives in api/_siteUrl.js, so the link-preview
+   function (api/invite.js) uses exactly the same one. Returns "" when no usable address exists. */
+const resolveSiteUrl = (env: Record<string, string>): string => resolveSiteUrlShared(env);
 
 /* Fills %SITE_URL% in index.html and writes robots.txt and sitemap.xml. Without a site URL the tags that need an
    absolute address are left out (a missing tag is better than a wrong one) and no sitemap is written. */
