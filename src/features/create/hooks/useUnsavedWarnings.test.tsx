@@ -28,7 +28,7 @@ describe("useBeforeUnload", () => {
   });
 
   it("starts and stops with the flag", () => {
-    const h = renderHook((on: boolean) => useBeforeUnload(on), false);
+    const h = renderHook<void, boolean>((on) => useBeforeUnload(on), false);
     h.rerender(true);
     expect(unload().defaultPrevented).toBe(true);
     h.rerender(false);

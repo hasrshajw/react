@@ -84,10 +84,12 @@ function chunks<T>(list: T[]): T[][] {
 const PAGE_SIZE = 500;
 /* Hard stop so a runaway table cannot freeze the browser. Reaching it is logged; real UI pagination (load more) is still open in M-5. */
 const MAX_ROWS = 10000;
-type PageResult = { data: Record<string, any>[] | null; error: { message: string } | null };
-export async function readAllPages(page: (from: number, to: number) => PromiseLike<PageResult>): Promise<Record<string, any>[]> {
+/** A raw database row: column names are known, values are checked where they are used. */
+type DbRow = Record<string, unknown>;
+type PageResult = { data: DbRow[] | null; error: { message: string } | null };
+export async function readAllPages(page: (from: number, to: number) => PromiseLike<PageResult>): Promise<DbRow[]> {
   const seen = new Set<string>();
-  const out: Record<string, any>[] = [];
+  const out: DbRow[] = [];
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await page(from, from + PAGE_SIZE - 1);
     if (error) fail(error);
@@ -107,9 +109,9 @@ const ENQUIRY_COLUMNS = "id, name, phone, email, message, status, note, follow_u
 const slugOf = (x: InvitationRow) => (x.details?.customId || "").trim() || x.id;
 
 /** Splits the database-only columns (published, deleted_at) out of a row. */
-function splitRow(r: Record<string, any>): { row: InvitationRow; published: boolean; deletedAt: number | null } {
+function splitRow(r: DbRow): { row: InvitationRow; published: boolean; deletedAt: number | null } {
   const { published, deleted_at, slug: _slug, owner: _owner, ...row } = r;
-  return { row: row as InvitationRow, published: published !== false, deletedAt: deleted_at ? Date.parse(deleted_at) : null };
+  return { row: row as unknown as InvitationRow, published: published !== false, deletedAt: typeof deleted_at === "string" && deleted_at ? Date.parse(deleted_at) : null };
 }
 
 /** Reads run after any flag writes that were already sent, so the list always includes them (H-6). */
@@ -272,10 +274,10 @@ export { fetchPublicInvitation } from "./publicInvitation";
 export type { PublicInvitation } from "./publicInvitation";
 
 /* ---------- enquiries ---------- */
-const toEnquiry = (r: Record<string, any>): Enquiry => ({
-  id: r.id, name: r.name ?? "", phone: r.phone ?? "", email: r.email ?? "", message: r.message ?? "",
-  createdAt: r.created_at, status: r.status ?? "new", note: r.note ?? "", followUpDate: r.follow_up_date ?? "",
-  history: Array.isArray(r.history) ? r.history : [],
+const toEnquiry = (r: DbRow): Enquiry => ({
+  id: r.id as Enquiry["id"], name: (r.name ?? "") as string, phone: (r.phone ?? "") as string, email: (r.email ?? "") as string, message: (r.message ?? "") as string,
+  createdAt: r.created_at as Enquiry["createdAt"], status: (r.status ?? "new") as Enquiry["status"], note: (r.note ?? "") as string, followUpDate: (r.follow_up_date ?? "") as string,
+  history: Array.isArray(r.history) ? (r.history as Enquiry["history"]) : [],
 });
 
 export async function fetchEnquiries(): Promise<Enquiry[]> {
