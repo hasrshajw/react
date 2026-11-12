@@ -1,7 +1,7 @@
 import type { MouseEvent, RefObject } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, ArrowUpRight, Eye, Search, Trash2, X } from "../../../components/Icons";
 import {
-  FILTER_LABEL, PAGE_SIZE, coupleName, dayDiff, fmt, fmtDate, getViews, initials, isPast, statusChip, whenText,
+  FILTER_LABEL, PAGE_SIZE, coupleName, dayDiff, fmt, fmtDate, getViews, initials, statusChip, whenText,
 } from "../../../lib/dashboardData";
 import type { InvitationRow, SortKey, TableFilter, TrashItem } from "../../../types/dashboard";
 import { SORT_OPTIONS, Select } from "./Select";

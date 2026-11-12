@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Link2, Check, Download, Copy,
+  Link2, Download,
 } from "../../../components/Icons";
 import { coupleName, getInviteLink } from "../../../lib/dashboardData";
 import { useQr } from "../../../hooks/useQr";
