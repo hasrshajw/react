@@ -51,7 +51,10 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
   const persist = (next: Enquiry, prev: Enquiry) => {
     changes.current++;
     saving.current++;
-    saveEnquiry(next).catch(() => {
+    saveEnquiry(next).then((history) => {
+      /* Show the history the server wrote (server time, other admins' entries), unless another save of ours is still on its way. */
+      if (saving.current === 1) setEnquiries((p) => p.map((e) => (e.id === next.id ? { ...e, history } : e)));
+    }).catch(() => {
       setEnquiries((p) => p.map((e) => (e.id === prev.id ? prev : e)));
       notify("Couldn’t save that change, so it was undone.");
     }).finally(() => { saving.current--; changes.current++; });

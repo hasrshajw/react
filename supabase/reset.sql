@@ -37,6 +37,7 @@ drop function if exists public.details_is_valid(jsonb) cascade;
 drop function if exists public.details_problem(jsonb) cascade;
 drop function if exists public.is_safe_url(text) cascade;
 drop function if exists public.enquiries_check_insert() cascade;
+drop function if exists public.enquiries_history() cascade;
 drop function if exists public.touch_updated_at() cascade;
 drop function if exists public.invitations_touch() cascade;
 

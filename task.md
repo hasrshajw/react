@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 12th update)
+### Where things stand (12 Nov 2026, 13th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,55 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 3 | 0 | all the rest | **L-3** (CSV formula guard), **L-4** (`waLink`) and **L-5** (`uid()`) are done. The *Duplicate* gap from the 3rd update is closed. Nothing else in Phase 3 is started (no lint, tests or CI yet). |
+| Phase 3 | 4 | 1 | all the rest | **L-3**, **L-4**, **L-5** and **L-6** are done. **L-7** (enquiry history written by the database) is coded and tested on local Postgres (`008_enquiry_history.sql`, not yet run in Supabase). The *Duplicate* gap from the 3rd update is closed. Nothing else in Phase 3 is started (no lint, tests or CI yet). |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (13th update) – L-7 enquiry history written by the database, L-6 one storage helper
+
+**What was done**
+
+1. **L-7 – the enquiry history can no longer be overwritten** (new `supabase/migrations/008_enquiry_history.sql`, `supabase/schema.sql`, `supabase/reset.sql`, `src/lib/api.ts`, `src/features/dashboard/hooks/useEnquiries.ts`)
+   - Before, every save sent the browser's whole `history` array. Two admins (or two tabs) changing the same enquiry wiped each other's entries, the times came from the browser clock, and any admin session could rewrite the history with the REST API.
+   - **Trigger `enquiries_history`** (before update): the stored `history` is always kept; when `status` changes, one entry `{status, at}` is appended with the server time (UTC, same text format as `toISOString()`). Whatever `history` the update sends is ignored. A note or follow-up date change adds nothing; saving the same status again adds nothing.
+   - **Client:** `saveEnquiry` no longer sends `history`; it asks for the history back (`.select("history").single()`) and returns it. `useEnquiries` shows that server history after a save, unless another save of the same session is still on its way (then the optimistic one stays until that one returns). The optimistic entry still appears at once.
+   - **Side effect, better than before:** an update that matches no row (a non-admin, or a deleted row) used to count as saved. `.single()` now makes it an error, so the screen shows "Couldn't save that change, so it was undone."
+   - **Behaviour change:** *Undo* of a status change now writes a second entry (back to the old status) instead of erasing the first, so the history shows what really happened.
+   - **Known limit:** the trigger also ignores `history` edits made by hand in the SQL Editor. To repair a history, disable the trigger for that statement (the migration header says how). Old entries written by the browser keep their browser-clock times.
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** local Postgres 16 with stub `auth` / `storage` schemas and roles. Run cleanly: previous `schema.sql` + `008` twice + `schema.sql` over it; `reset.sql`; rebuild. Behaviour, as the admin role (admin row in `admins`): a status change appends exactly one entry with the right status and a server timestamp in the expected format and within a minute, even when the update carries `history = [{"status":"called","at":"1999-…"}]`; note and follow-up date changes and a repeat of the same status add nothing; two further changes append in order (`followup>called>new`) while an update sending `history = []` wipes nothing; as a non-admin an update changes 0 rows and history stays at 3; an insert still starts with `[]` and `new`; an old row whose history was reset still appends. Client, the real `api.ts` against a fake client, 5 checks: `history` is not in the update, the right columns and row are sent and `history` is asked back, the server history is returned, an error is thrown, and a 0-row result is an error. `npm run typecheck` and `npm run build` pass. **Not run on real Supabase, in a browser, or through the React hook.**
+2. **L-6 – one `readJSON` / `writeJSON`** (`src/lib/dashboardData.ts`)
+   - The copy in `dashboardData.ts` is gone; it re-exports the ones from `lib/storage.ts`, so existing imports (`Dashboard.tsx`, `useRowHint.ts`) are unchanged. Differences between the two were nil for reading; `writeJSON` now returns `true` / `false` (it returned nothing before), and the callers ignore it. Checked in Node: missing key, round trip, bad JSON and a stored `null` give the fallback, quota error gives `false` without throwing.
+
+**How this affects other tasks**
+
+- **Track B migration number:** `008` is now taken, so Track B's client-edit migration is **`009_client_edit.sql`** (B2 heading updated). Fold it into `schema.sql` in the same commit.
+- **H-5 / M-6:** the column grants and policies on `enquiries` are untouched; the update policy still needs `is_admin()`. The 60 s refresh (M-6) now reads server history, so entries made by another admin show up after the next refresh.
+- **Track B (B3, `notify-*`):** a status change now has a trustworthy server-time entry that an Edge Function or the review queue can read.
+- **Order of running on the live project:** run `008`, then deploy `preview`. If the new site is live first, saving still works (the old trigger does not exist yet and the database takes the sent-less update), but the history is not appended until `008` runs. If `008` runs first, an old browser tab that still sends `history` is ignored, and its entry is still appended by the trigger.
+
+**Behaviour changes to check**
+
+- Changing the status of an enquiry in two browsers shows both entries in the history after a refresh.
+- *Undo* leaves two entries, not zero.
+- Times in the history use the server clock.
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. Supabase SQL Editor: run `008_enquiry_history.sql` (twice is fine).
+2. Dashboard → Enquiries: set a test enquiry to *Called*, then *Follow-up*. `select status, history from public.enquiries where id = '<id>';` shows two new entries with UTC times. Reload: the same list shows in the panel.
+3. Open the Enquiries panel in two browsers; change the status in one, then in the other without reloading: after a refresh both entries are present.
+4. With the REST API and your admin JWT: `PATCH /rest/v1/enquiries?id=eq.<id>` with `{"history":[]}` returns the row with its history unchanged.
+5. Signed in as a non-admin test user, the same `PATCH` returns `[]` (0 rows).
+
+**Next steps, in order**
+
+1. Owner actions: run `007` and `008`, then deploy `preview`; per-IP rate limit; everything in the 6th to 10th updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 13th updates and the older ones; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: **L-8** (server timestamp for `deleted_at` and a scheduled trash purge; touches the database), **L-1** (dead links and catch-all route), **L-2** (remove unused files), or the M-5 "load more" UI.
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (12th update) – L-3 CSV formula guard, L-4 WhatsApp link
 
@@ -759,8 +806,8 @@ When asked to "update based on task.md", follow these steps.
 - [x] **L-3** CSV formula guard: also cover values starting with tab or carriage return; tighten the `^\+?[\d\s]+$` exemption; avoid prefixing harmless text beginning with `-`. *Done 12 Nov (12th update): `looksLikeFormula()` in `src/lib/dashboardData.ts`; see the progress log for the exact rule.*
 - [x] **L-4** `waLink`: handle 11-digit numbers with a leading 0; avoid "Hi , thanks…" when the name is empty. *Done 12 Nov (12th update): `waNumber()` and `waLink()` in `src/lib/dashboardData.ts`.*
 - [x] **L-5** `uid()` fallback: remove the `.` from the generated id (breaks the `/<slug>` rewrite on Vercel). *Done 12 Nov (11th update): new `src/lib/uid.ts`, used by `features/create/constants.ts` and `features/invitations/utils.ts`; the fallback now gives letters, digits and `-` only. Tested in Node with `crypto` removed.*
-- [ ] **L-6** Merge duplicate `readJSON`/`writeJSON` in `lib/storage.ts` and `lib/dashboardData.ts`.
-- [ ] **L-7** `saveEnquiry`: append to `history` server-side instead of overwriting the array.
+- [x] **L-6** Merge duplicate `readJSON`/`writeJSON` in `lib/storage.ts` and `lib/dashboardData.ts`. *Done 12 Nov (13th update): `dashboardData.ts` re-exports the `storage.ts` versions.*
+- [~] **L-7** `saveEnquiry`: append to `history` server-side instead of overwriting the array. *Coded 12 Nov (13th update): trigger `enquiries_history` in `supabase/migrations/008_enquiry_history.sql` and `schema.sql` appends `{status, at}` with the server time when `status` changes and ignores any client `history`; `saveEnquiry` no longer sends `history`. Tested on local Postgres 16; still to do: run `008` in Supabase and the browser check in the Progress log.*
 - [ ] **L-8** Use a server timestamp for `deleted_at`; run the 30-day trash purge as a scheduled job.
 - [ ] **L-9** Live preview: render the compiled document so `<head>`/`<style>` changes show; stop executing template scripts in the editor.
 - [ ] Longer term: serve invitations from a separate origin or subdomain.
@@ -807,7 +854,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 | D7 | Conflicting edits | Each request stores `base_updated_at`. If the admin edited the invitation after the client started, approval shows a conflict warning and requires an explicit choice. |
 | D8 | Notification channels | In-app (badge + list, via Realtime) **and** email (Edge Function + Resend/Supabase SMTP). Email must never be the only record. |
 
-## B2. Database (new migration, e.g. `supabase/migrations/008_client_edit.sql`; also fold into `schema.sql` per H-3)
+## B2. Database (new migration, e.g. `supabase/migrations/009_client_edit.sql`; also fold into `schema.sql` per H-3)
 
 - [~] **Admin role** *(done early as part of C-1: `admins` table and `is_admin()` exist from `005_admin_role.sql`; B1 only needs to reuse them and seed nothing new)*: `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
 - [ ] **Client link:** `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.

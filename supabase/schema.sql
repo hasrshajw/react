@@ -1,7 +1,7 @@
 -- Schedy database schema for Supabase. Run in: Supabase dashboard > SQL Editor.
 --
 -- This file is SAFE TO RE-RUN: it never deletes tables or data (tables use "if not exists"; functions, policies and
--- triggers are replaced). It already includes everything from supabase/migrations/001, 003 and 007, so a NEW project only
+-- triggers are replaced). It already includes everything from supabase/migrations/001, 003, 007 and 008, so a NEW project only
 -- needs this file, then supabase/seed.sql (optional starter templates).
 -- (Migration 002 only cleans old template rows; seed.sql is already clean, so a new project does not need it.)
 --
@@ -460,6 +460,24 @@ end $$;
 drop trigger if exists enquiries_check_insert on public.enquiries;
 create trigger enquiries_check_insert before insert on public.enquiries
   for each row execute function public.enquiries_check_insert();
+
+-- ---------- enquiry status history (was migration 008, task L-7) ----------
+-- The database appends {status, at} with the server time when `status` changes and ignores any `history` the client sends.
+create or replace function public.enquiries_history() returns trigger language plpgsql as $$
+begin
+  new.history := coalesce(old.history, '[]'::jsonb);
+  if new.status is distinct from old.status then
+    new.history := new.history || jsonb_build_array(jsonb_build_object(
+      'status', new.status,
+      'at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')));
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists enquiries_history on public.enquiries;
+create trigger enquiries_history before update on public.enquiries
+  for each row execute function public.enquiries_history();
+
 
 -- ---------- backfill ----------
 -- Users who signed up before this script ran have no profile row (the trigger only fires for new users).

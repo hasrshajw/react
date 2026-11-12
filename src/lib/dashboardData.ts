@@ -1,4 +1,5 @@
 import { downloadBlob } from "./download";
+import { readJSON, writeJSON } from "./storage";
 import { invitationUrl } from "./links";
 import type {
   Enquiry, EnquiryStatus, InvitationRow, Notify, SortKey, TableFilter,
@@ -16,8 +17,8 @@ export const isoDay = (offset = 0) => {
    HELPERS
    ========================================================= */
 export const LS_AUTO = "schedy_auto_refresh";
-export const readJSON = <T,>(k: string, f: T): T => { try { return JSON.parse(localStorage.getItem(k) ?? "null") ?? f; } catch { return f; } };
-export const writeJSON = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* ignore */ } };
+/* One implementation of these two lives in lib/storage.ts (task L-6); re-exported so existing imports keep working. */
+export { readJSON, writeJSON };
 
 export const PAGE_SIZE = 8;
 export const TRASH_DAYS = 30;

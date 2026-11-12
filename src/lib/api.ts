@@ -280,9 +280,14 @@ export async function fetchNewEnquiryCount(): Promise<number> {
   return count ?? 0;
 }
 
-export async function saveEnquiry(e: Enquiry): Promise<void> {
-  const { error } = await db().from("enquiries")
-    .update({ status: e.status, note: e.note, follow_up_date: e.followUpDate || null, history: e.history })
-    .eq("id", e.id);
+/** Saves status, note and follow-up date. `history` is not sent: the database appends an entry (with the server time)
+ *  when the status changes (migration 008, task L-7). Returns the history as the server now holds it. */
+export async function saveEnquiry(e: Enquiry): Promise<Enquiry["history"]> {
+  const { data, error } = await db().from("enquiries")
+    .update({ status: e.status, note: e.note, follow_up_date: e.followUpDate || null })
+    .eq("id", e.id)
+    .select("history")
+    .single();
   if (error) fail(error);
+  return Array.isArray(data?.history) ? data!.history : e.history;
 }
