@@ -44,14 +44,14 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
       (tab === "all" || e.status === tab) &&
       (!term || [e.name, e.phone, e.email, e.message, e.note || ""].some((s) => s.toLowerCase().includes(term)))
   );
-  const empty: string[] = term
-    ? ["No matches", "Try a different name, phone or email."]
-    : {
-        new: ["All caught up", "No new enquiries."],
-        followup: ["Nothing pending", "No enquiries need a follow-up."],
-        cancelled: ["No cancelled enquiries", "Cancelled enquiries will appear here."],
-        all: ["No enquiries yet", "Website enquiries will show up here."],
-      }[tab];
+  const emptyByTab: Record<EnquiryTab, string[]> = {
+    new: ["All caught up", "No new enquiries."],
+    followup: ["Nothing pending", "No enquiries need a follow-up."],
+    called: ["No called enquiries", "Enquiries you have called will appear here."],
+    cancelled: ["No cancelled enquiries", "Cancelled enquiries will appear here."],
+    all: ["No enquiries yet", "Website enquiries will show up here."],
+  };
+  const empty: string[] = term ? ["No matches", "Try a different name, phone or email."] : emptyByTab[tab];
 
   const onTabKey = (ev: KeyboardEvent) => {
     if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(ev.key)) return;

@@ -127,7 +127,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   };
 
   const duplicate = (x: InvitationRow) => {
-    const { views, created_at, updated_at, ...rest } = x;
+    const { views: _views, created_at: _createdAt, updated_at: _updatedAt, ...rest } = x;
     saveInvitation({
       ...rest,
       id: uid(),

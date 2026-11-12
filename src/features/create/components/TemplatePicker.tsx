@@ -28,7 +28,7 @@ export function TemplatePicker({ categories, categoryId, onCategory, templates, 
   const ghostCards = useRowHint("create-templates", templates.length, loading, 6, 3);
   const selected = templates.find((t) => String(t.id) === String(value));
   const visible = categoryId === "ALL" ? templates : templates.filter((t) => String(t.category_id) === String(categoryId));
-  const nameOf = (t) => t.name || t.title || `Template ${t.id}`;
+  const nameOf = (t: ThumbSource) => t.name || t.title || `Template ${t.id}`;
   const cats = [{ id: "ALL", name: "All" }, ...categories];
   return (
     <div className={`tp${error ? " has-err" : ""}`} id="f-templateId" tabIndex={-1}>

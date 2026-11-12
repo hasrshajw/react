@@ -9,7 +9,7 @@ export function ShareModal({ name, link, onCopy, onWhatsApp, onClose, onAnother 
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLElement>("button, a")?.focus();
-    const onKey = (e) => {
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { onClose(); return; }
       if (e.key !== "Tab") return;
       const els = [...ref.current!.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")];

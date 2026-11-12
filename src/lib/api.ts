@@ -108,7 +108,7 @@ const slugOf = (x: InvitationRow) => (x.details?.customId || "").trim() || x.id;
 
 /** Splits the database-only columns (published, deleted_at) out of a row. */
 function splitRow(r: Record<string, any>): { row: InvitationRow; published: boolean; deletedAt: number | null } {
-  const { published, deleted_at, slug, owner, ...row } = r;
+  const { published, deleted_at, slug: _slug, owner: _owner, ...row } = r;
   return { row: row as InvitationRow, published: published !== false, deletedAt: deleted_at ? Date.parse(deleted_at) : null };
 }
 

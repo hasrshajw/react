@@ -31,7 +31,7 @@ const submenuItems = [
 ];
 
 /* Breadcrumb comes from the route instead of being hardcoded */
-const CRUMBS = {
+const CRUMBS: Record<string, string[]> = {
   "/dashboard": ["Dashboard", "Overview"],
   "/create": ["Manage", "Create invitation"],
   "/invitations": ["Manage", "All invitations"],
