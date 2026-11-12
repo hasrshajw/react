@@ -90,6 +90,25 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- ---------- admin role (C-1) ----------
+-- Who is an administrator lives in this table, not in the browser. Nobody can read or write it through the API
+-- (RLS on, no policies, no grants); only is_admin() reads it. Add the first admin by hand (see README, step 3):
+--   insert into public.admins (user_id, email) select id, email from auth.users where lower(email) = lower('you@example.com');
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  created_at timestamptz not null default now()
+);
+alter table public.admins enable row level security;
+revoke all on public.admins from anon, authenticated;
+
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+revoke all on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
+
 -- ---------- row level security ----------
 alter table public.categories  enable row level security;
 alter table public.templates   enable row level security;
@@ -97,27 +116,38 @@ alter table public.invitations enable row level security;
 alter table public.enquiries   enable row level security;
 alter table public.profiles    enable row level security;
 
+-- Templates and categories: admins only (a signed-in stranger can no longer edit the HTML that every invitation runs).
 drop policy if exists "categories: signed-in all" on public.categories;
-create policy "categories: signed-in all" on public.categories for all to authenticated using (true) with check (true);
+drop policy if exists "categories: admin all" on public.categories;
+create policy "categories: admin all" on public.categories for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "templates: signed-in all" on public.templates;
-create policy "templates: signed-in all" on public.templates for all to authenticated using (true) with check (true);
+drop policy if exists "templates: admin all" on public.templates;
+create policy "templates: admin all" on public.templates for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "invitations: owner all" on public.invitations;
 create policy "invitations: owner all" on public.invitations for all to authenticated
   using (owner = auth.uid()) with check (owner = auth.uid());
 
--- Enquiries: anyone (the public website form) may add one; only signed-in admins may read or change them.
+-- Enquiries: anyone (the public website form) may add one; only admins may read or change them.
 -- (the public insert policy and its column grants are defined in the "enquiry insert hardening" section below)
 drop policy if exists "enquiries: admin read" on public.enquiries;
-create policy "enquiries: admin read" on public.enquiries for select to authenticated using (true);
+create policy "enquiries: admin read" on public.enquiries for select to authenticated using (public.is_admin());
 drop policy if exists "enquiries: admin update" on public.enquiries;
-create policy "enquiries: admin update" on public.enquiries for update to authenticated using (true) with check (true);
+create policy "enquiries: admin update" on public.enquiries for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
+-- Profiles (C-3): a user may read their own row and change only their display name. plan_*, role and
+-- trial_ends_at can no longer be set from the browser (they are changed in the dashboard or by a future billing job).
 drop policy if exists "profiles: self read" on public.profiles;
 create policy "profiles: self read" on public.profiles for select to authenticated using (id = auth.uid());
 drop policy if exists "profiles: self update" on public.profiles;
-create policy "profiles: self update" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
+create policy "profiles: self update" on public.profiles for update to authenticated
+  using (id = auth.uid()) with check (id = auth.uid());
+revoke update on public.profiles from anon, authenticated;
+grant update (name) on public.profiles to authenticated;
 
 -- ---------- public invitation page ----------
 -- Customers are not signed in, so they cannot read the table. This function hands out exactly one

@@ -26,16 +26,63 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 4th update)
+### Where things stand (12 Nov 2026, 5th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 2 | 3 | C-2 (public iframe) and H-1 are coded, awaiting a browser check. C-1, C-3 and the token rotation are dashboard/SQL actions for someone with Supabase/GitHub access. **The GitHub token pasted in chat on 12 Nov must be revoked** (see the first Phase 0 row). |
-| Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. Only C-1 is untouched. |
+| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov must be revoked** (see the first Phase 0 row). |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 0 | 2 | rest | M-13 coded (awaiting a check). **M-9** coded and tested with a mock handler (needs a check on a deployment). |
 | Phases 2–3, Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (5th update) – C-3 profile lockdown, C-1 admin role (database half)
+
+**What was done**
+
+1. **C-3 – a signed-in user can change only their own display name** (`supabase/schema.sql`, `supabase/migrations/005_admin_role.sql`)
+   - `REVOKE UPDATE ON public.profiles FROM anon, authenticated; GRANT UPDATE (name) ON public.profiles TO authenticated;` The `self update` row policy stays (own row only). So `plan_status`, `role`, `plan_name` and `trial_ends_at` can no longer be set from the browser. The app never writes to `profiles` (only reads), so nothing in the UI changes.
+2. **C-1 – templates, categories and enquiries are admin-only** (same two files, plus `supabase/reset.sql`, `README.md`)
+   - New table **`public.admins`** (`user_id`, `email`). RLS on, no policies, all privileges revoked from `anon`/`authenticated`: it cannot be read or written through the API, only in the SQL Editor.
+   - New **`is_admin()`** (`security definer`, `stable`, `search_path` pinned; EXECUTE for `authenticated` only, revoked from `public` and `anon`). Revoking from `anon` explicitly matters: Supabase grants new functions to `anon` by default and `revoke … from public` does not remove that.
+   - Policies `categories: admin all`, `templates: admin all`, `enquiries: admin read`, `enquiries: admin update` now use `is_admin()` (old `signed-in all` policies dropped). `invitations: owner all` is unchanged (per-owner rule kept, as the task says). The public enquiry insert and `get_public_invitation` are unchanged.
+   - **Migration `005` is lock-out safe:** step 1 adds the admin by email (you must replace `CHANGE-ME@example.com` in the file first). If no admin row exists and users exist, it raises `No admin found…` **before any policy is changed**. Safe to run twice. A fresh project gets everything from `schema.sql`; the first admin is added with the one-line `insert` in README step 3.
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo)** on local Postgres 16 with stub `auth`/`storage` schemas and roles. (a) Fresh `schema.sql` + `seed.sql`, and `schema.sql` run again: no errors. (b) As a signed-in **non-admin**: template update/delete = 0 rows, template insert and category insert = RLS error, enquiries read = 0 rows, enquiries update = 0 rows, `profiles` update of `plan_status`, `role`, `trial_ends_at` = `permission denied`, own `name` update = 1 row, another user's `name` = 0 rows, reading or inserting into `admins` = `permission denied`, own invitation insert works, an invitation owned by someone else is refused. (c) As **admin**: `is_admin()` true, templates readable and updatable, category insert, enquiries read and update, own profile readable, `admins` still unreadable. (d) As **anon**: `is_admin()` = `permission denied`, templates 0 rows, the public enquiry insert and `get_public_invitation` still work. (e) **Upgrade path:** an old-schema database (previous commit's `schema.sql`) with two users: `005` with the placeholder email fails with the guard message and leaves the old `templates: signed-in all` policy in place; with a real email (matched case-insensitively) it succeeds, a second run is harmless, and the stranger/admin checks above then pass. `npm ci`, `npm run typecheck`, `npm run build` pass (no TypeScript change). **Not run on a real Supabase project.**
+
+**How this affects other tasks**
+
+- **Track B / B-M0:** the C-1 and C-3 database halves are now coded. B2's "Admin role" item is done early, so **Track B's migration is `006_client_edit.sql`** (B2 heading updated); it must reuse `admins` and `is_admin()` and fold itself into `schema.sql` in the same commit. B-M0 still needs the dashboard actions below.
+- **B2 signup trigger:** `handle_new_user()` still creates profiles with `role = 'Administrator'` by default. That is now display-only (permissions come from `admins`), but Track B must still change it to a non-admin default.
+- **C-1 dashboard half is still open:** until public sign-ups are off in Supabase, a stranger can still register and create their own invitations (the owner rule allows it) and read their own profile, but they can no longer touch templates, categories or enquiries.
+- **Google sign-in:** a Google user who is not in `admins` can sign in but sees empty template, category and enquiry lists. Add them with the `insert` in README step 3 if they should be an admin.
+- **H-5 / M-6:** the enquiry rules and column grants from the 4th update are untouched; the read and update policies now also require `is_admin()`.
+- **M-13:** the Dashboard still shows the profile's `role` text; it is not a permission.
+- **`reset.sql`** now also drops `admins` and `is_admin()`; **an admin row is lost on reset** (and `auth.users` is kept), so re-add it afterwards.
+
+**Behaviour changes to check**
+
+- After `005` runs, only the email you put in step 1 sees templates, categories and enquiries. If the dashboard looks empty after logging in, the signed-in email is not in `admins`.
+- A non-admin signed-in user can still create their own invitations but cannot choose templates (the template list is empty for them).
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. In the Supabase SQL Editor, edit step 1 of `005_admin_role.sql` (your email), run it, then `select email from public.admins;` shows your address.
+2. Log in as the admin → Templates, Categories and Enquiries load as before.
+3. Create a second user (Authentication → Users → Add user, auto-confirm), sign in as them via the app or the REST API with their JWT: `GET /rest/v1/enquiries` returns `[]`; `PATCH /rest/v1/templates?id=eq.<id>` with `{"name":"x"}` returns `[]` (0 rows) and the name is unchanged; `POST /rest/v1/categories` is refused (`42501`).
+4. Same second user: `PATCH /rest/v1/profiles?id=eq.<their id>` with `{"plan_status":"active"}` → `permission denied`; with `{"name":"New"}` → succeeds.
+5. In the browser console as that user, `supabase.from('profiles').update({plan_status:'active'}).eq('id', '<their id>')` is rejected. Delete the test user afterwards.
+
+**Next steps, in order**
+
+1. Owner actions: run `005` (with your email) in Supabase and do the checks above; turn off public sign-ups (C-1 switch); **revoke the GitHub token pasted in chat on 12 Nov (used again for this push); use a new short-lived one next time**; run `003` and `004` on the live project (after the public form check); set `SITE_URL` on Vercel; enable GitHub secret scanning.
+2. Run the earlier browser checks (C-2 `LivePreview`, H-1, M-13, H-6) and the M-8/M-9 curl checks; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. H-5 remainder (captcha, per-IP limit).
+5. Next code items, two at a time: **M-1** (session hygiene) with **M-6** (enquiry badge wiring), or **M-10** (compiler placeholder handling); also the *Duplicate* gap from the 3rd update.
+6. **Stray file in the repo:** commit `07b49ac` ("Add files via upload", made on GitHub, not by this update) added `env.local` (no leading dot) at the repo root. It holds only `VITE_SUPABASE_URL` and the publishable key (public by design), so it is not a secret leak, but `.gitignore` only covers `.env.*`, so it is tracked. Delete it (`git rm env.local`) and add `env.local` to `.gitignore`; keep real values only in the untracked `.env.local`. Never upload a file that contains the `service_role` key.
+
+---
 
 ### 12 Nov 2026 (4th update) – H-5 enquiry insert hardening (database half), M-9 link-preview function uses `SITE_URL`
 
@@ -56,7 +103,7 @@ When asked to "update based on task.md", follow these steps.
 
 **How this affects other tasks**
 
-- **Track B migration numbering:** `004` is now taken. Track B's client-edit migration is **`005_client_edit.sql`** (B2 heading updated). Fold it into `schema.sql` in the same commit.
+- **Track B migration numbering:** `004` is now taken. Track B's client-edit migration is **`005_client_edit.sql`** (B2 heading updated; renumbered to 006 in the 5th update). Fold it into `schema.sql` in the same commit.
 - **Public enquiry form (outside this repo):** it must send **only** `name`, `phone`, `email`, `message`, and must not ask for the new row back (no `.select()` / `Prefer: return=representation`), because `anon` has no read access. A form that sends `status: "new"` or any other column now gets `permission denied`. Check the form before running `004` on the live project.
 - **H-5 / Track B (B3):** a future Edge Function for enquiries can reuse the trigger's rules; keep the column grants so it cannot be bypassed by calling the REST API directly.
 - **M-6 / enquiries pagination (M-5):** unchanged; the new indexes do not affect admin reads.
@@ -307,9 +354,9 @@ When asked to "update based on task.md", follow these steps.
 | Done | ID | Task | Where | Acceptance check |
 | --- | --- | --- | --- | --- |
 | [ ] | – | Rotate any GitHub / Supabase token that was pasted in chat, email or tickets. Use short-lived, repo-scoped tokens only | GitHub settings, Supabase dashboard | Old tokens show as revoked |
-| [ ] | C-1 | **Supabase dashboard:** disable public sign-ups (Auth → Providers → Email), and restrict or disable Google sign-in until the admin role exists. *Temporary: Track B re-opens sign-up only after B1 (admin role + least-privilege RLS) is live* | Supabase dashboard | A new email cannot register; Google login by a stranger is blocked |
+| [~] | C-1 | *(Sign-up switch is still a dashboard action; the database role is coded, see Phase 1.)* **Supabase dashboard:** disable public sign-ups (Auth → Providers → Email), and restrict or disable Google sign-in until the admin role exists. *Temporary: Track B re-opens sign-up only after B1 (admin role + least-privilege RLS) is live* | Supabase dashboard | A new email cannot register; Google login by a stranger is blocked |
 | [~] | C-2 | Add `sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"` (no `allow-same-origin`) to the public invitation iframe. *Coded 11 Nov (see Progress log); needs the browser check below.* | `src/pages/PublicInvitation.tsx:37` | A template with `<script>localStorage.getItem(...)</script>` cannot read app storage |
-| [ ] | C-3 | Revoke self-update on profiles: `REVOKE UPDATE ON public.profiles FROM authenticated; GRANT UPDATE (name) ON public.profiles TO authenticated;` | `supabase/schema.sql` policy `profiles: self update` (line ~121) | Console call setting `plan_status='active'` is rejected |
+| [~] | C-3 | *Coded and tested 12 Nov (5th update) in `schema.sql` and `005_admin_role.sql`; needs `005` run in Supabase.* Revoke self-update on profiles: `REVOKE UPDATE ON public.profiles FROM authenticated; GRANT UPDATE (name) ON public.profiles TO authenticated;` | `supabase/schema.sql` policy `profiles: self update` (line ~121) | Console call setting `plan_status='active'` is rejected |
 | [~] | H-1 | *Coded 11 Nov, needs the browser check below.* Fix Create overwriting an existing invitation: add `key={location.search}` to the Create route, or read `edit` via `useSearchParams()` and re-run the load effect; treat a search change as navigation for the unsaved-changes blocker | `src/AdminApp.tsx:210`, `src/pages/Create.tsx:35` | Edit A → click sidebar "Create Invitation" → form is empty and Save creates a new row |
 
 ---
@@ -317,7 +364,7 @@ When asked to "update based on task.md", follow these steps.
 ## Phase 1 – This sprint (~3–4 days)
 
 ### Authorization and data safety
-- [ ] **C-1** Add an `is_admin` flag (or role claim) and gate the `templates`, `categories`, `enquiries` policies on it. Keep the per-owner rule on `invitations`. (`schema.sql` lines ~101–116)
+- [~] **C-1** *Coded 12 Nov (5th update): `admins` table, `is_admin()`, admin-only policies on `templates`, `categories`, `enquiries`; migration `005_admin_role.sql`, tested on local Postgres. Still to do: run `005` in Supabase with your email in it, and the dashboard sign-up switch (Phase 0).* Add an `is_admin` flag (or role claim) and gate the `templates`, `categories`, `enquiries` policies on it. Keep the per-owner rule on `invitations`. (`schema.sql` lines ~101–116)
   - Verify: a second non-admin account cannot update a template, write a category, or read/update enquiries.
 - [~] **C-2** `LivePreview`: remove `allow-same-origin`; update the frame via `postMessage` instead of morphdom on `contentDocument`. (`src/features/create/components/LivePreview.tsx`) *Coded 12 Nov: sandbox is now `allow-scripts allow-popups allow-popups-to-escape-sandbox`; updates and scroll-to-field go through `postMessage` (see Progress log). Bridge tested in jsdom only; needs the browser check below.*
 - [~] **C-2** Add a Content-Security-Policy header in `vercel.json`. *Partly done (11 Nov): `object-src 'none'; frame-ancestors 'none'` is enforced; the strict policy runs as `Content-Security-Policy-Report-Only`. To finish: review console violations on the `preview` deployment, then enforce it (see Progress log).*
@@ -422,9 +469,9 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 | D7 | Conflicting edits | Each request stores `base_updated_at`. If the admin edited the invitation after the client started, approval shows a conflict warning and requires an explicit choice. |
 | D8 | Notification channels | In-app (badge + list, via Realtime) **and** email (Edge Function + Resend/Supabase SMTP). Email must never be the only record. |
 
-## B2. Database (new migration, e.g. `supabase/migrations/005_client_edit.sql`; also fold into `schema.sql` per H-3)
+## B2. Database (new migration, e.g. `supabase/migrations/006_client_edit.sql`; also fold into `schema.sql` per H-3)
 
-- [ ] **Admin role:** `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
+- [~] **Admin role** *(done early as part of C-1: `admins` table and `is_admin()` exist from `005_admin_role.sql`; B1 only needs to reuse them and seed nothing new)*: `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
 - [ ] **Client link:** `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.
 - [ ] **Helper:** `current_user_email()` returns `lower(auth.jwt()->>'email')` only when the JWT email is verified.
 - [ ] **RLS on invitations** (keep the existing admin/owner rules, add):

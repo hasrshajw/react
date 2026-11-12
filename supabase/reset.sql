@@ -25,8 +25,10 @@ drop table    if exists public.templates   cascade;
 drop table    if exists public.categories  cascade;
 drop table    if exists public.enquiries   cascade;
 drop table    if exists public.profiles    cascade;
+drop table    if exists public.admins      cascade;
 
 -- helper functions
+drop function if exists public.is_admin() cascade;
 drop function if exists public.invitations_check_details() cascade;
 drop function if exists public.details_is_valid(jsonb) cascade;
 drop function if exists public.details_problem(jsonb) cascade;
