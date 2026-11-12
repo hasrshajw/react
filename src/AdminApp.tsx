@@ -17,6 +17,7 @@ import { AccountProvider, useAccount } from "./hooks/useAccount";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { Loading, SkText } from "./components/Skeleton";
 import type { Plan } from "./lib/api";
+import { DOCS_URL, SUPPORT_URL, openHelpLink } from "./lib/helpLinks";
 
 /* ADMIN APP. Everything the signed-in user sees (shell, sidebar, dashboard, create, invitations, templates)
    lives in this file's import tree. App.tsx loads it with React.lazy(), so the landing page, the login page
@@ -76,19 +77,23 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  const Item = ({ icon: Icon, label, value, external, to, onSelect }: {
-    icon: IconComponent; label: string; value?: ReactNode; external?: boolean; to?: string; onSelect?: () => void;
-  }) => (
-    <button
-      type="button" className="pm-item" role="menuitem"
-      onClick={() => { if (to) navigate(to); onSelect?.(); onClose(); }}
-    >
-      <Icon size={20} strokeWidth={1.8} />
-      <span>{label}</span>
-      {value && <em className="pm-val">{value}</em>}
-      {external && <ExternalLink className="pm-val" size={17} strokeWidth={1.8} />}
-    </button>
-  );
+  /* An item with no page, address or action yet is shown as disabled ("Soon") instead of closing the menu and doing nothing. */
+  const Item = ({ icon: Icon, label, value, external, to, href, onSelect }: {
+    icon: IconComponent; label: string; value?: ReactNode; external?: boolean; to?: string; href?: string | null; onSelect?: () => void;
+  }) => {
+    const live = !!(to || onSelect || href);
+    return (
+      <button
+        type="button" className="pm-item" role="menuitem" disabled={!live}
+        onClick={() => { if (to) navigate(to); if (href) openHelpLink(href); onSelect?.(); onClose(); }}
+      >
+        <Icon size={20} strokeWidth={1.8} />
+        <span>{label}</span>
+        {!live ? <em className="pm-val pm-soon">Soon</em> : value && <em className="pm-val">{value}</em>}
+        {live && external && <ExternalLink className="pm-val" size={17} strokeWidth={1.8} />}
+      </button>
+    );
+  };
 
   return createPortal(
     <div
@@ -112,13 +117,28 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
       <Item icon={Bell} label="Notification settings" />
       <Item icon={Languages} label="Language" value={loading ? <SkText w={7} /> : "English"} />
       <i className="pm-sep" />
-      <Item icon={BookOpen} label="Help center" external />
-      <Item icon={LifeBuoy} label="Contact support" />
+      <Item icon={BookOpen} label="Help center" href={DOCS_URL} external />
+      <Item icon={LifeBuoy} label="Contact support" href={SUPPORT_URL} />
       <i className="pm-sep" />
       {/* The login page clears the session when it opens, so a "Save your changes?" prompt can still cancel the logout. */}
       <Item icon={LogOut} label="Log out" onSelect={() => navigate("/login", { replace: true, state: { loggedOut: true } })} />
     </div>,
     document.body
+  );
+}
+
+function HelpAnchor({ href, children }: { href: string; children: ReactNode }) {
+  const external = href.startsWith("https:");
+  return <a className="promo-link" href={href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{children}</a>;
+}
+
+/* Shown for any address inside the admin app that has no page (a mistyped URL, an old bookmark). */
+function NotFound() {
+  return (
+    <div className="coming-soon">
+      <h1>Page not found</h1>
+      <p>There is no page at this address. <NavLink to="/dashboard">Go to the Dashboard</NavLink></p>
+    </div>
   );
 }
 
@@ -192,10 +212,13 @@ function Shell() {
             </NavLink>
           ) : <span />}
 
-          <nav className="promo-right" aria-label="Help">
-            <a className="promo-link" href="#">Docs</a>
-            <a className="promo-link" href="#">Support</a>
-          </nav>
+          {/* Shown only when VITE_DOCS_URL / VITE_SUPPORT_URL are set (src/lib/helpLinks.ts); an empty cell keeps the strip's layout. */}
+          {DOCS_URL || SUPPORT_URL ? (
+            <nav className="promo-right" aria-label="Help">
+              {DOCS_URL && <HelpAnchor href={DOCS_URL}>Docs</HelpAnchor>}
+              {SUPPORT_URL && <HelpAnchor href={SUPPORT_URL}>Support</HelpAnchor>}
+            </nav>
+          ) : <span />}
         </header>
 
         <div className="workspace-body">
@@ -224,6 +247,7 @@ function Shell() {
                 {PLACEHOLDER_ROUTES.map(([path, title]) => (
                   <Route key={path} path={path} element={<ComingSoon title={title} />} />
                 ))}
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
           </div>
@@ -367,7 +391,11 @@ function Shell() {
           color: #2b2d3a; font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer;
           transition: background .15s;
         }
-        .pm-item:hover { background: #f3f1fb; }
+        .pm-item:hover:not(:disabled) { background: #f3f1fb; }
+        .pm-item:disabled { cursor: default; color: #9a9cac; }
+        .pm-item:disabled svg { color: #b4b6c4; }
+        .pm-item .pm-soon { font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+        .coming-soon a { color: #6d3fe0; font-weight: 600; }
         .pm-item:focus-visible { outline: 2px solid #6d3fe0; outline-offset: -2px; }
         .pm-item svg { flex-shrink: 0; color: #4a4c5c; }
         .pm-item .pm-val { margin-left: auto; font-style: normal; font-size: 13px; color: #6d7081; }

@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 13th update)
+### Where things stand (12 Nov 2026, 14th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,52 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 4 | 1 | all the rest | **L-3**, **L-4**, **L-5** and **L-6** are done. **L-7** (enquiry history written by the database) is coded and tested on local Postgres (`008_enquiry_history.sql`, not yet run in Supabase). The *Duplicate* gap from the 3rd update is closed. Nothing else in Phase 3 is started (no lint, tests or CI yet). |
+| Phase 3 | 5 | 2 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). Nothing else in Phase 3 is started (no lint, tests or CI yet). |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (14th update) – L-1 dead links and unknown admin URLs, L-2 unused files removed
+
+**What was done**
+
+1. **L-1 – the "Docs" and "Support" links point somewhere real or are not shown** (new `src/lib/helpLinks.ts`, `src/AdminApp.tsx`, `.env.example`, `README.md`)
+   - **No address was guessed.** `VITE_DOCS_URL` and `VITE_SUPPORT_URL` hold them (build-time variables). `helpLink()` accepts only `https://host.tld/...` (a dot in the host, no user name or password, not `https:///x`) and `mailto:name@host.tld[?subject=…]`; anything else, including `javascript:`, `http:`, `data:`, relative links, `#` and values over 300 characters, gives "not configured".
+   - Top strip: each link appears only when its address is set; with neither set the strip keeps its layout (an empty cell). `https` links open in a new tab with `rel="noopener noreferrer"`; `mailto:` opens the mail app.
+   - Profile menu: **Help center** uses `VITE_DOCS_URL`, **Contact support** uses `VITE_SUPPORT_URL`, **Billing** and **Log out** are unchanged. Every other item (Account information, Account sharing, Security, Account activity, Notification settings, Language) has no page yet; it is now a disabled button with a "Soon" label instead of closing the menu and doing nothing. An unset Help center / Contact support item reads "Soon" too.
+   - **Catch-all route** inside the admin shell: an unknown address with more than one segment, or a reserved word that has no page (`/admin`, `/privacy`, `/pricing`, …), shows "Page not found" with a link to the Dashboard instead of an empty main area. A single-segment unknown address was already handled (the "invitation isn't available" page in `App.tsx`).
+   - **Verified (ad hoc, throwaway scripts in `/tmp`, not saved in the repo):** `npm run typecheck` and `npm run build` pass. Node, the real `helpLinks.ts` bundled with the variables set and unset, 26 checks: configured values used; unset and a `javascript:` value give `null`; 4 allowed shapes; 18 rejected shapes (empty, blank, `undefined`, `null`, `#`, `/docs`, `http://`, `javascript:` in two cases, `data:`, credentials in the URL, `https:///x`, `mailto:` with no address or no dot, `ftp:`, 300+ characters, `//evil.test`); `openHelpLink` opens `https` in a new tab with `noopener,noreferrer` and sends `mailto:` to the mail app. A first run found that `https:///x` was accepted (the URL parser rewrites it to `https://x/`); fixed. **The React side (menu, strip, not-found page) was not rendered in a browser.**
+2. **L-2 – unused files removed**
+   - Removed from the tree: the whole repo-root `assets/` folder (12 files, about 4.4 MB: `bride.png`, `groom.jpg`, `hero.svg`, `sec2.jpg` and so on; nothing in `src`, `public`, `api`, `supabase`, `index.html`, `vite.config.ts` or `vercel.json` refers to it, and Vite never served it), plus `src/assets/1.html`, `src/assets/test.html` and `src/assets/txt` (three files with no real content). The build output is identical in size (main bundle 260.05 kB). **They are still in git history**: to get a picture back, `git show 74d0701:assets/<file> > <file>` (for example `bride.png`).
+   - **Not done on purpose (follow-up, your decision):** `src/assets` still holds about 44 small icon files (`fill_*.svg`, `hover_*.svg`, `panel_*.svg`, `open_eye.svg` …) that no code imports. They are not part of L-2 as written, are never bundled (Vite includes only imported files) and total under 100 KB. Delete them if they are leftovers of an old sidebar; keep `logo.png`, `logo-small.png` and `schedy-mark.svg`, which are used.
+
+**How this affects other tasks**
+
+- **Track B (B4):** B4 adds `VITE_ADMIN_EMAIL` to `src/lib/config.ts` for a "Contact admin" link; if you want that link to use the same strip, it can use `helpLink()` with a `mailto:` value. Reserved words for the client area (`my`) still have to be added to `RESERVED`, the database list and `vercel.json`.
+- **M-8 / CSP:** the new links are plain anchors and `window.open`; nothing needs a CSP change.
+- **No database change in this update**, nothing to run in Supabase.
+
+**Behaviour changes to check**
+
+- The top strip shows no "Docs" / "Support" until you set the two variables and rebuild.
+- In the profile menu most items are greyed out with "Soon" and cannot be clicked.
+- `/admin`, `/privacy`, `/dashboard/xyz` and similar addresses (signed in) show "Page not found".
+
+**Checks to repeat (for `[~]` → `[x]`)**
+
+1. Without the variables: the strip has no Docs/Support; the profile menu shows "Soon" on Help center and Contact support; clicking a greyed item does nothing and the menu stays open.
+2. Set `VITE_DOCS_URL=https://example.org` and `VITE_SUPPORT_URL=mailto:you@your-domain.com` (in `.env.local` for a test, or on Vercel), rebuild: Docs opens a new tab, Support opens your mail app, the same from the profile menu.
+3. Signed in, open `/admin` and `/dashboard/xyz`: "Page not found" with a working link to the Dashboard; the sidebar still works.
+4. Phone width: the top strip still fits with and without the two links.
+
+**Next steps, in order**
+
+1. Owner actions: run `007` and `008`, then deploy `preview`; per-IP rate limit; set `VITE_DOCS_URL` / `VITE_SUPPORT_URL` if you want the links; everything in the 6th to 10th updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 14th updates and the older ones; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: **L-8** (server timestamp for `deleted_at` and a scheduled trash purge; touches the database), the M-5 "load more" UI, or Phase 3 tooling (**M-14**: ESLint, then Vitest with the cases already written in the 8th to 14th updates).
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (13th update) – L-7 enquiry history written by the database, L-6 one storage helper
 
@@ -801,8 +845,8 @@ When asked to "update based on task.md", follow these steps.
 - [ ] Tighten types: remove `[key: string]: any` on core types, enable `noImplicitAny`, align `@types/react` (^19) with `react` (^18.3.1), pin TypeScript instead of using a caret.
 
 ### Cleanup and low-priority fixes
-- [ ] **L-1** Replace `href="#"` Docs/Support links, add handlers for profile-menu items, add a catch-all route for unknown admin URLs.
-- [ ] **L-2** Remove or relocate repo-root `assets/` (~4.4 MB, not shipped), `src/assets/1.html`, `src/assets/test.html`, `src/assets/txt`. (`temp/*.html` was already deleted in the last two commits.)
+- [~] **L-1** Replace `href="#"` Docs/Support links, add handlers for profile-menu items, add a catch-all route for unknown admin URLs. *Coded 12 Nov (14th update): Docs/Support come from `VITE_DOCS_URL` / `VITE_SUPPORT_URL` and are hidden when unset; menu items with no page yet are disabled ("Soon"); `Page not found` route inside the admin shell. Tested only for the link rules (26 checks) and by typecheck/build; needs the browser check in the Progress log and the two addresses from you.*
+- [x] **L-2** Remove or relocate repo-root `assets/` (~4.4 MB, not shipped), `src/assets/1.html`, `src/assets/test.html`, `src/assets/txt`. (`temp/*.html` was already deleted in the last two commits.) *Done 12 Nov (14th update): all four removed from the tree (still in git history). The unused icon files left in `src/assets` are listed in the Progress log as a follow-up.*
 - [x] **L-3** CSV formula guard: also cover values starting with tab or carriage return; tighten the `^\+?[\d\s]+$` exemption; avoid prefixing harmless text beginning with `-`. *Done 12 Nov (12th update): `looksLikeFormula()` in `src/lib/dashboardData.ts`; see the progress log for the exact rule.*
 - [x] **L-4** `waLink`: handle 11-digit numbers with a leading 0; avoid "Hi , thanks…" when the name is empty. *Done 12 Nov (12th update): `waNumber()` and `waLink()` in `src/lib/dashboardData.ts`.*
 - [x] **L-5** `uid()` fallback: remove the `.` from the generated id (breaks the `/<slug>` rewrite on Vercel). *Done 12 Nov (11th update): new `src/lib/uid.ts`, used by `features/create/constants.ts` and `features/invitations/utils.ts`; the fallback now gives letters, digits and `-` only. Tested in Node with `crypto` removed.*
