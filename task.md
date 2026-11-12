@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (12 Nov 2026, 16th update)
+### Where things stand (12 Nov 2026, 17th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -35,8 +35,48 @@ When asked to "update based on task.md", follow these steps.
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded except the orphan-cleanup job (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** data layer coded (explicit columns, stable order, reads past the 1,000-row cap); the "load more" UI is not done. M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
-| Phase 3 | 6 | 4 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors) and 102 unit tests run (`npm test`); the Playwright, database tests, CI and type tightening are not started. |
+| Phase 3 | 6 | 5 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, 0 errors), 151 unit tests run (`npm test`) and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); Playwright, database tests and type tightening are not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 12 Nov 2026 (17th update) – M-14: more unit tests, CI and Dependabot
+
+**What was done**
+
+1. **49 more unit tests** (`src/lib/validate.test.ts`, `src/lib/transliterate.test.ts`; 151 in total)
+   - `validate.test.ts` (38 tests): `okPhone`, `okUrl`, `okSlug`, `isReserved` / the reserved routes, and `validateInvitation` on the whole form: a minimal valid form passes; the four required fields; link name (format first, then reserved, blank ignored); phones and map links only when filled in; contacts and events by id; reception date only when the reception is on; SEO length warnings and a foreign preview image.
+   - `transliterate.test.ts` (11 tests, M-2): a fresh copy of the module per test and a fake `fetch`: suggestion used and remembered; one request per word, spacing kept; digits and symbols never sent; blank text; a "no suggestion" answer uses the offline rules, is remembered and does **not** pause online mode; for each real failure (network error, HTTP 500, non-JSON, status other than SUCCESS) the offline result is used, requests pause (none at 59 s), resume after 60 s, and the word from the outage is asked online again; a 3.5 s timeout; the 1,000-word cache drops the oldest.
+   - **The tests can fail:** with the 60 s pause and the cache cap switched off on purpose, 5 tests failed; after restoring, all 151 pass. (My first version of the cache test was wrong, not the module; fixed.)
+2. **CI** (`docs/ci.yml`, **owner action: copy it to `.github/workflows/ci.yml` to turn it on**; the push was refused with "without `workflow` scope" because the fine-grained token has no Workflows permission, and I did not work around that): on push and pull request to `preview` and `main`: `npm ci`, `npm run lint:install`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` (Node 22, npm cache for both lock files, 15 min limit, a newer run on the same branch cancels the older one, read-only token). A second job runs `npm audit --omit=dev --audit-level=high` and is allowed to fail so an advisory in a package we do not control does not block unrelated work; read its log.
+3. **Dependabot** (`.github/dependabot.yml`): weekly, minor and patch updates grouped, for the root, `tools/lint` and the GitHub Actions used above.
+4. **Verified:** both YAML files parse. A clean copy of the tracked files plus the new ones (no `node_modules`) ran `npm ci`, `npm run lint:install`, typecheck, lint (0 errors, 36 warnings), the tests (151 pass), the production build (main bundle 260.05 kB, unchanged) and `npm audit --omit=dev --audit-level=high` (0 vulnerabilities). **Not yet seen running on GitHub.** The build in CI uses the tracked `.env.local` (public `VITE_` values only), as it does on Vercel; no secret is needed.
+
+**How this affects other tasks**
+
+- **M-12 / `.env.local`:** CI relies on the tracked testing file for `VITE_SUPABASE_URL`. If that file is ever untracked (the M-12 step on hold), set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as repository variables and pass them to the build step, or the build will still pass but `previewUrl` rules will see no URL.
+- **Promotion to `main` (B-M7 and the release checklist):** "typecheck, build, lint and tests all green in CI" can now be checked on the Actions tab.
+- **Track B (B9):** the test layer for the allow-list and diff logic can reuse the style of `validate.test.ts`.
+- **No source file and no database changed** in this update, so nothing to run in Supabase and nothing to check in a browser.
+
+**Behaviour changes to check**
+
+- None for users. Pushes and pull requests now start a CI run; Dependabot opens pull requests weekly.
+
+**Checks to repeat**
+
+1. After you copy `docs/ci.yml` to `.github/workflows/ci.yml`: GitHub → Actions: the "CI" run is green (the `audit` job may be yellow or red without failing the run; read it).
+2. GitHub → Insights → Dependency graph → Dependabot: the three update entries appear.
+3. Optional: Settings → Branches: require the `check` job before merging into `main` (owner decision).
+
+**Next steps, in order**
+
+1. Owner actions: **copy `docs/ci.yml` to `.github/workflows/ci.yml`** (add it on github.com, or give a new short-lived token the Workflows permission); run `007`, `008` and `009`, then deploy `preview`; turn on pg_cron; per-IP rate limit; everything in the earlier updates' lists. **Revoke the GitHub token pasted in chat (used again for this push) and use a new short-lived one next time.**
+2. Run the browser checks from the 6th to 15th updates; then tick those items.
+3. Deploy `preview`, list `Content-Security-Policy-Report-Only` violations, enforce the strict CSP.
+4. M-4 last part (orphan cleanup job), H-5 remainder (captcha, per-IP limit).
+5. Next code items, one or two at a time: Vitest cases with a fake Supabase client (`api.ts`, the store and enquiry hooks), the M-5 "load more" UI, **L-9**, or the type tightening in M-14 (pin TypeScript, align `@types/react`, drop `[key: string]: any`).
+6. **Testing env file stays:** `.env.local` was not touched in this update.
+
+---
 
 ### 12 Nov 2026 (16th update) – M-14 first part: ESLint and Vitest
 
@@ -931,10 +971,10 @@ When asked to "update based on task.md", follow these steps.
 
 ### Test and tooling baseline (**M-14**; lint and the first unit tests exist since the 16th update)
 - [x] ESLint with `react-hooks` and `@typescript-eslint`; add `npm run lint`. *Done 12 Nov (16th update): `tools/lint` (own `package.json`, ESLint 10, TypeScript 5.9 pinned for linting only), `npm run lint:install` once, then `npm run lint`: 0 errors, 36 warnings (14 `any`, 14 `exhaustive-deps`, 8 unused variables). Only the two classic hook rules are on; the React Compiler rules of `eslint-plugin-react-hooks` 7 are not.*
-- [~] Vitest unit tests for `compile`, `validate`, `slug`, `dashboardData` helpers. *Started 12 Nov (16th update): `npm test`, 102 tests for `compile` / `isSafeUrl`, the `dashboardData` CSV and WhatsApp helpers, `helpLink`, `uid` and `isOwnPreviewImage`. Still to do: `validate`, `slug`/`reserved`, `transliterate` and the hook and `api.ts` cases from the 3rd to 15th updates (they need a fake Supabase client), plus the database cases.*
+- [~] Vitest unit tests for `compile`, `validate`, `slug`, `dashboardData` helpers. *Started 12 Nov (16th update), extended in the 17th: `npm test`, 151 tests for `compile` / `isSafeUrl`, `validate` (phone, URL, link name, whole-form rules), `reserved`, `transliterate` (M-2: cache, no-suggestion, failures, 60 s pause, timeout, 1,000-word cap), the `dashboardData` CSV and WhatsApp helpers, `helpLink`, `uid` and `isOwnPreviewImage`. Still to do: the cases that need a fake Supabase client (`api.ts` reads, write queue, purge; the hooks; `useEnquiries`), `PublicInvitation`, and the database (pgTAP) cases.*
 - [ ] Playwright e2e: login → create → publish → public view.
 - [ ] RLS tests (pgTAP or Supabase CLI) covering the authorization checklist in the audit, section 6.
-- [ ] GitHub Actions: typecheck, build, tests, `npm audit`; add Dependabot.
+- [~] GitHub Actions: typecheck, build, tests, `npm audit`; add Dependabot. *Written 12 Nov (17th update): `docs/ci.yml` (**not active yet: copy it to `.github/workflows/ci.yml`**, because the push token had no `workflow` permission) (typecheck, lint, tests, build on push and pull request to `preview` and `main`; a separate `npm audit --omit=dev --audit-level=high` job that reports but does not fail the run) and `.github/dependabot.yml` (weekly, grouped, root + `tools/lint` + Actions). Every step was run from a clean copy and passes. It has not been seen running on GitHub yet; Dependabot (`.github/dependabot.yml`) is already in place.*
 - [ ] Tighten types: remove `[key: string]: any` on core types, enable `noImplicitAny`, align `@types/react` (^19) with `react` (^18.3.1), pin TypeScript instead of using a caret.
 
 ### Cleanup and low-priority fixes

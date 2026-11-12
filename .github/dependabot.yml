@@ -1,0 +1,16 @@
+# Weekly update pull requests (task M-14). Updates are grouped so one week gives at most a few pull requests per folder.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /tools/lint
+    schedule: { interval: weekly }
+    groups:
+      minor-and-patch: { update-types: [minor, patch] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
