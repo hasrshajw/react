@@ -1,3 +1,15 @@
+### 13 Nov 2026 (80th update) – Premium UI/UX Polish for Empty States
+
+**What was done**
+
+1. **Premium "No Invitations" Empty State:** Upgraded the plain text "No invitations to show" message in `ClientApp.tsx` to a polished, card-based UI. 
+   - Added a subtle shadow, rounded corners, and a soft background to match the app's premium aesthetic.
+   - Included the `Mailbox01Icon` inside a muted circular container for immediate visual recognition.
+   - Improved typography with a clear heading, readable descriptive text, and a styled, interactive "Contact the admin" button (with hover states) instead of a plain text link.
+2. **Consistency:** This aligns the client-facing empty state with the high-quality design standards of the rest of the application, ensuring a professional first impression even when no data is present.
+
+---
+
 ### 13 Nov 2026 (79th update) – UI/UX Corrections & Missing Page Audit
 
 **What was done**
