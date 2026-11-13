@@ -21,6 +21,7 @@ import { useToast } from "../features/create/hooks/useToast";
 import { useTransliteration } from "../features/create/hooks/useTransliteration";
 import { useBeforeUnload, useSaveShortcut } from "../features/create/hooks/useUnsavedWarnings";
 import { scrollToSection } from "../features/create/scroll";
+import { useAuth } from "../hooks/useAuth";
 
 const copyText = async (text: string) => {
   try { await navigator.clipboard.writeText(text); }
@@ -31,6 +32,7 @@ type Draft = { data: InvitationData; at: number };
 
 export default function Create({ onPanelChange }: { onPanelChange?: (open: boolean) => void }) {
   const { templates, categories, loading: tplLoading } = useTemplates();
+  const { session } = useAuth();
 
   const [state, dispatch] = useReducer(formReducer, undefined, () => initialFormState(new URLSearchParams(window.location.search).get("edit")));
   const { data, snap, touched, submitted, editId, categoryId, lastSaved } = state;
@@ -54,7 +56,9 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   const schedule = useTransliteration();
 
   const dirty = useMemo(() => snapshot(data) !== snap, [data, snap]);
-  const draftKey = LS_DRAFT + (editId || "new");
+  /* B6 / M-1: scope create drafts per signed-in user so a shared browser does not leak the previous person's draft. */
+  const emailKey = (session?.email ?? "anon").trim().toLowerCase();
+  const draftKey = `${LS_DRAFT}${emailKey}:${editId || "new"}`;
 
   /* ---------- ask before leaving with unsaved changes ---------- */
   const dirtyRef = useRef(false);
@@ -80,7 +84,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
       /* /create?template=ID (from Manage Templates) preselects that template */
       const t = urlParams.get("template");
       if (t && !editId) dispatch({ type: "field", key: "templateId", value: String(t) });
-      const draft = readJSON<Draft | null>(LS_DRAFT + (editId || "new"), null);
+      const draft = readJSON<Draft | null>(draftKey, null);
       if (draft?.data && JSON.stringify({ ...initial, ...draft.data }) !== JSON.stringify(base)) setDraftOffer(draft);
       setReady(true);
     };
@@ -240,8 +244,8 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
       return false;
     }
     dispatch({ type: "saved", editId: id, at: Date.now() });
-    removeKey(LS_DRAFT + "new");
-    removeKey(LS_DRAFT + id);
+    removeKey(`${LS_DRAFT}${emailKey}:new`);
+    removeKey(`${LS_DRAFT}${emailKey}:${id}`);
     if (!editId) {
       /* Keep history.state: the router stores its position there (needed for back/forward blocking). */
       if (!leaving) history.replaceState(history.state, "", `/create?edit=${id}`);

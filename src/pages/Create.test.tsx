@@ -17,6 +17,9 @@ vi.mock("../lib/api", () => {
 vi.mock("../hooks/useTemplates", () => ({
   useTemplates: () => ({ loading: false, error: null, categories: [], templates: [{ id: "t1", name: "Classic", html_code: "<p>x</p>" }] }),
 }));
+vi.mock("../hooks/useAuth", () => ({
+  useAuth: () => ({ session: null, signInGoogle: async () => ({}), signInEmail: async () => ({}), logout: async () => {} }),
+}));
 vi.mock("../lib/compileInvitation", () => ({ compile: (html: string) => html }));
 vi.mock("../features/create/hooks/useTransliteration", () => ({ useTransliteration: () => () => {} }));
 const scrollToSection = vi.fn();
@@ -160,7 +163,7 @@ describe("Create page: a new invitation", () => {
     await flush();
     fillValid();
     await advance(900); // the draft is written 800 ms after the last change
-    expect(Object.keys(localStorage).filter((k) => k.startsWith(LS_DRAFT))).toEqual([LS_DRAFT + "new"]);
+    expect(Object.keys(localStorage).filter((k) => k.startsWith(LS_DRAFT))).toEqual([LS_DRAFT + "anon:new"]);
     submit();
     await flush();
     expect(Object.keys(localStorage).filter((k) => k.startsWith(LS_DRAFT))).toEqual([]);
@@ -308,7 +311,7 @@ describe("Create page: the local draft", () => {
   const draft = (data: Record<string, unknown>) => ({ data, at: new Date("2026-11-10T10:00:00").getTime() });
 
   it("offers a stored draft that differs from the form, and Restore puts it back", async () => {
-    localStorage.setItem(LS_DRAFT + "new", JSON.stringify(draft({ groomEn: "Draft Groom", brideEn: "Draft Bride" })));
+    localStorage.setItem(LS_DRAFT + "anon:new", JSON.stringify(draft({ groomEn: "Draft Groom", brideEn: "Draft Bride" })));
     show();
     await flush();
     expect(text()).toContain("You have unsaved changes from");
@@ -322,23 +325,23 @@ describe("Create page: the local draft", () => {
   });
 
   it("Discard removes the stored draft and the card", async () => {
-    localStorage.setItem(LS_DRAFT + "new", JSON.stringify(draft({ groomEn: "Draft Groom" })));
+    localStorage.setItem(LS_DRAFT + "anon:new", JSON.stringify(draft({ groomEn: "Draft Groom" })));
     show();
     await flush();
     click([...host.querySelectorAll("button")].find((b) => b.textContent === "Discard") ?? null);
-    expect(localStorage.getItem(LS_DRAFT + "new")).toBeNull();
+    expect(localStorage.getItem(LS_DRAFT + "anon:new")).toBeNull();
     expect(text()).not.toContain("Restore them?");
     expect(q("groom").textContent).toBe("");
   });
 
   it("does not offer a draft that equals the empty form, or a broken one", async () => {
-    localStorage.setItem(LS_DRAFT + "new", JSON.stringify(draft({})));
+    localStorage.setItem(LS_DRAFT + "anon:new", JSON.stringify(draft({})));
     show();
     await flush();
     expect(text()).not.toContain("Restore them?");
     act(() => root.unmount());
     root = createRoot(host);
-    localStorage.setItem(LS_DRAFT + "new", "{not json");
+    localStorage.setItem(LS_DRAFT + "anon:new", "{not json");
     show();
     await flush();
     expect(text()).not.toContain("Restore them?");
@@ -350,19 +353,19 @@ describe("Create page: the local draft", () => {
     await flush();
     click(q("type-groom"));
     await advance(700);
-    expect(localStorage.getItem(LS_DRAFT + "new")).toBeNull(); // debounced
+    expect(localStorage.getItem(LS_DRAFT + "anon:new")).toBeNull(); // debounced
     await advance(200);
-    expect(JSON.parse(localStorage.getItem(LS_DRAFT + "new")!).data.groomEn).toBe("Ravi");
+    expect(JSON.parse(localStorage.getItem(LS_DRAFT + "anon:new")!).data.groomEn).toBe("Ravi");
   });
 
   it("does not write a draft while the offer card is waiting for an answer", async () => {
     vi.useFakeTimers();
-    localStorage.setItem(LS_DRAFT + "new", JSON.stringify(draft({ groomEn: "Draft Groom" })));
+    localStorage.setItem(LS_DRAFT + "anon:new", JSON.stringify(draft({ groomEn: "Draft Groom" })));
     show();
     await flush();
     click(q("type-groom"));
     await advance(2000);
-    expect(JSON.parse(localStorage.getItem(LS_DRAFT + "new")!).data.groomEn).toBe("Draft Groom"); // the offered draft is untouched
+    expect(JSON.parse(localStorage.getItem(LS_DRAFT + "anon:new")!).data.groomEn).toBe("Draft Groom"); // the offered draft is untouched
   });
 });
 
@@ -403,7 +406,7 @@ describe("Create page: leaving with unsaved changes", () => {
     await flush();
     expect(router.state.location.pathname).toBe("/other");
     expect(saveInvitation).not.toHaveBeenCalled();
-    expect(JSON.parse(localStorage.getItem(LS_DRAFT + "new")!).data.groomEn).toBe("Ravi");
+    expect(JSON.parse(localStorage.getItem(LS_DRAFT + "anon:new")!).data.groomEn).toBe("Ravi");
   });
 
   it("Save saves and then leaves", async () => {

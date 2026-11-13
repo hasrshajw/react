@@ -1,5 +1,49 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 66th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 26 | rest | **66th update: B6/M-1 create draft scoped per user + B7 email normalisation note.** |
+
+### 13 Nov 2026 (66th update) – B6 create draft per user + B7 email note
+
+**What was done**
+
+1. **`src/pages/Create.tsx`:** admin create drafts are now keyed `schedy_create_draft_<email>:<editId|new>` (was only `…_new` / `…_<id>`). Uses `useAuth().session?.email` (falls back to `anon`). Shared-device leak of the previous admin’s unsaved invitation is closed; `resetUserData` still clears the whole prefix on sign-out.
+2. **`src/pages/Create.test.tsx`:** mock `useAuth` (null session → `anon` key); all draft assertions use `LS_DRAFT + "anon:new"`.
+3. **`src/lib/storageKeys.ts`:** comment documents the new key shape.
+4. **`src/lib/api.ts`:** B7 note that client_email normalisation is case + surrounding spaces only; `+tag` addresses stay exact (matches DB `lower(btrim(...))` constraint).
+5. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite / typecheck not re-run in this environment (npm install was flaky).
+- Browser check of draft isolation between two accounts still needed for the M-1 `[~]`.
+
+**How this affects other tasks**
+
+- **B6 remaining:** leave-blocker already solid; mobile-first client layout still open.
+- **B7:** email normalisation decision recorded; unverified-email banner and other edge cases still open.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. In a browser: sign in as A, type in Create, sign out, sign in as B — B must not see A’s draft; A’s draft must reappear after A signs in again.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run checks.
+2. Next: Phase browser `[~]` closes, or B5 invite status polish, or client mobile layout.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 65th update)
 
 | Phase | Done | In progress | To do | Notes |

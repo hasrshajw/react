@@ -149,6 +149,7 @@ export async function saveInvitation(record: InvitationRow, opts: { published?: 
      `client_email` is a top-level column (Track B); it is never stored inside details. Empty string clears the link. */
   const rawDetails = (record.details ?? {}) as Record<string, unknown>;
   const { clientEmail: _dropClientEmail, ...detailsWithoutClient } = rawDetails;
+  /* B7: normalise case and surrounding spaces only. +tag addresses stay exact (no stripping). DB constraint also lower+btrim. */
   const clientEmail =
     record.client_email === undefined
       ? undefined
