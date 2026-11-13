@@ -51,3 +51,32 @@ export function formatDiffValue(value: unknown): string {
     return String(value);
   }
 }
+
+const isEmptyValue = (v: unknown): boolean =>
+  v === null || v === undefined || (typeof v === "string" && v.trim() === "") || (Array.isArray(v) && v.length === 0);
+
+const entryLine = (obj: Record<string, unknown>): string =>
+  Object.entries(obj)
+    .filter(([, v]) => !isEmptyValue(v))
+    .map(([k, v]) => `${fieldLabel(k)}: ${formatDiffValue(v)}`)
+    .join(" · ");
+
+/** One readable line per item (events, contacts…) instead of raw JSON. An empty value gives no lines. */
+export function diffLines(value: unknown): string[] {
+  if (isEmptyValue(value)) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (item && typeof item === "object" ? entryLine(item as Record<string, unknown>) : formatDiffValue(item)))
+      .filter((line) => line !== "" && line !== "—");
+  }
+  if (typeof value === "object") return entryLine(value as Record<string, unknown>).split(" · ").filter(Boolean);
+  return [formatDiffValue(value)];
+}
+
+export type DiffKind = "added" | "removed" | "changed";
+
+export function diffKind(current: unknown, proposed: unknown): DiffKind {
+  if (isEmptyValue(current) && !isEmptyValue(proposed)) return "added";
+  if (!isEmptyValue(current) && isEmptyValue(proposed)) return "removed";
+  return "changed";
+}
