@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { Link, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import {
   CLIENT_STATUS_LABEL,
@@ -9,6 +9,7 @@ import {
 import { CreateForm } from "./features/create/CreateForm";
 import { formReducer, initialFormState, snapshot } from "./features/create/formReducer";
 import { useToast } from "./features/create/hooks/useToast";
+import { useBeforeUnload } from "./features/create/hooks/useUnsavedWarnings";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
 import { useAsync } from "./hooks/useAsync";
 import {
@@ -22,6 +23,8 @@ import {
 } from "./lib/api";
 import { compile } from "./lib/compileInvitation";
 import { ADMIN_EMAIL } from "./lib/config";
+import { readJSON, removeKey, writeJSON } from "./lib/storage";
+import { LS_CLIENT_DRAFT } from "./lib/storageKeys";
 import { fmtDateTime } from "./lib/dashboardData";
 import { validateInvitation } from "./lib/validate";
 import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "./types/invitation";
@@ -134,8 +137,11 @@ function Landing() {
   );
 }
 
+type ClientDraft = { data: InvitationData; at: number };
+
 function ClientEditor() {
   const { id = "" } = useParams();
+  const { session } = useAuth();
   const [list, setList] = useState<MyInvitation[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -156,6 +162,9 @@ function ClientEditor() {
   const [busy, setBusy] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [ready, setReady] = useState(false);
+  const [draftOffer, setDraftOffer] = useState<ClientDraft | null>(null);
+  const emailKey = (session?.email || "anon").trim().toLowerCase();
+  const draftKey = `${LS_CLIENT_DRAFT}${emailKey}:${id}`;
 
   const inv = useMemo(() => list?.find((i) => i.id === id) ?? null, [list, id]);
   const pending = inv?.request?.status === "pending";
@@ -169,6 +178,16 @@ function ClientEditor() {
     const form = invitationToForm(inv, !!preferProposed);
     dispatch({ type: "load", data: form });
     setReady(true);
+    if (!preferProposed) {
+      const draft = readJSON<ClientDraft | null>(draftKey, null);
+      if (draft?.data && snapshot({ ...form, ...draft.data }) !== snapshot(form)) {
+        setDraftOffer(draft);
+      } else {
+        setDraftOffer(null);
+      }
+    } else {
+      setDraftOffer(null);
+    }
     let live = true;
     fetchClientTemplateHtml(inv.id).then(
       (html) => { if (live) setTemplateHtml(html || ""); },
@@ -178,6 +197,24 @@ function ClientEditor() {
   }, [inv]);
 
   const dirty = useMemo(() => snapshot(data) !== snap, [data, snap]);
+  const dirtyRef = useRef(false);
+  dirtyRef.current = dirty && !pending;
+
+  useBeforeUnload(dirty && !pending);
+
+  const blocker = useBlocker(
+    useCallback(({ currentLocation, nextLocation }: { currentLocation: { key: string }; nextLocation: { key: string } }) =>
+      dirtyRef.current && currentLocation.key !== nextLocation.key, []),
+  );
+
+  /* Autosave local draft (scoped per signed-in email + invitation). Cleared on sign-out via M-1. */
+  useEffect(() => {
+    if (!ready || draftOffer || pending) return;
+    if (!dirty) { removeKey(draftKey); return; }
+    const t = window.setTimeout(() => writeJSON(draftKey, { data, at: Date.now() }), 800);
+    return () => window.clearTimeout(t);
+  }, [data, dirty, ready, draftOffer, draftKey, pending]);
+
   const errors = useMemo(() => validateInvitation(data), [data]);
   const vis = useCallback(
     (key: string) => ((submitted || touched[key]) ? errors[key]?.msg : undefined),
@@ -232,6 +269,8 @@ function ClientEditor() {
       await submitChangeRequest(inv.id, details as MyInvitation["details"], inv.updatedAt);
       notify("Submitted for review");
       setConfirmSubmit(false);
+      removeKey(draftKey);
+      setDraftOffer(null);
       dispatch({ type: "load", data });
       reload();
     } catch (e) {
@@ -322,6 +361,32 @@ function ClientEditor() {
             <button type="button" style={btnGhost} disabled={busy} onClick={() => void onAck()}>
               Got it
             </button>
+          </div>
+        </div>
+      )}
+
+      {draftOffer && !pending && (
+        <div style={{ ...banner, background: "#fffbeb", border: "1px solid #fcd34d" }} role="status">
+          <span>You have unsaved changes from {new Date(draftOffer.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. Restore them?</span>
+          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" style={btnPrimary} onClick={() => {
+              dispatch({ type: "replaceData", data: draftOffer.data });
+              setDraftOffer(null);
+            }}>Restore</button>
+            <button type="button" style={btnGhost} onClick={() => { removeKey(draftKey); setDraftOffer(null); }}>Discard</button>
+          </div>
+        </div>
+      )}
+
+      {blocker.state === "blocked" && (
+        <div style={{ ...banner, background: "#fff", border: "1px solid #e5e7eb" }} role="dialog" aria-label="Leave without submitting?">
+          <p style={{ margin: "0 0 10px" }}>You have unsaved changes. Leave this page? A local draft is kept until you submit or sign out.</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" style={btnGhost} onClick={() => blocker.reset?.()}>Stay</button>
+            <button type="button" style={btnPrimary} onClick={() => {
+              writeJSON(draftKey, { data, at: Date.now() });
+              blocker.proceed?.();
+            }}>Leave</button>
           </div>
         </div>
       )}

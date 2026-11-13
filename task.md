@@ -1,5 +1,47 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 57th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 22 | rest | **57th update: B6 client draft + leave blocker** (per-email+invitation key, M-1 clear on sign-out). Invite still needs B3. |
+
+### 13 Nov 2026 (57th update) – B6: client draft autosave and leave blocker
+
+**What was done**
+
+1. **Draft key** `schedy_client_draft_{email}:{invitationId}` (`LS_CLIENT_DRAFT`); cleared on sign-out with admin drafts (M-1).
+2. **Autosave** while dirty (debounced); discarded after successful submit; not written while a request is pending.
+3. **Restore / Discard** card when a newer local draft differs from the server form.
+4. **Leave blocker** (`useBlocker` + `useBeforeUnload`): Stay or Leave (draft kept). **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite not re-run here. Browser: edit, refresh, restore; navigate away with dirty form.
+
+**How this affects other tasks**
+
+- **B5 Invite** still blocked on B3.
+- **B6** core path is largely coded; remaining is polish and browser verification.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Client flow: edit → refresh → Restore; edit → Log out → drafts gone; edit → click All invitations → leave dialog.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run checks.
+2. B3 `invite-client` when email sending is ready, or Phase `[~]` browser closes.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### 13 Nov 2026 (56th update fix) – migration 015 DROP before recreate
 
 PostgreSQL error `42P13: cannot change return type of existing function` when applying 015: fixed by `drop function if exists public.my_invitations()` before `create function` with the extra `request_proposed_details` column. Re-run the updated `015_my_invitations_proposed.sql` in the SQL editor. **`.env.local` was not touched.**

@@ -5,7 +5,7 @@
    Modules with in-memory state register a reset function; resetUserData() runs them all and clears the drafts.
    It is safe to call more than once. */
 import { removeKeysWithPrefix } from "./storage";
-import { LS_DRAFT } from "./storageKeys";
+import { LS_CLIENT_DRAFT, LS_DRAFT } from "./storageKeys";
 
 const resetters = new Set<() => void>();
 
@@ -17,6 +17,7 @@ export function onUserDataReset(fn: () => void): () => void {
 
 export function resetUserData(): void {
   removeKeysWithPrefix(LS_DRAFT);
+  removeKeysWithPrefix(LS_CLIENT_DRAFT);
   for (const fn of resetters) {
     try { fn(); } catch { /* one failing reset must not stop the others */ }
   }
