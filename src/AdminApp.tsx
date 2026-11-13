@@ -10,8 +10,10 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Create from "./pages/Create";
 import Invitations from "./pages/Invitations";
+import Reviews from "./pages/Reviews";
 import Templates from "./pages/Templates";
 import { useEnquiryBadge } from "./features/dashboard/hooks/useEnquiryBadge";
+import { useReviewBadge } from "./features/dashboard/hooks/useReviewBadge";
 import schedyMark from "./assets/schedy-mark.svg";
 import { AccountProvider, useAccount } from "./hooks/useAccount";
 import { AuthProvider } from "./hooks/useAuth";
@@ -179,6 +181,8 @@ function Shell() {
   const { loading: accountLoading, plan } = useAccount();
   /* M-6: the new-enquiry count lives here so the badge is right on every page, not only on the Dashboard. */
   const enquiries = useEnquiryBadge();
+  /* B5: pending change-request count for the Reviews nav badge. */
+  const reviews = useReviewBadge();
   const banner = plan ? getPlanBanner(plan) : null;
 
   return (
@@ -231,6 +235,7 @@ function Shell() {
               onHoverExpand={setHoverExpanded}
               profileOpen={profileOpen}
               enquiryCount={enquiries.count}
+              reviewCount={reviews.count}
               onProfileClick={() => setProfileOpen((o) => !o)}
               /* onSearch={() => setPaletteOpen(true)}  <- pass this to show Search + Ctrl K */
             />
@@ -243,6 +248,7 @@ function Shell() {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard onPanelChange={setPanelOpen} onEnquiryCountChange={enquiries.report} />} />
                 <Route path="/invitations" element={<Invitations onPanelChange={setPanelOpen} />} />
+                <Route path="/reviews" element={<Reviews onPendingCountChange={reviews.report} />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/create" element={<CreateRoute onPanelChange={setPanelOpen} />} />
                 {PLACEHOLDER_ROUTES.map(([path, title]) => (

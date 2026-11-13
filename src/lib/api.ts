@@ -331,9 +331,10 @@ export interface MyInvitation {
   request: null | { id: string; status: RequestStatus; adminNote: string; createdAt: string; acknowledgedAt: string | null };
 }
 
-/** A pending change request as the admin sees it in the review queue. */
+/** A change request as the admin sees it in the review queue. */
 export interface ReviewItem {
   id: string; invitationId: string; clientEmail: string; baseUpdatedAt: string; createdAt: string;
+  status: RequestStatus;
   changedKeys: string[]; proposedDetails: InvitationRow["details"];
 }
 
@@ -401,19 +402,33 @@ export async function fetchIsAdmin(): Promise<boolean> {
   return data === true;
 }
 
-const REVIEW_COLUMNS = "id, invitation_id, client_email, base_updated_at, created_at, changed_keys, proposed_details";
+const REVIEW_COLUMNS = "id, invitation_id, client_email, base_updated_at, created_at, status, changed_keys, proposed_details";
+const REVIEW_STATUSES: readonly RequestStatus[] = ["pending", "approved", "rejected", "withdrawn", "superseded"];
 
-/** Pending change requests, oldest first (admin only: RLS returns nothing for anyone else). At most 200 until the queue gets paging (B7). */
-export async function fetchReviewQueue(): Promise<ReviewItem[]> {
-  const { data, error } = await db().from("change_requests").select(REVIEW_COLUMNS)
-    .eq("status", "pending").order("created_at", { ascending: true }).order("id", { ascending: true }).limit(200);
+const toReviewItem = (r: DbRow): ReviewItem => ({
+  id: r.id as string, invitationId: r.invitation_id as string, clientEmail: (r.client_email ?? "") as string,
+  baseUpdatedAt: r.base_updated_at as string, createdAt: r.created_at as string,
+  status: (REVIEW_STATUSES.includes(r.status as RequestStatus) ? r.status : "pending") as RequestStatus,
+  changedKeys: Array.isArray(r.changed_keys) ? (r.changed_keys as unknown[]).filter((k): k is string => typeof k === "string") : [],
+  proposedDetails: (r.proposed_details && typeof r.proposed_details === "object" ? r.proposed_details : {}) as ReviewItem["proposedDetails"],
+});
+
+/** Change requests for the admin review queue (admin only: RLS returns nothing for anyone else).
+ *  Default status is `pending`, oldest first. Pass another status or `"all"` for the history tabs. At most 200 until paging (B7). */
+export async function fetchReviewQueue(status: RequestStatus | "all" = "pending"): Promise<ReviewItem[]> {
+  let q = db().from("change_requests").select(REVIEW_COLUMNS);
+  if (status !== "all") q = q.eq("status", status);
+  const ascending = status === "pending";
+  const { data, error } = await q.order("created_at", { ascending }).order("id", { ascending }).limit(200);
   if (error) fail(error);
-  return (Array.isArray(data) ? (data as DbRow[]) : []).map((r) => ({
-    id: r.id as string, invitationId: r.invitation_id as string, clientEmail: (r.client_email ?? "") as string,
-    baseUpdatedAt: r.base_updated_at as string, createdAt: r.created_at as string,
-    changedKeys: Array.isArray(r.changed_keys) ? (r.changed_keys as unknown[]).filter((k): k is string => typeof k === "string") : [],
-    proposedDetails: (r.proposed_details && typeof r.proposed_details === "object" ? r.proposed_details : {}) as ReviewItem["proposedDetails"],
-  }));
+  return (Array.isArray(data) ? (data as DbRow[]) : []).map(toReviewItem);
+}
+
+/** How many change requests are still pending (admin badge). Count only — no rows downloaded. */
+export async function fetchPendingReviewCount(): Promise<number> {
+  const { count, error } = await db().from("change_requests").select("id", { count: "exact", head: true }).eq("status", "pending");
+  if (error) fail(error);
+  return count ?? 0;
 }
 
 /** Approve or reject (admin only). Rejecting needs a note (the database refuses an empty one). If the invitation changed after the client

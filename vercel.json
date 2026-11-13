@@ -12,7 +12,7 @@
       ]
     },
     {
-      "source": "/:slug((?!api$|assets$|i$|login$|invitations$|templates$|create$|inventory$|billing$|customize$|dashboard$|admin$|privacy$|terms$|pricing$|about$|contact$|favicon$|robots$|sitemap$|my$)[a-zA-Z0-9_-]+)",
+      "source": "/:slug((?!api$|assets$|i$|login$|invitations$|templates$|create$|inventory$|billing$|customize$|dashboard$|admin$|privacy$|terms$|pricing$|about$|contact$|favicon$|robots$|sitemap$|my$|reviews$)[a-zA-Z0-9_-]+)",
       "destination": "/api/invite?slug=:slug",
       "has": [
         {

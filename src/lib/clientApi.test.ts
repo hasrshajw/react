@@ -94,8 +94,8 @@ describe("reviewChangeRequest", () => {
 
 describe("fetchReviewQueue", () => {
   it("reads only pending requests, oldest first, explicit columns, capped at 200", async () => {
-    const api = await load(() => ({ data: [{ id: "r1", invitation_id: "i1", client_email: "c@x.com", base_updated_at: "B", created_at: "C",
-      changed_keys: ["groomEn", 5, "venueEn"], proposed_details: { groomEn: "R" } }, { id: "r2", invitation_id: "i2", changed_keys: null, proposed_details: null }] }));
+    const api = await load(() => ({ data: [{ id: "r1", invitation_id: "i1", client_email: "c@x.com", base_updated_at: "B", created_at: "C", status: "pending",
+      changed_keys: ["groomEn", 5, "venueEn"], proposed_details: { groomEn: "R" } }, { id: "r2", invitation_id: "i2", status: "pending", changed_keys: null, proposed_details: null }] }));
     const items = await api.fetchReviewQueue();
     const r = recs[0];
     expect(r.name).toBe("change_requests");
@@ -103,11 +103,32 @@ describe("fetchReviewQueue", () => {
     expect(op(r, "eq")).toEqual(["status", "pending"]);
     expect(r.ops.filter(([n]) => n === "order").map(([, a]) => a)).toEqual([["created_at", { ascending: true }], ["id", { ascending: true }]]);
     expect(op(r, "limit")).toEqual([200]);
-    expect(items[0]).toEqual({ id: "r1", invitationId: "i1", clientEmail: "c@x.com", baseUpdatedAt: "B", createdAt: "C", changedKeys: ["groomEn", "venueEn"], proposedDetails: { groomEn: "R" } });
-    expect(items[1]).toMatchObject({ clientEmail: "", changedKeys: [], proposedDetails: {} });
+    expect(items[0]).toEqual({ id: "r1", invitationId: "i1", clientEmail: "c@x.com", baseUpdatedAt: "B", createdAt: "C", status: "pending", changedKeys: ["groomEn", "venueEn"], proposedDetails: { groomEn: "R" } });
+    expect(items[1]).toMatchObject({ clientEmail: "", status: "pending", changedKeys: [], proposedDetails: {} });
+  });
+  it("can list another status, newest first when not pending", async () => {
+    const api = await load(() => ({ data: [{ id: "r3", invitation_id: "i3", client_email: "x@y.com", base_updated_at: "B", created_at: "C", status: "approved", changed_keys: [], proposed_details: {} }] }));
+    const items = await api.fetchReviewQueue("approved");
+    expect(op(recs[0], "eq")).toEqual(["status", "approved"]);
+    expect(recs[0].ops.filter(([n]) => n === "order").map(([, a]) => a)).toEqual([["created_at", { ascending: false }], ["id", { ascending: false }]]);
+    expect(items[0].status).toBe("approved");
   });
   it("throws on error", async () => {
     await expect((await load(() => ({ error: { message: "nope" } }))).fetchReviewQueue()).rejects.toThrow("nope");
+  });
+});
+
+describe("fetchPendingReviewCount", () => {
+  it("counts pending only, with head: true so no rows are downloaded", async () => {
+    const api = await load(() => ({ count: 3 }));
+    expect(await api.fetchPendingReviewCount()).toBe(3);
+    const r = recs[0];
+    expect(r.name).toBe("change_requests");
+    expect(op(r, "select")).toEqual(["id", { count: "exact", head: true }]);
+    expect(op(r, "eq")).toEqual(["status", "pending"]);
+  });
+  it("reads a null count as 0", async () => {
+    expect(await (await load(() => ({ count: null }))).fetchPendingReviewCount()).toBe(0);
   });
 });
 

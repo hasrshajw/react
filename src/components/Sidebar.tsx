@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEv
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, MailPlus, Mails, LayoutTemplate, Palette, Image as ImageIcon, LayoutGrid,
-  PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus,
+  PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus, Inbox,
 } from "./Icons";
 import type { IconComponent } from "./Icons";
 import { SkText } from "./Skeleton";
@@ -21,6 +21,7 @@ const menuItems = [
   { name: "Dashboard", path: "/dashboard", Icon: LayoutDashboard },
   { name: "Create Invitation", path: "/create", Icon: MailPlus },
   { name: "All Invitations", path: "/invitations", Icon: Mails },
+  { name: "Review queue", path: "/reviews", Icon: Inbox },
   { name: "Manage Templates", path: "/templates", Icon: LayoutTemplate },
 ];
 
@@ -36,6 +37,7 @@ const CRUMBS: Record<string, string[]> = {
   "/dashboard": ["Dashboard", "Overview"],
   "/create": ["Manage", "Create invitation"],
   "/invitations": ["Manage", "All invitations"],
+  "/reviews": ["Manage", "Review queue"],
   "/templates": ["Manage", "Templates"],
   "/customize/hero-section": ["Customize site", "Hero section"],
   "/customize/sections": ["Customize site", "Sections"],
@@ -96,6 +98,8 @@ interface SidebarProps {
   liveSiteUrl?: string;
   /** Enquiries still marked "new"; the bell shows its dot only when this is above 0. */
   enquiryCount?: number;
+  /** Pending change requests; the Review queue nav item shows a count badge when above 0. */
+  reviewCount?: number;
 }
 
 interface Pill { x: number; y: number; w: number; h: number; sub: boolean }
@@ -111,6 +115,7 @@ export default function Sidebar({
   onSearch,
   liveSiteUrl = "/",
   enquiryCount = 0,
+  reviewCount = 0,
 }: SidebarProps) {
   const { pathname } = useLocation();
   const { loading: accountLoading, user } = useAccount();
@@ -370,11 +375,18 @@ export default function Sidebar({
                 end={path === "/dashboard"}
                 style={{ "--i": i }}
                 onClick={path === "/create" ? collapseNow : closeOverlay}
-                aria-label={isExpanded ? undefined : name}
+                aria-label={
+                  path === "/reviews" && reviewCount > 0
+                    ? `${name}, ${reviewCount} pending`
+                    : isExpanded ? undefined : name
+                }
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >
                 <MenuIcon Icon={Icon} />
                 <span className="nav-label">{name}</span>
+                {path === "/reviews" && reviewCount > 0 && (
+                  <em className="nav-count" aria-hidden="true">{reviewCount > 99 ? "99+" : reviewCount}</em>
+                )}
               </NavLink>
             ))}
 
@@ -469,9 +481,13 @@ export default function Sidebar({
                 end={path === "/dashboard"}
                 onClick={closeMobileDrawer}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+                aria-label={path === "/reviews" && reviewCount > 0 ? `${name}, ${reviewCount} pending` : undefined}
               >
                 <MenuIcon Icon={Icon} />
                 <span className="nav-label">{name}</span>
+                {path === "/reviews" && reviewCount > 0 && (
+                  <em className="nav-count" aria-hidden="true">{reviewCount > 99 ? "99+" : reviewCount}</em>
+                )}
               </NavLink>
             ))}
 
@@ -632,7 +648,16 @@ export default function Sidebar({
           width: 7px; height: 7px; border-radius: 50%;
           background: #fb4778; border: 1.5px solid var(--white);
         }
-        
+
+        .nav-item .nav-count {
+          margin-left: auto;
+          min-width: 20px; height: 18px; padding: 0 6px;
+          display: inline-grid; place-items: center;
+          border-radius: 999px; background: var(--warning-light, #fef3c7);
+          color: var(--dx-warn-text, #9a6700);
+          font-size: 11px; font-style: normal; font-weight: 700;
+        }
+        .sidebar.collapsed .nav-item .nav-count { display: none; }
 
         .navbar-divider { width: 1px; height: 28px; background: var(--border-subtle); margin: 0 6px; }
 

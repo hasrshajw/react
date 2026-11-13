@@ -9,7 +9,7 @@
 export const RESERVED: readonly string[] = [
   "login", "invitations", "templates", "create", "inventory", "billing", "customize",
   "dashboard", "api", "assets", "i", "admin", "privacy", "terms", "pricing", "about", "contact",
-  "favicon", "robots", "sitemap", "my",
+  "favicon", "robots", "sitemap", "my", "reviews",
 ];
 
 /** True when `slug` is a reserved word (case-insensitive). */

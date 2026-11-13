@@ -198,7 +198,7 @@ describe("search and filters", () => {
 
   it("shows the Client column and a Pending review chip when the queue has that invitation", async () => {
     h.fetchReviewQueue.mockResolvedValue([
-      { id: "r1", invitationId: "a", clientEmail: "client.a@example.com", baseUpdatedAt: "", createdAt: "", changedKeys: [], proposedDetails: {} },
+      { id: "r1", invitationId: "a", clientEmail: "client.a@example.com", baseUpdatedAt: "", createdAt: "", status: "pending", changedKeys: [], proposedDetails: {} },
     ]);
     await show();
     await flush();

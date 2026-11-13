@@ -1,5 +1,55 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 52nd update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 17 | rest | **52nd update: B5 Review queue page** at `/reviews` (status tabs, list, sidebar badge via `useReviewBadge` / `fetchPendingReviewCount`). `reviews` reserved (migration `014`). Review **detail** (diff, approve/reject) and notification bell still open. Invite button still needs B3. |
+
+### 13 Nov 2026 (52nd update) – B5: Review queue page + pending badge
+
+**What was done**
+
+1. **`/reviews` page** (`src/pages/Reviews.tsx`): status tabs (pending / approved / rejected / withdrawn / superseded / all), table of client email, invitation id, changed fields, submitted time, status chip, "Open invitation" link. Approve/reject deferred to the Review detail item.
+2. **API:** `fetchReviewQueue(status)` accepts a status or `"all"` (default still `pending`, oldest first; other statuses newest first). `ReviewItem.status` included. New `fetchPendingReviewCount()` (head count, no rows).
+3. **Sidebar:** "Review queue" nav item with pending count badge; `useReviewBadge` polls like the enquiry badge; Reviews page reports the pending list length via `onPendingCountChange`.
+4. **Reserved:** `reviews` added to `reserved.ts`, `api/invite.js`, `vercel.json`, `schema.sql`, migration `014_reserve_reviews.sql`, validate test, db test.
+5. **Tests:** clientApi cases for status filter and pending count. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite not re-run here. Owner should run the checks below.
+- Queue needs migrations `010`–`012` applied; without them the list fails and shows Retry.
+
+**How this affects other tasks**
+
+- **B5 remaining:** Review detail (diff, sandboxed preview, Approve/Reject), notification bell, invite button (needs B3).
+- **B6:** unchanged.
+
+**Behaviour changes to check**
+
+- Admin opens `/reviews`: empty pending state or list of pending requests.
+- Sidebar shows a count when pending > 0.
+- Status tabs load other statuses.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Run `014` in Supabase (and `010`–`013` if not yet).
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run `010`–`014` when ready; run the checks above.
+2. Next B5 item: **Review detail** (field-by-field diff, Approve/Reject with note on reject).
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 51st update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2326,7 +2376,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [~] **Create / Edit form:** *Coded 13 Nov (50th update): field, validation, column mapping, change warning. Needs browser + migrations.* add **"Client email"** field (section "Client access"), optional, trimmed + lower-cased, validated with `isEmail`; add `clientEmail` to `InvitationData`, `formReducer`, `validate.ts`, `saveInvitation`/`fetchInvitations`. Show a warning when the email is changed ("the previous client loses access and any pending request is cancelled").
 - [ ] **Invite action:** "Send invite to client" button next to the field (D4), with sent/accepted status.
 - [~] **Invitations list:** *Coded 13 Nov (51st update): Client column, search by email, Pending review chip via `fetchReviewQueue`. Needs browser + migrations.* column/filter for client email and a "Pending review" chip.
-- [ ] **Review queue page** (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).
+- [~] **Review queue page** *Coded 13 Nov (52nd update): `/reviews`, status tabs, list, sidebar badge, `014` reserves the word. Detail (approve/reject) is the next item.* (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).
 - [ ] **Review detail:** field-by-field **diff** (current vs proposed, using `changed_keys`), sandboxed live preview of the proposed version (no `allow-same-origin`, per C-2), conflict warning (D7), **Approve** / **Reject** with a required note on reject, and confirmation dialogs.
 - [ ] **Notification bell:** unread count via Realtime, list with deep links.
 
