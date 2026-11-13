@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, Sk } from "./components/Skeleton";
-import { Mails } from "./components/Icons";
+import { Mails, Calendar03Icon, Clock01Icon, AlertCircleIcon, CheckCircle02Icon } from "./components/Icons";
 import {
   CLIENT_STATUS_LABEL,
   clientStatus,
@@ -48,17 +48,33 @@ function Frame({ children, title = "Your invitations" }: { children: React.React
     <main className="client-frame-main" style={page}>
       <style>{`
         @media (min-width: 480px) {
-          .client-frame-main { padding: 24px 16px 80px !important; }
+          .client-frame-main { padding: 32px 24px 96px !important; }
         }
         .client-header { flex-wrap: wrap; }
-        .client-touch { min-height: 44px; }
+        .client-touch { min-height: 44px; transition: all 0.15s ease; }
+        .client-touch:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .premium-card {
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(0, 0, 0, 0.04);
+          transition: all 0.2s ease;
+        }
+        .premium-card:hover {
+          border-color: #d1d5db;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
+          transform: translateY(-2px);
+        }
       `}</style>
-      <div className="client-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 }}>
-        <strong style={{ fontSize: 18, lineHeight: 1.3 }}>{title}</strong>
+      <div className="client-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, gap: 16 }}>
+        <div>
+          <strong style={{ fontSize: 24, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em", display: "block" }}>{title}</strong>
+          <p style={{ margin: "6px 0 0", fontSize: 15, color: "#6b7280" }}>Manage your wedding invitation details and submit updates.</p>
+        </div>
         <button
           type="button"
           className="client-touch"
-          style={btnGhost}
+          style={{ ...btnGhost, padding: "8px 14px", fontSize: 14 }}
           onClick={() => navigate("/login", { replace: true, state: { loggedOut: true } })}
         >
           Log out
@@ -158,7 +174,7 @@ function Landing() {
   if (data.length === 1) return <Navigate to={`/my/${encodeURIComponent(data[0].id)}`} replace />;
   return (
     <Frame>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }}>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 16 }}>
         {data.map((i) => {
           const st = clientStatus(i);
           const label = [i.groomName, i.brideName].filter(Boolean).join(" & ") || "Your invitation";
@@ -166,23 +182,25 @@ function Landing() {
             <li key={i.id}>
               <Link
                 to={`/my/${encodeURIComponent(i.id)}`}
-                className="client-touch"
+                className="client-touch premium-card"
                 style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
-                  padding: "14px 16px", borderRadius: 12, border: "1px solid #e5e7eb",
-                  textDecoration: "none", color: "inherit", background: "#fff", minHeight: 44,
+                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+                  padding: "20px", textDecoration: "none", color: "inherit",
                 }}
               >
-                <span>
-                  <b>{label}</b>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>{label}</span>
                   {i.eventDate && (
-                    <span style={{ display: "block", fontSize: 13, color: "#6b7280", marginTop: 2 }}>{i.eventDate}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#6b7280" }}>
+                      <Calendar03Icon size={16} color="#9ca3af" /> {i.eventDate}
+                    </span>
                   )}
-                </span>
+                </div>
                 <span style={{
-                  fontSize: 12, whiteSpace: "nowrap", padding: "3px 8px", borderRadius: 999, fontWeight: 600,
-                  background: st === "pending" ? "#fef3c7" : st === "rejected" ? "#fee2e2" : st === "live" ? "#dcfce7" : "#f3f4f6",
+                  fontSize: 12, whiteSpace: "nowrap", padding: "6px 12px", borderRadius: 999, fontWeight: 600,
+                  background: st === "pending" ? "#fffbeb" : st === "rejected" ? "#fef2f2" : st === "live" ? "#ecfdf5" : "#f9fafb",
                   color: st === "pending" ? "#92400e" : st === "rejected" ? "#991b1b" : st === "live" ? "#166534" : "#4b5563",
+                  border: `1px solid ${st === "pending" ? "#fcd34d" : st === "rejected" ? "#fecaca" : st === "live" ? "#a7f3d0" : "#e5e7eb"}`,
                 }}>
                   {CLIENT_STATUS_LABEL[st]}
                 </span>
@@ -412,12 +430,18 @@ function ClientEditor() {
       )}
 
       {pending && inv.request && (
-        <div style={{ ...banner, background: "#eff6ff", border: "1px solid #bfdbfe" }} role="status">
-          Your changes are waiting for admin review, submitted {fmtDateTime(inv.request.createdAt)}.
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" style={btnDanger} disabled={busy} onClick={() => void onWithdraw()}>
-              Withdraw
-            </button>
+        <div style={{ ...banner, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{ marginTop: 2, flexShrink: 0 }}><Clock01Icon size={20} color="#2563eb" /></div>
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: "#1e40af", display: "block", marginBottom: 4, fontSize: 15 }}>Awaiting Admin Review</strong>
+              <span style={{ color: "#3b82f6", fontSize: 14, lineHeight: 1.5 }}>Your changes were submitted on {fmtDateTime(inv.request.createdAt)} and are waiting for approval.</span>
+              <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" style={{ ...btnDanger, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onWithdraw()}>
+                  Withdraw Request
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -429,26 +453,35 @@ function ClientEditor() {
       )}
 
       {rejectedOpen && inv.request && (
-        <div style={{ ...banner, background: "#fef2f2", border: "1px solid #fecaca" }} role="status">
-          <b>Changes were rejected.</b>
-          {inv.request.adminNote && <p style={{ margin: "6px 0" }}>{inv.request.adminNote}</p>}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-            <button type="button" style={btnPrimary} disabled={busy} onClick={() => void onAck()}>
-              Edit again
-            </button>
-            <button type="button" style={btnGhost} disabled={busy} onClick={() => void onAck()}>
-              Got it
-            </button>
+        <div style={{ ...banner, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <div style={{ marginTop: 2, flexShrink: 0 }}><AlertCircleIcon size={20} color="#dc2626" /></div>
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: "#991b1b", display: "block", marginBottom: 4, fontSize: 15 }}>Changes Were Rejected</strong>
+              {inv.request.adminNote && <p style={{ margin: "0 0 12px", color: "#7f1d1d", fontSize: 14, lineHeight: 1.5, background: "#fef2f2", padding: 10, borderRadius: 8, border: "1px dashed #fecaca" }}>{inv.request.adminNote}</p>}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" style={{ ...btnPrimary, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+                  Edit Again
+                </button>
+                <button type="button" style={{ ...btnGhost, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+                  Dismiss
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {approvedOpen && inv.request && (
-        <div style={{ ...banner, background: "#ecfdf5", border: "1px solid #a7f3d0" }} role="status">
-          Your changes are live.
-          <div style={{ marginTop: 8 }}>
-            <button type="button" style={btnGhost} disabled={busy} onClick={() => void onAck()}>
-              Got it
+        <div style={{ ...banner, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <CheckCircle02Icon size={20} color="#166534" />
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: "#166534", display: "block", fontSize: 15 }}>Changes Approved & Live</strong>
+              <span style={{ color: "#15803d", fontSize: 14 }}>Your invitation has been updated and is now visible to your guests.</span>
+            </div>
+            <button type="button" style={{ ...btnGhost, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+              Dismiss
             </button>
           </div>
         </div>
@@ -516,16 +549,16 @@ function ClientEditor() {
       </div>
 
       {!pending && (
-        <div style={{ position: "sticky", bottom: 0, padding: "12px 0 calc(12px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(transparent, #fff 28%)", marginTop: 16, zIndex: 2 }}>
+        <div style={{ position: "sticky", bottom: 0, padding: "16px 0 calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(transparent, #ffffff 30%)", marginTop: 24, zIndex: 2, borderTop: "1px solid #f3f4f6" }}>
           {confirmSubmit ? (
-            <div style={{ ...banner, background: "#fff", border: "1px solid #e5e7eb" }}>
-              <p style={{ margin: "0 0 10px" }}>
-                Submit these changes for admin review? They go live only after approval.
+            <div style={{ ...banner, background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+              <p style={{ margin: "0 0 12px", fontSize: 15, color: "#374151", fontWeight: 500 }}>
+                Submit these changes for admin review? They will go live only after approval.
               </p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" className="client-touch" style={btnGhost} disabled={busy} onClick={() => setConfirmSubmit(false)}>Cancel</button>
-                <button type="button" className="client-touch" style={btnPrimary} disabled={busy || !dirty} onClick={() => void doSubmit()}>
-                  {busy ? "Submitting…" : "Confirm submit"}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" className="client-touch" style={{ ...btnGhost, flex: 1 }} disabled={busy} onClick={() => setConfirmSubmit(false)}>Cancel</button>
+                <button type="button" className="client-touch" style={{ ...btnPrimary, flex: 1 }} disabled={busy || !dirty} onClick={() => void doSubmit()}>
+                  {busy ? "Submitting…" : "Confirm Submit"}
                 </button>
               </div>
             </div>
@@ -533,11 +566,11 @@ function ClientEditor() {
             <button
               type="button"
               className="client-touch"
-              style={{ ...btnPrimary, width: "100%", opacity: dirty ? 1 : 0.5 }}
+              style={{ ...btnPrimary, width: "100%", opacity: dirty ? 1 : 0.5, padding: "14px 20px", fontSize: 15 }}
               disabled={busy || !dirty}
               onClick={() => setConfirmSubmit(true)}
             >
-              Submit for review
+              {busy ? "Submitting…" : "Submit for Review"}
             </button>
           )}
         </div>
