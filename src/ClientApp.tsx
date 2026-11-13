@@ -22,7 +22,7 @@ import {
   withdrawChangeRequest,
   type MyInvitation,
 } from "./lib/api";
-import { AuthError } from "./lib/auth";
+import {  } from "./lib/auth";
 import { compile } from "./lib/compileInvitation";
 import { ADMIN_EMAIL } from "./lib/config";
 import { readJSON, removeKey, writeJSON } from "./lib/storage";
