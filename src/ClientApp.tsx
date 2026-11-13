@@ -32,19 +32,29 @@ import createCss from "./features/create/create.css?inline";
 
 /* Track B (B4 shell + B6 client editor). Separate chunk so clients never download admin code. */
 
+/* Mobile-first: comfortable padding and min 44px touch targets on small screens. */
 const page: React.CSSProperties = {
-  maxWidth: 720, margin: "0 auto", padding: "24px 16px 80px",
+  maxWidth: 720, margin: "0 auto", padding: "16px 12px 96px",
   fontFamily: "system-ui, sans-serif", color: "#23263a",
+  boxSizing: "border-box", width: "100%",
 };
 
 function Frame({ children, title = "Your invitations" }: { children: React.ReactNode; title?: string }) {
   const navigate = useNavigate();
   return (
-    <main style={page}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12 }}>
-        <strong style={{ fontSize: 18 }}>{title}</strong>
+    <main className="client-frame-main" style={page}>
+      <style>{`
+        @media (min-width: 480px) {
+          .client-frame-main { padding: 24px 16px 80px !important; }
+        }
+        .client-header { flex-wrap: wrap; }
+        .client-touch { min-height: 44px; }
+      `}</style>
+      <div className="client-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12 }}>
+        <strong style={{ fontSize: 18, lineHeight: 1.3 }}>{title}</strong>
         <button
           type="button"
+          className="client-touch"
           style={btnGhost}
           onClick={() => navigate("/login", { replace: true, state: { loggedOut: true } })}
         >
@@ -57,10 +67,10 @@ function Frame({ children, title = "Your invitations" }: { children: React.React
 }
 
 const btnGhost: React.CSSProperties = {
-  border: "1px solid #d1d5db", background: "#fff", borderRadius: 8, padding: "6px 12px", cursor: "pointer", font: "inherit",
+  border: "1px solid #d1d5db", background: "#fff", borderRadius: 8, padding: "10px 14px", cursor: "pointer", font: "inherit",
 };
 const btnPrimary: React.CSSProperties = {
-  border: 0, background: "#2563eb", color: "#fff", borderRadius: 10, padding: "10px 16px", cursor: "pointer", font: "inherit", fontWeight: 600,
+  border: 0, background: "#2563eb", color: "#fff", borderRadius: 10, padding: "12px 18px", cursor: "pointer", font: "inherit", fontWeight: 600,
 };
 const btnDanger: React.CSSProperties = {
   ...btnGhost, color: "#b91c1c", borderColor: "#fca5a5",
@@ -427,15 +437,15 @@ function ClientEditor() {
       </div>
 
       {!pending && (
-        <div style={{ position: "sticky", bottom: 0, padding: "12px 0", background: "linear-gradient(transparent, #fff 30%)", marginTop: 16 }}>
+        <div style={{ position: "sticky", bottom: 0, padding: "12px 0 calc(12px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(transparent, #fff 28%)", marginTop: 16, zIndex: 2 }}>
           {confirmSubmit ? (
             <div style={{ ...banner, background: "#fff", border: "1px solid #e5e7eb" }}>
               <p style={{ margin: "0 0 10px" }}>
                 Submit these changes for admin review? They go live only after approval.
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" style={btnGhost} disabled={busy} onClick={() => setConfirmSubmit(false)}>Cancel</button>
-                <button type="button" style={btnPrimary} disabled={busy || !dirty} onClick={() => void doSubmit()}>
+                <button type="button" className="client-touch" style={btnGhost} disabled={busy} onClick={() => setConfirmSubmit(false)}>Cancel</button>
+                <button type="button" className="client-touch" style={btnPrimary} disabled={busy || !dirty} onClick={() => void doSubmit()}>
                   {busy ? "Submitting…" : "Confirm submit"}
                 </button>
               </div>
@@ -443,6 +453,7 @@ function ClientEditor() {
           ) : (
             <button
               type="button"
+              className="client-touch"
               style={{ ...btnPrimary, width: "100%", opacity: dirty ? 1 : 0.5 }}
               disabled={busy || !dirty}
               onClick={() => setConfirmSubmit(true)}

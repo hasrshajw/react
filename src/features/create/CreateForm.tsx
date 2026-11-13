@@ -56,17 +56,22 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
   const normalizedOriginal = originalClientEmail.trim().toLowerCase();
   const clientEmailChanged = normalizedOriginal !== "" && normalizedCurrent !== normalizedOriginal;
   const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const sendInvite = async () => {
     const email = data.clientEmail.trim();
     if (!email || inviteBusy) return;
     setInviteBusy(true);
+    setInviteStatus(null);
     try {
       const r = await inviteClient(email, invitationId);
-      notify(r.alreadyRegistered
+      const msg = r.alreadyRegistered
         ? "That address already has an account — they can sign in at /my."
-        : "Invite sent. They will get an email to join and open /my.");
+        : "Invite sent. They will get an email to join and open /my.";
+      notify(msg);
+      setInviteStatus(r.alreadyRegistered ? "Already registered — they can sign in at /my." : "Invite sent. Waiting for them to join.");
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Couldn’t send the invite", "error");
+      setInviteStatus(null);
     } finally {
       setInviteBusy(false);
     }
@@ -166,7 +171,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           inputMode="email"
           {...client.fp("clientEmail")}
           value={data.clientEmail}
-          onChange={(v) => set("clientEmail", v)}
+          onChange={(v) => { set("clientEmail", v); setInviteStatus(null); }}
         />
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
           <button
@@ -178,6 +183,11 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
             {inviteBusy ? "Sending…" : "Send invite to client"}
           </button>
         </div>
+        {inviteStatus && (
+          <div className="hint" role="status" style={{ marginTop: 6 }}>
+            {inviteStatus}
+          </div>
+        )}
         <div className="hint">
           Optional. The person with this verified email can request edits to this invitation from the client portal.
           Save the invitation with this email first, then send the invite so they can open /my.
