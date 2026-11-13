@@ -4,6 +4,7 @@ import { Inbox } from "../components/Icons";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
 import { Toast } from "../features/dashboard/components/Toast";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
+import { ReviewDetail } from "../features/reviews/ReviewDetail";
 import { fetchReviewQueue, type RequestStatus, type ReviewItem } from "../lib/api";
 import { fmtDateTime, timeAgo } from "../lib/dashboardData";
 import dashboardCss from "../styles/dashboard.css?inline";
@@ -48,6 +49,7 @@ export default function Reviews({ onPendingCountChange }: Props) {
   const [error, setError] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback((silent = false) => {
     if (silent) setRefreshing(true);
@@ -61,6 +63,7 @@ export default function Reviews({ onPendingCountChange }: Props) {
         setLastUpdated(Date.now());
         setNow(Date.now());
         if (status === "pending") onPendingCountChange?.(list.length);
+        setSelectedId((id) => (id && list.some((i) => i.id === id) ? id : null));
       },
       () => {
         setError(true);
@@ -71,7 +74,12 @@ export default function Reviews({ onPendingCountChange }: Props) {
     );
   }, [status, onPendingCountChange, notify]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setSelectedId(null); load(); }, [load]);
+
+  const selected = useMemo(
+    () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
+    [items, selectedId],
+  );
 
   const pendingOnPage = useMemo(
     () => items.filter((i) => i.status === "pending").length,
@@ -151,7 +159,7 @@ export default function Reviews({ onPendingCountChange }: Props) {
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id} className={selectedId === item.id ? "active" : undefined}>
                     <td data-label="Client">
                       <span className="client-email" title={item.clientEmail}>{item.clientEmail || "—"}</span>
                     </td>
@@ -173,14 +181,16 @@ export default function Reviews({ onPendingCountChange }: Props) {
                     </td>
                     <td className="td-actions">
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          className="act-btn"
+                          onClick={() => setSelectedId(item.id)}
+                        >
+                          {item.status === "pending" ? "Review" : "View"}
+                        </button>
                         <Link className="act-btn" to={`/create?edit=${encodeURIComponent(item.invitationId)}`}>
                           Open invitation
                         </Link>
-                        {item.status === "pending" && (
-                          <span style={{ fontSize: 12, color: "var(--gray)" }}>
-                            Detail view soon
-                          </span>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -188,6 +198,15 @@ export default function Reviews({ onPendingCountChange }: Props) {
               </tbody>
             </table>
           </div>
+        )}
+
+        {selected && (
+          <ReviewDetail
+            item={selected}
+            onClose={() => setSelectedId(null)}
+            onDecided={() => { setSelectedId(null); load(true); }}
+            notify={notify}
+          />
         )}
       </div>
 

@@ -1,5 +1,55 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 53rd update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 18 | rest | **53rd update: B5 Review detail** (field diff, sandboxed proposed preview, Approve/Reject with note on reject, D7 force-approve). Notification bell and invite button still open. |
+
+### 13 Nov 2026 (53rd update) – B5: Review detail (diff, preview, approve/reject)
+
+**What was done**
+
+1. **`ReviewDetail`** on the queue page: open via **Review** / **View** on a row.
+2. **Field-by-field diff** using `changed_keys` (current invitation details vs `proposed_details`), with human labels.
+3. **Sandboxed proposed preview** (`sandbox="allow-scripts"` only — no `allow-same-origin`), compiled from the invitation template + proposed fields.
+4. **Approve / Reject** with confirmation steps; reject requires a non-empty note; **ChangeConflictError** offers **Approve anyway** (`force = true`).
+5. After a decision the list reloads and the sidebar pending count is refreshed via the existing report path.
+6. Unit tests for `fieldLabels`. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite not re-run here. Owner should run the checks below.
+- Real conflict path needs a pending request whose invitation `updated_at` moved after submit.
+
+**How this affects other tasks**
+
+- **B5 remaining:** notification bell; invite button (needs B3).
+- **B6:** client editor still separate.
+
+**Behaviour changes to check**
+
+- Pending row → Review → see diff and preview → Approve or Reject with note.
+- Conflict: edit invitation after client submit, then Approve → conflict message → Approve anyway.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Browser against a project with `010`–`012` applied and a pending request.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run migrations if needed; run the checks above.
+2. Next B5 item: **Notification bell** (unread count via Realtime, list with deep links).
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 52nd update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2377,7 +2427,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [ ] **Invite action:** "Send invite to client" button next to the field (D4), with sent/accepted status.
 - [~] **Invitations list:** *Coded 13 Nov (51st update): Client column, search by email, Pending review chip via `fetchReviewQueue`. Needs browser + migrations.* column/filter for client email and a "Pending review" chip.
 - [~] **Review queue page** *Coded 13 Nov (52nd update): `/reviews`, status tabs, list, sidebar badge, `014` reserves the word. Detail (approve/reject) is the next item.* (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).
-- [ ] **Review detail:** field-by-field **diff** (current vs proposed, using `changed_keys`), sandboxed live preview of the proposed version (no `allow-same-origin`, per C-2), conflict warning (D7), **Approve** / **Reject** with a required note on reject, and confirmation dialogs.
+- [~] **Review detail:** *Coded 13 Nov (53rd update): diff, sandboxed preview, Approve/Reject + force on conflict. Needs browser check.* field-by-field **diff** (current vs proposed, using `changed_keys`), sandboxed live preview of the proposed version (no `allow-same-origin`, per C-2), conflict warning (D7), **Approve** / **Reject** with a required note on reject, and confirmation dialogs.
 - [ ] **Notification bell:** unread count via Realtime, list with deep links.
 
 ## B6. Frontend – client side
