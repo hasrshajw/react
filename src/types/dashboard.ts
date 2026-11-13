@@ -12,6 +12,8 @@ export interface InvitationRow {
   views?: number;
   template_id?: string | number | null;
   template_name?: string;
+  /** Linked client login (verified email). Top-level column, not inside details. */
+  client_email?: string | null;
   /** The form data as saved. The same shape the editor and the compiler use (Partial because old rows may lack newer fields). */
   details?: Partial<InvitationData>;
 }

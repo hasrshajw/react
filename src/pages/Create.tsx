@@ -93,12 +93,14 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
           setMessage("Invitation not found. You can create a new one.");
         } else {
           const details = row.details || {};
+          const { clientEmail: _ignoreFromDetails, ...detailsRest } = details as Partial<InvitationData> & { clientEmail?: string };
           base = {
-            ...initial, ...details,
+            ...initial, ...detailsRest,
             templateId: (row.template_id != null && row.template_id !== "" ? String(row.template_id) : "") || details.templateId || "",
             brideEn: row.bride_name || details.brideEn || "",
             groomEn: row.groom_name || details.groomEn || "",
             weddingDate: row.event_date || details.weddingDate || "",
+            clientEmail: (row.client_email ?? "").trim(),
           };
         }
         finish(base);
@@ -177,14 +179,15 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     venue: has(data.venueEn) || has(data.venueAddress),
     seo: has(data.seoTitle) || has(data.seoDescription) || has(data.seoImage),
     events: data.events.length > 0,
-  }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.events.length, data.seoTitle, data.seoDescription, data.seoImage]);
+    client: has(data.clientEmail),
+  }), [data.templateId, data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.events.length, data.seoTitle, data.seoDescription, data.seoImage, data.clientEmail]);
   const doneCount = PROGRESS_IDS.filter((id) => done[id]).length;
 
   /* Each section has its own loading flag, so a section can appear as soon as ITS data is there.
      (Today the invitation arrives in one piece, so its sections appear together, with a short stagger.) */
   const sectionLoading = useMemo<Record<SectionId, boolean>>(() => ({
     template: recordLoading, family: recordLoading, groom: recordLoading, bride: recordLoading,
-    venue: recordLoading, seo: recordLoading, events: recordLoading,
+    venue: recordLoading, seo: recordLoading, events: recordLoading, client: recordLoading,
   }), [recordLoading]);
 
   const tagFor = useCallback((id: SectionId): { tone: string; text: string; loading?: boolean } => {
@@ -219,6 +222,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     setSaving(true);
     const id = invitationId;
     try {
+      const { clientEmail, ...detailsForSave } = data;
       await saveInvitation({
         id,
         bride_name: data.brideEn,
@@ -226,7 +230,8 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
         event_date: data.weddingDate || null,
         template_id: data.templateId || null,
         template_name: selected?.name || "Custom invitation",
-        details: data,
+        client_email: clientEmail.trim() === "" ? null : clientEmail.trim().toLowerCase(),
+        details: detailsForSave,
       });
     } catch (e) {
       setSaving(false);
@@ -340,6 +345,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
           sectionLoading={sectionLoading} templatesLoading={tplLoading} expectTemplate={expectTemplate}
           set={set} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch}
           tagFor={tagFor} onSubmit={onSubmit} notify={notify} invitationId={invitationId}
+          originalClientEmail={(JSON.parse(snap) as InvitationData).clientEmail || ""}
         />
       </div>
 

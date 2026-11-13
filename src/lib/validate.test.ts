@@ -68,4 +68,12 @@ describe("validateInvitation", () => {
     expect(e.seoImage).toBeDefined();
     expect(validateInvitation(valid({ seoTitle: "t".repeat(60), seoDescription: "d".repeat(160) })).seoTitle).toBeUndefined();
   });
+  it("accepts an empty client email and rejects a bad one", () => {
+    expect(validateInvitation(valid({ clientEmail: "" })).clientEmail).toBeUndefined();
+    expect(validateInvitation(valid({ clientEmail: "  " })).clientEmail).toBeUndefined();
+    expect(validateInvitation(valid({ clientEmail: "client@example.com" })).clientEmail).toBeUndefined();
+    const bad = validateInvitation(valid({ clientEmail: "not-an-email" }));
+    expect(bad.clientEmail?.section).toBe("client");
+    expect(bad.clientEmail?.msg).toMatch(/valid email/i);
+  });
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarPlus, Heart, LayoutTemplate, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
+import { CalendarPlus, Heart, LayoutTemplate, Mail, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
 import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
 import { newEvent } from "./constants";
 import { Bilingual } from "./components/Bilingual";
@@ -34,16 +34,21 @@ export interface CreateFormProps {
   notify: (msg: string, tone?: "ok" | "error") => void;
   /** Id the invitation is saved under (used to name the preview image file). */
   invitationId: string;
+  /** Last saved client email (from the server). Used to warn when the linked client is about to change. */
+  originalClientEmail?: string;
 }
 
-export function CreateForm({ data, categories, templates, categoryId, onCategory, sectionLoading, templatesLoading, expectTemplate, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify, invitationId }: CreateFormProps) {
+export function CreateForm({ data, categories, templates, categoryId, onCategory, sectionLoading, templatesLoading, expectTemplate, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify, invitationId, originalClientEmail = "" }: CreateFormProps) {
   /* Each section ghosts its own fields until its own data is there. */
   const fx = (sec: SectionId) => {
     const loading = sectionLoading[sec];
     const fpx = (name: string, focusKey: string) => ({ name, onFocus: () => focus(focusKey), onBlur: () => touch(name), error: vis(name), loading });
     return { loading, fpx, fp: (name: string) => fpx(name, name) };
   };
-  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), seo = fx("seo"), events = fx("events");
+  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), seo = fx("seo"), events = fx("events"), client = fx("client");
+  const normalizedCurrent = data.clientEmail.trim().toLowerCase();
+  const normalizedOriginal = originalClientEmail.trim().toLowerCase();
+  const clientEmailChanged = normalizedOriginal !== "" && normalizedCurrent !== normalizedOriginal;
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
       <Section id="template" icon={LayoutTemplate} title="Template Options" tag={tagFor("template")} loading={tpl.loading}>
@@ -125,6 +130,25 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           <button type="button" className="outline" onClick={() => add("events", newEvent)}><Plus size={15} /> Add event</button>
         ) : (
           <div className="hint">This template supports two additional event slots.</div>
+        )}
+      </Section>
+
+      <Section id="client" icon={Mail} title="Client Access" tag={tagFor("client")} loading={client.loading}>
+        <Field
+          label="Client email"
+          type="email"
+          inputMode="email"
+          {...client.fp("clientEmail")}
+          value={data.clientEmail}
+          onChange={(v) => set("clientEmail", v)}
+        />
+        <div className="hint">
+          Optional. The person with this verified email can request edits to this invitation from the client portal.
+        </div>
+        {clientEmailChanged && (
+          <div className="hint" role="status" style={{ color: "var(--warn, #b45309)" }}>
+            Changing or clearing this email means the previous client loses access and any pending request is cancelled.
+          </div>
         )}
       </Section>
     </form>

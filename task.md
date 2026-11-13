@@ -1,30 +1,58 @@
-# Schedy – Task List (QA & Security Remediation)
+## Progress log (newest first)
 
-Source: QA & Security Audit Report, 11 Nov 2026 (audited commit `c29cd97`, verified against `preview` HEAD `2148f02`).
-Replaces all previous tasks. Finding IDs (C-, H-, M-, L-) refer to that report.
+### Where things stand (13 Nov 2026, 50th update)
 
-Legend: `[ ]` to do · `[~]` in progress · `[x]` done · **Owner** column is for you to fill in.
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 15 | rest | **50th update: B5 Create/Edit "Client email" field coded** (`clientEmail` on form, `client_email` column on save/load, section + change warning). Invite button, list column, review queue and notification bell still open. B4 shell remains `[~]` until browser check. B2 still needs `010`–`013` in Supabase. |
 
-## How to use this file (read first, for any person or new chat)
+### 13 Nov 2026 (50th update) – B5: Client email field on Create / Edit form
 
-When asked to "update based on task.md", follow these steps.
+**What was done**
 
-1. **Repo and branch:** `github.com/hasrshajw/react`, branch **`preview`**. All work goes to `preview`; `main` only after Track B milestone B-M7. Run `npm ci` once.
-2. **Access:** ask the owner for a short-lived, repo-scoped GitHub token when you need to push. Never paste tokens into chat, files or commit messages, and ask for it to be revoked afterwards.
-3. **Pick the work:** read this whole file, then the latest "Progress log" entry and its **Next steps**. Take items in order Phase 0 → 1 → 2 → 3. Track B starts only after milestone B-M0. If the owner names a phase or item, do that one. Do one or two items per update.
-   - Status on 11 Nov 2026: the owner asked to start with Phase 1, so **Phase 0 is still untouched**. C-1, C-3 and the token rotation need Supabase or GitHub dashboard access, so they cannot be done from code alone. Say so instead of guessing.
-4. **Terms:** C- / H- / M- / L- are Critical / High / Medium / Low findings from the QA & Security Audit Report (11 Nov 2026), which is **not in this repo**. Each task line already names the files and has a "Verify" line, which is enough to work from.
-5. **Tick boxes honestly:** `[x]` only when the acceptance check passed. Use `[~]` with a short note for partial work. Never tick a box for something that needs a dashboard action you did not see completed.
-6. **Verify:** run `npm run typecheck` and `npm run build`. There is no test suite yet (Phase 3), so run ad-hoc checks for the change and write the cases into the Progress log so others can repeat them.
-7. **Record:** update the checkbox, the status table, and add a new Progress log entry at the top of the log with: what changed and in which files, how it affects other tasks, behaviour changes to check, and ordered next steps.
-8. **Commit and push to `preview`:** one commit per update, message `type(ID): summary` with a body that explains the change. Check that the push landed (`git ls-remote origin preview`).
+1. **`clientEmail` on the form shape** (`InvitationData`, `initial`, new section id `client` / "Client access" with Mail icon). Optional; empty is fine.
+2. **Validation** (`validate.ts`): when filled, must pass `isEmail`. New unit test covers empty, valid and invalid.
+3. **Persistence as top-level column** (not inside `details` JSON):
+   - `INVITATION_COLUMNS` and `InvitationRow.client_email` include `client_email`.
+   - `saveInvitation` writes `client_email` (trim + lower-case, empty → `null`) and **strips** any `clientEmail` key from `details` before upsert.
+   - Create load maps `row.client_email` → `data.clientEmail` and ignores a stale `details.clientEmail` if present.
+4. **UI** (`CreateForm`): section "Client Access" with email field and hint. When the value differs from the last-saved email (`originalClientEmail` from the form snap), a warning is shown: the previous client loses access and any pending request is cancelled.
+5. **`.env.local` was not touched.**
 
-> Ground rule: tasks in Phase 0 and 1 are security fixes and come before any new feature work.
-> The **Client Self-Service Editing** feature (Track B, below) depends on C-1, C-2, C-3 and H-2 and must not ship before them.
+**What this does not prove**
+
+- `npm` install in this environment was unreliable (sandbox timeouts / tar errors), so typecheck / full test suite / build were **not** re-run here. Owner should run the checks below on a normal machine.
+- Changing `client_email` in Supabase still depends on migrations `010`–`012` (and the supersede trigger) having been applied; without them the column write fails at runtime.
+
+**How this affects other tasks**
+
+- **B5 remaining:** "Send invite to client" button, invitations list column/filter + pending chip, review queue page, review detail, notification bell.
+- **B6:** client editor still uses the placeholder; no change.
+- **B4:** unchanged; still needs browser checks.
+
+**Behaviour changes to check**
+
+- Create a new invitation, set client email, save, reload edit — field is filled from the column.
+- Clear the email and save — column is null; warning only appears when changing a previously non-empty value.
+- Invalid email blocks save with a field error under Client access.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Browser: create/edit with client email as above (needs `010`+ applied for the column).
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run `010`–`013` when ready; run the checks above.
+2. Next B5 item: invitations list column/filter for client email and/or "Send invite to client" button (one at a time).
+3. **Testing env file stays:** `.env.local` was not touched.
 
 ---
-
-## Progress log (newest first)
 
 ### Where things stand (13 Nov 2026, 49th update)
 
@@ -2245,7 +2273,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B5. Frontend – admin side
 
-- [ ] **Create / Edit form:** add **"Client email"** field (section "Client access"), optional, trimmed + lower-cased, validated with `isEmail`; add `clientEmail` to `InvitationData`, `formReducer`, `validate.ts`, `saveInvitation`/`fetchInvitations`. Show a warning when the email is changed ("the previous client loses access and any pending request is cancelled").
+- [~] **Create / Edit form:** *Coded 13 Nov (50th update): field, validation, column mapping, change warning. Needs browser + migrations.* add **"Client email"** field (section "Client access"), optional, trimmed + lower-cased, validated with `isEmail`; add `clientEmail` to `InvitationData`, `formReducer`, `validate.ts`, `saveInvitation`/`fetchInvitations`. Show a warning when the email is changed ("the previous client loses access and any pending request is cancelled").
 - [ ] **Invite action:** "Send invite to client" button next to the field (D4), with sent/accepted status.
 - [ ] **Invitations list:** column/filter for client email and a "Pending review" chip.
 - [ ] **Review queue page** (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).

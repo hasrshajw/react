@@ -105,7 +105,7 @@ export async function readAllPages(page: (from: number, to: number) => PromiseLi
 
 /* Columns the admin lists read. `slug` and `owner` stay on the server (splitRow dropped them anyway), and a column added later
    (for example the Track B client email) does not reach the list until it is added here on purpose. */
-const INVITATION_COLUMNS = "id, groom_name, bride_name, event_date, template_id, template_name, details, views, published, deleted_at, created_at, updated_at";
+const INVITATION_COLUMNS = "id, groom_name, bride_name, event_date, template_id, template_name, details, views, published, deleted_at, created_at, updated_at, client_email";
 const ENQUIRY_COLUMNS = "id, name, phone, email, message, status, note, follow_up_date, history, created_at";
 
 const slugOf = (x: InvitationRow) => (x.details?.customId || "").trim() || x.id;
@@ -145,7 +145,16 @@ export async function fetchInvitation(id: string): Promise<InvitationRow | null>
 /** Creates or updates one invitation. The link ID (details.customId) must be unique. */
 export async function saveInvitation(record: InvitationRow, opts: { published?: boolean } = {}): Promise<InvitationRow> {
   /* `published` is written only when the caller says so (a new copy that must never be public, task H-6 gap). Left out,
-     a new row takes the column default (true) and an existing row keeps its value. */
+     a new row takes the column default (true) and an existing row keeps its value.
+     `client_email` is a top-level column (Track B); it is never stored inside details. Empty string clears the link. */
+  const rawDetails = (record.details ?? {}) as Record<string, unknown>;
+  const { clientEmail: _dropClientEmail, ...detailsWithoutClient } = rawDetails;
+  const clientEmail =
+    record.client_email === undefined
+      ? undefined
+      : (record.client_email == null || String(record.client_email).trim() === ""
+          ? null
+          : String(record.client_email).trim().toLowerCase());
   const { data, error } = await db()
     .from("invitations")
     .upsert({
@@ -157,7 +166,8 @@ export async function saveInvitation(record: InvitationRow, opts: { published?: 
       event_date: record.event_date ?? null,
       template_id: record.template_id != null ? String(record.template_id) : null,
       template_name: record.template_name ?? null,
-      details: record.details ?? {},
+      details: detailsWithoutClient,
+      ...(clientEmail === undefined ? {} : { client_email: clientEmail }),
     })
     .select(INVITATION_COLUMNS)
     .single();

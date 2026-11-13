@@ -1,4 +1,5 @@
 import type { ErrorMap, InvitationData } from "../types/invitation";
+import { isEmail } from "./auth";
 import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
 
@@ -51,5 +52,7 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   if (data.seoTitle.length > SEO_TITLE_MAX) add("seoTitle", "seo", `Keep the title under ${SEO_TITLE_MAX} characters`);
   if (data.seoDescription.length > SEO_DESC_MAX) add("seoDescription", "seo", `Keep the description under ${SEO_DESC_MAX} characters`);
   if (has(data.seoImage) && !isOwnPreviewImage(data.seoImage)) add("seoImage", "seo", "Preview image must be uploaded here. Remove it and upload the picture again");
+  /* Optional client email: empty is fine; otherwise must look like an email (DB also lower-cases and trims). */
+  if (has(data.clientEmail) && !isEmail(data.clientEmail)) add("clientEmail", "client", "Enter a valid email address");
   return e;
 }
