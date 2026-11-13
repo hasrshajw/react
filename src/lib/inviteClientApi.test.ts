@@ -72,9 +72,8 @@ describe("api/invite-client", () => {
     const body = JSON.parse(res.body!);
     expect(body.ok).toBe(true);
     expect(body.email).toBe("client@x.com");
-    const inviteCall = fetchFn.mock.calls.find((c) => String(c[0]).includes("/auth/v1/invite"));
+    const inviteCall = fetchFn.mock.calls.find((c) => String(c[0]).includes("/auth/v1/invite")) as unknown as [string, { body: string }] | undefined;
     expect(inviteCall).toBeTruthy();
-    const callOpts = inviteCall![1] as { body: string };
-    expect(JSON.parse(callOpts.body).redirect_to).toBe("https://app.test/my");
+    expect(JSON.parse(inviteCall![1].body).redirect_to).toBe("https://app.test/my");
   });
 });

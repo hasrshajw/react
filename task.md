@@ -1,5 +1,35 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 64th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 24 | rest | **64th update: inviteClientApi test typing.** Suite 590/590; typecheck should be clean. |
+
+### 13 Nov 2026 (64th update) – inviteClientApi.test typecast
+
+**What was done**
+
+1. **`inviteClientApi.test.ts`:** cast `mock.calls` entry through `unknown` so strict `tsc` accepts the options argument.
+
+**Checks to repeat**
+
+`git pull origin preview` then  
+`npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+
+**Next steps**
+
+1. Owner: revoke the GitHub token; confirm green end-to-end.
+2. Next product task: `notify-client`, or Phase browser `[~]` closes.
+3. **`.env.local` was not touched.**
+
+---
+
 ### Where things stand (13 Nov 2026, 63rd update)
 
 | Phase | Done | In progress | To do | Notes |
