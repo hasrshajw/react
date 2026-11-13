@@ -98,6 +98,16 @@ describe("readAllPages (M-5)", () => {
 });
 
 describe("fetchInvitations", () => {
+  it("is not truncated for a normal list, and is truncated when the read hits the 10,000-row limit (M-5)", async () => {
+    const small = await load(() => ({ data: [inv("a"), inv("b")] }));
+    expect((await small.api.fetchInvitations()).truncated).toBe(false);
+    let n = 0;
+    const big = await load(() => { const start = n++ * 500; return { data: Array.from({ length: 500 }, (_, i) => inv(`r${start + i}`)) }; });
+    const out = await big.api.fetchInvitations();
+    expect(out.rows).toHaveLength(10000);
+    expect(out.truncated).toBe(true);
+  });
+
   it("orders by created_at then id, reads by range, and names its columns", async () => {
     const { api, calls } = await load(() => ({ data: [] }));
     await api.fetchInvitations();

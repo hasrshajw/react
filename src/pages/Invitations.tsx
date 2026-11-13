@@ -11,7 +11,7 @@ import { TrashModal } from "../features/dashboard/components/TrashModal";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
 import { RowMenu } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
-import { ErrorState, InvitationsTableSkeleton, NoInvitationsState, NoMatchState } from "../features/dashboard/components/ListStates";
+import { ErrorState, InvitationsTableSkeleton, LimitNotice, NoInvitationsState, NoMatchState } from "../features/dashboard/components/ListStates";
 import { useRowHint } from "../hooks/useRowHint";
 import { useLatest } from "../hooks/useLatest";
 import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
@@ -220,6 +220,8 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
         now={store.now}
         onRefresh={() => store.load()}
       />
+
+      {store.truncated && <LimitNotice />}
 
       {/* ---------- status tabs ---------- */}
       <div className="inv-tabbar">

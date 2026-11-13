@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { AlertTriangle, CalendarDays, Eye, FilePlus2, Link2, Pencil, Search } from "../../../components/Icons";
 import { SkText } from "../../../components/Skeleton";
+import { LIST_LIMIT } from "../../../lib/listLimit";
 
 export function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
@@ -10,6 +11,16 @@ export function ErrorState({ onRetry }: { onRetry: () => void }) {
       <span>Check your connection and try again.</span>
       <button type="button" className="empty-btn" onClick={onRetry}>Retry</button>
     </div>
+  );
+}
+
+/** M-5: shown above a list that was cut at the read limit, so a missing old invitation is not a mystery. */
+export function LimitNotice() {
+  return (
+    <p className="list-limit" role="status">
+      <AlertTriangle size={16} />
+      <span>Showing your newest {LIST_LIMIT.toLocaleString("en-IN")} invitations. Older ones are not listed here.</span>
+    </p>
   );
 }
 

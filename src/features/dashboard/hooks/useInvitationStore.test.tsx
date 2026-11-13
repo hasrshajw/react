@@ -17,7 +17,7 @@ const del = vi.mocked(deleteInvitation);
 const DAY = 24 * 3600000;
 
 const row = (id: string, extra: Partial<InvitationRow> = {}): InvitationRow => ({ id, groom_name: id, bride_name: "B", event_date: "2099-01-01", ...extra });
-const answer = (rows: InvitationRow[], published: Record<string, boolean> = {}, deleted: Record<string, number> = {}) => ({ rows, published, deleted });
+const answer = (rows: InvitationRow[], published: Record<string, boolean> = {}, deleted: Record<string, number> = {}, truncated?: boolean) => ({ rows, published, deleted, truncated });
 
 async function setup(first = answer([row("a"), row("b")]), opts: { purgeExpired?: boolean } = {}) {
   list.mockResolvedValue(first);
@@ -104,6 +104,27 @@ describe("loading", () => {
     await flush();
     h.unmount();
     await act(async () => { release(answer([row("a")])); });
+  });
+});
+
+describe("truncated list (M-5)", () => {
+  it("is false for a normal list and true when the read was cut at the limit", async () => {
+    const a = await setup();
+    expect(a.h.result.current.truncated).toBe(false);
+    a.h.unmount();
+    const b = await setup(answer([row("a")], {}, {}, true));
+    expect(b.h.result.current.truncated).toBe(true);
+    b.h.unmount();
+  });
+
+  it("follows a refresh: the note goes away once the list fits again", async () => {
+    const { h } = await setup(answer([row("a")], {}, {}, true));
+    expect(h.result.current.truncated).toBe(true);
+    list.mockResolvedValue(answer([row("a")]));
+    await act(async () => { h.result.current.load(true); });
+    await flush();
+    expect(h.result.current.truncated).toBe(false);
+    h.unmount();
   });
 });
 

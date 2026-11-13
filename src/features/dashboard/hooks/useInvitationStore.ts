@@ -63,6 +63,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   const [rows, setRows] = useState<InvitationRow[]>([]);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState(false);
+  const [truncated, setTruncated] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const alive = useRef(true);
@@ -89,6 +90,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
       (res) => {
         if (!alive.current) return;
         setRows(res.rows);
+        setTruncated(!!res.truncated);
         /* First load: the server decides. Later loads (H-6): the server decides too, unless a change made here is
            still being saved or was made after the request started, because then the screen is newer than the answer. */
         if (!loadedRef.current) { resetPub(res.published); resetDeleted(res.deleted); }
@@ -108,7 +110,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   }, [notify, resetPub, resetDeleted, adoptPub, adoptDeleted, pubVersion, delVersion]);
   loadRef.current = load;
   const reload = useCallback(() => {
-    fetchInvitations().then((res) => { if (alive.current) setRows(res.rows); }, () => notify("Couldn’t refresh the list."));
+    fetchInvitations().then((res) => { if (alive.current) { setRows(res.rows); setTruncated(!!res.truncated); } }, () => notify("Couldn’t refresh the list."));
   }, [notify]);
 
   useEffect(() => {
@@ -173,7 +175,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   }, [rows, purgeExpired]);
 
   return {
-    rows, loading, refreshing, error, lastUpdated, now, load, reload,
+    rows, truncated, loading, refreshing, error, lastUpdated, now, load, reload,
     pub, pubRef, isPub, commitPub, writePub, togglePublish,
     deleted, delRef, writeDeleted, restoreInvitation, moveToTrash,
     visible, trashed,

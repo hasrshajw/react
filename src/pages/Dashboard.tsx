@@ -13,6 +13,7 @@ import { QrModal } from "../features/dashboard/components/QrModal";
 import { TrashModal } from "../features/dashboard/components/TrashModal";
 import { EnquiriesPanel } from "../features/dashboard/components/EnquiriesPanel";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
+import { LimitNotice } from "../features/dashboard/components/ListStates";
 import { StatCards } from "../features/dashboard/components/StatCards";
 import { AttentionStrip, type AttentionItem } from "../features/dashboard/components/AttentionStrip";
 import { RecentInvitations } from "../features/dashboard/components/RecentInvitations";
@@ -209,6 +210,8 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
           </button>
         }
       />
+
+      {store.truncated && <LimitNotice />}
 
       <StatCards
         loading={invSkel} enqLoading={enqSkel}

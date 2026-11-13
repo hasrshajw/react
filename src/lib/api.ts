@@ -5,6 +5,7 @@
    Everything is read from and written to Supabase (see lib/supabase.ts). There is no local or demo data.
    ========================================================================== */
 import { getSession } from "./auth";
+import { LIST_LIMIT } from "./listLimit";
 import { db } from "./supabase";
 import { PREVIEW_BUCKET } from "./previewUrl";
 import { onUserDataReset } from "./userData";
@@ -50,7 +51,8 @@ export async function fetchTemplates(): Promise<{ templates: Template[]; categor
 }
 
 /* ---------- invitations ---------- */
-export interface InvitationList { rows: InvitationRow[]; published: PublishMap; deleted: DeletedMap }
+/** `truncated`: the read stopped at `LIST_LIMIT` rows, so older invitations exist that this list does not hold (M-5). */
+export interface InvitationList { rows: InvitationRow[]; published: PublishMap; deleted: DeletedMap; truncated?: boolean }
 
 /* The flags as the server last had them. savePublished / saveDeleted compare against this to see what changed. */
 let knownPub: PublishMap = {};
@@ -82,8 +84,8 @@ function chunks<T>(list: T[]): T[][] {
    Every ordered read adds `id` as a tie-break so two rows with the same `created_at` never swap places between pages,
    and rows that arrive twice (something was inserted while paging) are dropped by id. */
 const PAGE_SIZE = 500;
-/* Hard stop so a runaway table cannot freeze the browser. Reaching it is logged; real UI pagination (load more) is still open in M-5. */
-const MAX_ROWS = 10000;
+/* Hard stop so a runaway table cannot freeze the browser. Reaching it is logged and the list says so on screen (`truncated`); real UI pagination (load more) is still open in M-5. */
+const MAX_ROWS = LIST_LIMIT;
 /** A raw database row: column names are known, values are checked where they are used. */
 type DbRow = Record<string, unknown>;
 type PageResult = { data: DbRow[] | null; error: { message: string } | null };
@@ -130,7 +132,7 @@ export function fetchInvitations(): Promise<InvitationList> {
     }
     knownPub = { ...published };
     knownDel = { ...deleted };
-    return { rows, published, deleted };
+    return { rows, published, deleted, truncated: rows.length >= LIST_LIMIT };
   });
 }
 

@@ -43,7 +43,8 @@ let host: HTMLDivElement, root: Root;
 let where = "";
 const Where = () => { const l = useLocation(); where = l.pathname + l.search; return null; };
 
-async function show(url = "/invitations", data = { rows: ROWS, published: {}, deleted: {} }) {
+type ListAnswer = { rows: typeof ROWS; published: Record<string, boolean>; deleted: Record<string, number>; truncated?: boolean };
+async function show(url = "/invitations", data: ListAnswer = { rows: ROWS, published: {}, deleted: {} }) {
   h.fetchInvitations.mockResolvedValue(data);
   act(() => {
     root.render(
@@ -116,6 +117,19 @@ describe("loading and empty states", () => {
     await show("/invitations", { rows: ROWS, published: {}, deleted: { b: Date.now() } });
     expect(names()).toEqual(expect.not.arrayContaining(["Bala & Sita"]));
     expect(names()).toHaveLength(2);
+  });
+});
+
+describe("list cut at the read limit (M-5)", () => {
+  it("shows a note above the list when the list was truncated, and none otherwise", async () => {
+    await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
+    expect(text()).toContain("Showing your newest 10,000 invitations");
+    expect(host.querySelector(".list-limit")).not.toBeNull();
+  });
+
+  it("has no note for a normal list", async () => {
+    await show();
+    expect(host.querySelector(".list-limit")).toBeNull();
   });
 });
 
