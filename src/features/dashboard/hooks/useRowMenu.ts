@@ -55,9 +55,12 @@ export function useRowMenu(opener: MutableRefObject<HTMLElement | null>) {
     };
   }, [menu]);
 
+  /* Focus the first item when a menu opens or moves to another row (not when only its position changes). */
+  const menuOpen = !!menu;
+  const menuRowId = menu?.x?.id;
   useEffect(() => {
-    if (menu) menuRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
-  }, [menu?.x?.id]);
+    if (menuOpen) menuRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+  }, [menuOpen, menuRowId]);
 
   const onMenuKey = (e: KeyboardEvent<HTMLElement>) => {
     const items = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || [])];

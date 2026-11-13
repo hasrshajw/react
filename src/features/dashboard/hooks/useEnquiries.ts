@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isoDay } from "../../../lib/dashboardData";
+import { useLatest } from "../../../hooks/useLatest";
 import { fetchEnquiries, saveEnquiry } from "../../../lib/api";
 import type { Enquiry, EnquiryStatus, Notify } from "../../../types/dashboard";
 
@@ -97,7 +98,8 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
 
   /* unread badge: reported to the shell (sidebar badge and tab title) once the first list has loaded; before that the
      count is still 0 and would wipe the number the shell fetched on its own. */
-  useEffect(() => { if (!loading) onCountChange?.(enqNew); }, [enqNew, loading]);
+  const countChangeRef = useLatest(onCountChange);
+  useEffect(() => { if (!loading) countChangeRef.current?.(enqNew); }, [enqNew, loading, countChangeRef]);
 
   return { enquiries, loading, enqNew, enqFollow, setStatus, saveNote, setFollowDate };
 }

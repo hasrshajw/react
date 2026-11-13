@@ -64,7 +64,7 @@ export function Select({ value, onChange, options, label }: SelectProps) {
   }, [open]);
   useEffect(() => {
     if (open) document.getElementById(`${uid}-${active}`)?.scrollIntoView?.({ block: "nearest" });
-  }, [active, open]);
+  }, [active, open, uid]);
 
   const onBtnKey = (e: KeyboardEvent) => {
     if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) { e.preventDefault(); if (open) close(); else openList(); }

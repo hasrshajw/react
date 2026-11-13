@@ -13,6 +13,7 @@ import { RowMenu } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
 import { ErrorState, InvitationsTableSkeleton, NoInvitationsState, NoMatchState } from "../features/dashboard/components/ListStates";
 import { useRowHint } from "../hooks/useRowHint";
+import { useLatest } from "../hooks/useLatest";
 import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
@@ -71,8 +72,9 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
     if (!preview) opener.current = document.activeElement as HTMLElement | null;
     setPreview(x);
   };
-  useEffect(() => { onPanelChange?.(!!preview); }, [preview]);
-  useEffect(() => () => onPanelChange?.(false), []);
+  const panelChangeRef = useLatest(onPanelChange);
+  useEffect(() => { panelChangeRef.current?.(!!preview); }, [preview, panelChangeRef]);
+  useEffect(() => () => panelChangeRef.current?.(false), [panelChangeRef]);
 
   /* ---------- derived data ---------- */
   const stats = useMemo(() => ({

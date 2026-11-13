@@ -125,7 +125,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
 
   /* ---------- published flag ---------- */
   const isPub = useCallback((x: InvitationRow) => pub[x.id] !== false, [pub]);
-  const writePub = useCallback((id: string, v: boolean) => commitPub({ ...pubRef.current, [id]: v }), [commitPub]);
+  const writePub = useCallback((id: string, v: boolean) => commitPub({ ...pubRef.current, [id]: v }), [commitPub, pubRef]);
 
   const togglePublish = (x: InvitationRow) => {
     const wasLive = isPub(x);
@@ -141,7 +141,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
     const n = { ...delRef.current };
     delete n[id];
     writeDeleted(n);
-  }, [writeDeleted]);
+  }, [writeDeleted, delRef]);
   const moveToTrash = (x: InvitationRow) => {
     writeDeleted({ ...delRef.current, [x.id]: Date.now() });
     notify("Moved to trash", () => restoreInvitation(x.id));

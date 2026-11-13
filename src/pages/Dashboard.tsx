@@ -20,6 +20,7 @@ import { RowMenu } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
 import { matchesFilter } from "../features/dashboard/filters";
 import { useRowHint } from "../hooks/useRowHint";
+import { useLatest } from "../hooks/useLatest";
 import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
@@ -68,11 +69,12 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const { menu, menuRef, openMenu, closeMenu, onMenuKey } = useRowMenu(opener);
 
   /* optional silent auto-refresh */
+  const { load: loadList } = store;
   useEffect(() => {
     if (!autoRefresh) return;
-    const t = setInterval(() => store.load(true), 60000);
+    const t = setInterval(() => loadList(true), 60000);
     return () => clearInterval(t);
-  }, [autoRefresh, store.load]);
+  }, [autoRefresh, loadList]);
 
   useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
 
@@ -116,8 +118,9 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   };
 
   /* Tell App whether a right-side panel is open. */
-  useEffect(() => { onPanelChange?.(!!(preview || reqOpen)); }, [preview, reqOpen]);
-  useEffect(() => () => onPanelChange?.(false), []);
+  const panelChangeRef = useLatest(onPanelChange);
+  useEffect(() => { panelChangeRef.current?.(!!(preview || reqOpen)); }, [preview, reqOpen, panelChangeRef]);
+  useEffect(() => () => panelChangeRef.current?.(false), [panelChangeRef]);
 
   /* ---------- derived invitation data ---------- */
   const list = useMemo(() => {

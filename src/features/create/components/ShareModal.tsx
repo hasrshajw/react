@@ -3,14 +3,16 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Copy, CheckCircle2, LayoutDashboard, MessageCircle, Plus } from "../../../components/Icons";
 import { DASHBOARD_PATH } from "../constants";
+import { useLatest } from "../../../hooks/useLatest";
 
 export function ShareModal({ name, link, onCopy, onWhatsApp, onClose, onAnother }: { name: string; link: string; onCopy: () => void; onWhatsApp: () => void; onClose: () => void; onAnother: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useLatest(onClose);
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLElement>("button, a")?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Escape") { closeRef.current(); return; }
       if (e.key !== "Tab") return;
       const els = [...ref.current!.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")];
       if (!els.length) return;
@@ -20,7 +22,7 @@ export function ShareModal({ name, link, onCopy, onWhatsApp, onClose, onAnother 
     };
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); if (prev?.isConnected) prev.focus?.(); };
-  }, []);
+  }, [closeRef]);
   return createPortal(
     <div className="cx-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="cx-modal" ref={ref} role="dialog" aria-modal="true" aria-label="Invitation saved">

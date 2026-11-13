@@ -58,6 +58,21 @@ describe("loading", () => {
     h.unmount();
   });
 
+  it("a new onCountChange function from the parent does not re-report the same count, and the newest one gets the next change", async () => {
+    fetchMock.mockResolvedValue([enq("a")]);
+    const first = vi.fn();
+    const second = vi.fn();
+    const h = renderHook((p: { cb: (n: number) => void }) => useEnquiries(vi.fn(), p.cb), { cb: first });
+    await flush();
+    expect(first).toHaveBeenCalledTimes(1);
+    h.rerender({ cb: second });
+    expect(second).not.toHaveBeenCalled();
+    act(() => { h.result.current.setStatus("a", "called"); });
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledWith(0);
+    h.unmount();
+  });
+
   it("a failed first load ends loading with an empty list", async () => {
     fetchMock.mockRejectedValue(new Error("x"));
     const h = renderHook(() => useEnquiries(vi.fn()));

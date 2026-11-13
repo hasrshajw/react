@@ -43,7 +43,7 @@ export const useFocusTrap = (ref: RefObject<HTMLElement | null>) => {
       root.removeEventListener("keydown", onKey);
       if (prev && prev !== document.body && prev.isConnected) prev.focus?.();
     };
-  }, []);
+  }, [ref]);
 };
 
 /* =========================================================

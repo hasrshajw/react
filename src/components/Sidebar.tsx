@@ -7,6 +7,7 @@ import {
 import type { IconComponent } from "./Icons";
 import { SkText } from "./Skeleton";
 import { useAccount } from "../hooks/useAccount";
+import { useLatest } from "../hooks/useLatest";
 
 import logo from "../assets/logo.png";
 import logoSmall from "../assets/logo-small.png";
@@ -200,10 +201,11 @@ export default function Sidebar({
   };
   useEffect(() => () => clearTimeout(animTimer.current), []);
 
+  const hoverExpandRef = useLatest(onHoverExpand);
   useEffect(() => {
-    onHoverExpand?.(!overlayMode && peeking);
-  }, [overlayMode, peeking]);
-  useEffect(() => () => onHoverExpand?.(false), []);
+    hoverExpandRef.current?.(!overlayMode && peeking);
+  }, [overlayMode, peeking, hoverExpandRef]);
+  useEffect(() => () => hoverExpandRef.current?.(false), [hoverExpandRef]);
 
   useEffect(() => {
     if (!overlayMode) setOverlayOpen(false);
