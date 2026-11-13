@@ -1,5 +1,48 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 56th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 21 | rest | **56th update: B6 D5 proposed snapshot** via `my_invitations.request_proposed_details` (migration `015`). Invite still needs B3. |
+
+### 13 Nov 2026 (56th update) – B6: proposed details on client editor (D5)
+
+**What was done**
+
+1. **`my_invitations`** now returns `request_proposed_details` (schema + migration `015_my_invitations_proposed.sql`).
+2. **API:** `MyInvitation.request.proposedDetails` mapped from that column.
+3. **Client editor:** while pending (or unacknowledged rejected), form loads from **proposed** details, not live.
+4. Unit + clientApi tests updated; db-test asserts proposed is present while pending. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Migration `015` must be applied in Supabase before the client can receive the column.
+- Full suite not re-run here.
+
+**How this affects other tasks**
+
+- **B6 remaining:** draft autosave scoped per user, leave-blocker polish.
+- **B5 Invite** still blocked on B3.
+
+**Checks to repeat**
+
+1. Apply `015` in the project; `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Submit a change as client → reopen editor while pending → see proposed values read-only.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; apply migration `015`; run checks.
+2. Next B6 polish: draft keys / leave blocker, or B3 invite-client when ready.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 55th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2528,7 +2571,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
   - 1 linked → redirect straight to `/my/invitations/:id`.
   - 2+ linked → list (couple names, date, status chip: *Live / Pending review / Rejected / Up to date*) → click opens the editor.
 - [~] **Client editor** (`/my/:id`): *Coded 13 Nov (55th update): restricted CreateForm, submitChangeRequest, banners, sandbox preview. Needs browser check.* reuse `CreateForm` + `formReducer` in a **restricted mode** (props `mode="client"` with an allow-list that hides template picker, slug, publish and trash controls and disables nothing silently: hidden fields are simply not rendered).
-- [~] **Pending banner at the top of the editor** *Coded 13 Nov (55th update, withdraw; proposed values still live details until RPC exposes them).* when a request is pending: "Your changes are waiting for admin review, submitted <time>", with **View submitted changes**, **Withdraw**. Form is read-only showing the *proposed* values (D5).
+- [~] **Pending banner at the top of the editor** *Coded 13 Nov (55th–56th updates: withdraw; proposed values via `request_proposed_details` / migration 015). Needs browser check.* when a request is pending: "Your changes are waiting for admin review, submitted <time>", with **View submitted changes**, **Withdraw**. Form is read-only showing the *proposed* values (D5).
 - [~] **Rejected banner** until acknowledged: *Coded 13 Nov (55th update: note + Got it → acknowledgeRejection).* shows the admin's note, **Edit again** (prefills from the rejected values) and **Got it** (calls `acknowledge_rejection`). Banner survives reloads and devices because state is server-side.
 - [~] **Approved:** *Coded 13 Nov (55th update: banner + Got it).* toast / banner once ("Your changes are live"), then clears.
 - [~] **Submit button:** *Coded 13 Nov (55th update: confirm + submitChangeRequest only).* label "Submit for review"; disabled when there are no changes; confirm dialog explaining that changes go live only after approval; keep the unsaved-changes blocker and draft autosave, but scope the draft key per user and invitation (and clear on sign-out, M-1).

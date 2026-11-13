@@ -19,9 +19,15 @@ describe("clientStatus", () => {
   it("maps request and published state", () => {
     expect(clientStatus(base())).toBe("live");
     expect(clientStatus(base({ published: false }))).toBe("up_to_date");
-    expect(clientStatus(base({ request: { id: "r", status: "pending", adminNote: "", createdAt: "", acknowledgedAt: null } }))).toBe("pending");
-    expect(clientStatus(base({ request: { id: "r", status: "rejected", adminNote: "x", createdAt: "", acknowledgedAt: null } }))).toBe("rejected");
-    expect(clientStatus(base({ request: { id: "r", status: "rejected", adminNote: "x", createdAt: "", acknowledgedAt: "2026-01-02" } }))).toBe("live");
+    expect(clientStatus(base({
+      request: { id: "r", status: "pending", adminNote: "", createdAt: "", acknowledgedAt: null, proposedDetails: null },
+    }))).toBe("pending");
+    expect(clientStatus(base({
+      request: { id: "r", status: "rejected", adminNote: "x", createdAt: "", acknowledgedAt: null, proposedDetails: null },
+    }))).toBe("rejected");
+    expect(clientStatus(base({
+      request: { id: "r", status: "rejected", adminNote: "x", createdAt: "", acknowledgedAt: "2026-01-02", proposedDetails: null },
+    }))).toBe("live");
   });
 });
 
@@ -33,5 +39,16 @@ describe("invitationToForm", () => {
     expect(data.weddingDate).toBe("2026-12-01");
     expect(data.venueEn).toBe("Hall");
     expect(data.clientEmail).toBe("");
+  });
+
+  it("uses proposedDetails when preferProposed and pending", () => {
+    const data = invitationToForm(base({
+      details: { venueEn: "Old" },
+      request: {
+        id: "r", status: "pending", adminNote: "", createdAt: "", acknowledgedAt: null,
+        proposedDetails: { venueEn: "New Hall", groomEn: "Ravi" },
+      },
+    }), true);
+    expect(data.venueEn).toBe("New Hall");
   });
 });

@@ -328,7 +328,11 @@ export type ReviewDecision = "approve" | "reject";
 export interface MyInvitation {
   id: string; groomName: string; brideName: string; eventDate: string | null; templateId: string; published: boolean;
   details: InvitationRow["details"]; updatedAt: string;
-  request: null | { id: string; status: RequestStatus; adminNote: string; createdAt: string; acknowledgedAt: string | null };
+  request: null | {
+    id: string; status: RequestStatus; adminNote: string; createdAt: string; acknowledgedAt: string | null;
+    /** Full proposed details when the latest request still matters (pending / unacked rejected). From migration 015. */
+    proposedDetails: InvitationRow["details"] | null;
+  };
 }
 
 /** A change request as the admin sees it in the review queue. */
@@ -359,6 +363,8 @@ const toMyInvitation = (r: DbRow): MyInvitation => ({
   request: r.request_id ? {
     id: r.request_id as string, status: r.request_status as RequestStatus, adminNote: (r.request_admin_note ?? "") as string,
     createdAt: r.request_created_at as string, acknowledgedAt: (r.request_acknowledged_at ?? null) as string | null,
+    proposedDetails: (r.request_proposed_details && typeof r.request_proposed_details === "object"
+      ? r.request_proposed_details : null) as MyInvitation["details"] | null,
   } : null,
 });
 

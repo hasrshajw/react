@@ -350,6 +350,8 @@ select t.as_owner();
 select t.ok('the live invitation is unchanged', (select details->>'groomEn' = 'Old' and published and groom_name = 'Old' from public.invitations where id = 'c1'));
 select t.as_user('dddddddd-0000-0000-0000-000000000004');
 select t.ok('my_invitations shows the pending status', (select request_status = 'pending' from public.my_invitations() where id = 'c1'));
+select t.ok('my_invitations includes proposed_details while pending',
+  (select request_proposed_details is not null from public.my_invitations() where id = 'c1'));
 select t.throws('a second pending request is refused',
   format($$select public.submit_change_request('c1', '{"groomEn":"Newer"}'::jsonb, %L)$$, current_setting('t.base')), '23505');
 

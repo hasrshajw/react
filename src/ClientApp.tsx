@@ -164,7 +164,9 @@ function ClientEditor() {
 
   useEffect(() => {
     if (!inv) return;
-    const form = invitationToForm(inv);
+    const preferProposed = inv.request?.status === "pending"
+      || (inv.request?.status === "rejected" && !inv.request.acknowledgedAt);
+    const form = invitationToForm(inv, !!preferProposed);
     dispatch({ type: "load", data: form });
     setReady(true);
     let live = true;

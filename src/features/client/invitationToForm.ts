@@ -6,9 +6,12 @@ const list = <T,>(v: unknown, fallback: T[]): T[] => (Array.isArray(v) ? (v as T
 
 /** Map a `my_invitations` row into CreateForm state. Prefer top-level columns for the couple/date. */
 export function invitationToForm(inv: MyInvitation, preferProposed = false): InvitationData {
-  const d = (preferProposed && inv.request && (inv.request.status === "pending" || inv.request.status === "rejected")
-    ? ((inv as MyInvitation & { proposed?: InvitationData }).proposed || inv.details)
-    : inv.details) as Partial<InvitationData> & Record<string, unknown>;
+  const useProposed = preferProposed
+    && inv.request
+    && (inv.request.status === "pending" || (inv.request.status === "rejected" && !inv.request.acknowledgedAt))
+    && inv.request.proposedDetails
+    && typeof inv.request.proposedDetails === "object";
+  const d = (useProposed ? inv.request!.proposedDetails! : inv.details) as Partial<InvitationData> & Record<string, unknown>;
 
   return {
     ...initial,
