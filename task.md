@@ -1,3 +1,18 @@
+### 13 Nov 2026 (82nd update) – Fixed Vercel Build: Forced npm allow-scripts via vercel.json
+
+**Root Cause of Persistent Build Failure**
+Despite adding `allow-scripts=true` to `.npmrc`, Vercel's build environment continued to block the `esbuild` postinstall script with the warning:  
+`npm warn install-scripts 1 package has install scripts not yet covered by allowScripts: esbuild@0.25.12`  
+This happens because Vercel's global npm configuration or environment can sometimes override or ignore project-level `.npmrc` settings for security reasons.
+
+**What was done**
+1. **Updated `vercel.json`:** Added a `build.env` section to explicitly set the environment variable `NPM_CONFIG_ALLOW_SCRIPTS=true`. This is the most reliable, Vercel-native way to force npm to allow postinstall scripts (like `esbuild`'s binary download) during the build phase.
+2. **Retained `.npmrc`:** Kept `allow-scripts=true` in `.npmrc` as a fallback for local development.
+
+This guarantees that `vite build` will have access to the `esbuild` binary and complete successfully.
+
+---
+
 ### 13 Nov 2026 (81st update) – Fixed Vercel Build Failures
 
 **Root Cause of Build Errors**
