@@ -1,5 +1,36 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 76th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | **Revoke the GitHub token pasted in chat.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged; owner verification in RELEASE_CHECKLIST. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 52 | rest | **76th update: RELEASE_CHECKLIST; DoD items moved to owner verification.** |
+
+### 13 Nov 2026 (76th update) – Release checklist
+
+**What was done**
+
+1. **`docs/RELEASE_CHECKLIST.md`:** owner steps for secrets, schema apply, CI green, second-account security re-check, email webhooks, Playwright, promote to `main`. Deferred: separate invitation origin.
+2. **Definition of done:** CI, fresh schema, B8 live isolation, Critical/High second-account checks marked `[~]` with pointer to the checklist (code is ready; needs owner run).
+3. **Longer-term separate origin:** left open, explicitly deferred / non-blocking.
+4. **`.env.local` was not touched.**
+
+**What the owner should do next**
+
+1. Revoke the pasted GitHub token.
+2. Follow `docs/RELEASE_CHECKLIST.md` on the real Supabase + Vercel project.
+3. Confirm GitHub Actions is green for the latest `preview` push.
+4. When the checklist is acceptable, promote `preview` → `main`.
+
+**No further product feature work is queued** in open `[ ]` items (only the deferred separate-origin line).
+
+---
+
 ### Where things stand (13 Nov 2026, 75th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -3168,7 +3199,7 @@ PostgreSQL error `42P13: cannot change return type of existing function` when ap
 - [~] **L-7** `saveEnquiry`: append to `history` server-side instead of overwriting the array. *Coded 12 Nov (13th update): trigger `enquiries_history` in `supabase/migrations/008_enquiry_history.sql` and `schema.sql` appends `{status, at}` with the server time when `status` changes and ignores any client `history`; `saveEnquiry` no longer sends `history`. Tested on local Postgres 16; still to do: run `008` in Supabase and the browser check in the Progress log.*
 - [~] **L-8** Use a server timestamp for `deleted_at`; run the 30-day trash purge as a scheduled job. *Coded 12 Nov (15th update): trigger `invitations_trash_stamp`, `trash_retention()`, `expired_trash_ids()` and `purge_expired_trash()` in `supabase/migrations/009_trash_server_time.sql` and `schema.sql`, daily pg_cron job when the extension exists; the Dashboard purge asks the server instead of the device clock. Tested on local Postgres 16 (19 cases, upgrade and reset paths) and with jsdom (12 checks). Still to do: run `009` in Supabase, enable pg_cron, the browser/dashboard checks in the Progress log. The scheduled job removes rows only; pictures of rows it purges wait for the M-4 orphan job.*
 - [~] **L-9** Live preview: render the compiled document so `<head>`/`<style>` changes show; stop executing template scripts in the editor. *Coded 12 Nov (18th update): the frame starts as an empty shell with only the bridge (`previewShell()`), and every update sends the compiled document; the bridge patches `<head>`, `<body>` and the `<html>` attributes and drops all `<script>` elements. 9 jsdom tests (`previewBridge.test.ts`). Needs the browser check in the 18th update's list.*
-- [ ] Longer term: serve invitations from a separate origin or subdomain.
+- [ ] Longer term: serve invitations from a separate origin or subdomain. Deferred (not blocking release); noted in docs/RELEASE_CHECKLIST.md (76th).
 
 ---
 
@@ -3332,8 +3363,8 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## Definition of done for the release
 
-- [ ] All Critical and High items closed and verified with a second normal account plus the anon key.
+- [~] All Critical and High items closed and verified with a second normal account plus the anon key. Code complete; owner verification steps in docs/RELEASE_CHECKLIST.md (76th).
 - [x] Attack chain from the audit (sign up → edit template → script runs for admin) no longer works at steps 1, 2 and 3. is_admin gate, template RLS, details allow-list, iframe sandbox (C-2). Closed 75th update pending owner browser check.
-- [ ] `npm run typecheck`, `npm run build`, lint and tests all green in CI.
-- [ ] `schema.sql` on a fresh Supabase project produces a fully working app (previews, uploads, slug rules).
-- [ ] Track B checklist (B8) fully green, including a client-versus-client isolation test.
+- [~] `npm run typecheck`, `npm run build`, lint and tests all green in CI. Workflow active at `.github/workflows/ci.yml` (check + db + audit). Owner: confirm latest preview run is green (76th).
+- [~] `schema.sql` on a fresh Supabase project produces a fully working app. Owner applies schema + admins row; steps in docs/RELEASE_CHECKLIST.md (76th).
+- [~] Track B checklist (B8) fully green, including client-versus-client isolation. Local matrix in `npm run test:db`; live re-check on real project in RELEASE_CHECKLIST (76th).
