@@ -1,3 +1,20 @@
+### 13 Nov 2026 (84th update) – Premium UI/UX Overhaul for Client "My" Page
+
+**What was done**
+
+Elevated the client-facing `/my` pages (`ClientApp.tsx`) to match the rich, premium aesthetic of the admin dashboard:
+
+1. **Rich Header & Typography:** Upgraded the `Frame` component with a bolder, more refined header (`24px`, `font-weight: 700`, tight letter-spacing) and a descriptive subtitle for better context.
+2. **Premium Invitation Cards:** Transformed the invitation list in the `Landing` component into rich, interactive cards (`.premium-card`). They now feature subtle drop shadows, smooth hover lift effects (`translateY(-2px)`), and refined status badges with soft pastel backgrounds and matching borders.
+3. **Iconography Integration:** Added contextual icons (`Calendar03Icon`, `Clock01Icon`, `AlertCircleIcon`, `CheckCircle02Icon`) to banners and list items for immediate visual recognition.
+4. **Polished Status Banners:** Redesigned the Pending, Rejected, and Approved banners in `ClientEditor` to be more structured, using flexbox layouts, clearer hierarchy, and softer, more professional color palettes.
+5. **Refined Buttons:** Upgraded `btnPrimary` with a subtle gradient and soft shadow, and refined `btnGhost` and `btnDanger` with smoother transitions and better padding.
+6. **Enhanced Sticky Footer:** Improved the "Submit for Review" sticky footer with a cleaner gradient fade, better spacing, and a more prominent confirmation dialog.
+
+This ensures a seamless, high-quality visual experience for clients, matching the professionalism of the admin interface.
+
+---
+
 ### 13 Nov 2026 (83rd update) – Fixed Vercel Build: Added `allowScripts` to `package.json`
 
 **Root Cause of Persistent Build Failure**
