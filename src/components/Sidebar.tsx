@@ -607,6 +607,19 @@ export default function Sidebar({
           gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--gray-border, #e5e7eb);
           font-size: 14px;
         }
+        /* Own styles: these buttons must look the same on every page (the shared .link-btn / .act-btn only exist in page CSS). */
+        .notif-link {
+          padding: 6px 4px; border: 0; background: none; cursor: pointer;
+          font: inherit; font-size: 13px; font-weight: 700; color: var(--primary);
+        }
+        .notif-link:hover { text-decoration: underline; }
+        .notif-retry {
+          height: 34px; padding: 0 14px; margin-top: 10px; border: 1px solid var(--gray-border, #e5e7eb);
+          border-radius: 12px; background: var(--white, #fff); cursor: pointer;
+          font: inherit; font-size: 13px; font-weight: 600; color: var(--dark, #111);
+        }
+        .notif-retry:hover { background: var(--gray-light, #f2f3f6); border-color: var(--periwinkle, #c5cde9); }
+        .notif-panel :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .notif-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
         .notif-item {
           width: 100%; display: flex; flex-direction: column; gap: 2px;

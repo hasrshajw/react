@@ -65,7 +65,7 @@ export function NotificationPanel({
       <div className="notif-panel-head">
         <b>Notifications</b>
         {unread > 0 && (
-          <button type="button" className="link-btn" onClick={onMarkAllRead}>
+          <button type="button" className="notif-link" onClick={onMarkAllRead}>
             Mark all read
           </button>
         )}
@@ -76,7 +76,7 @@ export function NotificationPanel({
       ) : error && items.length === 0 ? (
         <div className="notif-empty">
           <p>Couldn’t load notifications.</p>
-          <button type="button" className="act-btn" onClick={onRetry}>Retry</button>
+          <button type="button" className="notif-retry" onClick={onRetry}>Retry</button>
         </div>
       ) : items.length === 0 ? (
         <p className="notif-empty">No notifications yet.</p>
