@@ -15,11 +15,12 @@ export function ErrorState({ onRetry }: { onRetry: () => void }) {
 }
 
 /** M-5: shown above a list that was cut at the read limit, so a missing old invitation is not a mystery. */
-export function LimitNotice() {
+export function LimitNotice({ shown = LIST_LIMIT, onLoadMore, busy = false }: { shown?: number; onLoadMore?: () => void; busy?: boolean }) {
   return (
     <p className="list-limit" role="status">
       <AlertTriangle size={16} />
-      <span>Showing your newest {LIST_LIMIT.toLocaleString("en-IN")} invitations. Older ones are not listed here.</span>
+      <span>Showing your newest {shown.toLocaleString("en-IN")} invitations. Older ones are not listed yet.</span>
+      {onLoadMore && <button type="button" className="list-limit-btn" onClick={onLoadMore} disabled={busy}>{busy ? "Loading…" : "Load more"}</button>}
     </p>
   );
 }

@@ -86,6 +86,15 @@ describe("readAllPages (M-5)", () => {
     await expect(api.readAllPages(async () => ({ data: null, error: { message: "permission denied" } }))).rejects.toThrow("permission denied");
   });
 
+  it("reads up to the limit it is given, so \"Load more\" can ask for more than 10,000 (M-5)", async () => {
+    const { api } = await load(() => ({}));
+    let n = 0;
+    const page = vi.fn(async () => ({ data: rows((n++) * 500, 500), error: null }));
+    const out = await api.readAllPages(page, 20000);
+    expect(out.length).toBe(20000);
+    expect(page).toHaveBeenCalledTimes(40);
+  });
+
   it("stops at 10,000 rows and says so", async () => {
     const { api } = await load(() => ({}));
     let n = 0;
@@ -106,6 +115,19 @@ describe("fetchInvitations", () => {
     const out = await big.api.fetchInvitations();
     expect(out.rows).toHaveLength(10000);
     expect(out.truncated).toBe(true);
+  });
+
+  it("reads past 10,000 rows when a larger limit is given, and is truncated only at that limit (M-5 load more)", async () => {
+    let n = 0;
+    const big = await load(() => { const start = n++ * 500; return { data: Array.from({ length: 500 }, (_, i) => inv(`r${start + i}`)) }; });
+    const out = await big.api.fetchInvitations(12000);
+    expect(out.rows).toHaveLength(12000);
+    expect(out.truncated).toBe(true);
+    let m = 0;
+    const part = await load(() => { const start = m++ * 500; return { data: Array.from({ length: m === 25 ? 100 : 500 }, (_, i) => inv(`q${start + i}`)) }; });
+    const res = await part.api.fetchInvitations(20000);
+    expect(res.rows).toHaveLength(12100);
+    expect(res.truncated).toBe(false);
   });
 
   it("orders by created_at then id, reads by range, and names its columns", async () => {

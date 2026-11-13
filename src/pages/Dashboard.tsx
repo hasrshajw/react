@@ -211,7 +211,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         }
       />
 
-      {store.truncated && <LimitNotice />}
+      {store.truncated && <LimitNotice shown={store.rows.length} onLoadMore={store.loadMore} busy={store.refreshing} />}
 
       <StatCards
         loading={invSkel} enqLoading={enqSkel}

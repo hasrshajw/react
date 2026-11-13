@@ -31,6 +31,8 @@
 
         .list-limit { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--primary-light); color: var(--primary-dark); font-size: 13px; }
         .list-limit svg { flex: none; }
+        .list-limit-btn { margin-left: auto; padding: 4px 12px; border: 1px solid currentColor; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+        .list-limit-btn:disabled { opacity: .6; cursor: default; }
 
         /* ---------- KPI row ---------- */
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }

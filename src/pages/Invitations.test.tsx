@@ -18,7 +18,7 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock("../lib/api", () => ({
-  fetchInvitations: () => h.fetchInvitations(),
+  fetchInvitations: (...a: unknown[]) => h.fetchInvitations(...a),
   savePublished: (m: unknown) => h.savePublished(m),
   saveDeleted: (m: unknown) => h.saveDeleted(m),
   saveInvitation: (...a: unknown[]) => h.saveInvitation(...a),
@@ -123,8 +123,19 @@ describe("loading and empty states", () => {
 describe("list cut at the read limit (M-5)", () => {
   it("shows a note above the list when the list was truncated, and none otherwise", async () => {
     await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
-    expect(text()).toContain("Showing your newest 10,000 invitations");
+    expect(text()).toContain("Showing your newest 3 invitations");
     expect(host.querySelector(".list-limit")).not.toBeNull();
+  });
+
+  it("Load more reads the next 10,000 and the note goes away when nothing older is left", async () => {
+    await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
+    expect(h.fetchInvitations).toHaveBeenLastCalledWith(10000);
+    h.fetchInvitations.mockResolvedValue({ rows: [...ROWS, row("d", "Dev", "Anu")], published: {}, deleted: {}, truncated: false });
+    click(btn("Load more"));
+    await flush(); await flush();
+    expect(h.fetchInvitations).toHaveBeenLastCalledWith(20000);
+    expect(text()).toContain("Dev & Anu");
+    expect(host.querySelector(".list-limit")).toBeNull();
   });
 
   it("has no note for a normal list", async () => {

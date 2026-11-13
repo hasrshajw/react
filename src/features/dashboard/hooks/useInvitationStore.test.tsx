@@ -128,6 +128,37 @@ describe("truncated list (M-5)", () => {
   });
 });
 
+describe("load more (M-5)", () => {
+  it("asks for the next 10,000, keeps the raised limit on refresh, and clears the note when everything is read", async () => {
+    const { h } = await setup(answer([row("a")], {}, {}, true));
+    expect(list).toHaveBeenLastCalledWith(10000);
+    list.mockResolvedValue(answer([row("a"), row("old")], {}, {}, false));
+    await act(async () => { h.result.current.loadMore(); });
+    await flush();
+    expect(list).toHaveBeenLastCalledWith(20000);
+    expect(h.result.current.rows.map((r) => r.id)).toEqual(["a", "old"]);
+    expect(h.result.current.truncated).toBe(false);
+    await act(async () => { h.result.current.load(true); });
+    await flush();
+    expect(list).toHaveBeenLastCalledWith(20000);
+    h.unmount();
+  });
+
+  it("goes back to the old limit and tells the person when the read fails", async () => {
+    const { h, notify } = await setup(answer([row("a")], {}, {}, true));
+    list.mockRejectedValueOnce(new Error("x"));
+    await act(async () => { h.result.current.loadMore(); });
+    await flush();
+    expect(notify).toHaveBeenCalledWith("Couldn’t load more invitations.");
+    expect(h.result.current.rows.map((r) => r.id)).toEqual(["a"]);
+    list.mockResolvedValue(answer([row("a")], {}, {}, true));
+    await act(async () => { h.result.current.load(true); });
+    await flush();
+    expect(list).toHaveBeenLastCalledWith(10000);
+    h.unmount();
+  });
+});
+
 describe("publish / draft (H-6)", () => {
   it("toggles at once, saves the whole map, and offers undo", async () => {
     const { h, notify } = await setup();

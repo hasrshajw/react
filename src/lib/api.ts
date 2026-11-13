@@ -84,22 +84,22 @@ function chunks<T>(list: T[]): T[][] {
    Every ordered read adds `id` as a tie-break so two rows with the same `created_at` never swap places between pages,
    and rows that arrive twice (something was inserted while paging) are dropped by id. */
 const PAGE_SIZE = 500;
-/* Hard stop so a runaway table cannot freeze the browser. Reaching it is logged and the list says so on screen (`truncated`); real UI pagination (load more) is still open in M-5. */
+/* Hard stop so a runaway table cannot freeze the browser. Reaching it is logged and the list says so on screen (`truncated`); the "Load more" button raises the limit by `LIST_LIMIT` at a time (`fetchInvitations(limit)`). */
 const MAX_ROWS = LIST_LIMIT;
 /** A raw database row: column names are known, values are checked where they are used. */
 type DbRow = Record<string, unknown>;
 type PageResult = { data: DbRow[] | null; error: { message: string } | null };
-export async function readAllPages(page: (from: number, to: number) => PromiseLike<PageResult>): Promise<DbRow[]> {
+export async function readAllPages(page: (from: number, to: number) => PromiseLike<PageResult>, maxRows: number = MAX_ROWS): Promise<DbRow[]> {
   const seen = new Set<string>();
   const out: DbRow[] = [];
-  for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
+  for (let from = 0; from < maxRows; from += PAGE_SIZE) {
     const { data, error } = await page(from, from + PAGE_SIZE - 1);
     if (error) fail(error);
     const got = data ?? [];
     for (const r of got) { const key = String(r.id); if (!seen.has(key)) { seen.add(key); out.push(r); } }
     if (got.length < PAGE_SIZE) return out;
   }
-  console.warn(`List stopped at ${MAX_ROWS} rows.`);
+  console.warn(`List stopped at ${maxRows} rows.`);
   return out;
 }
 
@@ -117,10 +117,10 @@ function splitRow(r: DbRow): { row: InvitationRow; published: boolean; deletedAt
 }
 
 /** Reads run after any flag writes that were already sent, so the list always includes them (H-6). */
-export function fetchInvitations(): Promise<InvitationList> {
+export function fetchInvitations(limit: number = LIST_LIMIT): Promise<InvitationList> {
   return inOrder(async () => {
     const data = await readAllPages((from, to) => db().from("invitations").select(INVITATION_COLUMNS)
-      .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to));
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to), limit);
     const rows: InvitationRow[] = [];
     const published: PublishMap = {};
     const deleted: DeletedMap = {};
@@ -132,7 +132,7 @@ export function fetchInvitations(): Promise<InvitationList> {
     }
     knownPub = { ...published };
     knownDel = { ...deleted };
-    return { rows, published, deleted, truncated: rows.length >= LIST_LIMIT };
+    return { rows, published, deleted, truncated: rows.length >= limit };
   });
 }
 

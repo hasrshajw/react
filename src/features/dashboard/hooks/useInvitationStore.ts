@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LIST_LIMIT } from "../../../lib/listLimit";
 import { deleteInvitation, fetchExpiredTrashIds, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
 import {
   DAY, TRASH_DAYS, isPast,
@@ -68,6 +69,8 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   const [now, setNow] = useState(() => Date.now());
   const alive = useRef(true);
   const loadedRef = useRef(false);
+  /* How many rows a read may fetch. "Load more" raises it by LIST_LIMIT; refreshes keep using the raised value (M-5). */
+  const limitRef = useRef(LIST_LIMIT);
   const loading = busy && lastUpdated === null;
   const refreshing = busy && lastUpdated !== null;
 
@@ -86,7 +89,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
     setError(false);
     const pubSince = pubVersion();
     const delSince = delVersion();
-    fetchInvitations().then(
+    fetchInvitations(limitRef.current).then(
       (res) => {
         if (!alive.current) return;
         setRows(res.rows);
@@ -110,8 +113,20 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   }, [notify, resetPub, resetDeleted, adoptPub, adoptDeleted, pubVersion, delVersion]);
   loadRef.current = load;
   const reload = useCallback(() => {
-    fetchInvitations().then((res) => { if (alive.current) { setRows(res.rows); setTruncated(!!res.truncated); } }, () => notify("Couldn’t refresh the list."));
+    fetchInvitations(limitRef.current).then((res) => { if (alive.current) { setRows(res.rows); setTruncated(!!res.truncated); } }, () => notify("Couldn’t refresh the list."));
   }, [notify]);
+
+  /* "Load more": read another LIST_LIMIT older invitations. The raised limit is undone if the read fails. */
+  const loadMore = useCallback(() => {
+    if (busy) return;
+    const before = limitRef.current;
+    limitRef.current = before + LIST_LIMIT;
+    setBusy(true);
+    fetchInvitations(limitRef.current).then(
+      (res) => { if (!alive.current) return; setRows(res.rows); setTruncated(!!res.truncated); adoptPub(res.published, pubVersion()); adoptDeleted(res.deleted, delVersion()); setBusy(false); },
+      () => { limitRef.current = before; if (!alive.current) return; notify("Couldn’t load more invitations."); setBusy(false); },
+    );
+  }, [busy, notify, adoptPub, adoptDeleted, pubVersion, delVersion]);
 
   useEffect(() => {
     alive.current = true;
@@ -175,7 +190,7 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   }, [rows, purgeExpired]);
 
   return {
-    rows, truncated, loading, refreshing, error, lastUpdated, now, load, reload,
+    rows, truncated, loadMore, loading, refreshing, error, lastUpdated, now, load, reload,
     pub, pubRef, isPub, commitPub, writePub, togglePublish,
     deleted, delRef, writeDeleted, restoreInvitation, moveToTrash,
     visible, trashed,

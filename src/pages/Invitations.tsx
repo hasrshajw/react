@@ -221,7 +221,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
         onRefresh={() => store.load()}
       />
 
-      {store.truncated && <LimitNotice />}
+      {store.truncated && <LimitNotice shown={store.rows.length} onLoadMore={store.loadMore} busy={store.refreshing} />}
 
       {/* ---------- status tabs ---------- */}
       <div className="inv-tabbar">
