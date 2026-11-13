@@ -89,7 +89,10 @@ describe("ClientApp landing", () => {
 
   it("a failed load shows a message and no list; unknown paths go to /my", async () => {
     get.mockRejectedValue(new Error("x"));
-    expect((await open("/my")).querySelector("[role=alert]")).not.toBeNull();
+    const failed = await open("/my");
+    expect(failed.querySelector("[role=alert]")).not.toBeNull();
+    expect([...failed.querySelectorAll("button")].some((b) => b.textContent === "Try again")).toBe(true);
+    expect(failed.querySelector("h1")?.textContent).toBe("Your invitations");
     get.mockResolvedValue([]);
     expect((await open("/my/a/b/c")).textContent).toContain("No invitations to show");
   });

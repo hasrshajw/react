@@ -4,9 +4,9 @@ import { AlertCircle, Save, X } from "../../../components/Icons";
 
 /* Shown when the user tries to open another page with unsaved changes.
    Save    -> saves, then continues to the page they chose.
-   Cancel  -> continues without saving; the local draft is kept, so the
+   Leave without saving -> continues without saving; the local draft is kept, so the
               "Restore them?" card shows up when they come back.
-   X / Esc -> stays on this page and keeps editing. */
+   Keep editing / X / Esc -> stays on this page and keeps editing. */
 export function LeaveModal({ onSave, onCancel, onStay }: { onSave: () => void; onCancel: () => void; onStay: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const stayRef = useRef<() => void>(onStay);
@@ -32,10 +32,11 @@ export function LeaveModal({ onSave, onCancel, onStay }: { onSave: () => void; o
         <button type="button" className="cx-close" aria-label="Keep editing" onClick={onStay}><X size={17} /></button>
         <div className="cx-ok warn"><AlertCircle size={30} /></div>
         <h3 id="lv-title">Save your changes?</h3>
-        <p id="lv-desc">You have unsaved changes on this invitation. Save them before you leave, or cancel and we'll keep a draft you can restore when you come back.</p>
+        <p id="lv-desc">You have unsaved changes on this invitation. Save them before you leave, or leave without saving and we’ll keep a draft you can restore when you come back.</p>
         <div className="cx-grid lv-actions">
-          <button type="button" className="secondary" onClick={onCancel}>Cancel</button>
           <button type="button" className="primary" data-autofocus onClick={onSave}><Save size={16} /> Save</button>
+          <button type="button" className="secondary" onClick={onStay}>Keep editing</button>
+          <button type="button" className="secondary" onClick={onCancel}>Leave without saving</button>
         </div>
       </div>
     </div>,

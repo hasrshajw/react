@@ -1,4 +1,4 @@
-.login { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); font-family: "DM Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--dark); background: #101011; }
+.login { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); font-family: "DM Sans", "Noto Sans Telugu", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--dark); background: #101011; }
 .login *, .login *::before, .login *::after { box-sizing: border-box; }
 .login :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
@@ -46,7 +46,7 @@
 .lc-input.bad { border-color: var(--danger-dark); }
 .lc-input.bad:focus-within { box-shadow: 0 0 0 3px var(--danger-light); }
 .lc-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: 14.5px; color: var(--dark); }
-.lc-input input::placeholder { color: #9a9cab; }
+.lc-input input::placeholder { color: #6d7081; }
 .lc-eye { width: 32px; height: 32px; margin-right: -6px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--gray); cursor: pointer; }
 .lc-eye:hover { background: var(--gray-light); color: var(--dark); }
 .lc-err { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--danger-dark); }

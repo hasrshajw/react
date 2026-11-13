@@ -20,7 +20,7 @@ export default function Login() {
   const { session, signInGoogle, signInEmail, signUpEmail, logout } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
-  const state = loc.state as { from?: string; loggedOut?: boolean } | null;
+  const state = loc.state as { from?: string; loggedOut?: boolean; mode?: "signup" } | null;
   const loggedOut = !!state?.loggedOut;
   /* M-7: the page we came from, kept through the Google redirect (read once; see lib/auth.ts). */
   const [returnTo] = useState(takeLoginTarget);
@@ -32,7 +32,7 @@ export default function Login() {
   const [busy, setBusy] = useState<Busy>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(state?.mode === "signup" ? "signup" : "signin");
   const [signedUpNotice, setSignedUpNotice] = useState(false);
   const isSignUp = mode === "signup";
   const [resetSent, setResetSent] = useState(false);
@@ -57,7 +57,7 @@ export default function Login() {
 
   useEffect(() => {
     const prev = document.title;
-    document.title = "Sign in · Schedy Admin";
+    document.title = "Sign in · Schedy";
     return () => { document.title = prev; };
   }, []);
 
@@ -133,7 +133,7 @@ export default function Login() {
       <aside className="login-brand" aria-hidden="true">
         <div className="lb-top">
           <span className="lb-mark"><img src={schedyMark} alt="" /></span>
-          Schedy Admin
+          Schedy
         </div>
         <div className="lb-copy">
           <h2>Invitations your guests will remember.</h2>
@@ -144,14 +144,14 @@ export default function Login() {
             ))}
           </ul>
         </div>
-        <div className="lb-foot">Schedy Admin</div>
+        <div className="lb-foot">Schedy</div>
       </aside>
 
       <main className="login-main">
         <div className="login-card">
           <div className="lc-brand">
             <span className="lb-mark"><img src={schedyMark} alt="" /></span>
-            Schedy Admin
+            Schedy
           </div>
           <h1>{isSignUp ? "Create your account" : "Welcome back"}</h1>
           <p className="lc-sub">{isSignUp ? "Sign up with the email your invitation was set up with to view and update it." : "Sign in to manage your invitations."}</p>
@@ -234,14 +234,25 @@ export default function Login() {
 function NewPasswordForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
+  const [show, setShow] = useState(false);
+  const [errs, setErrs] = useState<{ pw?: string; pw2?: string }>({});
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const pwRef = useRef<HTMLInputElement>(null);
+  const pw2Ref = useRef<HTMLInputElement>(null);
+  useEffect(() => { pwRef.current?.focus(); }, []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    if (pw !== pw2) { setErr("The two passwords don’t match."); return; }
-    setErr(""); setBusy(true);
+    const next: { pw?: string; pw2?: string } = {};
+    if (!pw) next.pw = "Choose a new password.";
+    else if (pw.length < MIN_PASSWORD) next.pw = `Use at least ${MIN_PASSWORD} characters.`;
+    if (!next.pw && pw !== pw2) next.pw2 = "The two passwords don’t match.";
+    setErrs(next); setErr("");
+    if (next.pw) { pwRef.current?.focus(); return; }
+    if (next.pw2) { pw2Ref.current?.focus(); return; }
+    setBusy(true);
     try { await setNewPassword(pw); onDone(); }
     catch (x) { setErr(x instanceof AuthError ? x.message : "Something went wrong. Please try again."); setBusy(false); }
   };
@@ -251,15 +262,24 @@ function NewPasswordForm({ onDone, onCancel }: { onDone: () => void; onCancel: (
       <p className="lc-hint" role="status">Choose a new password for your account (at least {MIN_PASSWORD} characters).</p>
       <div className="lc-field">
         <label className="lc-label" htmlFor="new-password">New password</label>
-        <div className="lc-input"><Lock size={18} />
-          <input id="new-password" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} disabled={busy} />
+        <div className={`lc-input${errs.pw ? " bad" : ""}`}><Lock size={18} />
+          <input ref={pwRef} id="new-password" type={show ? "text" : "password"} autoComplete="new-password" value={pw}
+            onChange={(e) => { setPw(e.target.value); if (errs.pw) setErrs((x) => ({ ...x, pw: undefined })); }}
+            disabled={busy} aria-invalid={!!errs.pw} aria-describedby={errs.pw ? "new-password-err" : undefined} />
+          <button type="button" className="lc-eye" onClick={() => setShow((v) => !v)} aria-label={show ? "Hide passwords" : "Show passwords"} aria-pressed={show}>
+            {show ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
         </div>
+        {errs.pw && <p className="lc-err" id="new-password-err" role="alert">{errs.pw}</p>}
       </div>
       <div className="lc-field">
         <label className="lc-label" htmlFor="new-password-2">Repeat the new password</label>
-        <div className="lc-input"><Lock size={18} />
-          <input id="new-password-2" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} disabled={busy} />
+        <div className={`lc-input${errs.pw2 ? " bad" : ""}`}><Lock size={18} />
+          <input ref={pw2Ref} id="new-password-2" type={show ? "text" : "password"} autoComplete="new-password" value={pw2}
+            onChange={(e) => { setPw2(e.target.value); if (errs.pw2) setErrs((x) => ({ ...x, pw2: undefined })); }}
+            disabled={busy} aria-invalid={!!errs.pw2} aria-describedby={errs.pw2 ? "new-password-2-err" : undefined} />
         </div>
+        {errs.pw2 && <p className="lc-err" id="new-password-2-err" role="alert">{errs.pw2}</p>}
       </div>
       {err && <p className="lc-alert" role="alert"><AlertCircle size={16} /> {err}</p>}
       <button type="submit" className={`lc-btn lc-submit${busy ? " is-busy" : ""}`} disabled={busy} aria-busy={busy}>

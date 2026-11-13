@@ -145,7 +145,7 @@ export default function Templates() {
         .tpl-thumb:hover .tpl-eye, .tpl-thumb:focus-visible .tpl-eye { opacity: 1; transform: translate(-50%, 0); }
         .tpl-info { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .tpl-info b { font-size: 14.5px; font-weight: 700; }
-        .tpl-badge { padding: 3px 10px; border-radius: 999px; background: var(--primary-light, #ebe4ff); color: var(--primary, #673de6); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+        .tpl-badge { padding: 3px 10px; border-radius: 999px; background: var(--primary-light, #ebe4ff); color: var(--primary, #673de6); font-size: 12px; font-weight: 700; white-space: nowrap; }
         .tpl-use { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 40px; border-radius: 12px; background: var(--btn, #673de6); color: #fff; font-size: 13.5px; font-weight: 700; text-decoration: none; box-shadow: none; transition: background .2s; }
         .tpl-use:hover { background: var(--btn-hover, #471ea7); }
         .tpl-use.big { height: 46px; width: 100%; }

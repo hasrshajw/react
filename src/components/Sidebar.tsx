@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, MailPlus, Mails, LayoutTemplate, Palette, Image as ImageIcon, LayoutGrid,
-  PanelTop, Layers, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus, Inbox,
+  LayoutDashboard, MailPlus, Mails, LayoutTemplate, ChevronRight, ChevronLeft, ChevronDown, ExternalLink, ArrowUpRight, Search, Bell, Plus, Inbox,
 } from "./Icons";
 import type { IconComponent } from "./Icons";
 import { SkText } from "./Skeleton";
@@ -27,13 +26,6 @@ const menuItems = [
   { name: "Manage Templates", path: "/templates", Icon: LayoutTemplate },
 ];
 
-const submenuItems = [
-  { name: "Hero Section", path: "/customize/hero-section", Icon: ImageIcon },
-  { name: "Sections", path: "/customize/sections", Icon: LayoutGrid },
-  { name: "Popup", path: "/customize/popup", Icon: PanelTop },
-  { name: "Combo Offer", path: "/customize/combo", Icon: Layers },
-];
-
 /* Breadcrumb comes from the route instead of being hardcoded */
 const CRUMBS: Record<string, string[]> = {
   "/dashboard": ["Dashboard", "Overview"],
@@ -41,10 +33,6 @@ const CRUMBS: Record<string, string[]> = {
   "/invitations": ["Manage", "All invitations"],
   "/reviews": ["Manage", "Review queue"],
   "/templates": ["Manage", "Templates"],
-  "/customize/hero-section": ["Customize site", "Hero section"],
-  "/customize/sections": ["Customize site", "Sections"],
-  "/customize/popup": ["Customize site", "Popup"],
-  "/customize/combo": ["Customize site", "Combo offer"],
 };
 
 function getCrumbs(pathname: string): string[] {
@@ -59,28 +47,6 @@ function MenuIcon({ Icon, size = 20 }: { Icon: IconComponent; size?: number }) {
     <span className="menu-icon" aria-hidden="true">
       <Icon size={size} strokeWidth={1.8} />
     </span>
-  );
-}
-
-/* Always rendered so it can animate; hidden links are not focusable */
-function Submenu({ id, open, onNavigate }: { id: string; open: boolean; onNavigate: () => void }) {
-  return (
-    <div id={id} className={`nav-submenu ${open ? "open" : ""}`}>
-      <div className="nav-submenu-inner">
-        {submenuItems.map(({ name, path, Icon }, i) => (
-          <NavLink
-            key={path}
-            to={path}
-            style={{ "--i": i }}
-            onClick={onNavigate}
-            className={({ isActive }) => `nav-submenu-item${isActive ? " active" : ""}`}
-          >
-            <MenuIcon Icon={Icon} size={18} />
-            <span>{name}</span>
-          </NavLink>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -122,29 +88,21 @@ export default function Sidebar({
   const { pathname } = useLocation();
   const { loading: accountLoading, user } = useAccount();
   const initial = (user?.name?.trim()[0] ?? "A").toUpperCase();
-  const customizeActive = pathname.startsWith("/customize");
   const notifs = useAdminNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
 
-  const [siteOpen, setSiteOpen] = useState(customizeActive);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const showBellDot = notifs.unread > 0 || enquiryCount > 0;
 
   const overlayMode = panelOpen;
 
-  /* Landing on (or reloading) a /customize page opens its group */
-  useEffect(() => {
-    if (customizeActive) setSiteOpen(true);
-  }, [customizeActive]);
-
   /* ---- Hover "peek" ------------------------------------------------
      Hovering the collapsed sidebar opens it (pushing the content aside, or
      floating over it when the preview panel is open). A short delay on
-     enter/leave stops flicker, and the Customize submenu only opens on click. */
+     enter/leave stops flicker,. */
   const [peek, setPeek] = useState(false);
-  const [siteTouched, setSiteTouched] = useState(false);
   const peekTimer = useRef<Timer>(undefined);
 
   const baseExpanded = overlayMode ? overlayOpen : !collapsed;
@@ -155,7 +113,6 @@ export default function Sidebar({
   const floating = isExpanded && overlayMode;
   const narrowLayout = overlayMode || (collapsed && !peeking);
   const sidebarOpen = baseExpanded;
-  const submenuOpen = siteOpen && (!peeking || siteTouched);
 
   const handlePointerEnter = (e: PointerEvent<HTMLElement>) => {
     if (e.pointerType && e.pointerType !== "mouse") return; // touch: tap, don't peek
@@ -192,7 +149,7 @@ export default function Sidebar({
     setPill((p) => (p && p.x === next.x && p.y === next.y && p.w === next.w && p.h === next.h && p.sub === next.sub ? p : next));
   }, []);
 
-  useLayoutEffect(() => { measurePill(); }, [pathname, isExpanded, submenuOpen, measurePill]);
+  useLayoutEffect(() => { measurePill(); }, [pathname, isExpanded, measurePill]);
   useEffect(() => {
     const nav = navRef.current;
     if (!nav || typeof ResizeObserver === "undefined") return;
@@ -260,17 +217,6 @@ export default function Sidebar({
       return;
     }
     setCollapsed(!collapsed);
-  };
-
-  const handleCustomizeClick = () => {
-    setSiteTouched(true);
-    if (!isExpanded) {
-      if (overlayMode) setOverlayOpen(true);
-      else setCollapsed(false);
-      setTimeout(() => setSiteOpen(true), 300);
-      return;
-    }
-    setSiteOpen(!submenuOpen);
   };
 
   const closeMobileDrawer = () => setMobileOpen(false);
@@ -376,11 +322,11 @@ export default function Sidebar({
         <div className="d-sidebar-header">
           {isExpanded ? (
             <NavLink to="/dashboard" className="brand-logo" onClick={closeOverlay}>
-              <img src={logo} alt="Logo" />
+              <img src={logo} alt="Schedy" />
             </NavLink>
           ) : (
             <span className="mini-logo">
-              <img src={logoSmall} alt="Logo" />
+              <img src={logoSmall} alt="Schedy" />
             </span>
           )}
         </div>
@@ -421,24 +367,6 @@ export default function Sidebar({
               </NavLink>
             ))}
 
-            <div className="nav-section-label">Storefront</div>
-
-            <button
-              type="button"
-              className={`nav-item${submenuOpen && isExpanded ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
-              style={{ "--i": menuItems.length }}
-              onClick={handleCustomizeClick}
-              aria-label={isExpanded ? undefined : "Customize Site"}
-              aria-expanded={isExpanded && submenuOpen}
-              aria-controls="site-submenu"
-            >
-              <MenuIcon Icon={Palette} />
-              <span className="nav-label">Customize Site</span>
-              {isExpanded && <ChevronRight className="nav-chevron" size={16} strokeWidth={2} />}
-            </button>
-
-            {isExpanded && <Submenu id="site-submenu" open={submenuOpen} onNavigate={closeOverlay} />}
-
             {/* Sliding active highlight (desktop only) */}
             <span
               className={`nav-pill${pill ? " show" : ""}${pillAnim ? " anim" : ""}${pill?.sub ? " sub" : ""}`}
@@ -453,7 +381,7 @@ export default function Sidebar({
               <MenuIcon Icon={ExternalLink} size={18} />
               <span className="nav-label" style={{ "--i": menuItems.length + 1 }}>View live site</span>
               <ArrowUpRight className="live-arrow" size={16} strokeWidth={2} aria-hidden="true" />
-              <span className="live-dot" aria-label="Store is live" title="Store is live" />
+              <span className="live-dot" aria-label="Site is live" title="Site is live" />
             </a>
             <div className="powered">Powered by Schedy</div>
           </div>
@@ -469,7 +397,7 @@ export default function Sidebar({
         </button>
 
         <NavLink to="/dashboard" className="mobile-brand-logo">
-          <img src={logo} alt="Logo" />
+          <img src={logo} alt="Schedy" />
         </NavLink>
 
         <button
@@ -495,7 +423,7 @@ export default function Sidebar({
         <div className="m-drawer">
           <div className="m-drawer-header">
             <NavLink to="/dashboard" className="brand-logo" onClick={closeMobileDrawer}>
-              <img src={logo} alt="Logo" />
+              <img src={logo} alt="Schedy" />
             </NavLink>
             <button className="m-drawer-close" onClick={closeMobileDrawer} aria-label="Close menu">
               <div className="m-drawer-close-icon" />
@@ -521,22 +449,6 @@ export default function Sidebar({
                 )}
               </NavLink>
             ))}
-
-            <div className="nav-section-label">Storefront</div>
-
-            <button
-              type="button"
-              className={`nav-item${siteOpen ? " dropdown-open" : ""}${customizeActive ? " active" : ""}`}
-              onClick={() => setSiteOpen(!siteOpen)}
-              aria-expanded={siteOpen}
-              aria-controls="m-site-submenu"
-            >
-              <MenuIcon Icon={Palette} />
-              <span className="nav-label">Customize Site</span>
-              <ChevronRight className="nav-chevron" size={16} strokeWidth={2} />
-            </button>
-
-            <Submenu id="m-site-submenu" open={siteOpen} onNavigate={closeMobileDrawer} />
           </nav>
 
           <div className="m-account-section">
@@ -581,7 +493,7 @@ export default function Sidebar({
         }
 
         .d-sidebar, .top-navbar, .m-header, .m-drawer {
-          font-family: "DM Sans", Roboto, sans-serif;
+          font-family: "DM Sans", "Noto Sans Telugu", Roboto, sans-serif;
           font-weight: 500;
           color: var(--text-color);
         }
@@ -648,7 +560,7 @@ export default function Sidebar({
         }
         .nav-search:hover { color: var(--text-color); border-color: var(--gray); }
         .nav-search kbd {
-          font: inherit; font-size: 11px; padding: 2px 6px; border-radius: 6px;
+          font: inherit; font-size: 12px; padding: 2px 6px; border-radius: 6px;
           background: var(--white); border: 1px solid var(--border-subtle);
         }
 
@@ -711,7 +623,7 @@ export default function Sidebar({
           width: 7px; height: 7px; border-radius: 50%; background: #fb4778; flex-shrink: 0;
         }
         .notif-item-body { font-size: 12.5px; color: var(--gray-dark, #4b5563); line-height: 1.35; }
-        .notif-item-time { font-size: 11.5px; color: var(--gray, #9ca3af); }
+        .notif-item-time { font-size: 12px; color: var(--gray, #9ca3af); }
         .notif-empty {
           margin: 0; padding: 28px 16px; text-align: center; color: var(--gray, #9ca3af); font-size: 13px;
         }
@@ -722,7 +634,7 @@ export default function Sidebar({
           display: inline-grid; place-items: center;
           border-radius: 999px; background: var(--warning-light, #fef3c7);
           color: var(--dx-warn-text, #9a6700);
-          font-size: 11px; font-style: normal; font-weight: 700;
+          font-size: 12px; font-style: normal; font-weight: 700;
         }
         .sidebar.collapsed .nav-item .nav-count { display: none; }
 
@@ -744,7 +656,7 @@ export default function Sidebar({
         }
         .navbar-user-info { display: flex; flex-direction: column; gap: 2px; line-height: 1.1; }
         .navbar-user-name { font-size: 13px; font-weight: 700; }
-        .navbar-user-role { font-size: 11px; color: var(--text-sub, var(--gray)); }
+        .navbar-user-role { font-size: 12px; color: var(--text-sub, var(--gray)); }
         .navbar-user-chevron { color: var(--icon-color); flex-shrink: 0;}
         .navbar-user[aria-expanded="true"] .navbar-user-chevron { transform: rotate(180deg); }
 
@@ -810,7 +722,7 @@ export default function Sidebar({
         /* Group labels: caps-style, collapse into a hairline (height/padding animate) */
         .nav-section-label {
           height: 38px; padding: 18px 18px 0;
-          font-size: 11px; font-weight: 600;
+          font-size: 12px; font-weight: 600;
           letter-spacing: .06em; text-transform: uppercase;
           color: var(--gray); white-space: nowrap; overflow: hidden;
           transition: height .45s var(--spring), padding .45s var(--spring), margin .45s var(--spring), background .3s, color .2s;
@@ -1003,7 +915,7 @@ export default function Sidebar({
         .d-sidebar.collapsed .live-site:hover .live-dot { opacity: 1; }
         .d-sidebar.collapsed .live-arrow { display: none; }
 
-        .powered { margin-top: 12px; text-align: center; font-size: 11px; letter-spacing: .02em; color: var(--gray); }
+        .powered { margin-top: 12px; text-align: center; font-size: 12px; letter-spacing: .02em; color: var(--gray); }
         .d-sidebar.collapsed .powered { display: none; }
 
         /* ---------- ACCOUNT (mobile drawer) ---------- */

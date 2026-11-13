@@ -23,9 +23,9 @@ import { useBeforeUnload, useSaveShortcut } from "../features/create/hooks/useUn
 import { scrollToSection } from "../features/create/scroll";
 import { useAuth } from "../hooks/useAuth";
 
-const copyText = async (text: string) => {
-  try { await navigator.clipboard.writeText(text); }
-  catch { window.prompt("Copy", text); }
+const copyText = async (text: string): Promise<boolean> => {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch { return false; }
 };
 
 type Draft = { data: InvitationData; at: number };
@@ -281,7 +281,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     scrollToSection("template");
   };
 
-  const copyShareLink = async () => { if (share) { await copyText(getLink(share.id)); notify("Link copied"); } };
+  const copyShareLink = async () => { if (share) { const ok = await copyText(getLink(share.id)); notify(ok ? "Link copied" : "Couldn’t copy automatically. Select the link and copy it manually.", ok ? "ok" : "error"); } };
   const shareWhatsApp = () => {
     if (!share) return;
     const text = `You are invited! ${coupleName}\n${getLink(share.id)}`;

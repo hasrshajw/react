@@ -7,24 +7,24 @@ beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); });
 
 describe("useNotify (dashboard toast)", () => {
-  it("shows a message for 2.2 s, then clears it", async () => {
+  it("shows a message for 4 s, then clears it", async () => {
     const h = renderHook(() => useNotify());
     expect(h.result.current.toast).toBeNull();
     act(() => h.result.current.notify("Saved"));
     expect(h.result.current.toast).toEqual({ msg: "Saved", undo: undefined });
-    await advance(2199);
+    await advance(3999);
     expect(h.result.current.toast?.msg).toBe("Saved");
     await advance(1);
     expect(h.result.current.toast).toBeNull();
     h.unmount();
   });
 
-  it("an undoable message stays 6 s and keeps its undo function", async () => {
+  it("an undoable message stays 8 s and keeps its undo function", async () => {
     const undo = vi.fn();
     const h = renderHook(() => useNotify());
     act(() => h.result.current.notify("Deleted", undo));
     expect(h.result.current.toast?.undo).toBe(undo);
-    await advance(5999);
+    await advance(7999);
     expect(h.result.current.toast).not.toBeNull();
     await advance(1);
     expect(h.result.current.toast).toBeNull();
@@ -34,11 +34,11 @@ describe("useNotify (dashboard toast)", () => {
   it("a newer message replaces the older one and restarts the timer", async () => {
     const h = renderHook(() => useNotify());
     act(() => h.result.current.notify("first"));
-    await advance(2000);
+    await advance(3000);
     act(() => h.result.current.notify("second"));
-    await advance(2000); // the first message's timer would have fired by now
+    await advance(3000); // the first message's timer would have fired by now
     expect(h.result.current.toast?.msg).toBe("second");
-    await advance(200);
+    await advance(1000);
     expect(h.result.current.toast).toBeNull();
     h.unmount();
   });

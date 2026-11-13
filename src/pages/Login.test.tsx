@@ -361,8 +361,8 @@ describe("Login: set a new password after the reset email (M-7)", () => {
   it("shows the server's message (an AuthError) or a generic one, and allows another try", async () => {
     h.setNewPassword.mockRejectedValueOnce(new AuthError("Password should be at least 6 characters."));
     show();
-    typeInto(input("new-password"), "abc");
-    typeInto(input("new-password-2"), "abc");
+    typeInto(input("new-password"), "secret123");
+    typeInto(input("new-password-2"), "secret123");
     submit(); await flush();
     expect(host.querySelector('[role="alert"]')?.textContent).toContain("Password should be at least 6 characters.");
     expect(btn("Save new password").disabled).toBe(false);
@@ -371,6 +371,29 @@ describe("Login: set a new password after the reset email (M-7)", () => {
     const alert = host.querySelector('[role="alert"]')!.textContent!;
     expect(alert).toContain(GENERIC);
     expect(alert).not.toContain("boom");
+  });
+
+  it("checks the length and the match on the page, before asking the server", async () => {
+    show();
+    typeInto(input("new-password"), "abc");
+    typeInto(input("new-password-2"), "abc");
+    submit(); await flush();
+    expect(host.textContent).toContain("Use at least");
+    expect(input("new-password").getAttribute("aria-invalid")).toBe("true");
+    typeInto(input("new-password"), "secret123");
+    typeInto(input("new-password-2"), "secret124");
+    submit(); await flush();
+    expect(host.textContent).toContain("don’t match");
+    expect(input("new-password-2").getAttribute("aria-invalid")).toBe("true");
+    expect(h.setNewPassword).not.toHaveBeenCalled();
+  });
+
+  it("starts with the cursor in the first password field and can reveal both", () => {
+    show();
+    expect(document.activeElement).toBe(input("new-password"));
+    click(host.querySelector('button[aria-label="Show passwords"]') as HTMLButtonElement);
+    expect(input("new-password").type).toBe("text");
+    expect(input("new-password-2").type).toBe("text");
   });
 
   it("\"Back to sign in\" returns to the sign-in form", () => {
@@ -461,7 +484,7 @@ describe("Login: already signed in, and page details", () => {
 
   it("sets the tab title and puts the old one back", () => {
     show();
-    expect(document.title).toBe("Sign in · Schedy Admin");
+    expect(document.title).toBe("Sign in · Schedy");
     act(() => root.unmount()); root = createRoot(host);
     expect(document.title).toBe("Before");
   });

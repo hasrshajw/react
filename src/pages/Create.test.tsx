@@ -396,13 +396,13 @@ describe("Create page: leaving with unsaved changes", () => {
     expect(q("groom").textContent).toBe("Ravi");
   });
 
-  it("Cancel leaves without saving and keeps a draft so the Restore card can appear later", async () => {
+  it("Leave without saving leaves without saving and keeps a draft so the Restore card can appear later", async () => {
     show();
     await flush();
     click(q("type-groom"));
     go("/other");
     await flush();
-    click([...document.body.querySelectorAll(".lv-actions button")].find((b) => b.textContent === "Cancel") ?? null);
+    click([...document.body.querySelectorAll(".lv-actions button")].find((b) => b.textContent === "Leave without saving") ?? null);
     await flush();
     expect(router.state.location.pathname).toBe("/other");
     expect(saveInvitation).not.toHaveBeenCalled();

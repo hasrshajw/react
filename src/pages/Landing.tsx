@@ -1,15 +1,16 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Languages, Link2, Eye, Pencil } from "../components/Icons";
 import schedyMark from "../assets/schedy-mark.svg";
 import landingCss from "../features/landing/landing.css?inline";
 import { getSession } from "../lib/session";
 import { preloadAdmin, preloadLogin } from "../lib/preload";
 
 const FEATURES = [
-  { icon: "A", title: "English and తెలుగు", text: "Write your invitation in English or Telugu. Names and details are transliterated for you." },
-  { icon: "↗", title: "Share as a simple link", text: "Every invitation gets its own short link. Send it by link, WhatsApp or QR code." },
-  { icon: "◎", title: "Your own link preview", text: "Choose the title, text and picture guests see when the link is shared on WhatsApp or Instagram." },
-  { icon: "✎", title: "Live preview", text: "See the invitation change as you type, then publish when it looks right." },
+  { Icon: Languages, title: "English and తెలుగు", text: "Write your invitation in English or Telugu. Names and details are transliterated for you." },
+  { Icon: Link2, title: "Share as a simple link", text: "Every invitation gets its own short link. Send it by link, WhatsApp or QR code." },
+  { Icon: Eye, title: "Your own link preview", text: "Choose the title, text and picture guests see when the link is shared on WhatsApp or Instagram." },
+  { Icon: Pencil, title: "Live preview", text: "See the invitation change as you type, then publish when it looks right." },
 ];
 
 const STEPS = [
@@ -56,7 +57,7 @@ export default function Landing() {
             <span className="lp-pill">Digital wedding invitations</span>
             <h1>Beautiful wedding invitations, shared as a link</h1>
             <p>Create your invitation in minutes and send it to every guest by link, WhatsApp or QR code.</p>
-            <Link to={session ? "/dashboard" : "/login"} className="lp-cta">
+            <Link to={session ? "/dashboard" : "/login"} state={session ? undefined : { mode: "signup" }} className="lp-cta">
               {session ? "Go to dashboard" : "Get started"}
             </Link>
           </div>
@@ -69,7 +70,7 @@ export default function Landing() {
             <div className="lp-grid">
               {FEATURES.map((f) => (
                 <div className="lp-card" key={f.title}>
-                  <div className="lp-ic" aria-hidden="true">{f.icon}</div>
+                  <div className="lp-ic" aria-hidden="true"><f.Icon size={22} /></div>
                   <h3>{f.title}</h3>
                   <p>{f.text}</p>
                 </div>

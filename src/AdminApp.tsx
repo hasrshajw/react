@@ -145,7 +145,6 @@ function NotFound() {
   );
 }
 
-/* Sidebar links that have no page yet land here instead of a blank screen */
 /* H-1: remount Create on every navigation to it (location.key changes even when the URL is the same).
    Create rewrites the address bar with history.replaceState after a save, so the router's own `search`
    can be stale; keying on `search` alone would keep a saved invitation in the form when the user clicks
@@ -154,24 +153,6 @@ function CreateRoute({ onPanelChange }: { onPanelChange: (open: boolean) => void
   const loc = useLocation();
   return <Create key={loc.key} onPanelChange={onPanelChange} />;
 }
-
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <div className="coming-soon">
-      <h1>{title}</h1>
-      <p>This page isn't built yet.</p>
-    </div>
-  );
-}
-
-const PLACEHOLDER_ROUTES: [string, string][] = [
-  ["/inventory", "Inventory"],
-  ["/billing", "Billing"],
-  ["/customize/hero-section", "Hero section"],
-  ["/customize/sections", "Sections"],
-  ["/customize/popup", "Popup"],
-  ["/customize/combo", "Combo offer"],
-];
 
 function Shell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -226,6 +207,14 @@ function Shell() {
           ) : <span />}
         </header>
 
+        <a
+          className="skip-link"
+          href="#main-content"
+          onClick={(e) => { e.preventDefault(); document.getElementById("main-content")?.focus(); }}
+        >
+          Skip to main content
+        </a>
+
         <div className="workspace-body">
           <div className="app">
             <Sidebar
@@ -241,6 +230,8 @@ function Shell() {
             />
 
             <main
+              id="main-content"
+              tabIndex={-1}
               className={`main-content ${
                 (sidebarCollapsed || panelOpen) && !hoverExpanded ? "content-collapsed" : "content-expanded"
               }`}
@@ -251,9 +242,6 @@ function Shell() {
                 <Route path="/reviews" element={<Reviews onPendingCountChange={reviews.report} />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/create" element={<CreateRoute onPanelChange={setPanelOpen} />} />
-                {PLACEHOLDER_ROUTES.map(([path, title]) => (
-                  <Route key={path} path={path} element={<ComingSoon title={title} />} />
-                ))}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
@@ -275,7 +263,7 @@ function Shell() {
         html, body, #root { width: 100%; min-height: 100%; margin: 0; padding: 0; }
 
         body {
-          font-family: "DM Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: "DM Sans", "Noto Sans Telugu", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           background: #101011;
           color: var(--text-color, #202027);
           overflow: hidden;
@@ -376,7 +364,7 @@ function Shell() {
           border-radius: 24px;
           background: #fff;
           color: #202027;
-          font-family: "DM Sans", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: "DM Sans", "Noto Sans Telugu", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
           animation: pm-in .16s ease;
         }
@@ -386,7 +374,7 @@ function Shell() {
         .pm-head span { font-size: 13px; color: #6d7081; overflow-wrap: anywhere; }
         .pm-head-row { display: flex; align-items: center; gap: 8px; }
         .pm-badge {
-          font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+          font-style: normal; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
           color: var(--primary, #6d3fe0);
           background: color-mix(in srgb, var(--primary, #6d3fe0) 12%, #fff);
         }
@@ -401,7 +389,7 @@ function Shell() {
         .pm-item:hover:not(:disabled) { background: #f3f1fb; }
         .pm-item:disabled { cursor: default; color: #9a9cac; }
         .pm-item:disabled svg { color: #b4b6c4; }
-        .pm-item .pm-soon { font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+        .pm-item .pm-soon { font-size: 12px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
         .coming-soon a { color: #6d3fe0; font-weight: 600; }
         .pm-item:focus-visible { outline: 2px solid #6d3fe0; outline-offset: -2px; }
         .pm-item svg { flex-shrink: 0; color: #4a4c5c; }
@@ -445,6 +433,9 @@ function Shell() {
         .main-content.content-expanded { margin-left: 260px; }
         .main-content.content-collapsed { margin-left: 90px; }
 
+        .skip-link { position: absolute; left: 12px; top: -48px; z-index: 10000; padding: 10px 16px; border-radius: 10px; background: var(--primary); color: #fff; font-weight: 600; text-decoration: none; transition: top .15s; }
+        .skip-link:focus { top: 12px; }
+        .main-content:focus { outline: none; }
         .coming-soon { padding: 8px 0; }
         .coming-soon h1 { margin: 0 0 6px; font-size: 24px; font-weight: 700; }
         .coming-soon p { margin: 0; color: #6d7081; }

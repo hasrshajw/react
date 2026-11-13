@@ -2,7 +2,7 @@
 .inv-tabbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; border-bottom: 1px solid var(--gray-border); }
 .inv-tabs { display: flex; gap: 26px; }
 .inv-tab { margin-bottom: -1px; padding: 10px 2px 12px; display: inline-flex; align-items: center; gap: 8px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--gray); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: color .2s, border-color .2s; }
-.inv-tab em { min-width: 22px; height: 20px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: var(--gray-light); color: var(--gray); font-size: 11.5px; font-style: normal; font-weight: 700; }
+.inv-tab em { min-width: 22px; height: 20px; padding: 0 7px; display: grid; place-items: center; border-radius: 999px; background: var(--gray-light); color: var(--gray); font-size: 12px; font-style: normal; font-weight: 700; }
 .inv-tab:hover { color: var(--dark); }
 .inv-tab.on { border-bottom-color: var(--primary); color: var(--primary); }
 .inv-tab.on em { background: var(--primary-light); color: var(--primary); }
@@ -12,7 +12,7 @@
 .inv-toolbar { padding: 12px 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; border-bottom: 1px solid var(--gray-border); }
 .inv-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .inv-filter { height: 30px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--gray-border); border-radius: 999px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
-.inv-filter em { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--gray); }
+.inv-filter em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--gray); }
 .inv-filter:hover { border-color: var(--primary); }
 .inv-filter.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 .inv-filter.on em { color: var(--primary); }
@@ -29,7 +29,7 @@
 /* ---------- table ---------- */
 .inv-table { min-width: 920px; }
 .inv-table .th-check, .inv-table .td-check { width: 44px; padding-right: 0; }
-.inv-table input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+.inv-table input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--primary); cursor: pointer; }
 .inv-table tbody tr.sel { background: var(--primary-lightest); }
 .inv-table tbody tr.is-past td:not(.td-check):not(:last-child) { opacity: .6; }
 .inv-table tbody tr.is-past:hover td { opacity: 1; }
@@ -41,7 +41,7 @@
 .tpl-name { font-size: 12px; color: var(--gray); white-space: nowrap; }
 .cd-wrap { margin-left: 22px; }
 .cd-wrap .when { margin-left: 0; }
-.cd { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.cd { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .cd.info { background: var(--info-light); color: var(--dx-info-text); }
 .cd.warn { background: var(--warning-light); color: var(--dx-warn-text); }
 .cd.danger { background: var(--danger-light); color: var(--danger-dark); }
@@ -126,7 +126,7 @@
 }
 .diff-table th {
   background: var(--ghost-white);
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: .06em;
   color: var(--gray);

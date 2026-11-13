@@ -11,7 +11,7 @@ export function useNotify() {
   const notify: Notify = useCallback((msg, undo) => {
     clearTimeout(timer.current);
     setToast({ msg, undo });
-    timer.current = setTimeout(() => setToast(null), undo ? 6000 : 2200);
+    timer.current = setTimeout(() => setToast(null), undo ? 8000 : 4000);
   }, []);
 
   const dismiss = useCallback(() => {

@@ -7,19 +7,19 @@ beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); });
 
 describe("useToast (Create page)", () => {
-  it("ok messages last 2.2 s and are tone ok by default", async () => {
+  it("ok messages last 4 s and are tone ok by default", async () => {
     const h = renderHook(() => useToast());
     act(() => h.result.current.notify("Saved"));
     expect(h.result.current.toast).toEqual({ msg: "Saved", tone: "ok" });
-    await advance(2200);
+    await advance(4000);
     expect(h.result.current.toast).toBeNull();
     h.unmount();
   });
 
-  it("error messages last 3.5 s", async () => {
+  it("error messages last 7 s", async () => {
     const h = renderHook(() => useToast());
     act(() => h.result.current.notify("Could not save", "error"));
-    await advance(3499);
+    await advance(6999);
     expect(h.result.current.toast).toEqual({ msg: "Could not save", tone: "error" });
     await advance(1);
     expect(h.result.current.toast).toBeNull();
@@ -30,9 +30,9 @@ describe("useToast (Create page)", () => {
     const h = renderHook(() => useToast());
     const { notify } = h.result.current;
     act(() => notify("one"));
-    await advance(2000);
+    await advance(3000);
     act(() => notify("two", "error"));
-    await advance(2000);
+    await advance(3000);
     expect(h.result.current.toast).toEqual({ msg: "two", tone: "error" });
     h.rerender();
     expect(h.result.current.notify).toBe(notify);

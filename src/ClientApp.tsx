@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, Sk } from "./components/Skeleton";
@@ -13,6 +14,7 @@ import { formReducer, initialFormState, snapshot } from "./features/create/formR
 import { useToast } from "./features/create/hooks/useToast";
 import { useBeforeUnload } from "./features/create/hooks/useUnsavedWarnings";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
+import { useEscape, useFocusTrap } from "./hooks/useEscape";
 import { useAsync } from "./hooks/useAsync";
 import {
   acknowledgeRejection,
@@ -23,12 +25,11 @@ import {
   withdrawChangeRequest,
   type MyInvitation,
 } from "./lib/api";
-import {  } from "./lib/auth";
 import { compile } from "./lib/compileInvitation";
 import { ADMIN_EMAIL } from "./lib/config";
 import { readJSON, removeKey, writeJSON } from "./lib/storage";
 import { LS_CLIENT_DRAFT } from "./lib/storageKeys";
-import { fmtDateTime } from "./lib/dashboardData";
+import { fmtDate, fmtDateTime } from "./lib/dashboardData";
 import { validateInvitation } from "./lib/validate";
 import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "./types/invitation";
 import createCss from "./features/create/create.css?inline";
@@ -38,12 +39,17 @@ import createCss from "./features/create/create.css?inline";
 /* Mobile-first: comfortable padding and min 44px touch targets on small screens. */
 const page: React.CSSProperties = {
   maxWidth: 720, margin: "0 auto", padding: "16px 12px 96px",
-  fontFamily: "system-ui, sans-serif", color: "#23263a",
+  fontFamily: '"DM Sans", "Noto Sans Telugu", Inter, system-ui, sans-serif', color: "var(--dark)",
   boxSizing: "border-box", width: "100%",
 };
 
 function Frame({ children, title = "Your invitations" }: { children: React.ReactNode; title?: string }) {
   const navigate = useNavigate();
+  useEffect(() => {
+    const prev = document.title;
+    document.title = `${title} · Schedy`;
+    return () => { document.title = prev; };
+  }, [title]);
   return (
     <main className="client-frame-main" style={page}>
       <style>{`
@@ -52,6 +58,10 @@ function Frame({ children, title = "Your invitations" }: { children: React.React
         }
         .client-header { flex-wrap: wrap; }
         .client-touch { min-height: 44px; transition: all 0.15s ease; }
+        .client-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--primary); font-weight: 600; text-decoration: none; }
+        .client-link:hover { text-decoration: underline; }
+        .client-frame-main :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) { .client-touch, .premium-card { transition: none; transform: none !important; } }
         .client-touch:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .premium-card {
           background: #ffffff;
@@ -68,7 +78,7 @@ function Frame({ children, title = "Your invitations" }: { children: React.React
       `}</style>
       <div className="client-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, gap: 16 }}>
         <div>
-          <strong style={{ fontSize: 24, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em", display: "block" }}>{title}</strong>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em", lineHeight: 1.25 }}>{title}</h1>
           <p style={{ margin: "6px 0 0", fontSize: 15, color: "#6b7280" }}>Manage your wedding invitation details and submit updates.</p>
         </div>
         <button
@@ -89,7 +99,7 @@ const btnGhost: React.CSSProperties = {
   border: "1px solid #d1d5db", background: "#fff", borderRadius: 8, padding: "10px 14px", cursor: "pointer", font: "inherit",
 };
 const btnPrimary: React.CSSProperties = {
-  border: 0, background: "#2563eb", color: "#fff", borderRadius: 10, padding: "12px 18px", cursor: "pointer", font: "inherit", fontWeight: 600,
+  border: 0, background: "var(--btn)", color: "#fff", borderRadius: 10, padding: "12px 18px", cursor: "pointer", font: "inherit", fontWeight: 600,
 };
 const btnDanger: React.CSSProperties = {
   ...btnGhost, color: "#b91c1c", borderColor: "#fca5a5",
@@ -119,7 +129,8 @@ function Landing() {
   if (error || !data) {
     return (
       <Frame>
-        <p role="alert">We couldn’t load your invitations. Reload the page to try again.</p>
+        <p role="alert">We couldn’t load your invitations. Check your connection and try again.</p>
+        <button type="button" className="client-touch" style={btnPrimary} onClick={() => window.location.reload()}>Try again</button>
       </Frame>
     );
   }
@@ -192,7 +203,7 @@ function Landing() {
                   <span style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>{label}</span>
                   {i.eventDate && (
                     <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#6b7280" }}>
-                      <CalendarDays size={16} color="#9ca3af" /> {i.eventDate}
+                      <CalendarDays size={16} color="#6b7280" /> {fmtDate(i.eventDate)}
                     </span>
                   )}
                 </div>
@@ -221,6 +232,34 @@ function Landing() {
 
 type ClientDraft = { data: InvitationData; at: number };
 
+/* Modal shown when someone tries to leave with unsaved edits: traps focus, closes on Esc, keeps a local draft if they leave. */
+function LeavePrompt({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEscape(true, onStay);
+  useFocusTrap(ref);
+  return createPortal(
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 100, display: "grid", placeItems: "center", padding: 16, background: "rgba(16,16,17,.5)" }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onStay(); }}
+    >
+      <div
+        ref={ref} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="client-leave-title" aria-describedby="client-leave-desc"
+        style={{ width: "100%", maxWidth: 420, boxSizing: "border-box", padding: 24, borderRadius: 16, background: "#fff", boxShadow: "0 16px 40px rgba(24,28,45,.25)", fontFamily: '"DM Sans", "Noto Sans Telugu", Inter, system-ui, sans-serif', color: "var(--dark)" }}
+      >
+        <h2 id="client-leave-title" style={{ margin: "0 0 8px", fontSize: 18 }}>Leave without submitting?</h2>
+        <p id="client-leave-desc" style={{ margin: "0 0 20px", fontSize: 14, lineHeight: 1.5, color: "var(--gray-dark)" }}>
+          You have unsaved changes. If you leave, a draft is kept on this device until you submit or sign out.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button type="button" className="client-touch" style={{ ...btnPrimary, flex: 1 }} onClick={onStay}>Keep editing</button>
+          <button type="button" className="client-touch" style={{ ...btnGhost, flex: 1 }} onClick={onLeave}>Leave</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function ClientEditor() {
   const { id = "" } = useParams();
   const { session } = useAuth();
@@ -245,6 +284,8 @@ function ClientEditor() {
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [ready, setReady] = useState(false);
   const [draftOffer, setDraftOffer] = useState<ClientDraft | null>(null);
+  /* "Edit Again" on a rejected request keeps the proposed edits in the form; "Dismiss" goes back to the live version. */
+  const keepRef = useRef<InvitationData | null>(null);
   const emailKey = (session?.email || "anon").trim().toLowerCase();
   const draftKey = `${LS_CLIENT_DRAFT}${emailKey}:${id}`;
 
@@ -262,7 +303,11 @@ function ClientEditor() {
     const form = invitationToForm(inv, !!preferProposed);
     dispatch({ type: "load", data: form });
     setReady(true);
-    if (!preferProposed) {
+    if (keepRef.current) {
+      dispatch({ type: "replaceData", data: keepRef.current });
+      keepRef.current = null;
+      setDraftOffer(null);
+    } else if (!preferProposed) {
       const draft = readJSON<ClientDraft | null>(draftKey, null);
       if (draft?.data && snapshot({ ...form, ...draft.data }) !== snapshot(form)) {
         setDraftOffer(draft);
@@ -335,6 +380,24 @@ function ClientEditor() {
     catch { return ""; }
   }, [templateHtml, data]);
 
+  /* Opens the confirm bar only when the form is valid; otherwise jumps to the first field that needs attention. */
+  const requestSubmit = () => {
+    if (!inv || pending || busy) return;
+    dispatch({ type: "submit" });
+    const keys = Object.keys(errors);
+    if (keys.length) {
+      notify(`Fix ${keys.length} ${keys.length === 1 ? "field" : "fields"} before submitting`, "error");
+      const el = document.getElementById(`f-${keys[0]}`);
+      if (el) {
+        el.scrollIntoView({ block: "center", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        el.focus({ preventScroll: true });
+      }
+      return;
+    }
+    if (!dirty) { notify("No changes to submit"); return; }
+    setConfirmSubmit(true);
+  };
+
   const doSubmit = async () => {
     if (!inv || pending || busy) return;
     dispatch({ type: "submit" });
@@ -388,7 +451,8 @@ function ClientEditor() {
       await acknowledgeRejection(inv.request.id);
       reload();
     } catch (e) {
-      notify(e instanceof Error ? e.message : "Couldn’t dismiss", "error");
+      keepRef.current = null;
+      notify(e instanceof Error ? e.message : "Couldn’t update this request", "error");
     } finally {
       setBusy(false);
     }
@@ -407,13 +471,18 @@ function ClientEditor() {
     );
   }
   if (error || !list) {
-    return <Frame><p role="alert">We couldn’t load your invitation. Reload the page to try again.</p></Frame>;
+    return (
+      <Frame>
+        <p role="alert">We couldn’t load your invitation. Check your connection and try again.</p>
+        <button type="button" className="client-touch" style={btnPrimary} onClick={reload}>Try again</button>
+      </Frame>
+    );
   }
   if (!inv) {
     return (
       <Frame>
         <p>This invitation isn’t linked to your account.</p>
-        <Link to="/my">Back</Link>
+        <Link to="/my" className="client-link">← Back to your invitations</Link>
       </Frame>
     );
   }
@@ -425,19 +494,19 @@ function ClientEditor() {
       <style>{createCss}</style>
       {list.length > 1 && (
         <p style={{ marginTop: 0 }}>
-          <Link to="/my">← All invitations</Link>
+          <Link to="/my" className="client-link">← All invitations</Link>
         </p>
       )}
 
       {pending && inv.request && (
-        <div style={{ ...banner, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
+        <div style={{ ...banner, background: "var(--white-blue)", border: "1px solid var(--periwinkle)", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{ marginTop: 2, flexShrink: 0 }}><Clock size={20} color="#2563eb" /></div>
+            <div style={{ marginTop: 2, flexShrink: 0 }}><Clock size={20} color="#673de6" /></div>
             <div style={{ flex: 1 }}>
-              <strong style={{ color: "#1e40af", display: "block", marginBottom: 4, fontSize: 15 }}>Awaiting Admin Review</strong>
-              <span style={{ color: "#3b82f6", fontSize: 14, lineHeight: 1.5 }}>Your changes were submitted on {fmtDateTime(inv.request.createdAt)} and are waiting for approval.</span>
+              <strong style={{ color: "var(--meteorite-dark)", display: "block", marginBottom: 4, fontSize: 15 }}>Awaiting Admin Review</strong>
+              <span style={{ color: "var(--gray-dark)", fontSize: 14, lineHeight: 1.5 }}>Your changes were submitted on {fmtDateTime(inv.request.createdAt)} and are waiting for approval.</span>
               <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" style={{ ...btnDanger, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onWithdraw()}>
+                <button type="button" className="client-touch" style={{ ...btnDanger, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onWithdraw()}>
                   Withdraw Request
                 </button>
               </div>
@@ -460,11 +529,11 @@ function ClientEditor() {
               <strong style={{ color: "#991b1b", display: "block", marginBottom: 4, fontSize: 15 }}>Changes Were Rejected</strong>
               {inv.request.adminNote && <p style={{ margin: "0 0 12px", color: "#7f1d1d", fontSize: 14, lineHeight: 1.5, background: "#fef2f2", padding: 10, borderRadius: 8, border: "1px dashed #fecaca" }}>{inv.request.adminNote}</p>}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" style={{ ...btnPrimary, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+                <button type="button" className="client-touch" style={{ ...btnPrimary, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => { keepRef.current = data; void onAck(); }}>
                   Edit Again
                 </button>
-                <button type="button" style={{ ...btnGhost, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
-                  Dismiss
+                <button type="button" className="client-touch" style={{ ...btnGhost, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+                  Discard my edits
                 </button>
               </div>
             </div>
@@ -480,7 +549,7 @@ function ClientEditor() {
               <strong style={{ color: "#166534", display: "block", fontSize: 15 }}>Changes Approved & Live</strong>
               <span style={{ color: "#15803d", fontSize: 14 }}>Your invitation has been updated and is now visible to your guests.</span>
             </div>
-            <button type="button" style={{ ...btnGhost, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+            <button type="button" className="client-touch" style={{ ...btnGhost, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
               Dismiss
             </button>
           </div>
@@ -501,16 +570,10 @@ function ClientEditor() {
       )}
 
       {blocker.state === "blocked" && (
-        <div style={{ ...banner, background: "#fff", border: "1px solid #e5e7eb" }} role="dialog" aria-label="Leave without submitting?">
-          <p style={{ margin: "0 0 10px" }}>You have unsaved changes. Leave this page? A local draft is kept until you submit or sign out.</p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" style={btnGhost} onClick={() => blocker.reset?.()}>Stay</button>
-            <button type="button" style={btnPrimary} onClick={() => {
-              writeJSON(draftKey, { data, at: Date.now() });
-              blocker.proceed?.();
-            }}>Leave</button>
-          </div>
-        </div>
+        <LeavePrompt
+          onStay={() => blocker.reset?.()}
+          onLeave={() => { writeJSON(draftKey, { data, at: Date.now() }); blocker.proceed?.(); }}
+        />
       )}
 
       <div style={{ display: "grid", gap: 20 }}>
@@ -533,13 +596,13 @@ function ClientEditor() {
           vis={vis}
           touch={touch}
           tagFor={tagFor}
-          onSubmit={(e) => { e.preventDefault(); if (!pending) setConfirmSubmit(true); }}
+          onSubmit={(e) => { e.preventDefault(); requestSubmit(); }}
           notify={notify}
           invitationId={inv.id}
         />
 
         {compiled ? (
-          <div>
+          <div id="client-preview" style={{ scrollMarginTop: 16 }}>
             <h2 style={{ fontSize: 15, margin: "0 0 8px" }}>Preview</h2>
             <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", minHeight: 320, aspectRatio: "3 / 4", maxHeight: 480 }}>
               <iframe title="Invitation preview" srcDoc={compiled} sandbox="allow-scripts" style={{ width: "100%", height: "100%", border: 0, display: "block", minHeight: 320 }} />
@@ -549,7 +612,7 @@ function ClientEditor() {
       </div>
 
       {!pending && (
-        <div style={{ position: "sticky", bottom: 0, padding: "16px 0 calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(transparent, #ffffff 30%)", marginTop: 24, zIndex: 2, borderTop: "1px solid #f3f4f6" }}>
+        <div style={{ position: "sticky", bottom: 0, padding: "16px 0 calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(transparent, var(--page-bg) 30%)", marginTop: 24, zIndex: 2, borderTop: "1px solid #f3f4f6" }}>
           {confirmSubmit ? (
             <div style={{ ...banner, background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
               <p style={{ margin: "0 0 12px", fontSize: 15, color: "#374151", fontWeight: 500 }}>
@@ -563,25 +626,46 @@ function ClientEditor() {
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              className="client-touch"
-              style={{ ...btnPrimary, width: "100%", opacity: dirty ? 1 : 0.5, padding: "14px 20px", fontSize: 15 }}
-              disabled={busy || !dirty}
-              onClick={() => setConfirmSubmit(true)}
-            >
-              {busy ? "Submitting…" : "Submit for Review"}
-            </button>
+            <>
+              <div style={{ display: "flex", gap: 10 }}>
+                {compiled ? (
+                  <button
+                    type="button"
+                    className="client-touch"
+                    style={{ ...btnGhost, padding: "14px 18px", fontSize: 15 }}
+                    onClick={() => document.getElementById("client-preview")?.scrollIntoView({ block: "start", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}
+                  >
+                    Preview
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="client-touch"
+                  style={{ ...btnPrimary, flex: 1, opacity: dirty ? 1 : 0.5, padding: "14px 20px", fontSize: 15 }}
+                  disabled={busy || !dirty}
+                  aria-describedby={!dirty ? "client-submit-hint" : undefined}
+                  onClick={requestSubmit}
+                >
+                  {busy ? "Submitting…" : "Submit for Review"}
+                </button>
+              </div>
+              {!dirty && !busy && (
+                <p id="client-submit-hint" style={{ margin: "8px 0 0", fontSize: 13, color: "#4b5563", textAlign: "center" }}>
+                  Change something above to enable submitting.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}
 
       {toast ? (
         <div
-          role="status"
+          role={toast.tone === "error" ? "alert" : "status"}
           style={{
-            position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)",
-            background: "#111827", color: "#fff", padding: "10px 16px", borderRadius: 999, fontSize: 14, zIndex: 50,
+            position: "fixed", bottom: pending ? 16 : "calc(112px + env(safe-area-inset-bottom, 0px))", left: "50%", transform: "translateX(-50%)",
+            background: toast.tone === "error" ? "#991b1b" : "#111827", color: "#fff", padding: "10px 16px", borderRadius: 12, fontSize: 14, zIndex: 60,
+            maxWidth: "calc(100vw - 32px)", textAlign: "center",
           }}
         >
           {toast.msg}

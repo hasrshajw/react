@@ -1,6 +1,6 @@
         :root { --dx-new-tint: #fffafb; --dx-surface: #f5f6fa; --dx-toast-bg: #1f2233; --dx-warn-text: #9a6700; --dx-info-text: #0b86a8; }
 
-        .dashboard-page { max-width: 1400px; margin: auto; font-family: "DM Sans", Inter, sans-serif; color: var(--dark); }
+        .dashboard-page { max-width: 1400px; margin: auto; font-family: "DM Sans", "Noto Sans Telugu", Inter, sans-serif; color: var(--dark); }
         .dashboard-page * { box-sizing: border-box; }
         .dashboard-page button:disabled { cursor: not-allowed; opacity: .5; }
         .dashboard-page :focus-visible, .dash-side-panel :focus-visible, .dx-overlay :focus-visible, .row-menu :focus-visible, .dx-toast :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
@@ -51,7 +51,7 @@
         .stat-sub button:hover { color: var(--primary); text-decoration: underline; }
 
         .seg { position: absolute; top: 12px; right: 12px; display: flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--gray-light); }
-        .seg button { height: 24px; padding: 0 9px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+        .seg button { height: 24px; padding: 0 9px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
         .seg button.on { background: var(--white); color: var(--primary); box-shadow: 0 1px 3px rgba(54, 52, 77, .14); }
 
         .req-count .pending { color: var(--danger-dark); }
@@ -85,7 +85,7 @@
         .search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
         .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; color: var(--dark); }
         .search input:focus, .search input:focus-visible, .dx-enq-search input:focus, .dx-enq-search input:focus-visible { outline: 0; box-shadow: none; }
-        .kbd { min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; border: 1px solid var(--gray-border); border-radius: 6px; font: inherit; font-size: 11px; font-weight: 700; color: var(--gray); }
+        .kbd { min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; border: 1px solid var(--gray-border); border-radius: 6px; font: inherit; font-size: 12px; font-weight: 700; color: var(--gray); }
         .dd-btn { height: 36px; padding: 0 12px; display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
         .dd-btn svg { color: var(--gray); transition: transform .2s; }
         .dd-btn:hover { border-color: var(--periwinkle); }
@@ -103,7 +103,7 @@
 
         .table-scroll { overflow-x: auto; }
         .inv-table { width: 100%; min-width: 760px; border-collapse: collapse; }
-        .inv-table thead th { padding: 12px 22px; text-align: left; background: var(--ghost-white); border-bottom: 1px solid var(--gray-border); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray); white-space: nowrap; }
+        .inv-table thead th { padding: 12px 22px; text-align: left; background: var(--ghost-white); border-bottom: 1px solid var(--gray-border); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray); white-space: nowrap; }
         .inv-table tbody td { padding: 12px 22px; border-bottom: 1px solid var(--gray-border); vertical-align: middle; }
         .inv-table tbody tr:last-child td { border-bottom: 0; }
         .inv-table tbody tr:hover { background: var(--ghost-white); }
@@ -118,7 +118,7 @@
         .cell-date svg { color: var(--gray); flex-shrink: 0; }
         .when { margin-left: 22px; font-size: 12px; color: var(--gray); }
 
-        .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
         .chip::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
         .chip.ok { background: var(--success-light); color: var(--success-dark); }
         .chip.draft { background: var(--gray-light); color: var(--gray); }
@@ -127,14 +127,14 @@
 
         .views { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--dark); }
         .views svg { color: var(--gray); }
-        .top { padding: 2px 8px; border-radius: 999px; background: var(--warning-light); color: var(--dx-warn-text); font-size: 11px; font-weight: 700; }
+        .top { padding: 2px 8px; border-radius: 999px; background: var(--warning-light); color: var(--dx-warn-text); font-size: 12px; font-weight: 700; }
 
         .row-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
         .act-btn { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; transition: background .2s, border-color .2s, color .2s; }
         .act-btn:hover:not(:disabled) { background: var(--primary-lightest); border-color: var(--primary); color: var(--primary); }
         .act-btn.wide { width: 100%; height: 40px; }
         .act-btn.needs-publish:disabled { opacity: 1; border-style: dashed; background: var(--ghost-white); color: var(--gray); font-weight: 500; cursor: default; }
-        .act-btn .cnt { min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px; background: var(--primary-light); color: var(--primary); font-size: 11px; font-style: normal; font-weight: 700; }
+        .act-btn .cnt { min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px; background: var(--primary-light); color: var(--primary); font-size: 12px; font-style: normal; font-weight: 700; }
         .icon-btn { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; padding: 0; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
         .icon-btn.on { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
         .icon-btn:hover:not(:disabled) { background: var(--primary-lightest); border-color: var(--primary); color: var(--primary); }
@@ -156,7 +156,7 @@
         .dx-seg-thumb { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / var(--n, 3)); border-radius: 999px; background: var(--white); box-shadow: 0 1px 4px rgba(54, 52, 77, .18); transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .28s cubic-bezier(.4, 0, .2, 1); }
         .dx-seg button { position: relative; z-index: 1; min-width: 0; height: 34px; padding: 0 2px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 0; border-radius: 999px; background: transparent; color: var(--gray); font: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: color .2s; }
         .dx-seg button.on { color: var(--primary); }
-        .dx-seg button em { font-size: 11.5px; font-style: normal; font-weight: 600; color: var(--gray); }
+        .dx-seg button em { font-size: 12px; font-style: normal; font-weight: 600; color: var(--gray); }
         .dx-seg button.on em { color: var(--primary); }
         /* only the New count is a badge, since it is the one that needs action */
         .dx-seg button.t-new em { min-width: 18px; height: 18px; padding: 0 5px; display: grid; place-items: center; border-radius: 999px; background: var(--danger-light); color: var(--danger-dark); font-size: 10.5px; font-weight: 700; }
@@ -187,7 +187,7 @@
         .dx-enq.open .dx-enq-collapse > div { visibility: visible; transition-delay: 0s; }
 
         .dx-enq-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--gray-border); }
-        .dx-enq-time { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--gray); }
+        .dx-enq-time { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--gray); }
         .dx-enq-msg { margin: 0; font-size: 13px; line-height: 1.5; color: var(--gray-dark); }
         .dx-enq-meta { display: flex; flex-direction: column; gap: 5px; }
         .dx-meta-row { display: flex; align-items: center; gap: 8px; }
@@ -209,7 +209,7 @@
         .chip.enq-due.today { background: var(--warning-light); color: var(--dx-warn-text); }
 
         .dx-field { display: flex; flex-direction: column; gap: 5px; }
-        .dx-field > span { font-size: 11.5px; font-weight: 700; color: var(--gray); }
+        .dx-field > span { font-size: 12px; font-weight: 700; color: var(--gray); }
         .dx-field input, .dx-field textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--dark); font: inherit; font-size: 13px; outline: 0; resize: vertical; transition: border-color .2s, box-shadow .2s; }
         .dx-field input { height: 36px; padding: 0 10px; }
         .dx-field input:focus, .dx-field textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
@@ -222,12 +222,12 @@
         .dx-req-list { flex: 1; overflow-y: auto; padding: 12px 12px 12px; }
         .dx-req-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .dx-req-main b { font-size: 14px; }
-        .dx-req-main small { font-size: 11.5px; color: var(--gray); }
+        .dx-req-main small { font-size: 12px; color: var(--gray); }
         .dx-drawer-foot { flex: 0 0 auto; padding: 14px 20px; border-top: 1px solid var(--gray-border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 
         /* portaled to <body>, so they need their own base styles */
         .dx-overlay, .dx-overlay *, .row-menu, .row-menu *, .dx-toast, .dx-toast * { box-sizing: border-box; }
-        .dx-overlay, .row-menu, .dx-toast { font-family: "DM Sans", Inter, sans-serif; }
+        .dx-overlay, .row-menu, .dx-toast { font-family: "DM Sans", "Noto Sans Telugu", Inter, sans-serif; }
         .dx-overlay { color: var(--dark); }
 
         /* ---------- row menu ---------- */
@@ -237,7 +237,7 @@
         .row-menu button:disabled { opacity: .45; cursor: not-allowed; }
         .row-menu button.danger { color: var(--danger-dark); }
         .row-menu button.danger:hover { background: var(--danger-light); }
-        .dd-list { position: fixed; z-index: 9500; max-height: 280px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); box-shadow: 0 16px 40px rgba(24, 28, 45, .18); outline: 0; font-family: "DM Sans", Inter, sans-serif; }
+        .dd-list { position: fixed; z-index: 9500; max-height: 280px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); box-shadow: 0 16px 40px rgba(24, 28, 45, .18); outline: 0; font-family: "DM Sans", "Noto Sans Telugu", Inter, sans-serif; }
         .dd-list, .dd-list * { box-sizing: border-box; }
         .dd-opt { min-height: 36px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-radius: 10px; color: var(--gray-dark); font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
         .dd-opt.active { background: var(--gray-light); }
@@ -326,7 +326,7 @@
           .inv-table tbody tr.active { background: var(--primary-lightest); border-color: var(--primary); }
           .inv-table tbody td { display: block; min-width: 0; padding: 0; border: 0; }
           .inv-table tbody td.td-couple, .inv-table tbody td.td-actions { grid-column: 1 / -1; }
-          .inv-table tbody td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
+          .inv-table tbody td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
           .inv-table tbody td.td-actions { padding-top: 12px; border-top: 1px solid var(--gray-border); }
           .inv-table .cell-stack b { white-space: normal; overflow-wrap: anywhere; }
           .inv-table .row-actions { justify-content: stretch; }

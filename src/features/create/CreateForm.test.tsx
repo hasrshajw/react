@@ -83,8 +83,10 @@ describe("CreateForm: layout", () => {
 
   it("marks only the required fields", () => {
     show();
-    const required = (name: string) => !!input(name).closest("label")!.querySelector(".req");
+    const required = (name: string) => !!input(name).closest(".f")!.querySelector(".req");
     for (const n of ["weddingDate", "groomEn", "brideEn"]) expect(required(n)).toBe(true);
+    for (const n of ["weddingDate", "groomEn", "brideEn"]) expect(input(n).getAttribute("aria-required")).toBe("true");
+    expect(input("surnameEn").getAttribute("aria-required")).toBeNull();
     for (const n of ["surnameEn", "muhurthamTime", "groomTe", "venueEn", "venueAddress"]) expect(required(n)).toBe(false);
   });
 
@@ -125,12 +127,14 @@ describe("CreateForm: fields", () => {
 
   it("shows the message from vis under the field and marks it invalid; other fields stay clean", () => {
     show({ vis: vi.fn((k: string) => (k === "groomEn" ? "Groom name is required" : undefined)) });
-    const label = input("groomEn").closest("label")!;
+    const label = input("groomEn").closest(".f")!;
     expect(label.querySelector(".err")?.textContent).toBe("Groom name is required");
     expect(input("groomEn").getAttribute("aria-invalid")).toBe("true");
     expect(label.className).toContain("has-err");
+    expect(label.querySelector(".err")?.getAttribute("role")).toBe("alert");
+    expect(label.querySelector("label")?.textContent).not.toContain("Groom name is required");
     expect(input("brideEn").getAttribute("aria-invalid")).toBe("false");
-    expect(input("brideEn").closest("label")!.querySelector(".err")).toBeNull();
+    expect(input("brideEn").closest(".f")!.querySelector(".err")).toBeNull();
   });
 });
 
@@ -166,7 +170,7 @@ describe("CreateForm: reception", () => {
     act(() => { root.render(<CreateForm {...props} data={{ ...initial, receptionEnabled: true }} />); });
     expect(input("receptionDate")).not.toBeNull();
     expect(input("receptionTime")).not.toBeNull();
-    expect(!!input("receptionDate").closest("label")!.querySelector(".req")).toBe(true);
+    expect(!!input("receptionDate").closest(".f")!.querySelector(".req")).toBe(true);
   });
 
   it("reports the checkbox as a boolean", () => {
@@ -273,8 +277,8 @@ describe("CreateForm: additional events", () => {
 
   it("shows the error for an event field from its own key", () => {
     show({ data: { ...initial, events: [ev({ id: "e1" })] }, vis: vi.fn((k: string) => (k === "event-e1-maps" ? "Use a web link" : undefined)) });
-    expect(input("event-e1-maps").closest("label")!.querySelector(".err")?.textContent).toBe("Use a web link");
-    expect(input("event-e1-date").closest("label")!.querySelector(".err")).toBeNull();
+    expect(input("event-e1-maps").closest(".f")!.querySelector(".err")?.textContent).toBe("Use a web link");
+    expect(input("event-e1-date").closest(".f")!.querySelector(".err")).toBeNull();
   });
 });
 

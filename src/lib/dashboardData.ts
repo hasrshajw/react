@@ -122,9 +122,8 @@ export const exportCsv = (rows: Enquiry[], notify: Notify) => {
   notify(`Exported ${rows.length} enquiries`);
 };
 export const copyText = async (text: string, okMsg: string, notify: Notify) => {
-  try { await navigator.clipboard.writeText(text); }
-  catch { window.prompt("Copy", text); }
-  notify(okMsg);
+  try { await navigator.clipboard.writeText(text); notify(okMsg); }
+  catch { notify("Couldn’t copy automatically. Select the text and copy it manually."); }
 };
 
 /* Escape closes only the top-most layer (modal > panel). */

@@ -8,7 +8,7 @@ export function useToast() {
   const notify = useCallback((msg: string, tone: ToastState["tone"] = "ok") => {
     clearTimeout(timer.current);
     setToast({ msg, tone });
-    timer.current = setTimeout(() => setToast(null), tone === "error" ? 3500 : 2200);
+    timer.current = setTimeout(() => setToast(null), tone === "error" ? 7000 : 4000);
   }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
   return { toast, notify };
