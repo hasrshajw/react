@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, Sk } from "./components/Skeleton";
+import { Mails } from "./components/Icons";
 import {
   CLIENT_STATUS_LABEL,
   clientStatus,
@@ -120,7 +121,7 @@ function Landing() {
             width: "64px", height: "64px", borderRadius: "50%", background: "#f3f4f6",
             display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px"
           }}>
-            <Mailbox01Icon size={32} color="#9ca3af" />
+            <Mails size={32} color="#9ca3af" />
           </div>
           <h2 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600, color: "#111827" }}>
             No invitations to show
