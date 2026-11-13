@@ -26,17 +26,38 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (13 Nov 2026, 41st update)
+### Where things stand (13 Nov 2026, 42nd update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov (pasted again for the 6th update, the 28th, the 29th, the 30th, the 32nd, the 33rd, the 36th and the 41st) must be revoked** (see the first Phase 0 row). |
+| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov (pasted again for the 6th update, the 28th, the 29th, the 30th, the 32nd, the 33rd, the 36th, the 41st and the 42nd) must be revoked** (see the first Phase 0 row). |
 | Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded, **including the orphan-cleanup route since the 36th update** (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase; `api/cleanup-previews.js` is a dry run by default, needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` on Vercel, tested with a fake Supabase, not yet run against a real project). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** coded: explicit columns, stable order, reads past the 1,000-row cap, a list cut at 10,000 rows says so on screen (34th update), and since the 38th update the note has a **Load more** button that reads the next 10,000 (needs a browser check; server-side search/filter/sort is still not done, by decision). M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
 | Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, **0 errors and 0 warnings since the 33rd update**), **528 unit tests pass (`npm test`; 3 of them for the service-key headers since the 41st update; 5 of them for M-5 "Load more" since the 38th update; 22 of them for the M-4 orphan cleanup since the 36th update; the data layer `api.ts`, the dashboard hooks, `useAuth`, the small UI hooks, `useRowHint`, `useUnsavedWarnings`, `useTransliteration` the guest-side requests in `lib/publicInvitation.ts` (26th update) the guest page `pages/PublicInvitation.tsx` (27th update) the Create page `pages/Create.tsx` (28th update; this also found and fixed a data-loss gap, see the 28th update) and the sign-in page `pages/Login.tsx` (29th update) and the create-form reducer `formReducer.ts` (30th update) and the All invitations page `pages/Invitations.tsx` (31st update) and the create form `features/create/CreateForm.tsx` (32nd update) are covered with fakes)**, **`no-explicit-any` is at 0 (25th update) and there are no unused-variable warnings (26th update); the 14 `exhaustive-deps` warnings were fixed in the 33rd update (new `useLatest` hook, 8 tests; needs a browser check)**, TypeScript is pinned, **`noImplicitAny` is on (21st update)**, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); database tests started in the 35th update (`npm run test:db`, 127 SQL checks; a `db` job is written in `docs/ci.yml` (37th update) but **not active until you copy it to `.github/workflows/ci.yml`**); Playwright is not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 13 Nov 2026 (42nd update) – Track B decisions D1–D8 locked (record only, no code changed)
+
+**What was done**
+
+1. **The owner confirmed D1–D8 with the recommended answers as written** (B1 table): `client_email` column (D1); admin identified by the `admins` table and `is_admin()` (D2); client linked only with a verified email (D3); invite flow preferred, open sign-up only as fallback after B2 least-privilege RLS is verified (D4); one pending request per invitation (D5); allow-list of client-editable `details` keys, never `slug`, `template_id`, `published`, `deleted_at`, `client_email`, `owner`, `views`, and `seoImage` only if uploads are separately secured (D6); `base_updated_at` conflict check (D7); in-app plus email notifications (D8). A note was added under the B1 heading and the B-M0 row.
+2. **Only task.md changed.** No code, database or `.env.local` change; nothing to run or check.
+
+**How this affects other tasks**
+
+- **B-M0 is not complete.** Its decisions part is done; it also needs C-1, C-2, C-3 and H-2 to pass their checks (they are `[~]`, waiting for the Supabase/Vercel actions and browser checks in the 40th update). **Track B code (B-M1 onward) must not start until then**, per the rule at the top of this file.
+- **Migration number** for Track B stays `010_client_edit.sql`, folded into `schema.sql` in the same commit, with checks added to `tools/db-test/tests.sql`.
+- **D6 and the 36th update:** `seoImage` stays non-editable for clients, so the orphan cleanup needs no change.
+
+**Next steps, in order**
+
+1. Owner: rotate the leaked Supabase key and `CRON_SECRET`, revoke the GitHub token (**pasted in chat again on 13 Nov for this update**), send the dry-run result and the results of the C-1 / C-3 / H-2 checks so those boxes can be ticked.
+2. Then B-M1 (B2 migration and DB tests), or server-side search/filter/sort if you prefer to do that first.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
 
 ### 13 Nov 2026 (41st update) – M-4: the service key is no longer sent as a Bearer token when it is a new-style `sb_secret_` key
 
@@ -1895,6 +1916,8 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B1. Decisions to lock before coding (write the answer next to each)
 
+> **Locked on 13 Nov 2026 (42nd update): the owner confirmed D1–D8 with the recommendations exactly as written below.** For D4 that means the invite flow is the chosen path and open sign-up is only the fallback. Any change to these needs a new dated note here.
+
 | # | Decision | Recommendation |
 | --- | --- | --- |
 | D1 | Column name | Use **`client_email`**, not `owner_email`. The existing `invitations.owner` is the admin's `auth.uid()` that created the row; reusing "owner" would be confusing and dangerous in RLS. |
@@ -2011,7 +2034,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 | Milestone | Scope | Depends on | Exit criteria |
 | --- | --- | --- | --- |
-| **B-M0** | Decisions D1–D8 recorded; Phase 0 and Phase 1 security items (C-1, C-2, C-3, H-2) done | – | Authorization tests from audit §6 pass |
+| **B-M0** | Decisions D1–D8 recorded **(done 13 Nov, 42nd update)**; Phase 0 and Phase 1 security items (C-1, C-2, C-3, H-2) done **(still open: they are `[~]` until their checks pass)** | – | Authorization tests from audit §6 pass |
 | **B-M1** | B2 migration: `admins`, `client_email`, `change_requests`, `notifications`, `audit_log`, RPCs, RLS; DB tests | B-M0 | RLS test matrix green on a clean project |
 | **B-M2** | B5 "Client email" field + invite action; admin list column | B-M1 | Client email saved, normalised and shown |
 | **B-M3** | B4 role resolution, post-login routing, `ClientApp` shell, 0/1/many landing | B-M1 | Each of the 3 cases verified with test accounts |
