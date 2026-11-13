@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (13 Nov 2026, 38th update)
+### Where things stand (13 Nov 2026, 39th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -37,6 +37,30 @@ When asked to "update based on task.md", follow these steps.
 | Phase 2 | 1 | 10 | 0 | **M-4** coded, **including the orphan-cleanup route since the 36th update** (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase; `api/cleanup-previews.js` is a dry run by default, needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` on Vercel, tested with a fake Supabase, not yet run against a real project). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** coded: explicit columns, stable order, reads past the 1,000-row cap, a list cut at 10,000 rows says so on screen (34th update), and since the 38th update the note has a **Load more** button that reads the next 10,000 (needs a browser check; server-side search/filter/sort is still not done, by decision). M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
 | Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, **0 errors and 0 warnings since the 33rd update**), **525 unit tests pass (`npm test`; 5 of them for M-5 "Load more" since the 38th update; 22 of them for the M-4 orphan cleanup since the 36th update; the data layer `api.ts`, the dashboard hooks, `useAuth`, the small UI hooks, `useRowHint`, `useUnsavedWarnings`, `useTransliteration` the guest-side requests in `lib/publicInvitation.ts` (26th update) the guest page `pages/PublicInvitation.tsx` (27th update) the Create page `pages/Create.tsx` (28th update; this also found and fixed a data-loss gap, see the 28th update) and the sign-in page `pages/Login.tsx` (29th update) and the create-form reducer `formReducer.ts` (30th update) and the All invitations page `pages/Invitations.tsx` (31st update) and the create form `features/create/CreateForm.tsx` (32nd update) are covered with fakes)**, **`no-explicit-any` is at 0 (25th update) and there are no unused-variable warnings (26th update); the 14 `exhaustive-deps` warnings were fixed in the 33rd update (new `useLatest` hook, 8 tests; needs a browser check)**, TypeScript is pinned, **`noImplicitAny` is on (21st update)**, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); database tests started in the 35th update (`npm run test:db`, 127 SQL checks; a `db` job is written in `docs/ci.yml` (37th update) but **not active until you copy it to `.github/workflows/ci.yml`**); Playwright is not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 13 Nov 2026 (39th update) – L-2 follow-up: 40 unused icon files removed from `src/assets`
+
+**What was done**
+
+1. **Removed 40 files from `src/assets`** (the `fill_*`, `hover_*`, `panel_*`, `open_eye` icons and similar). Before deleting, each file name was searched for in the whole repo (source, CSS, `index.html`, `vite.config.ts`, `api`, `public`, `supabase`, `tools`, docs; not `task.md` or the lock file) and no reference was found, and there is no `import.meta.glob` or built file name anywhere. Kept, because they are used: `logo.png`, `logo-small.png`, `schedy-mark.svg`.
+2. **Nothing else changed.** Build output is identical (main bundle 260.05 kB, same file hash `index-DnVoT0wk.js`), `npm run typecheck` clean, `npm run lint` 0 errors and 0 warnings, `npm test` 525 pass. `.env.local` was not touched. No database change.
+3. **To get a file back:** it is in git history; `git show b8acb9e:src/assets/<file> > <file>`.
+
+**How this affects other tasks**
+
+- None. A future sidebar or icon work should use the app's own `Icons` component, as the code does today.
+
+**Behaviour changes to check**
+
+- None. Nothing imported these files, so nothing on screen can change.
+
+**Next steps, in order**
+
+1. Owner actions from the 23rd and 36th updates' lists (CI green, run `007` to `009` in Supabase, pg_cron, per-IP rate limit, copy `docs/ci.yml` to `.github/workflows/ci.yml`, browser checks including the 38th update's "Load more" check). **Revoke the GitHub token pasted in chat on 13 Nov (pasted again for this update).**
+2. Code items left need your decision or a real environment: server-side search/filter/sort (design), Playwright e2e (Supabase test project), Track B B-M0 (confirm D1–D8).
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
 
 ### 13 Nov 2026 (38th update) – M-5: "Load more" for lists cut at the read limit (browser-side version)
 
@@ -1768,7 +1792,7 @@ When asked to "update based on task.md", follow these steps.
 
 ### Cleanup and low-priority fixes
 - [~] **L-1** Replace `href="#"` Docs/Support links, add handlers for profile-menu items, add a catch-all route for unknown admin URLs. *Coded 12 Nov (14th update): Docs/Support come from `VITE_DOCS_URL` / `VITE_SUPPORT_URL` and are hidden when unset; menu items with no page yet are disabled ("Soon"); `Page not found` route inside the admin shell. Tested only for the link rules (26 checks) and by typecheck/build; needs the browser check in the Progress log and the two addresses from you.*
-- [x] **L-2** Remove or relocate repo-root `assets/` (~4.4 MB, not shipped), `src/assets/1.html`, `src/assets/test.html`, `src/assets/txt`. (`temp/*.html` was already deleted in the last two commits.) *Done 12 Nov (14th update): all four removed from the tree (still in git history). The unused icon files left in `src/assets` are listed in the Progress log as a follow-up.*
+- [x] **L-2** Remove or relocate repo-root `assets/` (~4.4 MB, not shipped), `src/assets/1.html`, `src/assets/test.html`, `src/assets/txt`. (`temp/*.html` was already deleted in the last two commits.) *Done 12 Nov (14th update): all four removed from the tree (still in git history). 13 Nov (39th update): the 40 unused icon files in `src/assets` are removed too (only `logo.png`, `logo-small.png`, `schedy-mark.svg` remain).*
 - [x] **L-3** CSV formula guard: also cover values starting with tab or carriage return; tighten the `^\+?[\d\s]+$` exemption; avoid prefixing harmless text beginning with `-`. *Done 12 Nov (12th update): `looksLikeFormula()` in `src/lib/dashboardData.ts`; see the progress log for the exact rule.*
 - [x] **L-4** `waLink`: handle 11-digit numbers with a leading 0; avoid "Hi , thanks…" when the name is empty. *Done 12 Nov (12th update): `waNumber()` and `waLink()` in `src/lib/dashboardData.ts`.*
 - [x] **L-5** `uid()` fallback: remove the `.` from the generated id (breaks the `/<slug>` rewrite on Vercel). *Done 12 Nov (11th update): new `src/lib/uid.ts`, used by `features/create/constants.ts` and `features/invitations/utils.ts`; the fallback now gives letters, digits and `-` only. Tested in Node with `crypto` removed.*
