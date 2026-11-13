@@ -26,7 +26,7 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (13 Nov 2026, 39th update)
+### Where things stand (13 Nov 2026, 40th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
@@ -37,6 +37,33 @@ When asked to "update based on task.md", follow these steps.
 | Phase 2 | 1 | 10 | 0 | **M-4** coded, **including the orphan-cleanup route since the 36th update** (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase; `api/cleanup-previews.js` is a dry run by default, needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` on Vercel, tested with a fake Supabase, not yet run against a real project). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** coded: explicit columns, stable order, reads past the 1,000-row cap, a list cut at 10,000 rows says so on screen (34th update), and since the 38th update the note has a **Load more** button that reads the next 10,000 (needs a browser check; server-side search/filter/sort is still not done, by decision). M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
 | Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, **0 errors and 0 warnings since the 33rd update**), **525 unit tests pass (`npm test`; 5 of them for M-5 "Load more" since the 38th update; 22 of them for the M-4 orphan cleanup since the 36th update; the data layer `api.ts`, the dashboard hooks, `useAuth`, the small UI hooks, `useRowHint`, `useUnsavedWarnings`, `useTransliteration` the guest-side requests in `lib/publicInvitation.ts` (26th update) the guest page `pages/PublicInvitation.tsx` (27th update) the Create page `pages/Create.tsx` (28th update; this also found and fixed a data-loss gap, see the 28th update) and the sign-in page `pages/Login.tsx` (29th update) and the create-form reducer `formReducer.ts` (30th update) and the All invitations page `pages/Invitations.tsx` (31st update) and the create form `features/create/CreateForm.tsx` (32nd update) are covered with fakes)**, **`no-explicit-any` is at 0 (25th update) and there are no unused-variable warnings (26th update); the 14 `exhaustive-deps` warnings were fixed in the 33rd update (new `useLatest` hook, 8 tests; needs a browser check)**, TypeScript is pinned, **`noImplicitAny` is on (21st update)**, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); database tests started in the 35th update (`npm run test:db`, 127 SQL checks; a `db` job is written in `docs/ci.yml` (37th update) but **not active until you copy it to `.github/workflows/ci.yml`**); Playwright is not started. |
 | Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+
+### 13 Nov 2026 (40th update) – Owner actions reported done (record only, no code changed)
+
+**What was done**
+
+1. **The owner reported on 13 Nov that all the dashboard actions are done.** This entry records that report. I have no access to Supabase, Vercel or GitHub settings, so **none of it was checked by me** and no checkbox above was changed because of it. The items the owner covered, from the 23rd, 36th and 37th updates' lists: run `005`, `007`, `008` and `009` in Supabase; the sign-up switch (C-1); pg_cron; the per-IP rate limit; `SITE_URL` on Vercel; copying `docs/ci.yml` to `.github/workflows/ci.yml`; and the browser checks.
+2. **Seen in the chat, so partly confirmed:** `https://react-invitepreview.vercel.app/api/cleanup-previews` first answered `{"error":"Cleanup is not configured"}` (a variable was missing in Vercel), and after the owner fixed it answered `{"error":"Unauthorized"}` without the header. That order of answers (503 before 401) shows that `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` and an `https` `VITE_SUPABASE_URL` are now visible to the function. **The authorized dry run has not been reported yet**, so the M-4 cleanup is still untested against the real project.
+3. **Secrets seen in chat (security, still open).** On 13 Nov the owner pasted the real `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` values, and said they were in a file on GitHub. **Both must be treated as leaked: rotate the Supabase secret key and make a new random `CRON_SECRET`, remove them from any repo file (`.env.example` must hold only empty placeholders), and set the new values only in Vercel.** The repo's `.env.example` as pushed by me contains no secrets; I did not check any other file or git history. The GitHub token pasted in chat is also still to be revoked. Rotation and revocation have **not** been confirmed, so the first row of Phase 0 stays `[ ]`.
+4. **Possible issue to watch in the dry run:** `api/_orphans.js` sends the service key as both `apikey` and `Authorization: Bearer`. That is right for the old JWT `service_role` key; Supabase may refuse a new-style `sb_secret_...` key as a bearer token. If the dry run answers 502 with a Supabase message, change `headers()` to send only `apikey` for keys that start with `sb_` (as `publicInvitation.ts` already does for the publishable key) and add a test.
+
+**How this affects other tasks**
+
+- **`[~]` items that only waited for dashboard actions** (C-1, C-3, H-3, H-4, H-5, M-4, L-7, L-8, M-8, M-9) stay `[~]` until the owner pastes or confirms the result of their acceptance checks, which I can then tick. Nothing here proves them.
+- **Track B B-M0:** still needs the owner to confirm D1–D8.
+
+**Checks to repeat**
+
+1. Supabase: `select email from public.admins;` shows the admin; `select jobname, schedule from cron.job;` shows `purge-expired-trash`.
+2. Dry run: `curl -H "Authorization: Bearer $CRON_SECRET" https://react-invitepreview.vercel.app/api/cleanup-previews` answers `{"dryRun":true,...}`; compare `files`, `invitations` and every `sample` path with the database before any `?delete=1`.
+
+**Next steps, in order**
+
+1. Rotate the leaked keys (above), revoke the GitHub token, and send the dry-run result.
+2. Then tick the `[~]` items whose checks passed; after that, server-side search/filter/sort (design), Playwright (Supabase test project), Track B B-M0 (confirm D1–D8).
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
 
 ### 13 Nov 2026 (39th update) – L-2 follow-up: 40 unused icon files removed from `src/assets`
 
