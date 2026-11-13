@@ -338,7 +338,10 @@ function ClientEditor() {
       dispatch({ type: "load", data });
       reload();
     } catch (e) {
+      /* B7 double-submit / two tabs: unique index or exists check returns a readable message; reload so the pending banner appears. */
       notify(e instanceof ApiError ? e.message : "Couldn’t submit changes", "error");
+      setConfirmSubmit(false);
+      reload();
     } finally {
       setBusy(false);
     }

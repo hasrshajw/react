@@ -1,5 +1,34 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 72nd update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 36 | rest | **72nd update: close 4 B7 items already implemented (conflict, double-submit, dual-role, pile-up).** |
+
+### 13 Nov 2026 (72nd update) – Close four B7 edge cases (already coded)
+
+**What was done**
+
+1. **D7 conflict path:** marked done. Admin review already has `ChangeConflictError` + "approve anyway" (`force`). Client side is covered when the invitation changes (supersede path from 71st).
+2. **Double-click / two tabs:** marked done. Partial unique index `change_requests_one_pending_idx` + exists check in `submit_change_request` (SQLSTATE 23505). Client submit catch now reloads so the pending banner appears if another tab already submitted.
+3. **Dual-role admin + client:** marked done. `RoleGate` sends admin away from `/my` to dashboard; RLS/RPCs enforce. "View as client" deferred.
+4. **Rejected pile-up:** marked done. `my_invitations` returns only the latest request (lateral `order by created_at desc limit 1`); banners use that row.
+5. **Still open in B7:** multi-invite paging (M-5), data minimisation checks.
+6. **`.env.local` was not touched.**
+
+**Next steps**
+
+1. Owner: revoke the GitHub token.
+2. Next feature work: multi-invite paging, mobile-first skeleton, or B8 verification.
+
+---
+
 ### Where things stand (13 Nov 2026, 71st update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -3162,11 +3191,11 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [x] Client signs up with a different email than the one linked (e.g. Gmail vs. work) → sees the "none linked" state with the signed-in email displayed so they can tell the admin. Already coded; closed 71st update.
 - [x] Unverified email → show "Verify your email to see your invitations" + Resend button; no data returned (RLS enforces). Banner + resend coded 68th–69th updates.
 - [x] Invitation trashed, unpublished or deleted while a request is pending → request marked `superseded`, client notified. SQL now covers unpublish too; client banner for superseded status. Closed 71st update.
-- [ ] Admin edits the invitation while a request is pending → conflict path (D7).
-- [ ] Double-click / two tabs submitting → unique index + idempotent RPC.
+- [x] Admin edits the invitation while a request is pending → conflict path (D7). Admin review: ChangeConflictError + "approve anyway" (force). Client path covered by supersede when invitation changes. Closed 72nd update.
+- [x] Double-click / two tabs submitting → unique index + idempotent RPC. Partial unique index `change_requests_one_pending_idx` + explicit exists check in `submit_change_request` (23505). Closed 72nd update.
 - [ ] Same client email on many invitations; the list must paginate beyond the PostgREST 1,000-row cap (M-5).
-- [ ] A user is both admin and linked client → role `admin` wins; provide "view as client" only if needed later.
-- [ ] Rejected request pile-up: keep history, show only the latest unacknowledged one in the banner.
+- [x] A user is both admin and linked client → role `admin` wins; "view as client" deferred. RoleGate sends admin away from /my to dashboard; RLS/RPCs enforce. Closed 72nd update.
+- [x] Rejected request pile-up: keep history, show only the latest unacknowledged one in the banner. `my_invitations` returns latest request only (lateral order by created_at desc limit 1); banner uses that. Closed 72nd update.
 - [ ] Data minimisation: client queries never return other invitations, enquiries, templates' other data, `views`, or other clients' emails.
 
 ## B8. Security checklist (must pass before release)
