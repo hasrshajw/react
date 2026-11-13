@@ -11,7 +11,9 @@
     "lint": "node tools/lint/node_modules/eslint/bin/eslint.js -c tools/lint/eslint.config.js src",
     "lint:install": "npm ci --prefix tools/lint",
     "test": "vitest run",
-    "test:db": "bash tools/db-test/run.sh"
+    "test:db": "bash tools/db-test/run.sh",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "npm i -D @playwright/test && npx playwright install chromium"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.4.0",

@@ -199,6 +199,8 @@ describe("api/notify-client", () => {
     expect(payload.subject).toMatch(/approved/i);
     expect(payload.text).toContain("https://app.test/my/inv-99");
     expect(payload.text).toContain("Looks good");
+    /* B8: email body must not leak provider keys or service-role material. */
+    expect(payload.text).not.toMatch(/re_test|service_role|eyJ|sb_secret|Bearer/i);
   });
 
   it("sends via Resend when rejected with note", async () => {

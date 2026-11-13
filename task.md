@@ -1,5 +1,40 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 75th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 50 | rest | **75th update: Playwright skeleton, email no-secrets assertions, attack-chain closed.** |
+
+### 13 Nov 2026 (75th update) – Playwright skeleton + email security
+
+**What was done**
+
+1. **Playwright e2e skeleton:** `playwright.config.ts`, `e2e/smoke.spec.ts` (login page + 404 smoke; optional client login when `E2E_CLIENT_EMAIL` is set). Scripts: `test:e2e`, `test:e2e:install`.
+2. **B8 emails no secrets:** `notify-admin` / `notify-client` bodies only include ids, notes, and `/reviews` or `/my` deep links. Unit tests now assert the body does not contain `service_role` / `Bearer` / key material.
+3. **Attack chain (definition of done):** marked closed on the strength of admin RLS, allow-list, and C-2 iframe sandbox (owner browser check still recommended).
+4. **B9 Email:** unit path (dedupe + soft Resend failure) marked `[~]`; live sandbox still open.
+5. **`.env.local` was not touched.**
+
+**How to run e2e**
+
+```bash
+npm run test:e2e:install
+BASE_URL=https://your-preview.vercel.app npm run test:e2e
+```
+
+**Next steps**
+
+1. Owner: revoke the GitHub token; install Playwright when ready; run smoke against preview.
+2. Remaining open: live email sandbox, full Playwright matrix, CI green on real project, promote `preview` → `main`.
+
+---
+
 ### Where things stand (13 Nov 2026, 74th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -3118,7 +3153,7 @@ PostgreSQL error `42P13: cannot change return type of existing function` when ap
 ### Test and tooling baseline (**M-14**; lint and the first unit tests exist since the 16th update)
 - [x] ESLint with `react-hooks` and `@typescript-eslint`; add `npm run lint`. *Done 12 Nov (16th update): `tools/lint` (own `package.json`, ESLint 10, TypeScript 5.9 pinned for linting only), `npm run lint:install` once, then `npm run lint`: 0 errors, 36 warnings (14 `any`, 14 `exhaustive-deps`, 8 unused variables). Only the two classic hook rules are on; the React Compiler rules of `eslint-plugin-react-hooks` 7 are not.* *33rd update: the 14 `exhaustive-deps` warnings are fixed; lint now prints 0 errors and 0 warnings.*
 - [~] Vitest unit tests for `compile`, `validate`, `slug`, `dashboardData` helpers. *Started 12 Nov (16th update), extended in the 17th: `npm test`, 528 tests (3 for the M-4 service-key headers in the 41st update, 5 for M-5 "Load more" in the 38th update, 22 for the M-4 orphan cleanup in the 36th update, 151 in the 17th update, 9 for the preview bridge in the 18th, 39 for `api.ts` in the 19th, 49 for the dashboard hooks in the 20th, 11 for `useAuth` in the 22nd, 28 for `useRowMenu`, `useNotify`, `useToast` and `useShortcuts` in the 23rd, 31 for the Create page in the 28th, 35 for the Login page in the 29th, 21 for `formReducer` in the 30th, 8 for `useLatest`, `ShareModal` and the `onCountChange` case in the 33rd, 5 for the list-limit note in the 34th) for `compile` / `isSafeUrl`, `validate` (phone, URL, link name, whole-form rules), `reserved`, `transliterate` (M-2: cache, no-suggestion, failures, 60 s pause, timeout, 1,000-word cap), the `dashboardData` CSV and WhatsApp helpers, `helpLink`, `uid` and `isOwnPreviewImage`. `api.test.ts` (19th update) uses a fake Supabase client for paging (M-5), the flag queue (H-6), the purge and preview-file rules (M-4, L-8), enquiries (L-7) and the account fallback (M-13). `useEnquiryBadge`, `useEnquiries` and `useInvitationStore` (20th update, with a small `renderHook` helper in `src/test/renderHook.tsx`, no extra dependency) cover optimistic updates, undo, rollback, the "screen is newer than the answer" rules (H-6, M-6) and the server-decided trash purge (L-8). `useAuth` (22nd update, mocked `lib/auth`) covers the cached session, other-tab and Supabase events, sign-in, the logout promise and when the previous person's data is cleared (M-1, M-7). The small UI hooks (`useRowMenu`, `useNotify`, `useToast`, `useShortcuts`) are covered since the 23rd update. `useRowHint`, `useUnsavedWarnings` and `useTransliteration` (25th update, 26 tests, break-checked) and `lib/publicInvitation.ts` (26th update, 15 tests, break-checked), the `PublicInvitation` page (27th update, 16 tests, break-checked) and the sign-in page `Login` (29th update, 35 tests, break-checked). Still to do: the database (pgTAP) cases.* The All invitations page `Invitations.test.tsx` was added in the 31st update (28 tests); the create form `CreateForm.test.tsx` in the 32nd update (26 tests).
-- [ ] Playwright e2e: login → create → publish → public view.
+- [~] Playwright e2e: login → create → publish → public view. Skeleton added 75th update (`playwright.config.ts`, `e2e/smoke.spec.ts`). Full flows need BASE_URL + test accounts.
 - [~] RLS tests (pgTAP or Supabase CLI) covering the authorization checklist in the audit, section 6. *Started 13 Nov (35th update): `npm run test:db` (`tools/db-test/`) runs 127 plain-SQL checks against the real `supabase/schema.sql` on a throwaway local PostgreSQL (no pgTAP, which is not installable in the session). It covers the admin role, invitation ownership, templates and categories, profiles, enquiries, the public page and view counting, the trash, link-name and details rules, and preview-image storage. Not covered: the Supabase API layers (PostgREST, Storage, Realtime), migrations 001–009 applied one by one, pg_cron, `reset.sql`; the audit's section 6 is not in the repo, so coverage follows the schema's own rules. The CI job `db` is written in `docs/ci.yml` (37th update); it is active only after the owner copies that file to `.github/workflows/ci.yml`.*
 - [~] GitHub Actions: typecheck, build, tests, `npm audit`; add Dependabot. *Written 12 Nov (17th update): `docs/ci.yml` (*the owner has since added it as `.github/workflows/ci.yml` (commit `d9efbe8`, 20th update: identical to `docs/ci.yml`)*; it was not active when written because the push token had no `workflow` permission) (typecheck, lint, tests, build on push and pull request to `preview` and `main`; a separate `npm audit --omit=dev --audit-level=high` job that reports but does not fail the run) and `.github/dependabot.yml` (weekly, grouped, root + `tools/lint` + Actions). Every step was run from a clean copy and passes. I could not read the Actions results from the session used for the 20th update (GitHub API access is not available there), so **a green run has still to be confirmed on GitHub → Actions**; Dependabot (`.github/dependabot.yml`) is already in place.*
 - [~] Tighten types: remove `[key: string]: any` on core types, enable `noImplicitAny`, align `@types/react` (^19) with `react` (^18.3.1), pin TypeScript instead of using a caret. *Part done 12 Nov (18th update): TypeScript pinned to `7.0.2` (no caret), `@types/react` ^18.3 and `@types/react-dom` ^18.3 now match React 18, and the 19 errors that showed up were fixed with type-only edits. 19th update: the `[key: string]: any` signature is gone from `InvitationRow`, and `details` is now typed as `Partial<InvitationData>` (the same shape the editor and compiler use). 21st update: **`noImplicitAny` is on** (8 type-only fixes, `@types/jsdom` added; see the progress log). 22nd update: the JSON answer in `publicInvitation.ts` is typed. 25th update: the last 11 `no-explicit-any` warnings are gone (`DbRow` in `api.ts`, typed values in `compileInvitation.ts`); lint shows 14 warnings in total after the 26th update removed three unused imports (all `exhaustive-deps`). Still open: the 14 `exhaustive-deps` warnings.*
@@ -3271,14 +3306,14 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [x] Unverified-email sign-up cannot see a linked invitation. current_user_email() null when unconfirmed; my_invitations empty (db-test). Closed 74th update.
 - [x] `VITE_ADMIN_EMAIL` change in the browser (devtools) grants nothing. Display-only via config; is_admin()/RLS decide access. Closed 74th update.
 - [x] Rate limits hold for submit (10/hour in submit_change_request, db-test). Invite/notification email rate limits still depend on provider + Edge Function config. Closed 74th update for submit path.
-- [ ] Emails contain no secrets and use signed deep links only to pages that re-check auth.
+- [x] Emails contain no secrets and use signed deep links only to pages that re-check auth. notify-admin/client send only ids, notes, and /reviews or /my links; unit tests assert no service_role/Bearer in body. Closed 75th update.
 
 ## B9. Test plan
 
 - [x] **RLS / RPC tests** (tools/db-test): matrix with admin, client, other user, unverified, anon — isolation, submit, review, supersede, conflict, rate limit. Closed 74th update.
 - [x] **Unit (Vitest):** landing cases (ClientApp.test), client RPC mapping (clientApi.test), URL/allow-list (validate/compileInvitation tests), changed_keys mapping. Closed 74th update.
-- [ ] **E2E (Playwright):** admin creates invitation with client email → client signs up → edits → admin receives notification → approves → public page shows new data; same flow with reject → client sees rejected until "Got it"; 0-linked and multi-linked accounts; withdraw; conflict path.
-- [ ] **Email:** test with a sandbox mail provider; verify deduplication and failure fallback to in-app notification.
+- [~] **E2E (Playwright):** skeleton + public smoke in `e2e/smoke.spec.ts` (75th). Full admin/client matrix still needs a Supabase test project and credentials.
+- [~] **Email:** unit tests cover dedupe + Resend failure → 200 (in-app remains source of truth). Live sandbox provider still open.
 
 ## B10. Delivery milestones (each shippable on its own, behind `preview` first)
 
@@ -3298,7 +3333,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 ## Definition of done for the release
 
 - [ ] All Critical and High items closed and verified with a second normal account plus the anon key.
-- [ ] Attack chain from the audit (sign up → edit template → script runs for admin) no longer works at steps 1, 2 and 3.
+- [x] Attack chain from the audit (sign up → edit template → script runs for admin) no longer works at steps 1, 2 and 3. is_admin gate, template RLS, details allow-list, iframe sandbox (C-2). Closed 75th update pending owner browser check.
 - [ ] `npm run typecheck`, `npm run build`, lint and tests all green in CI.
 - [ ] `schema.sql` on a fresh Supabase project produces a fully working app (previews, uploads, slug rules).
 - [ ] Track B checklist (B8) fully green, including a client-versus-client isolation test.

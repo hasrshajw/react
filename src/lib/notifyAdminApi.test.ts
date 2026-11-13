@@ -158,6 +158,8 @@ describe("api/notify-admin", () => {
     expect(payload.subject).toMatch(/client@x.com/i);
     expect(payload.text).toContain("https://app.test/reviews");
     expect(payload.text).toContain("bride_name");
+    /* B8: email body must not leak provider keys or service-role material. */
+    expect(payload.text).not.toMatch(/re_test|service_role|eyJ|sb_secret|Bearer/i);
   });
 
   it("still returns 200 when Resend fails", async () => {
