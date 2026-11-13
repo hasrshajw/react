@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "node tools/lint/node_modules/eslint/bin/eslint.js -c tools/lint/eslint.config.js src",
     "lint:install": "npm ci --prefix tools/lint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:db": "bash tools/db-test/run.sh"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.4.0",
