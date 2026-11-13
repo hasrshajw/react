@@ -1,7 +1,9 @@
 -- B6 D5: client editor needs the proposed snapshot while a request is pending/rejected.
--- Recreate my_invitations with request_proposed_details (safe: same row the client already owns via the request).
+-- Return type change requires DROP first (CREATE OR REPLACE cannot widen OUT columns).
 
-create or replace function public.my_invitations() returns table (
+drop function if exists public.my_invitations();
+
+create function public.my_invitations() returns table (
   id text, groom_name text, bride_name text, event_date date, template_id text, published boolean, details jsonb,
   updated_at timestamptz, request_id uuid, request_status text, request_admin_note text,
   request_created_at timestamptz, request_acknowledged_at timestamptz, request_proposed_details jsonb)

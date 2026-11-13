@@ -1,5 +1,11 @@
 ## Progress log (newest first)
 
+### 13 Nov 2026 (56th update fix) – migration 015 DROP before recreate
+
+PostgreSQL error `42P13: cannot change return type of existing function` when applying 015: fixed by `drop function if exists public.my_invitations()` before `create function` with the extra `request_proposed_details` column. Re-run the updated `015_my_invitations_proposed.sql` in the SQL editor. **`.env.local` was not touched.**
+
+---
+
 ### Where things stand (13 Nov 2026, 56th update)
 
 | Phase | Done | In progress | To do | Notes |
