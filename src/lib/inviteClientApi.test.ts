@@ -2,7 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 import handler from "../../api/invite-client.js";
 
 function mockRes() {
-  const res = { statusCode: 0, headers: {}, body: null, setHeader(k, v) { this.headers[k] = v; }, end(b) { this.body = b; } };
+  const res: {
+    statusCode: number;
+    headers: Record<string, string>;
+    body: string | null;
+    setHeader: (k: string, v: string) => void;
+    end: (b: string) => void;
+  } = {
+    statusCode: 0,
+    headers: {},
+    body: null,
+    setHeader(k, v) { this.headers[k] = v; },
+    end(b) { this.body = b; },
+  };
   return res;
 }
 
@@ -17,7 +29,7 @@ describe("api/invite-client", () => {
     const res = mockRes();
     await handler({ method: "POST", headers: { authorization: "Bearer t" }, body: { email: "a@b.com" } }, res, { env: {} });
     expect(res.statusCode).toBe(503);
-    expect(JSON.parse(res.body).error).toMatch(/not configured/i);
+    expect(JSON.parse(res.body!).error).toMatch(/not configured/i);
   });
 
   it("answers 401 without a bearer token", async () => {
@@ -44,7 +56,7 @@ describe("api/invite-client", () => {
 
   it("invites when the caller is an admin", async () => {
     const res = mockRes();
-    const fetchFn = vi.fn(async (url) => {
+    const fetchFn = vi.fn(async (url: string) => {
       if (String(url).includes("is_admin")) return { ok: true, json: async () => true };
       return { ok: true, json: async () => ({ id: "user-1" }) };
     });
@@ -57,11 +69,12 @@ describe("api/invite-client", () => {
       },
     );
     expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
+    const body = JSON.parse(res.body!);
     expect(body.ok).toBe(true);
     expect(body.email).toBe("client@x.com");
     const inviteCall = fetchFn.mock.calls.find((c) => String(c[0]).includes("/auth/v1/invite"));
     expect(inviteCall).toBeTruthy();
-    expect(JSON.parse(inviteCall[1].body).redirect_to).toBe("https://app.test/my");
+    const callOpts = inviteCall![1] as { body: string };
+    expect(JSON.parse(callOpts.body).redirect_to).toBe("https://app.test/my");
   });
 });

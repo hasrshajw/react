@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 /* Track B (B4): the client-editing calls in src/lib/api.ts. A fake Supabase client records the RPC name and its arguments, and the
    table calls, so the tests check exactly what is sent and how the answers (and the 40001 conflict) are turned into app values. */
 type Rec = { kind: "rpc" | "from"; name: string; args?: unknown; ops: [string, unknown[]][] };
-type Result = { data?: unknown; error?: { message: string; code?: string } | null };
+type Result = { data?: unknown; error?: { message: string; code?: string } | null; count?: number | null };
 let recs: Rec[] = [];
 
 async function load(answer: (r: Rec) => Result) {

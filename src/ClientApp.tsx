@@ -86,7 +86,7 @@ function Landing() {
         <p>No invitations are linked to this account.</p>
         {session?.email && (
           <p style={{ color: "#6b7280", fontSize: 14 }}>
-            Signed in as <b>{user.email}</b>. Use the email your invitation was set up with
+            Signed in as <b>{session.email}</b>. Use the email your invitation was set up with
             {ADMIN_EMAIL ? <>, or <a href={`mailto:${ADMIN_EMAIL}`}>contact the admin</a></> : null}.
           </p>
         )}

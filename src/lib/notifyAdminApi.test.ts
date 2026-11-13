@@ -147,7 +147,8 @@ describe("api/notify-admin", () => {
     expect(body.to).toBe("admin@test.com");
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
-    const [url, opts] = fetchFn.mock.calls[0];
+    const call = fetchFn.mock.calls[0] as unknown as [string, { method: string; headers: Record<string, string>; body: string }];
+    const [url, opts] = call;
     expect(url).toBe("https://api.resend.com/emails");
     expect(opts.method).toBe("POST");
     expect(opts.headers.Authorization).toBe("Bearer re_test");
