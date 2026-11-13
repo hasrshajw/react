@@ -59,10 +59,5 @@
         }
       ]
     }
-  ],
-  "build": {
-    "env": {
-      "NPM_CONFIG_ALLOW_SCRIPTS": "true"
-    }
-  }
+  ]
 }
