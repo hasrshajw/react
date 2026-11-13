@@ -4,7 +4,7 @@ import { onUserDataReset } from "../lib/userData";
 import { useAuth } from "./useAuth";
 
 /* Track B (B4): which app the signed-in person gets. `admin` for a row in `admins`, `client` for any other signed-in person (the client
-   area shows "No invitations are linked to this account" when `my_invitations()` is empty), `none` when nobody is signed in.
+   area shows "No invitations to show" when `my_invitations()` is empty), `none` when nobody is signed in.
    This is for choosing a screen only. Every real permission is enforced by row level security and the RPCs, so a wrong answer here can
    show the wrong page but never reveal or change data.
    The answer comes from the database (`is_admin()`), is remembered in memory only (never in localStorage, which a person could edit),

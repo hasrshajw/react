@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
   returnTo: null as string | null,
   signInGoogle: vi.fn(),
   signInEmail: vi.fn(),
+  signUpEmail: vi.fn(),
   logout: vi.fn(),
   requestPasswordReset: vi.fn(),
   setNewPassword: vi.fn(),
@@ -20,7 +21,7 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock("../hooks/useAuth", () => ({
-  useAuth: () => ({ session: h.session, signInGoogle: h.signInGoogle, signInEmail: h.signInEmail, logout: h.logout }),
+  useAuth: () => ({ session: h.session, signInGoogle: h.signInGoogle, signInEmail: h.signInEmail, signUpEmail: h.signUpEmail, logout: h.logout }),
 }));
 vi.mock("../lib/preload", () => ({ preloadAdmin: () => h.preloadAdmin() }));
 vi.mock("../lib/auth", async () => {
@@ -75,7 +76,7 @@ const deferred = <T = void,>() => { let resolve!: (v: T) => void, reject!: (e: u
 
 beforeEach(() => {
   h.session = null; h.recovery = false; h.returnTo = null; where = "";
-  for (const f of [h.signInGoogle, h.signInEmail, h.logout, h.requestPasswordReset, h.setNewPassword, h.preloadAdmin]) f.mockReset();
+  for (const f of [h.signInGoogle, h.signInEmail, h.signUpEmail, h.logout, h.requestPasswordReset, h.setNewPassword, h.preloadAdmin]) f.mockReset();
   h.takeLoginTarget.mockReset(); h.takeLoginTarget.mockImplementation(() => h.returnTo);
   h.signInGoogle.mockResolvedValue(undefined); h.signInEmail.mockResolvedValue(undefined);
   h.logout.mockResolvedValue(undefined); h.requestPasswordReset.mockResolvedValue(undefined); h.setNewPassword.mockResolvedValue(undefined);
@@ -473,5 +474,52 @@ describe("Login: already signed in, and page details", () => {
     show({ loggedOut: true });
     await flush();
     expect(h.preloadAdmin).not.toHaveBeenCalled();
+  });
+});
+
+describe("Login: sign up", () => {
+  const openSignUp = () => { show(); click(btn("Create an account")); };
+
+  it("switches to the sign-up form and back", () => {
+    openSignUp();
+    expect(text()).toContain("Create your account");
+    expect(btn("Create account")).toBeTruthy();
+    expect(text()).not.toContain("Forgot password?");
+    click(btn("Sign in"));
+    expect(text()).toContain("Welcome back");
+  });
+
+  it("checks the password length before any request", () => {
+    openSignUp();
+    fill("new@example.com", "abc");
+    submit();
+    expect(text()).toContain("Use at least");
+    expect(h.signUpEmail).not.toHaveBeenCalled();
+  });
+
+  it("signed in at once: goes to the dashboard (non-admins are then sent to /my by the role gate)", async () => {
+    h.signUpEmail.mockResolvedValue({ email: "new@example.com" });
+    openSignUp();
+    fill("new@example.com", "secret1");
+    submit(); await flush();
+    expect(h.signUpEmail).toHaveBeenCalledWith("new@example.com", "secret1");
+    expect(text()).toContain("PAGE:dashboard");
+  });
+
+  it("email confirmation required: tells the person to check their inbox and returns to sign in", async () => {
+    h.signUpEmail.mockResolvedValue(null);
+    openSignUp();
+    fill("new@example.com", "secret1");
+    submit(); await flush();
+    expect(text()).toContain("Check your inbox for a confirmation link");
+    expect(text()).toContain("Welcome back");
+  });
+
+  it("shows the server's message when sign-up fails", async () => {
+    h.signUpEmail.mockRejectedValue(new AuthError("An account with this email already exists. Sign in instead."));
+    openSignUp();
+    fill("new@example.com", "secret1");
+    submit(); await flush();
+    expect(text()).toContain("already exists");
   });
 });

@@ -138,6 +138,24 @@ export async function signInWithEmail(email: string, password: string): Promise<
   return startSession({ provider: "email", email: clean, name: meta.full_name || nameFromEmail(clean), emailVerified });
 }
 
+/** Self-service sign-up with email + password. Resolves to the new Session when Supabase signs the person in at once, or to null when the
+ *  project requires the email to be confirmed first (the person must open the link in the email, then sign in). New accounts are plain
+ *  clients: admin rights come only from a row in `admins`, never from signing up. */
+export async function signUpWithEmail(email: string, password: string): Promise<Session | null> {
+  if (!isEmail(email)) throw new AuthError("Enter a valid email address.");
+  if (password.length < MIN_PASSWORD) throw new AuthError(`Password must be at least ${MIN_PASSWORD} characters.`);
+  const clean = email.trim().toLowerCase();
+  const { data, error } = await db().auth.signUp({ email: clean, password, options: { emailRedirectTo: `${window.location.origin}/login` } });
+  if (error) throw new AuthError(error.message);
+  /* With email confirmation on, Supabase answers an already-registered address with a user that has no identities (and no error). */
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    throw new AuthError("An account with this email already exists. Sign in instead.");
+  }
+  if (!data.session || !data.user) return null;
+  const meta = (data.user.user_metadata ?? {}) as Record<string, string | undefined>;
+  return startSession({ provider: "email", email: clean, name: meta.full_name || nameFromEmail(clean), emailVerified: !!data.user.email_confirmed_at });
+}
+
 /* M-7: "Forgot password". Supabase emails a link that returns to /login with `type=recovery` in the address; the login
    page then asks for a new password. The flag is read when this module loads, before Supabase tidies the address. */
 export const RECOVERY_LINK = typeof window !== "undefined" && /[#&?]type=recovery(&|$)/.test(window.location.hash + window.location.search);

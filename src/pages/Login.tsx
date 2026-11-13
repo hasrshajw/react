@@ -17,7 +17,7 @@ const FEATURES = [
 ];
 
 export default function Login() {
-  const { session, signInGoogle, signInEmail, logout } = useAuth();
+  const { session, signInGoogle, signInEmail, signUpEmail, logout } = useAuth();
   const navigate = useNavigate();
   const loc = useLocation();
   const state = loc.state as { from?: string; loggedOut?: boolean } | null;
@@ -32,6 +32,9 @@ export default function Login() {
   const [busy, setBusy] = useState<Busy>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [signedUpNotice, setSignedUpNotice] = useState(false);
+  const isSignUp = mode === "signup";
   const [resetSent, setResetSent] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [recovering, setRecovering] = useState(RECOVERY_LINK);
@@ -86,13 +89,28 @@ export default function Login() {
     const next: FieldErrors = {};
     if (!email.trim()) next.email = "Enter your email address.";
     else if (!isEmail(email)) next.email = "Enter a valid email address.";
-    if (!password) next.password = "Enter your password.";
+    if (!password) next.password = isSignUp ? "Choose a password." : "Enter your password.";
+    else if (isSignUp && password.length < MIN_PASSWORD) next.password = `Use at least ${MIN_PASSWORD} characters.`;
     setErrors(next);
     setFormError("");
     if (next.email) { emailRef.current?.focus(); return; }
     if (next.password) { pwRef.current?.focus(); return; }
     setBusy("email");
-    try { await signInEmail(email, password); finish(); } catch (err) { fail(err); }
+    try {
+      if (isSignUp) {
+        const s = await signUpEmail(email, password);
+        if (s) { finish(); return; }
+        /* Email confirmation is on: ask them to open the link, then sign in. */
+        setSignedUpNotice(true); setMode("signin"); setPassword(""); setBusy(null);
+        return;
+      }
+      await signInEmail(email, password); finish();
+    } catch (err) { fail(err); }
+  };
+
+  const switchMode = (m: "signin" | "signup") => {
+    if (locked) return;
+    setMode(m); setErrors({}); setFormError(""); setResetSent(false); setSignedUpNotice(false);
   };
 
   /* M-7: "Forgot password?" sends the reset email for the address typed above. The answer is the same whether or not
@@ -135,8 +153,8 @@ export default function Login() {
             <span className="lb-mark"><img src={schedyMark} alt="" /></span>
             Schedy Admin
           </div>
-          <h1>Welcome back</h1>
-          <p className="lc-sub">Sign in to manage your invitations.</p>
+          <h1>{isSignUp ? "Create your account" : "Welcome back"}</h1>
+          <p className="lc-sub">{isSignUp ? "Sign up with the email your invitation was set up with to view and update it." : "Sign in to manage your invitations."}</p>
 
           {loggedOut && !session && (
             <p className="lc-note" role="status"><Check size={16} /> You’ve been logged out.</p>
@@ -151,7 +169,7 @@ export default function Login() {
             {busy === "google" ? "Signing in…" : "Continue with Google"}
           </button>
 
-          <div className="lc-or" role="separator"><span>or sign in with email</span></div>
+          <div className="lc-or" role="separator"><span>{isSignUp ? "or sign up with email" : "or sign in with email"}</span></div>
 
           <form className="lc-form" onSubmit={submit} noValidate>
             <div className="lc-field">
@@ -170,12 +188,12 @@ export default function Login() {
             <div className="lc-field">
               <div className="lc-label">
                 <label htmlFor="login-password">Password</label>
-                <button type="button" className="lc-link" onClick={forgot} disabled={locked}>Forgot password?</button>
+                {!isSignUp && <button type="button" className="lc-link" onClick={forgot} disabled={locked}>Forgot password?</button>}
               </div>
               <div className={`lc-input${errors.password ? " bad" : ""}`}>
                 <Lock size={18} />
                 <input
-                  ref={pwRef} id="login-password" type={showPw ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password"
+                  ref={pwRef} id="login-password" type={showPw ? "text" : "password"} autoComplete={isSignUp ? "new-password" : "current-password"} placeholder={isSignUp ? `At least ${MIN_PASSWORD} characters` : "Enter your password"}
                   value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((x) => ({ ...x, password: undefined })); }}
                   disabled={locked} aria-invalid={!!errors.password} aria-describedby={errors.password ? "login-password-err" : undefined}
                 />
@@ -186,14 +204,21 @@ export default function Login() {
               {errors.password && <p className="lc-err" id="login-password-err">{errors.password}</p>}
             </div>
 
+            {signedUpNotice && <p className="lc-hint" role="status">Account created. Check your inbox for a confirmation link, then sign in here.</p>}
             {resetSent && <p className="lc-hint" role="status">If an account exists for that email, a reset link is on its way. Check your inbox and spam folder.</p>}
             {formError && <p className="lc-alert" role="alert"><AlertCircle size={16} /> {formError}</p>}
 
             <button type="submit" className={`lc-btn lc-submit${busy === "email" ? " is-busy" : ""}`} disabled={locked} aria-busy={busy === "email"}>
               {busy === "email" && <Loader2 className="spin" size={18} />}
-              {busy === "email" ? "Signing in…" : "Sign in"}
+              {busy === "email" ? (isSignUp ? "Creating account…" : "Signing in…") : (isSignUp ? "Create account" : "Sign in")}
             </button>
           </form>
+          <p className="lc-switch">
+            {isSignUp ? "Already have an account? " : "New here? "}
+            <button type="button" className="lc-link" onClick={() => switchMode(isSignUp ? "signin" : "signup")} disabled={locked}>
+              {isSignUp ? "Sign in" : "Create an account"}
+            </button>
+          </p>
             </>
           )}
 

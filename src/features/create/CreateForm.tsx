@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { ApiError, inviteClient } from "../../lib/api";
+import React from "react";
 import { CalendarPlus, Heart, LayoutTemplate, Mail, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
 import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
 import { newEvent } from "./constants";
@@ -55,27 +54,6 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
   const normalizedCurrent = data.clientEmail.trim().toLowerCase();
   const normalizedOriginal = originalClientEmail.trim().toLowerCase();
   const clientEmailChanged = normalizedOriginal !== "" && normalizedCurrent !== normalizedOriginal;
-  const [inviteBusy, setInviteBusy] = useState(false);
-  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
-  const sendInvite = async () => {
-    const email = data.clientEmail.trim();
-    if (!email || inviteBusy) return;
-    setInviteBusy(true);
-    setInviteStatus(null);
-    try {
-      const r = await inviteClient(email, invitationId);
-      const msg = r.alreadyRegistered
-        ? "That address already has an account — they can sign in at /my."
-        : "Invite sent. They will get an email to join and open /my.";
-      notify(msg);
-      setInviteStatus(r.alreadyRegistered ? "Already registered — they can sign in at /my." : "Invite sent. Waiting for them to join.");
-    } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Couldn’t send the invite", "error");
-      setInviteStatus(null);
-    } finally {
-      setInviteBusy(false);
-    }
-  };
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
       {/* Always reset fieldset chrome; default browser border was showing around the whole form. */}
@@ -172,26 +150,11 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           inputMode="email"
           {...client.fp("clientEmail")}
           value={data.clientEmail}
-          onChange={(v) => { set("clientEmail", v); setInviteStatus(null); }}
+          onChange={(v) => set("clientEmail", v)}
         />
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
-          <button
-            type="button"
-            className="act-btn"
-            disabled={client.loading || inviteBusy || !data.clientEmail.trim() || !!vis("clientEmail")}
-            onClick={() => void sendInvite()}
-          >
-            {inviteBusy ? "Sending…" : "Send invite to client"}
-          </button>
-        </div>
-        {inviteStatus && (
-          <div className="hint" role="status" style={{ marginTop: 6 }}>
-            {inviteStatus}
-          </div>
-        )}
         <div className="hint">
-          Optional. The person with this verified email can request edits to this invitation from the client portal.
-          Save the invitation with this email first, then send the invite so they can open /my.
+          Optional. Anyone who signs up or signs in with this verified email can see this invitation and request edits at /my.
+          Save the invitation with this email; no invite email is needed.
         </div>
         {clientEmailChanged && (
           <div className="hint" role="status" style={{ color: "var(--warn, #b45309)" }}>

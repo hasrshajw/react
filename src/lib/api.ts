@@ -466,20 +466,3 @@ export async function markNotificationRead(id: number): Promise<void> {
   if (error) fail(error);
 }
 
-/** Ask the server to email a Supabase invite to the client (B3). Uses the signed-in admin JWT; the service role stays on the server. */
-export async function inviteClient(email: string, invitationId?: string): Promise<{ ok: true; alreadyRegistered?: boolean }> {
-  const trimmed = email.trim().toLowerCase();
-  if (!trimmed) throw new ApiError("A valid email address is required");
-  const { data: sess } = await db().auth.getSession();
-  const token = sess.session?.access_token;
-  if (!token) throw new ApiError("Sign in as an administrator to send invites");
-  const res = await fetch("/api/invite-client", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ email: trimmed, invitationId: invitationId || undefined }),
-  });
-  const body = await res.json().catch(() => ({})) as { error?: string; ok?: boolean; alreadyRegistered?: boolean };
-  if (!res.ok) throw new ApiError(body.error || "Couldn’t send the invite");
-  return { ok: true, alreadyRegistered: body.alreadyRegistered === true };
-}
-

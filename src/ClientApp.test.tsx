@@ -44,7 +44,7 @@ const inv = (id: string, g = "Ravi", b = "Sita") =>
 async function open(at: string) {
   const host = document.createElement("div");
   const router = createMemoryRouter(
-    [{ path: "*", element: <ClientApp /> }],
+    [{ path: "/my/*", element: <ClientApp /> }, { path: "*", element: <div>outside /my</div> }],
     { initialEntries: [at] },
   );
   await act(async () => {
@@ -58,10 +58,10 @@ async function open(at: string) {
 beforeEach(() => get.mockReset());
 
 describe("ClientApp landing", () => {
-  it("none linked: says so and offers the admin address", async () => {
+  it("none linked: shows \"No invitations to show\" and offers the admin address", async () => {
     get.mockResolvedValue([]);
     const h = await open("/my");
-    expect(h.textContent).toContain("No invitations are linked to this account.");
+    expect(h.textContent).toContain("No invitations to show");
     expect(h.querySelector("a")?.getAttribute("href")).toBe("mailto:help@x.com");
   });
 
@@ -91,6 +91,6 @@ describe("ClientApp landing", () => {
     get.mockRejectedValue(new Error("x"));
     expect((await open("/my")).querySelector("[role=alert]")).not.toBeNull();
     get.mockResolvedValue([]);
-    expect((await open("/my/a/b/c")).textContent).toContain("No invitations are linked");
+    expect((await open("/my/a/b/c")).textContent).toContain("No invitations to show");
   });
 });

@@ -158,10 +158,10 @@ function Landing() {
           </div>
         ) : (
           <>
-            <p>No invitations are linked to this account.</p>
+            <p>No invitations to show.</p>
             {session?.email && (
               <p style={{ color: "#6b7280", fontSize: 14 }}>
-                Signed in as <b>{session.email}</b>. Use the email your invitation was set up with
+                Signed in as <b>{session.email}</b>. Sign in with the email your invitation was set up with
                 {ADMIN_EMAIL ? <>, or <a href={`mailto:${ADMIN_EMAIL}`}>contact the admin</a></> : null}.
               </p>
             )}
@@ -580,8 +580,10 @@ export default function ClientApp() {
     <AuthProvider>
       <RoleGate allow="client">
         <Routes>
-          <Route path="/my" element={<Landing />} />
-          <Route path="/my/:id" element={<ClientEditor />} />
+          {/* This <Routes> sits inside the parent route "/my/*", so these paths are relative to /my.
+              Absolute paths ("/my") would never match and the screen stayed blank. */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/:id" element={<ClientEditor />} />
           <Route path="*" element={<Navigate to="/my" replace />} />
         </Routes>
       </RoleGate>

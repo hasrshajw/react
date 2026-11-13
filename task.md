@@ -1,5 +1,18 @@
 ## Progress log (newest first)
 
+### 13 Nov 2026 (77th update) – Client sign-up, blank `/my` fix, invite button removed, card spacing
+
+**What was done**
+
+1. **Blank screen after sign-in (root cause):** `ClientApp` declared `<Route path="/my">` and `<Route path="/my/:id">` inside the parent route `/my/*`. Nested `<Routes>` match relative to the parent, so neither ever matched and the `*` fallback redirected to `/my` forever: nothing rendered. Routes are now `/` and `/:id`. `ClientApp.test.tsx` now mounts under `/my/*` like production (it mounted at `*`, which hid the bug).
+2. **Sign-up:** the sign-in page has a "Create an account" mode (email + password, `signUpWithEmail` in `lib/auth.ts`, `signUpEmail` in `useAuth`). New accounts are plain clients (no admin rights). If Supabase requires email confirmation the person is told to check their inbox, then sign in. **Owner:** sign-ups must be enabled in Supabase (Auth → Providers → Email → allow new users); the redirect URL `/login` must be in the allowed list.
+3. **Empty state:** a signed-in client with nothing linked sees "No invitations to show." Linked invitations (matched by verified email) are listed or opened directly; edits still go through "Submit for review".
+4. **Create page:** "Send invite to client" button, status text, `inviteClient()` API helper, `api/invite-client.js`, its test and its `.env.example` block are removed. The Client email field remains; the hint now says the person just signs up/in with that email.
+5. **Spacing:** the form cards sat inside a `<fieldset>` (added for the read-only mode), so the 16px flex gap on the form no longer applied. The fieldset is now the flex column with the same gap.
+6. **Checks:** typecheck clean, lint 0 errors, 603 tests pass, build passes.
+
+---
+
 ### Where things stand (13 Nov 2026, 76th update)
 
 | Phase | Done | In progress | To do | Notes |

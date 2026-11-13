@@ -1,13 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { resetUserData } from "../lib/userData";
 import {
-  SESSION_KEY, getSession, signInWithEmail, signInWithGoogle, signOut, syncSupabaseSession, watchAuthChanges, type Session,
+  SESSION_KEY, getSession, signInWithEmail, signInWithGoogle, signOut, signUpWithEmail, syncSupabaseSession, watchAuthChanges, type Session,
 } from "../lib/auth";
 
 interface AuthState {
   session: Session | null;
   signInGoogle: (from?: string) => Promise<Session>;
   signInEmail: (email: string, password: string) => Promise<Session>;
+  /** Creates an account. Resolves to the Session when the person is signed in at once, or null when they must confirm their email first. */
+  signUpEmail: (email: string, password: string) => Promise<Session | null>;
   /** Signs out now; the promise settles when Supabase has finished (wait for it before the next sign-in). */
   logout: () => Promise<void>;
 }
@@ -44,9 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInGoogle = useCallback(async (from?: string) => { const s = await signInWithGoogle(from); setSession(s); return s; }, []);
   const signInEmail = useCallback(async (email: string, password: string) => { const s = await signInWithEmail(email, password); setSession(s); return s; }, []);
+  const signUpEmail = useCallback(async (email: string, password: string) => { const s = await signUpWithEmail(email, password); if (s) setSession(s); return s; }, []);
   const logout = useCallback(() => { setSession(null); return signOut(); }, []);
 
-  const value = useMemo(() => ({ session, signInGoogle, signInEmail, logout }), [session, signInGoogle, signInEmail, logout]);
+  const value = useMemo(() => ({ session, signInGoogle, signInEmail, signUpEmail, logout }), [session, signInGoogle, signInEmail, signUpEmail, logout]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
