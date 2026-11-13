@@ -1,6 +1,6 @@
 // M-4: orphan cleanup (api/_orphans.js and api/cleanup-previews.js). A fake Supabase `fetch` holds a bucket and an invitations table in memory.
 import { describe, it, expect } from "vitest";
-import { pathFromSeoImage, findOrphans, cleanup, GRACE_MS, MAX_DELETE, BUCKET } from "../../api/_orphans.js";
+import { pathFromSeoImage, findOrphans, cleanup, headers, GRACE_MS, MAX_DELETE, BUCKET } from "../../api/_orphans.js";
 import handler, { isAuthorized } from "../../api/cleanup-previews.js";
 
 const URL_ = "https://proj.supabase.co";
@@ -162,6 +162,28 @@ describe("cleanup", () => {
     const f = fake(files, invs);
     await run(f, { dryRun: false });
     for (const c of f.calls) { expect(c.url).not.toContain("K&"); expect(JSON.stringify(c.body ?? {})).not.toContain('"K"'); }
+  });
+});
+
+describe("service key headers", () => {
+  it("sends a new-style sb_secret_ key only as apikey", () => {
+    const h = headers("sb_secret_abc", { Range: "0-9" }) as Record<string, string>;
+    expect(h.apikey).toBe("sb_secret_abc");
+    expect(h.Range).toBe("0-9");
+    expect("Authorization" in h).toBe(false);
+  });
+  it("also sends a legacy JWT service_role key as a Bearer token", () => {
+    const h = headers("eyJhbGciOi.payload.sig") as Record<string, string>;
+    expect(h.apikey).toBe("eyJhbGciOi.payload.sig");
+    expect(h.Authorization).toBe("Bearer eyJhbGciOi.payload.sig");
+  });
+  it("every request of a cleanup run uses those headers", async () => {
+    const seen: Record<string, string>[] = [];
+    const f = fake([{ path: "u1/a.jpg", updated: OLD }], [{ id: "x" }]);
+    const wrapped = (async (u: string, init: any = {}) => { seen.push(init.headers); return (f.fetchFn as any)(u, init); }) as unknown as typeof fetch;
+    await cleanup({ url: URL_, key: "sb_secret_abc", fetchFn: wrapped, now: NOW, dryRun: true } as any);
+    expect(seen.length).toBeGreaterThan(0);
+    for (const h of seen) { expect(h.apikey).toBe("sb_secret_abc"); expect("Authorization" in h).toBe(false); }
   });
 });
 

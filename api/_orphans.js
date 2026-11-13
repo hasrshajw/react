@@ -52,8 +52,12 @@ export function findOrphans({ files, invitationIds, referenced, now, graceMs = G
   return out.sort();
 }
 
-function headers(key, extra = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, ...extra };
+/* A legacy service_role key is a JWT and also goes in Authorization. The new sb_secret_ keys are not JWTs and must
+   only be sent as apikey (same rule as the publishable key in src/lib/publicInvitation.ts). */
+export function headers(key, extra = {}) {
+  const h = { apikey: key, ...extra };
+  if (String(key).startsWith("eyJ")) h.Authorization = `Bearer ${key}`;
+  return h;
 }
 
 async function json(res, what) {
