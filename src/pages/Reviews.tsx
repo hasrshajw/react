@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLatest } from "../hooks/useLatest";
 import { Link } from "react-router-dom";
 import { Inbox } from "../components/Icons";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
 import { Toast } from "../features/dashboard/components/Toast";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { ReviewDetail } from "../features/reviews/ReviewDetail";
-import { STATUS_CHIP, STATUS_LABEL } from "../features/reviews/status";
 import { fetchReviewQueue, type RequestStatus, type ReviewItem } from "../lib/api";
 import { fmtDateTime, timeAgo } from "../lib/dashboardData";
 import dashboardCss from "../styles/dashboard.css?inline";
@@ -21,14 +19,28 @@ const TABS: { key: RequestStatus | "all"; label: string }[] = [
   { key: "all", label: "All" },
 ];
 
+const STATUS_LABEL: Record<RequestStatus, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
+  superseded: "Superseded",
+};
+
+const STATUS_CHIP: Record<RequestStatus, string> = {
+  pending: "pending",
+  approved: "ok",
+  rejected: "enq-cancelled",
+  withdrawn: "draft",
+  superseded: "draft",
+};
+
 type Props = {
   /** Lets AdminApp keep the sidebar pending badge in sync (same pattern as enquiries). */
   onPendingCountChange?: (n: number) => void;
-  /** Tells AdminApp a right-side panel is open so the sidebar collapses and the page makes room. */
-  onPanelChange?: (open: boolean) => void;
 };
 
-export default function Reviews({ onPendingCountChange, onPanelChange }: Props) {
+export default function Reviews({ onPendingCountChange }: Props) {
   const { toast, notify, dismiss } = useNotify();
   const [status, setStatus] = useState<RequestStatus | "all">("pending");
   const [items, setItems] = useState<ReviewItem[]>([]);
@@ -38,8 +50,6 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
 
   const load = useCallback((silent = false) => {
     if (silent) setRefreshing(true);
@@ -70,10 +80,6 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
     () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
     [items, selectedId],
   );
-
-  const panelChangeRef = useLatest(onPanelChange);
-  useEffect(() => { panelChangeRef.current?.(!!selected); }, [selected, panelChangeRef]);
-  useEffect(() => () => panelChangeRef.current?.(false), [panelChangeRef]);
 
   const pendingOnPage = useMemo(
     () => items.filter((i) => i.status === "pending").length,
@@ -194,17 +200,15 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
           </div>
         )}
 
+        {selected && (
+          <ReviewDetail
+            item={selected}
+            onClose={() => setSelectedId(null)}
+            onDecided={() => { setSelectedId(null); load(true); }}
+            notify={notify}
+          />
+        )}
       </div>
-
-      {selected && (
-        <ReviewDetail
-          slot={slot}
-          item={selected}
-          onClose={() => setSelectedId(null)}
-          onDecided={() => { setSelectedId(null); load(true); }}
-          notify={notify}
-        />
-      )}
 
       {toast && <Toast toast={toast} onDismiss={dismiss} />}
     </>

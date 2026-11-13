@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowRight, Check, FileText, Pencil, Smartphone, X } from "../../components/Icons";
-import { useEscape } from "../../hooks/useEscape";
+import { X } from "../../components/Icons";
 import { useTemplates } from "../../hooks/useTemplates";
 import {
   ChangeConflictError,
@@ -11,40 +9,25 @@ import {
   type ReviewItem,
 } from "../../lib/api";
 import { compile } from "../../lib/compileInvitation";
-import { coupleName, fmtDateTime, timeAgo } from "../../lib/dashboardData";
+import { coupleName, fmtDateTime } from "../../lib/dashboardData";
 import type { InvitationRow } from "../../types/dashboard";
-import { diffKind, diffLines, fieldLabel, type DiffKind } from "./fieldLabels";
-import { STATUS_CHIP, STATUS_LABEL } from "./status";
+import { fieldLabel, formatDiffValue } from "./fieldLabels";
 
 type Props = {
-  /** The #preview-slot element beside the page; the panel is portalled into it like the Dashboard preview. */
-  slot: HTMLElement | null;
   item: ReviewItem;
   onClose: () => void;
   onDecided: () => void;
   notify: (msg: string, undo?: () => void) => void;
 };
 
-const KIND_LABEL: Record<DiffKind, string> = { added: "Added", changed: "Changed", removed: "Removed" };
-
-function Lines({ lines }: { lines: string[] }) {
-  if (lines.length === 0) return <span className="rv-empty">Empty</span>;
-  return <>{lines.map((l, i) => <span className="rv-line" key={i}>{l}</span>)}</>;
-}
-
-export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) {
-  const asideRef = useRef<HTMLElement>(null);
-  const { templates, loading: tplLoading } = useTemplates();
+export function ReviewDetail({ item, onClose, onDecided, notify }: Props) {
+  const { templates } = useTemplates();
   const [row, setRow] = useState<InvitationRow | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<"approve" | "reject" | "force" | null>(null);
   const [conflictMsg, setConflictMsg] = useState<string | null>(null);
-  const [tab, setTab] = useState<"changes" | "preview">("changes");
-
-  useEscape(!busy, onClose);
-  useEffect(() => { asideRef.current?.focus({ preventScroll: true }); }, [item.id]);
 
   useEffect(() => {
     let live = true;
@@ -53,7 +36,6 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
     setNote("");
     setConfirm(null);
     setConflictMsg(null);
-    setTab("changes");
     fetchInvitation(item.invitationId).then(
       (r) => { if (live) { setRow(r); if (!r) setLoadError(true); } },
       () => { if (live) setLoadError(true); },
@@ -112,173 +94,151 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
   };
 
   const pending = item.status === "pending";
-  const couple = row ? coupleName(row) : "";
-  const who = couple || item.clientEmail || "Change request";
-  const now = Date.now();
 
-  if (!slot) return null;
-  return createPortal(
-    <aside className="dash-side-panel rv-panel" aria-label="Review change request" ref={asideRef} tabIndex={-1}>
-      <header className="rv-head">
-        <span className="rv-avatar" aria-hidden="true">{who.trim().charAt(0).toUpperCase() || "?"}</span>
-        <div className="rv-who">
-          <b title={who}>{who}</b>
-          <small title={fmtDateTime(item.createdAt)}>
-            {item.clientEmail || "Unknown client"} · {timeAgo(item.createdAt, now) || fmtDateTime(item.createdAt)}
-          </small>
+  return (
+    <div className="review-detail" role="dialog" aria-modal="true" aria-label="Review change request">
+      <div className="review-detail-head">
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18 }}>Review request</h2>
+          <p style={{ margin: "4px 0 0", color: "var(--gray)", fontSize: 13 }}>
+            {item.clientEmail || "Unknown client"}
+            {row ? ` · ${coupleName(row)}` : ""}
+            {" · "}
+            {fmtDateTime(item.createdAt)}
+          </p>
         </div>
-        <span className={`chip ${STATUS_CHIP[item.status]}`}>{STATUS_LABEL[item.status]}</span>
-        <button type="button" className="icon-btn" aria-label="Close review" onClick={onClose} disabled={busy}>
+        <button type="button" className="act-btn" aria-label="Close review" onClick={onClose} disabled={busy}>
           <X size={16} />
-        </button>
-      </header>
-
-      <div className="rv-tabs" role="tablist" aria-label="Review sections">
-        <button type="button" role="tab" id="rv-tab-changes" aria-selected={tab === "changes"} aria-controls="rv-pane"
-          className={tab === "changes" ? "on" : ""} onClick={() => setTab("changes")}>
-          <FileText size={15} /> Changes <em>{keys.length}</em>
-        </button>
-        <button type="button" role="tab" id="rv-tab-preview" aria-selected={tab === "preview"} aria-controls="rv-pane"
-          className={tab === "preview" ? "on" : ""} onClick={() => setTab("preview")}>
-          <Smartphone size={15} /> Preview
         </button>
       </div>
 
-      <div className="rv-body" id="rv-pane" role="tabpanel" aria-labelledby={`rv-tab-${tab}`}>
-        {loadError && (
-          <div className="rv-alert bad" role="status">
-            <AlertTriangle size={16} />
-            <span>Couldn’t load the current invitation, so “Before” values may be missing. You can still reject; approving may fail.</span>
-          </div>
-        )}
-        {conflictMsg && (
-          <div className="rv-alert warn" role="alert">
-            <AlertTriangle size={16} />
-            <span>{conflictMsg}</span>
-          </div>
-        )}
+      {loadError && (
+        <p className="hint" style={{ color: "var(--danger-dark)" }}>
+          Couldn’t load the current invitation. You can still reject; approving may fail.
+        </p>
+      )}
 
-        {tab === "changes" ? (
-          keys.length === 0 ? (
-            <div className="rv-none">No field list on this request.</div>
+      {conflictMsg && (
+        <div className="share-note" role="alert" style={{ marginBottom: 12 }}>
+          <span>{conflictMsg}</span>
+        </div>
+      )}
+
+      <div className="review-detail-grid">
+        <section>
+          <h3 style={{ fontSize: 14, margin: "0 0 10px" }}>Changes</h3>
+          {keys.length === 0 ? (
+            <p className="hint">No field list on this request.</p>
           ) : (
-            <>
-              <p className="rv-summary">
-                <b>{keys.length}</b> {keys.length === 1 ? "field" : "fields"} changed by the client
-              </p>
-              <ul className="rv-changes">
+            <table className="diff-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Current</th>
+                  <th>Proposed</th>
+                </tr>
+              </thead>
+              <tbody>
                 {keys.map((key) => {
                   const cur = (currentDetails as Record<string, unknown>)[key];
                   const next = (proposed as Record<string, unknown>)[key];
-                  const kind = diffKind(cur, next);
                   return (
-                    <li key={key} className="rv-change">
-                      <div className="rv-change-top">
-                        <span className="rv-field">{fieldLabel(key)}</span>
-                        <span className={`rv-kind ${kind}`}>{KIND_LABEL[kind]}</span>
-                      </div>
-                      <div className="rv-diff">
-                        <div className="rv-side old">
-                          <small>Before</small>
-                          <div className="rv-val"><Lines lines={diffLines(cur)} /></div>
-                        </div>
-                        <span className="rv-arrow" aria-hidden="true"><ArrowRight size={14} /></span>
-                        <div className="rv-side new">
-                          <small>After</small>
-                          <div className="rv-val"><Lines lines={diffLines(next)} /></div>
-                        </div>
-                      </div>
-                    </li>
+                    <tr key={key}>
+                      <td><b>{fieldLabel(key)}</b></td>
+                      <td className="diff-old">{formatDiffValue(cur)}</td>
+                      <td className="diff-new">{formatDiffValue(next)}</td>
+                    </tr>
                   );
                 })}
-              </ul>
-            </>
-          )
-        ) : proposedPreview ? (
-          <div className="rv-preview">
-            {/* No allow-same-origin: template code must not reach the app's storage or cookies. */}
-            <iframe key={item.id} title="Proposed invitation preview" srcDoc={proposedPreview} sandbox="allow-scripts" />
+              </tbody>
+            </table>
+          )}
+        </section>
+
+        <section>
+          <h3 style={{ fontSize: 14, margin: "0 0 10px" }}>Proposed preview</h3>
+          <div className="review-preview-frame">
+            {proposedPreview
+              ? (
+                <iframe
+                  title="Proposed invitation preview"
+                  srcDoc={proposedPreview}
+                  sandbox="allow-scripts"
+                />
+              )
+              : (
+                <p className="hint" style={{ padding: 16 }}>Preview unavailable (template missing or not loaded).</p>
+              )}
           </div>
-        ) : (
-          <div className="rv-none">
-            <Smartphone size={22} />
-            <b>{tplLoading ? "Loading preview…" : "Preview unavailable"}</b>
-            {!tplLoading && <span>The template is missing or not loaded.</span>}
-          </div>
-        )}
+          <p className="hint" style={{ marginTop: 8, fontSize: 12 }}>
+            Sandboxed preview (no same-origin). Scripts from the template are not granted extra privileges.
+          </p>
+        </section>
       </div>
 
-      <footer className="rv-foot">
-        {pending ? (
-          <>
-            <label className="rv-note">
-              <span>Note {confirm === "reject" || note ? "(required to reject)" : "(optional on approve)"}</span>
-              <textarea
-                rows={2}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                disabled={busy}
-                placeholder="Explain the decision to the client…"
-              />
-            </label>
-            {confirm === "approve" && <p className="rv-ask">Apply the proposed changes to the live invitation?</p>}
-            {confirm === "reject" && <p className="rv-ask">Reject and send your note to the client?</p>}
-            <div className="rv-actions">
-              <Link className="act-btn" to={`/create?edit=${encodeURIComponent(item.invitationId)}`}>
-                <Pencil size={14} /> Edit
-              </Link>
-              <span className="rv-spacer" />
-              {confirm === null && (
-                <>
-                  <button type="button" className="act-btn danger" disabled={busy} onClick={() => setConfirm("reject")}>
-                    Reject…
-                  </button>
-                  <button type="button" className="rv-approve" disabled={busy} onClick={() => setConfirm("approve")}>
-                    <Check size={15} /> Approve…
-                  </button>
-                </>
-              )}
-              {confirm === "approve" && (
-                <>
-                  <button type="button" className="act-btn" disabled={busy} onClick={() => setConfirm(null)}>Cancel</button>
-                  <button type="button" className="rv-approve" disabled={busy} onClick={() => void decide("approve")}>
-                    {busy ? "Saving…" : "Confirm approve"}
-                  </button>
-                </>
-              )}
-              {confirm === "reject" && (
-                <>
-                  <button type="button" className="act-btn" disabled={busy} onClick={() => setConfirm(null)}>Cancel</button>
-                  <button type="button" className="act-btn danger solid-danger" disabled={busy || !note.trim()} onClick={() => void decide("reject")}>
-                    {busy ? "Saving…" : "Confirm reject"}
-                  </button>
-                </>
-              )}
-              {confirm === "force" && (
-                <>
-                  <button type="button" className="act-btn" disabled={busy} onClick={() => { setConfirm(null); setConflictMsg(null); }}>
-                    Cancel
-                  </button>
-                  <button type="button" className="rv-approve" disabled={busy} onClick={() => void decide("approve", true)}>
-                    {busy ? "Saving…" : "Approve anyway"}
-                  </button>
-                </>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="rv-actions">
-            <p className="rv-ask">
-              This request is <b>{item.status}</b>. Decisions can only be made on pending requests.
-            </p>
-            <span className="rv-spacer" />
+      {pending && (
+        <div className="review-actions">
+          <label className="f" style={{ flex: 1, minWidth: 200 }}>
+            <span>Note {confirm === "reject" || note ? "(required to reject)" : "(optional on approve)"}</span>
+            <textarea
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              disabled={busy}
+              placeholder="Explain the decision to the client…"
+            />
+          </label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
             <Link className="act-btn" to={`/create?edit=${encodeURIComponent(item.invitationId)}`}>
-              <Pencil size={14} /> Open invitation
+              Edit invitation
             </Link>
+            {confirm === null && (
+              <>
+                <button type="button" className="act-btn danger" disabled={busy} onClick={() => setConfirm("reject")}>
+                  Reject…
+                </button>
+                <button type="button" className="create-btn" disabled={busy} onClick={() => setConfirm("approve")} style={{ border: 0 }}>
+                  Approve…
+                </button>
+              </>
+            )}
+            {confirm === "approve" && (
+              <>
+                <span className="hint">Apply the proposed changes to the live invitation?</span>
+                <button type="button" className="act-btn" disabled={busy} onClick={() => setConfirm(null)}>Cancel</button>
+                <button type="button" className="create-btn" disabled={busy} onClick={() => void decide("approve")} style={{ border: 0 }}>
+                  {busy ? "Saving…" : "Confirm approve"}
+                </button>
+              </>
+            )}
+            {confirm === "reject" && (
+              <>
+                <span className="hint">Reject and send your note to the client?</span>
+                <button type="button" className="act-btn" disabled={busy} onClick={() => setConfirm(null)}>Cancel</button>
+                <button type="button" className="act-btn danger" disabled={busy || !note.trim()} onClick={() => void decide("reject")}>
+                  {busy ? "Saving…" : "Confirm reject"}
+                </button>
+              </>
+            )}
+            {confirm === "force" && (
+              <>
+                <button type="button" className="act-btn" disabled={busy} onClick={() => { setConfirm(null); setConflictMsg(null); }}>
+                  Cancel
+                </button>
+                <button type="button" className="create-btn" disabled={busy} onClick={() => void decide("approve", true)} style={{ border: 0 }}>
+                  {busy ? "Saving…" : "Approve anyway"}
+                </button>
+              </>
+            )}
           </div>
-        )}
-      </footer>
-    </aside>,
-    slot,
+        </div>
+      )}
+
+      {!pending && (
+        <p className="hint" style={{ marginTop: 12 }}>
+          This request is <b>{item.status}</b>. Decisions can only be made on pending requests.
+        </p>
+      )}
+    </div>
   );
 }
