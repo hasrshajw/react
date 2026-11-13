@@ -26,17 +26,59 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (13 Nov 2026, 44th update)
+### Where things stand (13 Nov 2026, 45th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov (pasted again for the 6th update, the 28th, the 29th, the 30th, the 32nd, the 33rd, the 36th, the 41st, the 42nd, the 43rd and the 44th) must be revoked** (see the first Phase 0 row). |
+| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov (pasted again for the 6th update, the 28th, the 29th, the 30th, the 32nd, the 33rd, the 36th, the 41st, the 42nd, the 43rd, the 44th and the 45th) must be revoked** (see the first Phase 0 row). |
 | Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded, **including the orphan-cleanup route since the 36th update** (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase; `api/cleanup-previews.js` is a dry run by default, needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` on Vercel, tested with a fake Supabase, not yet run against a real project). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** coded: explicit columns, stable order, reads past the 1,000-row cap, a list cut at 10,000 rows says so on screen (34th update), and since the 38th update the note has a **Load more** button that reads the next 10,000 (needs a browser check; server-side search/filter/sort is still not done, by decision). M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
 | Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, **0 errors and 0 warnings since the 33rd update**), **528 unit tests pass (`npm test`; 3 of them for the service-key headers since the 41st update; 5 of them for M-5 "Load more" since the 38th update; 22 of them for the M-4 orphan cleanup since the 36th update; the data layer `api.ts`, the dashboard hooks, `useAuth`, the small UI hooks, `useRowHint`, `useUnsavedWarnings`, `useTransliteration` the guest-side requests in `lib/publicInvitation.ts` (26th update) the guest page `pages/PublicInvitation.tsx` (27th update) the Create page `pages/Create.tsx` (28th update; this also found and fixed a data-loss gap, see the 28th update) and the sign-in page `pages/Login.tsx` (29th update) and the create-form reducer `formReducer.ts` (30th update) and the All invitations page `pages/Invitations.tsx` (31st update) and the create form `features/create/CreateForm.tsx` (32nd update) are covered with fakes)**, **`no-explicit-any` is at 0 (25th update) and there are no unused-variable warnings (26th update); the 14 `exhaustive-deps` warnings were fixed in the 33rd update (new `useLatest` hook, 8 tests; needs a browser check)**, TypeScript is pinned, **`noImplicitAny` is on (21st update)**, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); database tests started in the 35th update (`npm run test:db`, 127 SQL checks; a `db` job is written in `docs/ci.yml` (37th update) but **not active until you copy it to `.github/workflows/ci.yml`**); Playwright is not started. |
-| Track B | 0 | 0 | all | Track B only has the `VITE_ADMIN_EMAIL` env placeholder (B4). |
+| Track B | 0 | 8 | rest | **B-M1 started (45th update, at the owner's request, before B-M0 closed):** `client_email`, `current_user_email()`, `change_requests`, `my_invitations()`, `submit_change_request`, `withdraw_change_request` coded and tested on local Postgres (171 checks); not yet run in Supabase. Review RPC, acknowledge, notifications, audit log and the sign-up role default are still to do. Nothing ships to `main` before B-M0 closes. |
+
+### 13 Nov 2026 (45th update) – B-M1 first part: client email, change requests, client RPCs (database only)
+
+**What was done**
+
+1. **Started B-M1 at the owner's request** (13 Nov), before C-1 and C-2 are ticked. Database only: nothing in `src` changed, nothing is deployed, and the Track B rule still holds that none of this may reach `main` before B-M0 closes.
+2. **New `supabase/migrations/010_client_edit.sql`, folded into `schema.sql`, `reset.sql` updated:**
+   - `invitations.client_email` (lower-case, format check, partial index). Only the admin/owner policy can write it.
+   - `current_user_email()`: the signed-in email, only when `auth.users.email_confirmed_at` is set (D3). Not read from the JWT.
+   - `change_requests` (D5 one pending per invitation through a partial unique index; D7 `base_updated_at`; 64 KB cap). Select-only grant; own rows for the client, all rows for admins; **nobody can write it directly**.
+   - `my_invitations()`: the client's only way to read. Verified email only, no trashed rows, safe columns, latest request status per invitation.
+   - `submit_change_request(id, details, base_updated_at)`: checks the verified email matches `client_email`, keeps only the D6 allow-list (drops `customId`, `templateId`, `seoImage`, and anything not in `InvitationData`), counts a missing key as empty so a full form shows no false changes, rejects no-change, validates the merged details with `details_problem()` (same rules as H-2 and M-4), one pending per invitation, 10 per hour per person. It stores the live details with only the changed keys laid over them.
+   - `withdraw_change_request(id)`: requester only, pending only.
+   - Trigger `invitations_supersede_requests`: changing `client_email` or trashing cancels the pending request.
+3. **Test stand-in:** `auth.users` in `tools/db-test/bootstrap.sql` gained `email_confirmed_at` (real Supabase has it).
+4. **44 new checks in `tools/db-test/tests.sql`, section 11 (171 in total).** Verified: `npm run test:db` ends with `db tests: 171 passed`; the upgrade path (previous `schema.sql` + `010` twice + new `schema.sql` + `reset.sql` + `schema.sql`) also ends with 171 passed.
+5. **The tests can fail:** five weakened copies of `schema.sql` each stopped at the expected check: insert granted on `change_requests` (admin write check), unverified email trusted, `templateId` in the allow-list, trashed rows listed, no supersede on client change.
+
+**How this affects other tasks**
+
+- **Decision for you:** no client SELECT policy and no `client_invitations` view (see B2). If you prefer the view, it is an addition, not a rewrite.
+- **Next B-M1 pieces:** `review_change_request` (admin, applies the merge, conflict check D7, audit row, notifies), `acknowledge_rejection`, `notifications`, `audit_log`, a client-safe read of the template HTML for the editor preview (clients cannot read `templates`; B6 needs it), and the sign-up role default (`handle_new_user` still writes `role = 'Administrator'`; display only). The `010` header lists them.
+- **Run order on the live project:** run `010` in Supabase only after `003` and `005` (it needs `details_problem` and `is_admin`). The app does not use any of it yet, so running it changes nothing for current users except the new `client_email` column.
+- **Migration number:** the next Track B migration will be `011`, folded into `schema.sql` in the same commit.
+- **Privacy/limits:** `my_invitations()` is capped at 500 rows until paging exists (B7).
+
+**Behaviour changes to check**
+
+- None for users. No app code changed.
+
+**Checks to repeat**
+
+1. `npm run test:db` ends with `db tests: 171 passed` (needs PostgreSQL server binaries; `apt-get install postgresql` in a clean container).
+2. In Supabase, after running `010`: `select client_email from public.invitations limit 1;` works; as a non-admin test user, `select * from public.invitations` returns only their own rows and `select * from public.change_requests` returns none.
+
+**Next steps, in order**
+
+1. Owner: rotate the leaked keys, revoke the GitHub token (**pasted in chat again for this push**), and the three C-1 checks from the 43rd update.
+2. Then the rest of B-M1 (list above), one or two pieces at a time.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
 
 ### 13 Nov 2026 (44th update) – Secret scan of the repo and its history (record only, no app code changed)
 
@@ -2002,29 +2044,29 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 ## B2. Database (new migration, e.g. `supabase/migrations/010_client_edit.sql`; also fold into `schema.sql` per H-3)
 
 - [~] **Admin role** *(done early as part of C-1: `admins` table and `is_admin()` exist from `005_admin_role.sql`; B1 only needs to reuse them and seed nothing new)*: `create table admins (user_id uuid primary key references auth.users, email citext unique, created_at)`; `create function is_admin() returns boolean security definer` (stable, `search_path` pinned). Seed with the admin email. *(This is the C-1 fix, reused here.)*
-- [ ] **Client link:** `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.
-- [ ] **Helper:** `current_user_email()` returns `lower(auth.jwt()->>'email')` only when the JWT email is verified.
-- [ ] **RLS on invitations** (keep the existing admin/owner rules, add):
+- [~] **Client link:** *Coded 13 Nov (45th update), tested on local Postgres (`npm run test:db`); not run in Supabase.* `alter table invitations add column client_email citext;` with `check (client_email is null or client_email = lower(btrim(client_email)))`, format check, and index `invitations_client_email_idx`.
+- [~] **Helper:** *Coded 13 Nov (45th update), tested on local Postgres (`npm run test:db`); not run in Supabase.* Reads `auth.users.email_confirmed_at`, not the JWT. `current_user_email()` returns `lower(auth.jwt()->>'email')` only when the JWT email is verified.
+- [~] **RLS on invitations** *Coded 13 Nov (45th update) with one deliberate change: **no client SELECT policy on `invitations` at all**. A client reads only through `my_invitations()` (safe columns: no `owner`, `slug`, `views`, `client_email`), so the view `client_invitations` is not needed. Tested: a client reading the table directly gets 0 rows and cannot update it.* (keep the existing admin/owner rules, add):
   - client **SELECT** where `client_email = current_user_email()` and `deleted_at is null`
   - **no** client INSERT / UPDATE / DELETE policy at all (writes only through RPCs)
   - column-level hardening: expose a view `client_invitations` with only safe columns (no `views`, `owner`, `slug` internals as needed)
-- [ ] **Table `change_requests`:** `id uuid pk`, `invitation_id text fk`, `requested_by uuid`, `client_email`, `base_updated_at timestamptz`, `proposed_details jsonb`, `changed_keys text[]`, `status` check in (`pending`,`approved`,`rejected`,`withdrawn`,`superseded`), `admin_note text`, `reviewed_by uuid`, `reviewed_at`, `acknowledged_at` (client dismissed the rejection), `created_at`.
+- [~] **Table `change_requests`:** *Coded 13 Nov (45th update), tested on local Postgres (`npm run test:db`); not run in Supabase.* Select grant only; no write grant for any role. `id uuid pk`, `invitation_id text fk`, `requested_by uuid`, `client_email`, `base_updated_at timestamptz`, `proposed_details jsonb`, `changed_keys text[]`, `status` check in (`pending`,`approved`,`rejected`,`withdrawn`,`superseded`), `admin_note text`, `reviewed_by uuid`, `reviewed_at`, `acknowledged_at` (client dismissed the rejection), `created_at`.
   - partial unique index `(invitation_id) where status='pending'` (D5)
   - RLS: client SELECT own (`requested_by = auth.uid()`), admin SELECT all; **no direct writes** by anyone.
   - cap `pg_column_size(proposed_details)` (e.g. ≤ 64 KB) and reject base64 blobs.
 - [ ] **Table `notifications`:** `id`, `recipient_user_id` or `audience='admin'`, `type`, `payload jsonb`, `read_at`, `created_at`; RLS: recipient reads/updates own `read_at` only; add to Realtime publication.
 - [ ] **Table `audit_log`** (append-only): who, what, invitation, before/after hash, timestamp. No update/delete policies.
-- [ ] **RPC `submit_change_request(invitation_id, details jsonb)`** `security definer`:
+- [~] **RPC `submit_change_request(invitation_id, details jsonb, base_updated_at)`** *(third argument added: the version the client started from, D7; coded 13 Nov, 45th update, 25 checks; the "not yours / not found / trashed" cases all give one message)* `security definer`:
   1. caller's verified email = `invitations.client_email`; invitation not deleted
   2. strip to allow-list (D6) and validate with the same rules as H-2 (URL protocols, phone, lengths, types)
   3. reject if nothing changed; reject if a pending request exists (or supersede, per D5)
   4. rate limit (e.g. 10 submissions/hour/user)
   5. insert request, insert admin notification, return the request
-- [ ] **RPC `withdraw_change_request(id)`**: requester only, pending only.
+- [~] **RPC `withdraw_change_request(id)`** *Coded 13 Nov (45th update), tested on local Postgres (`npm run test:db`); not run in Supabase.*: requester only, pending only.
 - [ ] **RPC `review_change_request(id, decision, note)`**: `is_admin()` only. In one transaction: lock request + invitation (`FOR UPDATE`), check `base_updated_at` (D7), on approve merge allow-listed keys into `details` and refresh `groom_name`/`bride_name`/`event_date`, mark request, write audit row, notify client.
 - [ ] **RPC `acknowledge_rejection(id)`**: requester only; sets `acknowledged_at`.
-- [ ] **RPC `my_invitations()`**: returns the caller's linked invitations plus the latest request status per invitation (drives the list screen and the badge).
-- [ ] **Link management:** when the admin changes or clears `client_email`, pending requests are marked `superseded` and the old client loses access immediately (RLS is evaluated per request, so no cleanup job is needed).
+- [~] **RPC `my_invitations()`** *Coded 13 Nov (45th update); returns the latest request per invitation, capped at 500 rows (paging is still to do, B7).*: returns the caller's linked invitations plus the latest request status per invitation (drives the list screen and the badge).
+- [~] **Link management:** *Coded 13 Nov (45th update): trigger `invitations_supersede_requests` cancels the pending request when `client_email` changes or the invitation is trashed. **Unpublishing does not cancel it** (B7 asks for that; left open on purpose, because a draft is a normal thing for a client to edit; decide).*  when the admin changes or clears `client_email`, pending requests are marked `superseded` and the old client loses access immediately (RLS is evaluated per request, so no cleanup job is needed).
 - [ ] **Signup trigger:** extend `handle_new_user()` so new users get **no** admin role (explicit `role = 'client'` in `profiles`, never `'Administrator'` by default). Today the default is `'Administrator'`, which must change.
 
 ## B3. Server side (Edge Functions / Vercel)

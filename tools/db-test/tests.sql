@@ -291,4 +291,142 @@ select t.throws('a visitor cannot upload',
   $$insert into storage.objects (bucket_id, name) values ('invitation-previews', 'aaaaaaaa-0000-0000-0000-000000000001/v.jpg')$$, '42501');
 select t.as_owner();
 
+-- ---------- 11. Client editing (Track B, B2): client_email, my_invitations, change requests ----------
+-- dave is a client with a verified email, erin has not verified hers, bob is another ordinary user, carol is the admin.
+insert into auth.users (id, email, email_confirmed_at) values
+  ('dddddddd-0000-0000-0000-000000000004', 'dave@example.com', now()),
+  ('eeeeeeee-0000-0000-0000-000000000005', 'erin@example.com', null);
+insert into public.invitations (id, slug, owner, groom_name, bride_name, template_id, published, client_email, details) values
+  ('c1', 'client-one',   'aaaaaaaa-0000-0000-0000-000000000001', 'Old', 'B', 'test-t', true, 'dave@example.com',
+    '{"groomEn":"Old","venueMaps":"https://maps.google.com/x","events":[]}'),
+  ('c2', 'client-two',   'aaaaaaaa-0000-0000-0000-000000000001', 'E', 'F', 'test-t', true, 'erin@example.com', '{}'),
+  ('c3', 'client-none',  'aaaaaaaa-0000-0000-0000-000000000001', 'G', 'H', 'test-t', true, null, '{}');
+
+update auth.users set email_confirmed_at = now() where id = 'bbbbbbbb-0000-0000-0000-000000000002';  -- bob: verified, but not a client
+select t.throws('an upper-case client email is refused', $$update public.invitations set client_email = 'Dave@Example.com' where id = 'c3'$$, '23514');
+select t.throws('a client email without an @ is refused', $$update public.invitations set client_email = 'nobody' where id = 'c3'$$, '23514');
+
+-- who is the signed-in email: only a verified one counts (D3)
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('a verified email is returned lower-cased', public.current_user_email() = 'dave@example.com');
+select t.as_user('eeeeeeee-0000-0000-0000-000000000005');
+select t.ok('an unverified email is not trusted', public.current_user_email() is null);
+select t.as_anon();
+select t.throws('a visitor cannot call current_user_email', $$select public.current_user_email()$$, '42501');
+select t.throws('a visitor cannot call my_invitations', $$select * from public.my_invitations()$$, '42501');
+select t.throws('a visitor cannot submit a change request',
+  $$select public.submit_change_request('c1', '{"groomEn":"X"}'::jsonb, now())$$, '42501');
+
+-- what a client can read
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('the client sees exactly the invitation linked to their email', t.rows('select 1 from public.my_invitations()') = 1);
+select t.ok('my_invitations gives no owner, slug, views or client_email',
+  not exists (select 1 from public.my_invitations() m where to_jsonb(m) ?| array['owner','slug','views','client_email']));
+select t.ok('the client cannot read the invitations table directly', t.rows('select 1 from public.invitations') = 0);
+select t.ok('the client cannot change an invitation', t.affected($$update public.invitations set groom_name = 'Hacked' where id = 'c1'$$) = 0);
+select t.throws('the client cannot write a change request directly',
+  $$insert into public.change_requests (invitation_id, requested_by, client_email, base_updated_at, proposed_details, changed_keys)
+    values ('c1', auth.uid(), 'dave@example.com', now(), '{}', '{}')$$, '42501');
+select t.as_user('eeeeeeee-0000-0000-0000-000000000005');
+select t.ok('an unverified email sees no invitations', t.rows('select 1 from public.my_invitations()') = 0);
+select t.as_user('bbbbbbbb-0000-0000-0000-000000000002');
+select t.ok('another user sees no invitations', t.rows('select 1 from public.my_invitations()') = 0);
+
+-- submitting: only allow-listed keys get through, the live invitation does not change
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select set_config('t.base', (select updated_at::text from public.my_invitations() where id = 'c1'), true);
+select set_config('t.req1', public.submit_change_request('c1',
+  '{"groomEn":"New","customId":"hijack","templateId":"evil","seoImage":"https://evil.test/x.jpg","published":false,"views":9999}'::jsonb,
+  current_setting('t.base')::timestamptz)::text, true);
+select t.ok('the request is pending and records only the allowed change',
+  (select status = 'pending' and changed_keys = array['groomEn'] and proposed_details->>'groomEn' = 'New'
+     and not (proposed_details ?| array['customId','templateId','seoImage','published','views'])
+   from public.change_requests where id = current_setting('t.req1')::uuid));
+select t.ok('the base version is the one the client started from',
+  (select base_updated_at = current_setting('t.base')::timestamptz from public.change_requests where id = current_setting('t.req1')::uuid));
+select t.as_owner();
+select t.ok('the live invitation is unchanged', (select details->>'groomEn' = 'Old' and published and groom_name = 'Old' from public.invitations where id = 'c1'));
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('my_invitations shows the pending status', (select request_status = 'pending' from public.my_invitations() where id = 'c1'));
+select t.throws('a second pending request is refused',
+  format($$select public.submit_change_request('c1', '{"groomEn":"Newer"}'::jsonb, %L)$$, current_setting('t.base')), '23505');
+
+-- who can read and withdraw requests
+select t.ok('the client reads their own request', t.rows('select 1 from public.change_requests') = 1);
+select t.as_user('bbbbbbbb-0000-0000-0000-000000000002');
+select t.ok('another user reads no requests', t.rows('select 1 from public.change_requests') = 0);
+select t.throws('another user cannot withdraw it',
+  format($$select public.withdraw_change_request(%L)$$, current_setting('t.req1')), 'P0002');
+select t.throws('another user cannot submit for it',
+  format($$select public.submit_change_request('c1', '{"groomEn":"Mine"}'::jsonb, %L)$$, current_setting('t.base')), 'P0002');
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.ok('the admin reads every request', t.rows('select 1 from public.change_requests') = 1);
+select t.throws('the admin cannot write a request directly', $$update public.change_requests set status = 'approved'$$, '42501');
+
+-- the client link changing or the invitation being trashed cancels the pending request
+select t.as_owner();
+update public.invitations set client_email = 'dave2@example.com' where id = 'c1';
+select t.ok('changing the client email cancels the pending request',
+  (select status = 'superseded' from public.change_requests where id = current_setting('t.req1')::uuid));
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('the old client loses access at once', t.rows('select 1 from public.my_invitations()') = 0);
+select t.throws('the old client cannot submit',
+  format($$select public.submit_change_request('c1', '{"groomEn":"Late"}'::jsonb, %L)$$, current_setting('t.base')), 'P0002');
+select t.as_owner();
+update public.invitations set client_email = 'dave@example.com' where id = 'c1';
+
+-- withdraw, then the checks that must fail
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select set_config('t.req2', public.submit_change_request('c1', '{"groomEn":"Second"}'::jsonb, current_setting('t.base')::timestamptz)::text, true);
+select public.withdraw_change_request(current_setting('t.req2')::uuid);
+select t.ok('the client can withdraw their pending request',
+  (select status = 'withdrawn' from public.change_requests where id = current_setting('t.req2')::uuid));
+select t.throws('a withdrawn request cannot be withdrawn again',
+  format($$select public.withdraw_change_request(%L)$$, current_setting('t.req2')), 'P0002');
+select t.throws('a javascript: link is refused',
+  format($$select public.submit_change_request('c1', '{"venueMaps":"javascript:alert(1)"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a bad phone number is refused',
+  format($$select public.submit_change_request('c1', '{"groomFatherPhone":"123"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a 2000-character name is refused',
+  format($$select public.submit_change_request('c1', jsonb_build_object('groomEn', repeat('x', 2000)), %L)$$, current_setting('t.base')), '23514');
+select t.throws('a request with no change is refused',
+  format($$select public.submit_change_request('c1', '{"groomEn":"Old","brideEn":"","events":[]}'::jsonb, %L)$$, current_setting('t.base')), '22023');
+select t.throws('a request with only keys outside the allow-list is refused',
+  format($$select public.submit_change_request('c1', '{"templateId":"x","customId":"y"}'::jsonb, %L)$$, current_setting('t.base')), '22023');
+select t.throws('details that are not an object are refused',
+  format($$select public.submit_change_request('c1', '[1]'::jsonb, %L)$$, current_setting('t.base')), '22023');
+select t.throws('a base version from the future is refused',
+  $$select public.submit_change_request('c1', '{"groomEn":"Z"}'::jsonb, now() + interval '1 day')$$, '22023');
+select t.throws('an invitation linked to nobody is not found',
+  format($$select public.submit_change_request('c3', '{"groomEn":"Z"}'::jsonb, %L)$$, current_setting('t.base')), 'P0002');
+select t.throws('an invitation linked to someone else is not found',
+  format($$select public.submit_change_request('c2', '{"groomEn":"Z"}'::jsonb, %L)$$, current_setting('t.base')), 'P0002');
+select t.as_user('eeeeeeee-0000-0000-0000-000000000005');
+select t.throws('an unverified email cannot submit for its own linked invitation',
+  format($$select public.submit_change_request('c2', '{"groomEn":"Z"}'::jsonb, %L)$$, current_setting('t.base')), '42501');
+
+-- a list change counts, an absent key and an empty value do not
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select set_config('t.req3', public.submit_change_request('c1',
+  '{"events":[{"id":"e1","name":"Haldi","date":"2026-12-01"}],"receptionEnabled":false,"muhurthamTime":""}'::jsonb,
+  current_setting('t.base')::timestamptz)::text, true);
+select t.ok('only the real changes are listed',
+  (select changed_keys = array['events'] from public.change_requests where id = current_setting('t.req3')::uuid));
+select t.as_owner();
+update public.invitations set deleted_at = now() where id = 'c1';
+select t.ok('trashing the invitation cancels the pending request',
+  (select status = 'superseded' from public.change_requests where id = current_setting('t.req3')::uuid));
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('a trashed invitation is not listed for the client', t.rows('select 1 from public.my_invitations()') = 0);
+select t.as_owner();
+update public.invitations set deleted_at = null where id = 'c1';
+
+-- rate limit: 10 requests an hour per person
+insert into public.change_requests (invitation_id, requested_by, client_email, base_updated_at, proposed_details, changed_keys, status)
+  select 'c1', 'dddddddd-0000-0000-0000-000000000004', 'dave@example.com', now(), '{}', '{x}', 'withdrawn' from generate_series(1, 8);
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.throws('the eleventh request in an hour is refused',
+  format($$select public.submit_change_request('c1', '{"groomEn":"Again"}'::jsonb, %L)$$, current_setting('t.base')), '54000');
+select t.as_owner();
+
 rollback;
