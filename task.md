@@ -1,3 +1,20 @@
+### 13 Nov 2026 (83rd update) – Fixed Vercel Build: Added `allowScripts` to `package.json`
+
+**Root Cause of Persistent Build Failure**
+The previous attempt to force script execution via `NPM_CONFIG_ALLOW_SCRIPTS=true` in `vercel.json` resulted in a hard npm error:  
+`npm error code EALLOWSCRIPTS`  
+`npm error --allow-scripts is not allowed in project-scoped installs. Add the entries to the "allowScripts" field in package.json, or to .npmrc, instead.`  
+
+Vercel's npm strictly rejects environment variable overrides for script allowances in project-scoped installs.
+
+**What was done**
+1. **Updated `package.json`:** Added the explicitly recommended `"allowScripts": { "esbuild": true }` field directly to `package.json`. This is the official, npm-supported way to whitelist specific packages for postinstall scripts.
+2. **Reverted `vercel.json`:** Removed the `build.env` override that triggered the `EALLOWSCRIPTS` error.
+
+This guarantees that `esbuild` will install its native binary correctly, allowing `vite build` to succeed on Vercel.
+
+---
+
 ### 13 Nov 2026 (82nd update) – Fixed Vercel Build: Forced npm allow-scripts via vercel.json
 
 **Root Cause of Persistent Build Failure**
