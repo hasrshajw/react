@@ -21,6 +21,7 @@ drop function if exists public.get_invitation_meta(text) cascade;
 drop function if exists public.record_invitation_view(text, text) cascade;
 
 -- tables (dropping a table also drops its policies and triggers)
+drop table    if exists public.notifications cascade;
 drop table    if exists public.audit_log cascade;
 drop table    if exists public.change_requests cascade;
 drop table    if exists public.invitation_view_seen cascade;
@@ -37,6 +38,8 @@ drop function if exists public.submit_change_request(text, jsonb, timestamptz) c
 drop function if exists public.withdraw_change_request(uuid) cascade;
 drop function if exists public.review_change_request(uuid, text, text, boolean) cascade;
 drop function if exists public.acknowledge_rejection(uuid) cascade;
+drop function if exists public.client_template_html(text) cascade;
+drop function if exists public.admins_set_label() cascade;
 drop function if exists public.my_invitations() cascade;
 drop function if exists public.current_user_email() cascade;
 drop function if exists public.details_value(jsonb, text) cascade;

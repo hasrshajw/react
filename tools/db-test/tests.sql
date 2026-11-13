@@ -532,4 +532,64 @@ select t.ok('a client reads no audit rows', t.rows('select 1 from public.audit_l
 select t.throws('a client cannot write the audit log', $$insert into public.audit_log (action) values ('x')$$, '42501');
 select t.as_owner();
 
+-- ---------- 13. Client editing (Track B, B2): notifications, client template read, role label ----------
+-- Sections 11 and 12 already went through the RPCs: dave submitted 3 requests (3 admin notifications), and got 2 rejections,
+-- 2 approvals and 2 cancellations (6 notifications).
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.ok('the admin sees the 3 submit notifications and none addressed to a client',
+  t.rows('select 1 from public.notifications') = 3 and t.rows($$select 1 from public.notifications where audience = 'user'$$) = 0);
+select t.ok('an admin notification says who asked and what changed',
+  (select payload->>'client_email' = 'dave@example.com' and payload->'changed_keys' = '["groomEn"]'::jsonb
+   from public.notifications where type = 'change_submitted' order by id limit 1));
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('the client sees their 6 notifications and no admin ones',
+  t.rows('select 1 from public.notifications') = 6 and t.rows($$select 1 from public.notifications where audience = 'admin'$$) = 0);
+select t.ok('the client is told about rejections, approvals and cancellations',
+  (select count(*) filter (where type = 'change_rejected') = 2 and count(*) filter (where type = 'change_approved') = 2
+      and count(*) filter (where type = 'change_superseded') = 2 from public.notifications));
+select t.ok('a rejection notification carries the admin note',
+  exists (select 1 from public.notifications where type = 'change_rejected' and payload->>'note' = 'Please use the full address'));
+select t.ok('the client can mark their own notification read',
+  t.affected($$update public.notifications set read_at = now() where id = (select min(id) from public.notifications)$$) = 1);
+select t.throws('the client cannot change anything but read_at', $$update public.notifications set type = 'x'$$, '42501');
+select t.throws('the client cannot add a notification',
+  $$insert into public.notifications (audience, type) values ('admin', 'fake')$$, '42501');
+select t.ok('the client cannot mark an admin notification read', t.affected($$update public.notifications set read_at = now() where audience = 'admin'$$) = 0);
+select t.as_user('bbbbbbbb-0000-0000-0000-000000000002');
+select t.ok('another user sees no notifications', t.rows('select 1 from public.notifications') = 0);
+select t.ok('another user cannot mark any read', t.affected('update public.notifications set read_at = now()') = 0);
+select t.as_anon();
+select t.throws('a visitor cannot read notifications', $$select 1 from public.notifications$$, '42501');
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.ok('an admin can mark the admin notifications read', t.affected($$update public.notifications set read_at = now() where audience = 'admin'$$) = 3);
+select t.throws('an admin cannot add a notification', $$insert into public.notifications (audience, type) values ('admin', 'fake')$$, '42501');
+select t.as_owner();
+select t.throws('an admin notification cannot be addressed to a person',
+  $$insert into public.notifications (audience, recipient_user_id, type) values ('admin', 'dddddddd-0000-0000-0000-000000000004', 'x')$$, '23514');
+select t.throws('a user notification needs a person', $$insert into public.notifications (audience, type) values ('user', 'x')$$, '23514');
+
+-- the template HTML for the client's editor preview
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('the client gets the template of their own invitation', public.client_template_html('c1') = '<p>X</p>');
+select t.throws('the client cannot read the template of an unlinked invitation', $$select public.client_template_html('c3')$$, 'P0002');
+select t.throws('the client cannot read the template of someone else''s invitation', $$select public.client_template_html('c2')$$, 'P0002');
+select t.ok('the client still cannot read the templates table', t.rows('select 1 from public.templates') = 0);
+select t.as_user('eeeeeeee-0000-0000-0000-000000000005');
+select t.throws('an unverified email gets no template', $$select public.client_template_html('c2')$$, '42501');
+select t.as_user('bbbbbbbb-0000-0000-0000-000000000002');
+select t.throws('another user gets no template', $$select public.client_template_html('c1')$$, 'P0002');
+select t.as_anon();
+select t.throws('a visitor gets no template', $$select public.client_template_html('c1')$$, '42501');
+
+-- the label in the menu: new accounts are Members, an admin row makes the account an Administrator
+select t.as_owner();
+select t.ok('an ordinary account is a Member', (select role = 'Member' from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000001'));
+select t.ok('an admin account is labelled Administrator', (select role = 'Administrator' from public.profiles where id = 'cccccccc-0000-0000-0000-000000000003'));
+insert into auth.users (id, email) values ('ffffffff-0000-0000-0000-000000000006', 'frank@example.com');
+select t.ok('a new sign-up is a Member', (select role = 'Member' from public.profiles where id = 'ffffffff-0000-0000-0000-000000000006'));
+insert into public.admins (user_id, email) values ('ffffffff-0000-0000-0000-000000000006', 'frank@example.com');
+select t.ok('adding an admin row relabels the profile', (select role = 'Administrator' from public.profiles where id = 'ffffffff-0000-0000-0000-000000000006'));
+select t.ok('the label gives no permission: a Member row in profiles does not make an admin', not (
+  select exists (select 1 from public.admins where user_id = 'aaaaaaaa-0000-0000-0000-000000000001')));
+
 rollback;
