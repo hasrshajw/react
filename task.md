@@ -1,5 +1,48 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 59th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 24 | rest | **59th update: B3 `notify-admin`.** `notify-client` still open. |
+
+### 13 Nov 2026 (59th update) – B3 notify-admin
+
+**What was done**
+
+1. **`api/notify-admin.js`:** POST handler for Supabase Database Webhook on `change_requests` INSERT. Optional `WEBHOOK_SECRET` / `NOTIFY_ADMIN_SECRET`. Only acts on `pending` status. Idempotent process-local dedupe by request id. Builds a review deep link from `SITE_URL`.
+2. **Optional email:** when `ADMIN_EMAIL` + `RESEND_API_KEY` are set, sends a plain-text email via Resend. If mail is missing or the provider fails, still returns 200 so the webhook does not loop; in-app notifications remain the source of truth.
+3. **Unit tests** in `src/lib/notifyAdminApi.test.ts` (method, secret, skip non-pending, soft mail failure, Resend payload, dedupe).
+4. **`.env.example`** notes for the new server-only secrets. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Needs Vercel secrets (`ADMIN_EMAIL`, optional `RESEND_API_KEY`, optional `WEBHOOK_SECRET`) and a Supabase Database Webhook pointed at `/api/notify-admin`.
+- Full suite not re-run in this environment (npm registry transient 502).
+
+**How this affects other tasks**
+
+- **B3 remaining:** `notify-client` (email on approved / rejected).
+- Secrets item partially covered by the `.env.example` notes.
+
+**Checks to repeat**
+
+1. Deploy `preview`; configure webhook + secrets; submit a client change request and confirm admin email (or at least 200 from the function).
+2. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; set Vercel secrets; run checks.
+2. Next: `notify-client`, or Phase browser `[~]` closes.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 58th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2630,11 +2673,11 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B3. Server side (Edge Functions / Vercel)
 
-- [ ] **`notify-admin`** (Supabase Database Webhook on `change_requests` insert → Edge Function): sends an email to server secret `ADMIN_EMAIL` with client, invitation, changed fields and a deep link to the review page. Idempotent (dedupe by request id).
+- [~] **`notify-admin`** *Coded 13 Nov (59th update): `api/notify-admin.js` + tests + `.env.example` notes. Needs Vercel secrets + Supabase webhook pointed at it.* (Supabase Database Webhook on `change_requests` insert → Vercel function): sends an email to server secret `ADMIN_EMAIL` with client, invitation, changed fields and a deep link to the review page. Idempotent (dedupe by request id).
 - [ ] **`notify-client`** (on status change): email the client on approved / rejected (with note).
 - [~] **`invite-client`** *Coded 13 Nov (58th update): `api/invite-client.js` + `inviteClient()` + Create button. Needs Vercel secrets + real email check.* (admin only, verifies `is_admin()`): sends the Supabase invite for D4; never exposes the service-role key to the browser.
-- [ ] Secrets: `ADMIN_EMAIL`, mail-provider key stored in Supabase/Vercel secrets only. Add a `.env.example` note.
-- [ ] Failure handling: if email fails, the in-app notification still exists; log and retry with backoff.
+- [~] Secrets: `ADMIN_EMAIL`, mail-provider key stored in Supabase/Vercel secrets only. `.env.example` notes added (58th + 59th updates).
+- [~] Failure handling: if email fails, the in-app notification still exists; handler returns 200 (no endless webhook retries). Backoff still open.
 
 ## B4. Frontend – shared groundwork
 
