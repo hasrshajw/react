@@ -106,70 +106,51 @@ function Landing() {
       </Frame>
     );
   }
-  if (data.length === 0) {
-    /* B7: unverified email — RLS returns nothing; show an explicit verify banner instead of the generic "none linked". */
-    const unverified = session?.emailVerified === false;
-    const onResend = async () => {
-      if (!session?.email || resendBusy) return;
-      setResendBusy(true);
-      setResendMsg(null);
-      try {
-        await resendEmailConfirmation(session.email);
-        setResendMsg("Confirmation email sent. Check your inbox, then reload this page.");
-      } catch (e) {
-        setResendMsg(e instanceof AuthError ? e.message : "Couldn’t send the email. Try again in a minute.");
-      } finally {
-        setResendBusy(false);
-      }
-    };
+    if (data.length === 0) {
+    /* B7: Premium empty state for no invitations (78th/79th/80th update). Email confirmation disabled per owner decision. */
     return (
       <Frame>
-        {unverified ? (
-          <div style={{ ...banner, background: "#fffbeb", border: "1px solid #fcd34d" }} role="status">
-            <p style={{ margin: 0 }}>
-              <b>Verify your email to see your invitations.</b> Check your inbox for the confirmation link from Schedy, then reload this page.
-            </p>
-            {session?.email && (
-              <p style={{ margin: "8px 0 0", color: "#6b7280", fontSize: 13 }}>
-                Signed in as <b>{session.email}</b>.
-              </p>
-            )}
-            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                className="client-touch"
-                disabled={resendBusy || !session?.email}
-                onClick={() => void onResend()}
-                style={{
-                  minHeight: 44, padding: "8px 14px", borderRadius: 10, border: "1px solid #f59e0b",
-                  background: "#fff", color: "#92400e", fontWeight: 600, cursor: resendBusy ? "wait" : "pointer",
-                }}
-              >
-                {resendBusy ? "Sending…" : "Resend confirmation email"}
-              </button>
-            </div>
-            {resendMsg && (
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: resendMsg.startsWith("Confirmation") ? "#166534" : "#991b1b" }} role="status">
-                {resendMsg}
-              </p>
-            )}
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          textAlign: "center", padding: "40px 20px", marginTop: "20px",
+          background: "#ffffff", borderRadius: "16px", border: "1px solid #e5e7eb",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)"
+        }}>
+          <div style={{
+            width: "64px", height: "64px", borderRadius: "50%", background: "#f3f4f6",
+            display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px"
+          }}>
+            <Mailbox01Icon size={32} color="#9ca3af" />
           </div>
-        ) : (
-          <>
-            <p>No invitations to show.</p>
-            {session?.email && (
-              <p style={{ color: "#6b7280", fontSize: 14 }}>
-                Signed in as <b>{session.email}</b>. Sign in with the email your invitation was set up with
-                {ADMIN_EMAIL ? <>, or <a href={`mailto:${ADMIN_EMAIL}`}>contact the admin</a></> : null}.
-              </p>
-            )}
-            {!session?.email && ADMIN_EMAIL && (
-              <p style={{ color: "#6b7280", fontSize: 14 }}>
-                <a href={`mailto:${ADMIN_EMAIL}`}>Contact the admin</a> if you expected to see an invitation here.
-              </p>
-            )}
-          </>
-        )}
+          <h2 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600, color: "#111827" }}>
+            No invitations to show
+          </h2>
+          {session?.email ? (
+            <p style={{ margin: "0 0 16px", color: "#6b7280", fontSize: "14px", lineHeight: 1.5, maxWidth: "400px" }}>
+              You are signed in as <b style={{ color: "#374151" }}>{session.email}</b>.<br />
+              Please ensure you are using the email address your invitation was sent to.
+            </p>
+          ) : (
+            <p style={{ margin: "0 0 16px", color: "#6b7280", fontSize: "14px", lineHeight: 1.5, maxWidth: "400px" }}>
+              Please sign in with the email address your invitation was set up with.
+            </p>
+          )}
+          {ADMIN_EMAIL && (
+            <a
+              href={`mailto:${ADMIN_EMAIL}`}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "6px",
+                padding: "8px 16px", borderRadius: "8px", background: "#f9fafb",
+                border: "1px solid #e5e7eb", color: "#374151", fontSize: "14px",
+                fontWeight: 500, textDecoration: "none", transition: "all 0.15s ease"
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.borderColor = "#d1d5db"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#e5e7eb"; }}
+            >
+              Contact the admin
+            </a>
+          )}
+        </div>
       </Frame>
     );
   }
