@@ -1,5 +1,35 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 62nd update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 24 | rest | **62nd update: ClientApp test mocks `useAuth`.** Full suite should be green. |
+
+### 13 Nov 2026 (62nd update) – ClientApp.test useAuth mock
+
+**What was done**
+
+1. **`ClientApp.test.tsx`:** mock exports `useAuth` (with a fake session) in addition to `AuthProvider`. Landing and ClientEditor both call `useAuth()` after the session.email fix.
+
+**Checks to repeat**
+
+`git pull origin preview` then  
+`npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+
+**Next steps**
+
+1. Owner: revoke the GitHub token; confirm green suite.
+2. Next product task: `notify-client`, or Phase browser `[~]` closes.
+3. **`.env.local` was not touched.**
+
+---
+
 ### Where things stand (13 Nov 2026, 61st update)
 
 | Phase | Done | In progress | To do | Notes |
