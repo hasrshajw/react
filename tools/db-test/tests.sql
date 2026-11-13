@@ -429,4 +429,107 @@ select t.throws('the eleventh request in an hour is refused',
   format($$select public.submit_change_request('c1', '{"groomEn":"Again"}'::jsonb, %L)$$, current_setting('t.base')), '54000');
 select t.as_owner();
 
+-- ---------- 12. Client editing (Track B, B2): admin review, acknowledgement, audit log ----------
+-- Pending requests are inserted as the database owner (dave is at the hourly limit from section 11).
+insert into public.change_requests (id, invitation_id, requested_by, client_email, base_updated_at, proposed_details, changed_keys) values
+  ('40000000-0000-0000-0000-000000000004', 'c1', 'dddddddd-0000-0000-0000-000000000004', 'dave@example.com', now(),
+   '{"groomEn":"Rejected name","venueMaps":"https://maps.google.com/x","events":[]}', '{groomEn}');
+update public.change_requests set created_at = now() + interval '1 minutes' where id = '40000000-0000-0000-0000-000000000004';
+
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.throws('a client cannot review a request', $$select public.review_change_request('40000000-0000-0000-0000-000000000004', 'approve')$$, '42501');
+select t.as_user('bbbbbbbb-0000-0000-0000-000000000002');
+select t.throws('another user cannot review a request', $$select public.review_change_request('40000000-0000-0000-0000-000000000004', 'reject', 'no')$$, '42501');
+select t.as_anon();
+select t.throws('a visitor cannot review a request', $$select public.review_change_request('40000000-0000-0000-0000-000000000004', 'reject', 'no')$$, '42501');
+
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.throws('an unknown decision is refused', $$select public.review_change_request('40000000-0000-0000-0000-000000000004', 'maybe')$$, '22023');
+select t.throws('an unknown request is not found', $$select public.review_change_request('99999999-0000-0000-0000-000000000009', 'reject', 'x')$$, 'P0002');
+select t.throws('rejecting needs a note', $$select public.review_change_request('40000000-0000-0000-0000-000000000004', 'reject', '   ')$$, '22023');
+select t.throws('a 1001-character note is refused', $$select public.review_change_request('40000000-0000-0000-0000-000000000004', 'reject', repeat('n', 1001))$$, '22023');
+select public.review_change_request('40000000-0000-0000-0000-000000000004', 'reject', 'Please use the full address');
+select t.ok('reject records the decision, the note and who decided',
+  (select status = 'rejected' and admin_note = 'Please use the full address' and reviewed_by = 'cccccccc-0000-0000-0000-000000000003' and reviewed_at is not null
+   from public.change_requests where id = '40000000-0000-0000-0000-000000000004'));
+select t.as_owner();
+select t.ok('reject leaves the live invitation alone',
+  (select details->>'groomEn' = 'Old' and groom_name = 'Old' from public.invitations where id = 'c1'));
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.throws('a decided request cannot be reviewed again', $$select public.review_change_request('40000000-0000-0000-0000-000000000004', 'approve')$$, '22023');
+
+-- the client sees the rejection until they acknowledge it
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('the client sees the rejection and the note',
+  (select request_status = 'rejected' and request_admin_note = 'Please use the full address' and request_acknowledged_at is null from public.my_invitations() where id = 'c1'));
+select t.as_user('bbbbbbbb-0000-0000-0000-000000000002');
+select t.throws('another user cannot acknowledge it', $$select public.acknowledge_rejection('40000000-0000-0000-0000-000000000004')$$, 'P0002');
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select public.acknowledge_rejection('40000000-0000-0000-0000-000000000004');
+select t.ok('acknowledging sets the time', (select request_acknowledged_at is not null from public.my_invitations() where id = 'c1'));
+select t.throws('it cannot be acknowledged twice', $$select public.acknowledge_rejection('40000000-0000-0000-0000-000000000004')$$, 'P0002');
+
+-- approve: only the changed keys are applied, over the current live details
+select t.as_owner();
+insert into public.change_requests (id, invitation_id, requested_by, client_email, base_updated_at, proposed_details, changed_keys) values
+  ('40000000-0000-0000-0000-000000000005', 'c1', 'dddddddd-0000-0000-0000-000000000004', 'dave@example.com', now(),
+   '{"groomEn":"Approved name","weddingDate":"2027-01-15","venueMaps":"https://evil.test/x","events":[{"id":"e1","name":"Haldi"}]}', '{groomEn,weddingDate,events}');
+update public.change_requests set created_at = now() + interval '2 minutes' where id = '40000000-0000-0000-0000-000000000005';
+select t.ok('before approval the audit log is empty of approvals', (select count(*) from public.audit_log where action like 'approve%') = 0);
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select public.review_change_request('40000000-0000-0000-0000-000000000005', 'approve', 'Looks good');
+select t.as_owner();
+select t.ok('approve applies the changed keys to the live invitation',
+  (select details->>'groomEn' = 'Approved name' and groom_name = 'Approved name' and event_date = date '2027-01-15'
+     and details->'events'->0->>'name' = 'Haldi' from public.invitations where id = 'c1'));
+select t.ok('approve does not apply a key that was not listed as changed, and keeps the rest',
+  (select details->>'venueMaps' = 'https://maps.google.com/x' and bride_name = 'B' from public.invitations where id = 'c1'));
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.ok('approve marks the request and keeps the note',
+  (select status = 'approved' and admin_note = 'Looks good' and reviewed_by is not null from public.change_requests where id = '40000000-0000-0000-0000-000000000005'));
+select t.ok('approve writes one audit row with different before and after hashes',
+  (select count(*) = 1 and bool_and(before_hash <> after_hash and actor = 'cccccccc-0000-0000-0000-000000000003') from public.audit_log where action = 'approve'));
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('the client sees the approval', (select request_status = 'approved' and request_acknowledged_at is null from public.my_invitations() where id = 'c1'));
+select public.acknowledge_rejection('40000000-0000-0000-0000-000000000005');
+select t.ok('the client can dismiss an approval too', (select request_acknowledged_at is not null from public.my_invitations() where id = 'c1'));
+
+-- D7: the invitation was edited after the client started
+select t.as_owner();
+insert into public.change_requests (id, invitation_id, requested_by, client_email, base_updated_at, proposed_details, changed_keys) values
+  ('40000000-0000-0000-0000-000000000006', 'c1', 'dddddddd-0000-0000-0000-000000000004', 'dave@example.com', now() - interval '1 hour',
+   '{"brideEn":"Late bride"}', '{brideEn}');
+update public.change_requests set created_at = now() + interval '3 minutes' where id = '40000000-0000-0000-0000-000000000006';
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.throws('approve is refused when the invitation changed since the client started',
+  $$select public.review_change_request('40000000-0000-0000-0000-000000000006', 'approve')$$, '40001');
+select t.ok('the request is still pending after the refusal', (select status = 'pending' from public.change_requests where id = '40000000-0000-0000-0000-000000000006'));
+select public.review_change_request('40000000-0000-0000-0000-000000000006', 'approve', null, true);
+select t.as_owner();
+select t.ok('approve with force applies it', (select bride_name = 'Late bride' from public.invitations where id = 'c1'));
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.ok('a forced approval is marked in the audit log', (select count(*) = 1 from public.audit_log where action = 'approve-forced'));
+
+-- the merged details are checked again against the live rules
+select t.as_owner();
+insert into public.change_requests (id, invitation_id, requested_by, client_email, base_updated_at, proposed_details, changed_keys) values
+  ('40000000-0000-0000-0000-000000000007', 'c1', 'dddddddd-0000-0000-0000-000000000004', 'dave@example.com', now(),
+   '{"venueMaps":"javascript:alert(1)"}', '{venueMaps}');
+update public.change_requests set created_at = now() + interval '4 minutes' where id = '40000000-0000-0000-0000-000000000007';
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select t.throws('approve refuses details that break the live rules',
+  $$select public.review_change_request('40000000-0000-0000-0000-000000000007', 'approve')$$, '23514');
+select t.as_owner();
+select t.ok('the live link is unchanged', (select details->>'venueMaps' = 'https://maps.google.com/x' from public.invitations where id = 'c1'));
+select t.as_user('cccccccc-0000-0000-0000-000000000003');
+select public.review_change_request('40000000-0000-0000-0000-000000000007', 'reject', 'Link type not allowed');
+
+-- the audit log: admins read it, nobody writes it
+select t.ok('the admin reads the audit log', t.rows('select 1 from public.audit_log') = 4);
+select t.throws('the admin cannot write the audit log directly', $$insert into public.audit_log (action) values ('x')$$, '42501');
+select t.as_user('dddddddd-0000-0000-0000-000000000004');
+select t.ok('a client reads no audit rows', t.rows('select 1 from public.audit_log') = 0);
+select t.throws('a client cannot write the audit log', $$insert into public.audit_log (action) values ('x')$$, '42501');
+select t.as_owner();
+
 rollback;
