@@ -22,7 +22,7 @@ import { CreateForm, type CreateFormProps } from "./CreateForm";
 import { initial } from "./constants";
 import type { ContactItem, EventItem, SectionId } from "../../types/invitation";
 
-const IDS: SectionId[] = ["template", "family", "groom", "bride", "venue", "seo", "events"];
+const IDS: SectionId[] = ["template", "family", "groom", "bride", "venue", "seo", "events", "client"];
 const allLoading = (v: boolean) => Object.fromEntries(IDS.map((i) => [i, v])) as Record<SectionId, boolean>;
 
 let host: HTMLDivElement, root: Root;
@@ -66,10 +66,10 @@ beforeEach(() => { host = document.createElement("div"); document.body.appendChi
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
 describe("CreateForm: layout", () => {
-  it("shows the seven sections with their titles and the tag that tagFor gives", () => {
+  it("shows the eight sections with their titles and the tag that tagFor gives", () => {
     show();
     const titles = [...host.querySelectorAll("section h2")].map((x) => x.textContent);
-    expect(titles).toEqual(["Template Options", "Family & Wedding", "Groom's Details", "Bride's Details", "Reception & Venue", "Link Preview & Custom Link", "Additional Events"]);
+    expect(titles).toEqual(["Template Options", "Family & Wedding", "Groom's Details", "Bride's Details", "Reception & Venue", "Link Preview & Custom Link", "Additional Events", "Client Access"]);
     for (const id of IDS) expect(host.querySelector(`#sec-${id} .sec-tag`)?.textContent).toBe(`tag-${id}`);
   });
 

@@ -7,7 +7,7 @@ import { act, flush } from "./test/renderHook";
 /* Track B (B4): the three landing cases of the client area. The gate and the data call are replaced. */
 vi.mock("./hooks/useAuth", () => ({ AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock("./components/RoleGate", () => ({ RoleGate: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
-vi.mock("./lib/config", () => ({ ADMIN_EMAIL: "help@x.com" }));
+vi.mock("./lib/config", () => ({ ADMIN_EMAIL: "help@x.com", SUPABASE_CONFIGURED: true, SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "pk" }));
 vi.mock("./lib/api", () => ({ fetchMyInvitations: vi.fn(), fetchClientTemplateHtml: vi.fn().mockResolvedValue(""), submitChangeRequest: vi.fn(), withdrawChangeRequest: vi.fn(), acknowledgeRejection: vi.fn() }));
 import { fetchMyInvitations } from "./lib/api";
 import ClientApp from "./ClientApp";

@@ -1,5 +1,36 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 60th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 24 | rest | **60th update: test fixes** (Client Access section + invitationToForm top-level preference + ClientApp config mock). |
+
+### 13 Nov 2026 (60th update) – Fix failing unit tests
+
+**What was done**
+
+1. **`invitationToForm`:** prefer top-level `groomName` / `brideName` / `eventDate` over `details` (as the comment and tests require); when `preferProposed`, proposed fields still win.
+2. **`CreateForm.test.tsx`:** expect the eighth **Client Access** section (Track B B5).
+3. **`ClientApp.test.tsx`:** mock exports `SUPABASE_CONFIGURED` (and URL/key) so importing `supabase` / `auth` does not throw.
+
+**Checks to repeat**
+
+`npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+
+**Next steps**
+
+1. Owner: revoke the GitHub token pasted for this push; re-run the full check.
+2. Next: `notify-client`, or Phase browser `[~]` closes.
+3. **`.env.local` was not touched.**
+
+---
+
 ### Where things stand (13 Nov 2026, 59th update)
 
 | Phase | Done | In progress | To do | Notes |

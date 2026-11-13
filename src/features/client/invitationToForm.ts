@@ -16,10 +16,11 @@ export function invitationToForm(inv: MyInvitation, preferProposed = false): Inv
   return {
     ...initial,
     ...d,
-    templateId: String(d.templateId || inv.templateId || ""),
-    brideEn: String(d.brideEn || inv.brideName || ""),
-    groomEn: String(d.groomEn || inv.groomName || ""),
-    weddingDate: String(d.weddingDate || inv.eventDate || ""),
+    templateId: String(inv.templateId || d.templateId || ""),
+    /* Live view: top-level columns win over details. Proposed view: proposed fields win, then top-level. */
+    brideEn: String(useProposed ? (d.brideEn || inv.brideName || "") : (inv.brideName || d.brideEn || "")),
+    groomEn: String(useProposed ? (d.groomEn || inv.groomName || "") : (inv.groomName || d.groomEn || "")),
+    weddingDate: String(useProposed ? (d.weddingDate || inv.eventDate || "") : (inv.eventDate || d.weddingDate || "")),
     events: list<EventItem>(d.events, initial.events),
     groomContacts: list<ContactItem>(d.groomContacts, initial.groomContacts),
     brideContacts: list<ContactItem>(d.brideContacts, initial.brideContacts),
