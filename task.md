@@ -1,5 +1,49 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 69th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 30 | rest | **69th update: B7 resend confirmation email button + Auth.resendEmailConfirmation.** |
+
+### 13 Nov 2026 (69th update) – B7 resend confirmation + email normalisation note
+
+**What was done**
+
+1. **`src/lib/auth.ts`:** added `resendEmailConfirmation(email)` using Supabase `auth.resend({ type: "signup" })` (B7 optional polish).
+2. **`src/ClientApp.tsx`:** unverified landing banner now has a "Resend confirmation email" button (44px touch target), busy state, and success/error message. Signed-in email remains shown.
+3. **Email normalisation (B7):** already implemented in `src/lib/api.ts` (trim + toLowerCase only; +tag kept exact) and recorded as matching the recommendation. Marked closed in the edge-case list.
+4. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite / typecheck not re-run (npm registry 502 in this environment).
+- Live resend still needs a browser check against a real Supabase project (rate limits apply).
+- Remaining B7 items (trashed/unpublished while pending, conflict UI for client, multi-invite paging, dual-role, pile-up edge cases beyond latest-request) still open.
+
+**How this affects other tasks**
+
+- **B7:** unverified-email path + resend coded; normalisation closed; other edge cases remain.
+- **B6 / B5:** unchanged this update.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Browser: unconfirmed account on /my → banner + Resend → inbox link → confirm → reload → invitations appear.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run checks.
+2. Next: Phase browser `[~]` closes, or remaining B7 edge cases (trashed invitation while pending, multi-invite paging), or mobile skeleton polish.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 68th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -3044,9 +3088,9 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B7. Edge cases to handle explicitly
 
-- [ ] Email normalisation: case, surrounding spaces; decide whether `+tag` addresses match (recommendation: exact match, no stripping).
+- [x] Email normalisation: case, surrounding spaces; +tag kept exact (no stripping). Implemented in api.ts (trim + toLowerCase); matches recommendation. Closed 69th update.
 - [ ] Client signs up with a different email than the one linked (e.g. Gmail vs. work) → sees the "none linked" state with the signed-in email displayed so they can tell the admin.
-- [ ] Unverified email → show "Verify your email to see your invitations"; no data returned (RLS enforces).
+- [x] Unverified email → show "Verify your email to see your invitations" + Resend button; no data returned (RLS enforces). Banner + resend coded 68th–69th updates.
 - [ ] Invitation trashed, unpublished or deleted while a request is pending → request marked `superseded`, client notified.
 - [ ] Admin edits the invitation while a request is pending → conflict path (D7).
 - [ ] Double-click / two tabs submitting → unique index + idempotent RPC.

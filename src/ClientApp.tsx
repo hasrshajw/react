@@ -21,6 +21,7 @@ import {
   withdrawChangeRequest,
   type MyInvitation,
 } from "./lib/api";
+import { AuthError, resendEmailConfirmation } from "./lib/auth";
 import { compile } from "./lib/compileInvitation";
 import { ADMIN_EMAIL } from "./lib/config";
 import { readJSON, removeKey, writeJSON } from "./lib/storage";
@@ -82,6 +83,8 @@ const banner: React.CSSProperties = {
 function Landing() {
   const { session } = useAuth();
   const { data, loading, error } = useAsync(fetchMyInvitations);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
   if (loading) return <Frame><p>Loading…</p></Frame>;
   if (error || !data) {
     return (
@@ -93,6 +96,19 @@ function Landing() {
   if (data.length === 0) {
     /* B7: unverified email — RLS returns nothing; show an explicit verify banner instead of the generic "none linked". */
     const unverified = session?.emailVerified === false;
+    const onResend = async () => {
+      if (!session?.email || resendBusy) return;
+      setResendBusy(true);
+      setResendMsg(null);
+      try {
+        await resendEmailConfirmation(session.email);
+        setResendMsg("Confirmation email sent. Check your inbox, then reload this page.");
+      } catch (e) {
+        setResendMsg(e instanceof AuthError ? e.message : "Couldn’t send the email. Try again in a minute.");
+      } finally {
+        setResendBusy(false);
+      }
+    };
     return (
       <Frame>
         {unverified ? (
@@ -103,6 +119,25 @@ function Landing() {
             {session?.email && (
               <p style={{ margin: "8px 0 0", color: "#6b7280", fontSize: 13 }}>
                 Signed in as <b>{session.email}</b>.
+              </p>
+            )}
+            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                type="button"
+                className="client-touch"
+                disabled={resendBusy || !session?.email}
+                onClick={() => void onResend()}
+                style={{
+                  minHeight: 44, padding: "8px 14px", borderRadius: 10, border: "1px solid #f59e0b",
+                  background: "#fff", color: "#92400e", fontWeight: 600, cursor: resendBusy ? "wait" : "pointer",
+                }}
+              >
+                {resendBusy ? "Sending…" : "Resend confirmation email"}
+              </button>
+            </div>
+            {resendMsg && (
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: resendMsg.startsWith("Confirmation") ? "#166534" : "#991b1b" }} role="status">
+                {resendMsg}
               </p>
             )}
           </div>

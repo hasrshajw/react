@@ -148,6 +148,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
   if (error) throw new AuthError(error.message);
 }
 
+/** B7: resend the sign-up confirmation email (Supabase rate-limits this). Only useful while emailVerified is false. */
+export async function resendEmailConfirmation(email: string): Promise<void> {
+  if (!isEmail(email)) throw new AuthError("Enter a valid email address.");
+  const { error } = await db().auth.resend({ type: "signup", email: email.trim().toLowerCase() });
+  if (error) throw new AuthError(error.message);
+}
+
 export async function setNewPassword(password: string): Promise<void> {
   if (password.length < MIN_PASSWORD) throw new AuthError(`Password must be at least ${MIN_PASSWORD} characters.`);
   const { error } = await db().auth.updateUser({ password });
