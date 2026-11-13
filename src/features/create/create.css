@@ -79,6 +79,8 @@
 
   /* ---------- form cards ---------- */
   .create-builder-form { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  /* Kill browser default fieldset border/padding that was wrapping the whole create form. */
+  .create-builder-form > fieldset { border: 0; margin: 0; padding: 0; min-inline-size: 0; }
   .create-builder-form section { display: flex; flex-direction: column; gap: 14px; background: var(--white); border: 1px solid var(--gray-border); border-radius: 22px; padding: 24px; scroll-margin-top: var(--sec-scroll-mt); }
   .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
   .create-builder-form h2 { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 16px; font-weight: 700; color: var(--dark); }

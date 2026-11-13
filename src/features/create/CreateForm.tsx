@@ -78,7 +78,8 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
   };
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
-      <fieldset disabled={readOnly} style={readOnly ? { border: 0, margin: 0, padding: 0, minInlineSize: 0 } : undefined}>
+      {/* Always reset fieldset chrome; default browser border was showing around the whole form. */}
+      <fieldset disabled={readOnly} style={{ border: 0, margin: 0, padding: 0, minInlineSize: 0 }}>
       {!isClient && (
       <Section id="template" icon={LayoutTemplate} title="Template Options" tag={tagFor("template")} loading={tpl.loading}>
         <TemplatePicker

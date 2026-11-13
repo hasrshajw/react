@@ -1,5 +1,35 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 70th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 30 | rest | **70th update: fix create form fieldset border.** |
+
+### 13 Nov 2026 (70th update) – Create page fieldset border
+
+**What was done**
+
+1. **`src/features/create/CreateForm.tsx`:** always apply `border: 0; margin: 0; padding: 0; minInlineSize: 0` on the wrapping `<fieldset>` (previously only when `readOnly`). Browser default fieldset border was showing around the whole create form.
+2. **`src/features/create/create.css`:** added `.create-builder-form > fieldset { border: 0; margin: 0; padding: 0; min-inline-size: 0; }` so the reset is also in CSS.
+3. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Visual check still needed on the deployed preview after this push.
+
+**Next steps**
+
+1. Owner: revoke the GitHub token; hard-refresh the create page.
+2. Continue remaining B7 / Phase browser items as before.
+
+---
+
 ### Where things stand (13 Nov 2026, 69th update)
 
 | Phase | Done | In progress | To do | Notes |
