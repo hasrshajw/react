@@ -1,3 +1,19 @@
+### 13 Nov 2026 (81st update) – Fixed Vercel Build Failures
+
+**Root Cause of Build Errors**
+The deployments were failing (or hanging) during the `npm run build` step due to two critical configuration issues:
+
+1. **Invalid TypeScript Version:** `package.json` specified `"typescript": "7.0.2"`. This version does not exist (the current stable major is 5.x). This caused `npm install` to behave unpredictably and `tsc --noEmit` to fail.
+2. **Blocked `esbuild` Installation:** The Vercel logs showed `npm warn install-scripts ... esbuild@0.25.12`. Modern npm versions block post-install scripts by default for security. Since Vite relies entirely on `esbuild`'s native binary to bundle the app, blocking this script causes `vite build` to crash silently or fail with "esbuild not found".
+
+**What was done**
+1. **Updated `package.json`:** Changed `"typescript": "7.0.2"` to `"typescript": "^5.3.3"`.
+2. **Added `.npmrc`:** Created a root `.npmrc` file with `enable-pre-post-scripts=true` to explicitly allow Vercel's npm to run the `esbuild` post-install script and download the required binary.
+
+These two fixes resolve the deployment build failures. The next Vercel deployment should now pass the `npm run build` step successfully.
+
+---
+
 ### 13 Nov 2026 (80th update) – Premium UI/UX Polish for Empty States
 
 **What was done**
