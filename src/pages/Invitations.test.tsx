@@ -14,6 +14,7 @@ const h = vi.hoisted(() => ({
   saveInvitation: vi.fn(),
   fetchExpiredTrashIds: vi.fn(),
   deleteInvitation: vi.fn(),
+  fetchReviewQueue: vi.fn(),
   exportCsv: vi.fn(),
 }));
 
@@ -24,6 +25,7 @@ vi.mock("../lib/api", () => ({
   saveInvitation: (...a: unknown[]) => h.saveInvitation(...a),
   fetchExpiredTrashIds: () => h.fetchExpiredTrashIds(),
   deleteInvitation: (id: string) => h.deleteInvitation(id),
+  fetchReviewQueue: () => h.fetchReviewQueue(),
 }));
 vi.mock("../features/invitations/utils", async () => {
   const real = await vi.importActual<typeof import("../features/invitations/utils")>("../features/invitations/utils");
@@ -37,7 +39,11 @@ const PAST = new Date(Date.now() - 40 * 86400000).toISOString().slice(0, 10);
 const row = (id: string, groom: string, bride: string, extra: Partial<InvitationRow> = {}): InvitationRow => ({
   id, groom_name: groom, bride_name: bride, event_date: FUTURE, views: 0, created_at: "2026-01-01T00:00:00Z", ...extra,
 });
-const ROWS = [row("a", "Arjun", "Meera", { views: 50 }), row("b", "Bala", "Sita", { views: 5 }), row("c", "Chandra", "Priya", { event_date: PAST })];
+const ROWS = [
+  row("a", "Arjun", "Meera", { views: 50, client_email: "client.a@example.com" }),
+  row("b", "Bala", "Sita", { views: 5 }),
+  row("c", "Chandra", "Priya", { event_date: PAST, client_email: "priya.family@test.com" }),
+];
 
 let host: HTMLDivElement, root: Root;
 let where = "";
@@ -77,6 +83,7 @@ beforeEach(() => {
   h.savePublished.mockResolvedValue(undefined);
   h.saveDeleted.mockResolvedValue(undefined);
   h.fetchExpiredTrashIds.mockResolvedValue([]);
+  h.fetchReviewQueue.mockResolvedValue([]);
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
@@ -180,6 +187,25 @@ describe("search and filters", () => {
     typeInto($<HTMLInputElement>('input[type="search"]')!, "MEERA");
     expect(names()).toEqual(["Arjun & Meera"]);
     expect(where).toContain("q=MEERA");
+  });
+
+  it("search also matches client email", async () => {
+    await show();
+    typeInto($<HTMLInputElement>('input[type="search"]')!, "PRIYA.FAMILY");
+    expect(names()).toEqual(["Chandra & Priya"]);
+    expect(where).toContain("q=PRIYA.FAMILY");
+  });
+
+  it("shows the Client column and a Pending review chip when the queue has that invitation", async () => {
+    h.fetchReviewQueue.mockResolvedValue([
+      { id: "r1", invitationId: "a", clientEmail: "client.a@example.com", baseUpdatedAt: "", createdAt: "", changedKeys: [], proposedDetails: {} },
+    ]);
+    await show();
+    await flush();
+    expect(text()).toContain("client.a@example.com");
+    expect(text()).toContain("priya.family@test.com");
+    const pending = [...host.querySelectorAll(".chip.pending")].map((el) => el.textContent);
+    expect(pending).toEqual(["Pending review"]);
   });
 
   it("shows 'no match' with Clear filters when nothing fits, and Clear brings the list back", async () => {

@@ -42,7 +42,7 @@ export function InvitationsToolbar(p: Props) {
         <label className="search">
           <Search size={15} />
           <input
-            ref={p.searchRef} type="search" placeholder="Search couple" value={p.q} aria-label="Search invitations"
+            ref={p.searchRef} type="search" placeholder="Search couple or client email" value={p.q} aria-label="Search invitations"
             onChange={(e) => p.onParams({ q: e.target.value })}
           />
           {!p.q && <kbd className="kbd" aria-hidden="true">/</kbd>}

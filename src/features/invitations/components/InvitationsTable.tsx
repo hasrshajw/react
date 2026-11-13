@@ -21,6 +21,8 @@ interface Props {
   topTemplate?: { name: string; n: number };
   previewId?: string;
   menuId?: string;
+  /** Invitation ids that currently have a pending change request (admin review queue). */
+  pendingIds?: ReadonlySet<string>;
   isPub: (x: InvitationRow) => boolean;
   onTogglePage: () => void;
   onToggle: (id: string) => void;
@@ -42,6 +44,7 @@ export function InvitationsTable(p: Props) {
                 <input ref={p.headCheck} type="checkbox" checked={p.allOnPage} aria-label="Select all invitations on this page" onChange={p.onTogglePage} />
               </th>
               <th>Couple</th>
+              <th>Client</th>
               <th>Event date</th>
               <th>Invitation views</th>
               <th className="th-actions">Actions</th>
@@ -53,6 +56,8 @@ export function InvitationsTable(p: Props) {
               const past = isPast(x);
               const chip = statusChip(x, live);
               const checked = p.sel.has(x.id);
+              const clientEmail = (x.client_email || "").trim();
+              const pending = p.pendingIds?.has(x.id) ?? false;
               return (
                 <tr key={x.id} className={`${p.previewId === x.id ? "active" : ""}${checked ? " sel" : ""}${past ? " is-past" : ""}`.trim()}>
                   <td className="td-check">
@@ -65,10 +70,16 @@ export function InvitationsTable(p: Props) {
                         <b>{coupleName(x)}</b>
                         <span className="cell-line">
                           <span className={`chip ${chip[0]}`}>{chip[1]}</span>
+                          {pending && <span className="chip pending">Pending review</span>}
                           <small className="tpl-name">{templateOf(x).name}</small>
                         </span>
                       </div>
                     </div>
+                  </td>
+                  <td className="td-client" data-label="Client">
+                    {clientEmail
+                      ? <span className="client-email" title={clientEmail}>{clientEmail}</span>
+                      : <span className="muted">—</span>}
                   </td>
                   <td className="td-date" data-label="Event date">
                     <div className="cell-stack">

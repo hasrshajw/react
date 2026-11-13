@@ -1,5 +1,55 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 51st update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 16 | rest | **51st update: B5 invitations list shows Client column, search matches client email, and a "Pending review" chip** (from `fetchReviewQueue`). Invite button, review queue page, review detail and notification bell still open. B2 still needs `010`–`013` in Supabase. |
+
+### 13 Nov 2026 (51st update) – B5: invitations list client column + Pending review chip
+
+**What was done**
+
+1. **Client column** on the All Invitations table (`InvitationsTable`): shows `client_email` or an em dash when empty.
+2. **Search filter** includes client email (case-insensitive), same search box as couple name. Placeholder updated to "Search couple or client email".
+3. **"Pending review" chip** next to the status chip when that invitation id is in the pending change-request queue (`fetchReviewQueue` → set of invitation ids). Queue load failure is silent; the list still works without chips.
+4. **Tests:** search-by-email case; Client column + Pending review chip when the queue returns a matching id. `fetchReviewQueue` mocked in the page tests.
+5. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite not re-run in this environment (npm install flaky here). Owner should run the checks below.
+- Pending chip needs `change_requests` and migrations `010`–`012` applied; without them the queue call fails and no chip appears (by design).
+
+**How this affects other tasks**
+
+- **B5 remaining:** "Send invite to client" button (needs B3 `invite-client`), review queue page (`/reviews`), review detail, notification bell.
+- **B6 / B4:** unchanged.
+
+**Behaviour changes to check**
+
+- List shows client emails set in SQL or via the Create form.
+- Searching an email substring filters the list.
+- With a pending `change_requests` row, that invitation shows "Pending review".
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Browser: invitations list with and without `client_email` / pending requests.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run `010`–`013` when ready; run the checks above.
+2. Next B5 item one at a time: review queue page (`/reviews` + RESERVED), or "Send invite" only after B3 exists.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 50th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2275,7 +2325,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 - [~] **Create / Edit form:** *Coded 13 Nov (50th update): field, validation, column mapping, change warning. Needs browser + migrations.* add **"Client email"** field (section "Client access"), optional, trimmed + lower-cased, validated with `isEmail`; add `clientEmail` to `InvitationData`, `formReducer`, `validate.ts`, `saveInvitation`/`fetchInvitations`. Show a warning when the email is changed ("the previous client loses access and any pending request is cancelled").
 - [ ] **Invite action:** "Send invite to client" button next to the field (D4), with sent/accepted status.
-- [ ] **Invitations list:** column/filter for client email and a "Pending review" chip.
+- [~] **Invitations list:** *Coded 13 Nov (51st update): Client column, search by email, Pending review chip via `fetchReviewQueue`. Needs browser + migrations.* column/filter for client email and a "Pending review" chip.
 - [ ] **Review queue page** (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).
 - [ ] **Review detail:** field-by-field **diff** (current vs proposed, using `changed_keys`), sandboxed live preview of the proposed version (no `allow-same-origin`, per C-2), conflict warning (D7), **Approve** / **Reject** with a required note on reject, and confirmation dialogs.
 - [ ] **Notification bell:** unread count via Realtime, list with deep links.

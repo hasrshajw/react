@@ -27,13 +27,17 @@
 .act-btn.danger:hover:not(:disabled) { background: var(--danger-light); border-color: var(--danger-dark); color: var(--danger-dark); }
 
 /* ---------- table ---------- */
-.inv-table { min-width: 820px; }
+.inv-table { min-width: 920px; }
 .inv-table .th-check, .inv-table .td-check { width: 44px; padding-right: 0; }
 .inv-table input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: var(--primary); cursor: pointer; }
 .inv-table tbody tr.sel { background: var(--primary-lightest); }
 .inv-table tbody tr.is-past td:not(.td-check):not(:last-child) { opacity: .6; }
 .inv-table tbody tr.is-past:hover td { opacity: 1; }
-.cell-line { display: flex; align-items: center; gap: 8px; }
+.td-client { max-width: 200px; }
+.client-email { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--gray-dark); }
+.td-client .muted { color: var(--gray); }
+.chip.pending { background: var(--warning-light); color: var(--dx-warn-text); }
+.cell-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tpl-name { font-size: 12px; color: var(--gray); white-space: nowrap; }
 .cd-wrap { margin-left: 22px; }
 .cd-wrap .when { margin-left: 0; }

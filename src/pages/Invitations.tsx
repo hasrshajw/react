@@ -2,7 +2,7 @@ import dashboardCss from "../styles/dashboard.css?inline";
 import invitationsCss from "../features/invitations/invitations.css?inline";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Archive, Copy, EyeOff, Globe, Share, Trash2 } from "../components/Icons";
-import { saveInvitation } from "../lib/api";
+import { fetchReviewQueue, saveInvitation } from "../lib/api";
 import {
   PAGE_SIZE, copyText, coupleName, fmt, getInviteLink, isPast, shareOnWhatsApp, sortInvitations, topViewedId,
 } from "../lib/dashboardData";
@@ -54,12 +54,26 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
   const [trash, setTrash] = useState(false);
+  const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(() => new Set());
   const opener = useRef<HTMLElement | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const headCheck = useRef<HTMLInputElement>(null);
   const { menu, menuRef, openMenu, closeMenu, onMenuKey } = useRowMenu(opener);
 
   useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
+
+  /* Pending change requests (admin only; RLS returns nothing for others). Used for the "Pending review" chip. */
+  useEffect(() => {
+    let live = true;
+    fetchReviewQueue().then(
+      (items) => {
+        if (!live) return;
+        setPendingIds(new Set(items.map((i) => i.invitationId)));
+      },
+      () => { /* list still works without the chip */ },
+    );
+    return () => { live = false; };
+  }, [rows]);
 
   /* preview panel: tell App so the sidebar switches to overlay mode */
   const closePanel = () => {
@@ -102,7 +116,12 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
     let r = visible.filter((x) => status === "all" || (status === "published" ? isPub(x) : !isPub(x)));
     r = r.filter((x) => dateMatch(x, when));
     if (tpl !== "all") r = r.filter((x) => templateOf(x).key === tpl);
-    if (term) r = r.filter((x) => coupleName(x).toLowerCase().includes(term));
+    if (term) {
+      r = r.filter((x) =>
+        coupleName(x).toLowerCase().includes(term)
+        || (x.client_email || "").toLowerCase().includes(term),
+      );
+    }
     return sortInvitations(r, sort);
   }, [visible, q, sort, status, when, tpl, isPub]);
 
@@ -267,7 +286,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
           <InvitationsTable
             shown={shown} total={list.length} visibleCount={visible.length} page={cur} pages={pages}
             sel={sel} allOnPage={allOnPage} headCheck={headCheck} topId={topId} topTemplate={templates[0]}
-            previewId={preview?.id} menuId={menu?.x.id} isPub={isPub}
+            previewId={preview?.id} menuId={menu?.x.id} pendingIds={pendingIds} isPub={isPub}
             onTogglePage={() => selection.togglePage(shown, allOnPage)} onToggle={selection.toggle}
             onPreview={openPreview} onCopyLink={copyLink} onOpenMenu={openMenu} onPage={setPage}
           />
