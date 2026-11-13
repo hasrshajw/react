@@ -306,3 +306,130 @@ export async function saveEnquiry(e: Enquiry): Promise<Enquiry["history"]> {
   if (error) fail(error);
   return Array.isArray(data?.history) ? data!.history : e.history;
 }
+
+/* ---------- Track B (B4): client self-service editing ---------- */
+/* Every call below is an RPC or a read that the database already restricts (migrations 010 to 012). Row level security is the
+   real lock; these functions only shape the data. Clients never read `invitations` directly: they use `my_invitations()`. */
+
+export type RequestStatus = "pending" | "approved" | "rejected" | "withdrawn" | "superseded";
+export type ReviewDecision = "approve" | "reject";
+
+/** One invitation linked to the signed-in client's verified email, with the state of its latest change request. */
+export interface MyInvitation {
+  id: string; groomName: string; brideName: string; eventDate: string | null; templateId: string; published: boolean;
+  details: InvitationRow["details"]; updatedAt: string;
+  request: null | { id: string; status: RequestStatus; adminNote: string; createdAt: string; acknowledgedAt: string | null };
+}
+
+/** A pending change request as the admin sees it in the review queue. */
+export interface ReviewItem {
+  id: string; invitationId: string; clientEmail: string; baseUpdatedAt: string; createdAt: string;
+  changedKeys: string[]; proposedDetails: InvitationRow["details"];
+}
+
+export interface AppNotification {
+  id: number; audience: "admin" | "user"; type: string; invitationId: string | null; requestId: string | null;
+  payload: Record<string, unknown>; readAt: string | null; createdAt: string;
+}
+
+/** The invitation was edited after the client started (decision D7, SQLSTATE 40001). Approve again with `force = true` to accept it. */
+export class ChangeConflictError extends ApiError {}
+
+const rpcFail = (e: { message: string; code?: string }): never => {
+  if (e.code === "40001") throw new ChangeConflictError(e.message);
+  /* The database's own messages are written for people ("No changes to submit", "You already have a pending request"), so they are kept. */
+  throw new ApiError(e.message || "Request failed");
+};
+
+const toMyInvitation = (r: DbRow): MyInvitation => ({
+  id: r.id as string, groomName: (r.groom_name ?? "") as string, brideName: (r.bride_name ?? "") as string,
+  eventDate: (r.event_date ?? null) as string | null, templateId: String(r.template_id ?? ""), published: r.published !== false,
+  details: (r.details && typeof r.details === "object" ? r.details : {}) as MyInvitation["details"], updatedAt: r.updated_at as string,
+  request: r.request_id ? {
+    id: r.request_id as string, status: r.request_status as RequestStatus, adminNote: (r.request_admin_note ?? "") as string,
+    createdAt: r.request_created_at as string, acknowledgedAt: (r.request_acknowledged_at ?? null) as string | null,
+  } : null,
+});
+
+/** The signed-in person's invitations (verified email only, newest first, at most 500). An empty list means "none linked". */
+export async function fetchMyInvitations(): Promise<MyInvitation[]> {
+  const { data, error } = await db().rpc("my_invitations");
+  if (error) fail(error);
+  return Array.isArray(data) ? (data as DbRow[]).map(toMyInvitation) : [];
+}
+
+/** Sends the client's edited form for review. `details` is the whole form; the database keeps only the allowed keys and the changed ones.
+ *  `baseUpdatedAt` is the `updatedAt` of the invitation the client started from. Resolves with the new request id. */
+export async function submitChangeRequest(invitationId: string, details: InvitationRow["details"], baseUpdatedAt: string): Promise<string> {
+  const { data, error } = await db().rpc("submit_change_request", { p_invitation_id: invitationId, p_details: details, p_base_updated_at: baseUpdatedAt });
+  if (error) rpcFail(error);
+  return String(data);
+}
+
+export async function withdrawChangeRequest(requestId: string): Promise<void> {
+  const { error } = await db().rpc("withdraw_change_request", { p_id: requestId });
+  if (error) rpcFail(error);
+}
+
+/** The client dismisses a decision ("Got it"). Works for a rejected or an approved request, once. */
+export async function acknowledgeRejection(requestId: string): Promise<void> {
+  const { error } = await db().rpc("acknowledge_rejection", { p_id: requestId });
+  if (error) rpcFail(error);
+}
+
+/** The template HTML for the client editor's preview. Clients cannot read `templates`, so this goes through the database function. */
+export async function fetchClientTemplateHtml(invitationId: string): Promise<string> {
+  const { data, error } = await db().rpc("client_template_html", { p_invitation_id: invitationId });
+  if (error) rpcFail(error);
+  return typeof data === "string" ? data : "";
+}
+
+/** Whether the signed-in person is an administrator. Used for the screen to show; RLS and the RPCs enforce the real rule. */
+export async function fetchIsAdmin(): Promise<boolean> {
+  const { data, error } = await db().rpc("is_admin");
+  if (error) fail(error);
+  return data === true;
+}
+
+const REVIEW_COLUMNS = "id, invitation_id, client_email, base_updated_at, created_at, changed_keys, proposed_details";
+
+/** Pending change requests, oldest first (admin only: RLS returns nothing for anyone else). At most 200 until the queue gets paging (B7). */
+export async function fetchReviewQueue(): Promise<ReviewItem[]> {
+  const { data, error } = await db().from("change_requests").select(REVIEW_COLUMNS)
+    .eq("status", "pending").order("created_at", { ascending: true }).order("id", { ascending: true }).limit(200);
+  if (error) fail(error);
+  return (Array.isArray(data) ? (data as DbRow[]) : []).map((r) => ({
+    id: r.id as string, invitationId: r.invitation_id as string, clientEmail: (r.client_email ?? "") as string,
+    baseUpdatedAt: r.base_updated_at as string, createdAt: r.created_at as string,
+    changedKeys: Array.isArray(r.changed_keys) ? (r.changed_keys as unknown[]).filter((k): k is string => typeof k === "string") : [],
+    proposedDetails: (r.proposed_details && typeof r.proposed_details === "object" ? r.proposed_details : {}) as ReviewItem["proposedDetails"],
+  }));
+}
+
+/** Approve or reject (admin only). Rejecting needs a note (the database refuses an empty one). If the invitation changed after the client
+ *  started, approving throws `ChangeConflictError`; call again with `force = true` once the admin has chosen to go ahead. */
+export async function reviewChangeRequest(requestId: string, decision: ReviewDecision, note = "", force = false): Promise<void> {
+  const { error } = await db().rpc("review_change_request", { p_id: requestId, p_decision: decision, p_note: note.trim() || null, p_force: force });
+  if (error) rpcFail(error);
+}
+
+const NOTIFICATION_COLUMNS = "id, audience, type, invitation_id, request_id, payload, read_at, created_at";
+
+/** Notifications the person may see (RLS: their own, plus the shared admin ones for an admin), newest first. */
+export async function fetchNotifications(limit = 50): Promise<AppNotification[]> {
+  const { data, error } = await db().from("notifications").select(NOTIFICATION_COLUMNS).order("created_at", { ascending: false }).order("id", { ascending: false })
+    .limit(Math.min(Math.max(1, Math.floor(limit) || 50), 200));
+  if (error) fail(error);
+  return (Array.isArray(data) ? (data as DbRow[]) : []).map((r) => ({
+    id: r.id as number, audience: r.audience as AppNotification["audience"], type: r.type as string,
+    invitationId: (r.invitation_id ?? null) as string | null, requestId: (r.request_id ?? null) as string | null,
+    payload: (r.payload && typeof r.payload === "object" ? r.payload : {}) as Record<string, unknown>,
+    readAt: (r.read_at ?? null) as string | null, createdAt: r.created_at as string,
+  }));
+}
+
+/** Marks one notification read. Only `read_at` can be written (column grant); an admin notification is shared, so this marks it for every admin. */
+export async function markNotificationRead(id: number): Promise<void> {
+  const { error } = await db().from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id).is("read_at", null);
+  if (error) fail(error);
+}

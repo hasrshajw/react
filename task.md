@@ -26,17 +26,57 @@ When asked to "update based on task.md", follow these steps.
 
 ## Progress log (newest first)
 
-### Where things stand (13 Nov 2026, 47th update)
+### Where things stand (13 Nov 2026, 48th update)
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov (pasted again for the 6th update, the 28th, the 29th, the 30th, the 32nd, the 33rd, the 36th, the 41st, the 42nd, the 43rd, the 44th, the 45th, the 46th and the 47th) must be revoked** (see the first Phase 0 row). |
+| Phase 0 | 0 | 4 | 1 | C-2 (public iframe), H-1 and **C-3** (profile lockdown, SQL coded and tested) are coded; C-1's sign-up switch is still a dashboard action. Only the token rotation is untouched. **The GitHub token pasted in chat on 12 Nov (pasted again for the 6th update, the 28th, the 29th, the 30th, the 32nd, the 33rd, the 36th, the 41st, the 42nd, the 43rd, the 44th, the 45th, the 46th, the 47th and the 48th) must be revoked** (see the first Phase 0 row). |
 | Phase 1 – Authorization and data safety | 1 | 4 | 1 | H-2 compiler part done, H-2 database part written (not yet run in Supabase). C-2 `LivePreview` coded; CSP part still report-only. **H-5** database half coded and tested on local Postgres (`004_enquiry_hardening.sql`, not yet run in Supabase); captcha and per-IP rate limit are not done. **C-1** database half coded and tested on local Postgres (`005_admin_role.sql`, not yet run in Supabase). Nothing in Phase 1 authorization is untouched any more. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | M-11 and the README sign-up/admin step are done. H-3 is coded and tested on local Postgres, but not yet on a clean Supabase project. M-12 untracked from git; secret scanning is still a GitHub setting. |
 | Phase 1 – App correctness | 0 | 2 | 0 | **H-6** coded and tested with a fake client (not yet on real Supabase or in a browser). **M-8** coded; needs `SITE_URL` set on Vercel. M-12 is counted in the "Setup and schema" row. |
 | Phase 2 | 1 | 10 | 0 | **M-4** coded, **including the orphan-cleanup route since the 36th update** (bucket limits, file deleted with its invitation, `seoImage` limited to the app's own bucket; `006_storage_limits.sql`, tested on local Postgres, not yet run in Supabase; `api/cleanup-previews.js` is a dry run by default, needs `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` on Vercel, tested with a fake Supabase, not yet run against a real project). **M-2** coded and tested (a "no suggestion" no longer pauses online mode); the privacy-policy line is an owner action. **M-10** done (compiler placeholder handling; tested in jsdom). **M-5** coded: explicit columns, stable order, reads past the 1,000-row cap, a list cut at 10,000 rows says so on screen (34th update), and since the 38th update the note has a **Load more** button that reads the next 10,000 (needs a browser check; server-side search/filter/sort is still not done, by decision). M-13 coded (awaiting a check). **H-4** coded and tested on local Postgres (`007_view_counting.sql`, not yet run in Supabase): reading no longer counts, a visitor counts once a day, 120 counted views per invitation per minute; per-IP limits are a dashboard action. **M-9** coded and tested with a mock handler (needs a check on a deployment). **M-1** (session hygiene) and **M-6** (enquiry badge and refresh) coded and tested with a fake client and jsdom (need a browser check). **M-3** (client-side QR codes) and **M-7** (login fixes, forgot password) coded and tested the same way (need a browser check; M-7 also needs the Supabase redirect URL). Nothing in Phase 2 is untouched any more. |
 | Phase 3 | 6 | 6 | all the rest | **L-2**, **L-3**, **L-4**, **L-5** and **L-6** are done. **L-9** (live preview shows the compiled `<head>` and `<style>`, template scripts no longer run in the editor) is coded and tested in jsdom; it needs a browser check. **L-1** (dead links, catch-all route) is coded; it needs a browser check and your two help addresses. **L-7** is coded and tested on local Postgres (`008`, not yet run in Supabase). **L-8** is coded and tested on local Postgres 16 and with jsdom (`009_trash_server_time.sql`, not yet run in Supabase): the trash date is the server's, the 30-day decision is the server's, and a daily purge job is scheduled when pg_cron exists. **M-14**: ESLint is in (`npm run lint`, **0 errors and 0 warnings since the 33rd update**), **528 unit tests pass (`npm test`; 3 of them for the service-key headers since the 41st update; 5 of them for M-5 "Load more" since the 38th update; 22 of them for the M-4 orphan cleanup since the 36th update; the data layer `api.ts`, the dashboard hooks, `useAuth`, the small UI hooks, `useRowHint`, `useUnsavedWarnings`, `useTransliteration` the guest-side requests in `lib/publicInvitation.ts` (26th update) the guest page `pages/PublicInvitation.tsx` (27th update) the Create page `pages/Create.tsx` (28th update; this also found and fixed a data-loss gap, see the 28th update) and the sign-in page `pages/Login.tsx` (29th update) and the create-form reducer `formReducer.ts` (30th update) and the All invitations page `pages/Invitations.tsx` (31st update) and the create form `features/create/CreateForm.tsx` (32nd update) are covered with fakes)**, **`no-explicit-any` is at 0 (25th update) and there are no unused-variable warnings (26th update); the 14 `exhaustive-deps` warnings were fixed in the 33rd update (new `useLatest` hook, 8 tests; needs a browser check)**, TypeScript is pinned, **`noImplicitAny` is on (21st update)**, the React types match React 18 and the invitation row no longer has an index signature and a CI workflow plus Dependabot config are written (not yet seen running on GitHub); database tests started in the 35th update (`npm run test:db`, 127 SQL checks; a `db` job is written in `docs/ci.yml` (37th update) but **not active until you copy it to `.github/workflows/ci.yml`**); Playwright is not started. |
-| Track B | 0 | 14 | rest | **B-M1 started (45th update, at the owner's request, before B-M0 closed):** `client_email`, `current_user_email()`, `change_requests`, `my_invitations()`, `submit_change_request`, `withdraw_change_request` coded and tested on local Postgres (171 checks); not yet run in Supabase. **46th update added `review_change_request`, `acknowledge_rejection` and `audit_log`; 47th update added in-app `notifications`, `client_template_html()` and the sign-up role label (230 checks).** The B2 database part is now fully coded; it is `[~]` until `010`–`012` are run in Supabase and checked. Email (B3) and all frontend work (B4–B6) are not started. Nothing ships to `main` before B-M0 closes. |
+| Track B | 0 | 14 | rest | **B-M1 started (45th update, at the owner's request, before B-M0 closed):** `client_email`, `current_user_email()`, `change_requests`, `my_invitations()`, `submit_change_request`, `withdraw_change_request` coded and tested on local Postgres (171 checks); not yet run in Supabase. **46th update added `review_change_request`, `acknowledge_rejection` and `audit_log`; 47th update added in-app `notifications`, `client_template_html()` and the sign-up role label (230 checks).** The B2 database part is now fully coded; it is `[~]` until `010`–`012` are run in Supabase and checked. **48th update started B4 (frontend groundwork, no screens yet): the API layer in `src/lib/api.ts` and the `useRole()` hook, 23 new tests (551 in total).** Email (B3) and the screens (B4 routing, B5, B6) are not started. Nothing ships to `main` before B-M0 closes. |
+
+### 13 Nov 2026 (48th update) – B4 groundwork: client-editing API layer and `useRole()` (no screens, no database change)
+
+**What was done**
+
+1. **API layer in `src/lib/api.ts` (B4 item).** New functions, all thin wrappers over the `010`–`012` RPCs and reads, so row level security stays the real lock: `fetchMyInvitations`, `submitChangeRequest`, `withdrawChangeRequest`, `acknowledgeRejection`, `fetchClientTemplateHtml`, `fetchIsAdmin`, `fetchReviewQueue`, `reviewChangeRequest`, `fetchNotifications`, `markNotificationRead`, plus the types `MyInvitation`, `ReviewItem`, `AppNotification`, `RequestStatus`, `ReviewDecision`.
+   - RPC arguments use the exact names the SQL expects (`p_invitation_id`, `p_details`, `p_base_updated_at`, `p_id`, `p_decision`, `p_note`, `p_force`).
+   - **`ChangeConflictError`** (a subclass of `ApiError`) is thrown for SQLSTATE `40001`, the D7 conflict. The review page catches it and offers "approve anyway", which calls `reviewChangeRequest(id, "approve", note, true)`. Other database errors become a plain `ApiError` that keeps the database's own readable message (for example "You already have a pending request").
+   - `fetchReviewQueue` reads only `pending`, oldest first, explicit columns, at most 200 (paging is B7). `fetchNotifications` is newest first, limit clamped to 1–200. `markNotificationRead` sends only `read_at`, for one id, only while unread; an admin notification is shared, so it is read for every admin.
+   - `fetchIsAdmin` is true only for the JSON value `true`; an error rejects (no guess).
+2. **`useRole()` in new `src/hooks/useRole.ts` (B4 item).** Returns `{ role, loading, error, retry }`. `role` is `admin` (row in `admins`, asked once through `is_admin()`), `client` (any other signed-in person) or `none` (nobody signed in); it is `null` while unknown or after a failed request, so a failure is never turned into an "admin" or "client" guess. The answer is kept in memory only, keyed by the lower-cased email, forgotten on sign-out through `onUserDataReset`, and an answer that arrives after the component is gone is neither shown nor remembered. It chooses a screen only; permissions stay in RLS and the RPCs.
+3. **23 new tests (551 in total, 32 files):** `src/lib/clientApi.test.ts` (13, with a fake client that records the RPC name and arguments) and `src/hooks/useRole.test.tsx` (10).
+4. **The tests can fail:** five deliberate breaks, each caught and restored from a copy: conflict code not recognised (1 failed), `fetchIsAdmin` returning any truthy value (1), `markNotificationRead` without the unread guard (1), role cache not cleared on reset (5), a late answer remembered after unmount (1).
+5. **Verified:** `npm run typecheck` clean, `npm run lint` 0 errors and 0 warnings, `npm test` 551 pass, `npm run build` passes (main bundle 260.05 kB, same hash `index-DnVoT0wk.js`: nothing imports the new code yet). `.env.local` was **not touched**. No database change, nothing to run in Supabase.
+
+**What this does not prove**
+
+- The calls ran only against a fake client. Whether the real project accepts these RPC arguments, and returns `40001` as `error.code` through PostgREST, has not been seen; that needs `010`–`012` run in Supabase and the B8 checks with real accounts.
+
+**How this affects other tasks**
+
+- **B4 (routing, guards, `ClientApp`, post-login):** `useRole()` is the input for all three. Next: the post-login redirect in `Login.tsx`, the lazy `ClientApp` chunk, and `my` added to `RESERVED`, the database list and `vercel.json` (keep in sync).
+- **B5 / B6:** the review page, the client editor and the bells can now be written against these functions. The review page must handle `ChangeConflictError` and require a note on reject.
+- **Not done on purpose:** the B4 `VITE_ADMIN_EMAIL` read in `src/lib/config.ts` (display only; no screen uses it yet), and the per-user draft key.
+
+**Behaviour changes to check**
+
+- None for users. Nothing in the app imports the new code yet.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint:install && npm run lint && npm test && npm run typecheck && npm run build` all finish with no errors and no warnings (551 tests).
+
+**Next steps, in order**
+
+1. Owner: rotate the leaked keys, revoke the GitHub token (**pasted in chat again for this push**), the three C-1 checks from the 43rd update; run `010`, `011`, `012` when ready.
+2. Then B4 routing: post-login routing by `useRole()`, `ClientApp` shell, `my` as a reserved word, guards (one or two at a time).
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
 
 ### 13 Nov 2026 (47th update) – B-M1 third part: notifications, client template read, role label (database only)
 
@@ -2157,12 +2197,12 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 ## B4. Frontend – shared groundwork
 
 - [ ] **Env:** `VITE_ADMIN_EMAIL=test@gmail.com` added to `.env.local` (done) and a placeholder to `.env.example` (done). Read it through `src/lib/config.ts`; **use for display only** (e.g. "Contact admin"), never for route or permission decisions.
-- [ ] **Role resolution:** `useRole()` calls `is_admin()` once after login and caches in memory (not in a trusted localStorage flag). Returns `admin | client | none`.
+- [~] **Role resolution:** *Coded 13 Nov (48th update): `src/hooks/useRole.ts`, 10 tests; not used by any screen yet.* `useRole()` calls `is_admin()` once after login and caches in memory (not in a trusted localStorage flag). Returns `admin | client | none`.
 - [ ] **Post-login routing** (`Login.tsx`, `lib/auth.ts`): admin → `/dashboard` (existing), client → `/my`. Preserve `from` through the OAuth redirect (this also fixes M-7).
 - [ ] **Routing:** add a separate lazy-loaded **`ClientApp`** chunk (same pattern as `AdminApp` in `src/App.tsx`) so clients never download admin code and admins' bundle stays small. Add `my` (and any sub-path words) to `RESERVED` in `src/lib/reserved.ts`, the DB reserved list, and `vercel.json`, per the "keep in sync" rule.
 - [ ] **Guards:** `AdminApp` redirects non-admins to `/my`; `ClientApp` redirects admins to `/dashboard` and anonymous users to `/login`. Real enforcement is RLS; guards are UX.
 - [~] **Session:** `onAuthStateChange` is coded (M-1, 6th update; needs the browser check). Still to do for Track B: scope the draft key per user. Original note: implement `onAuthStateChange` (M-1) first, since client accounts are on shared devices more often; clear drafts and caches on sign-out.
-- [ ] **API layer:** add to `src/lib/api.ts`: `fetchMyInvitations`, `submitChangeRequest`, `withdrawChangeRequest`, `acknowledgeRejection`, `fetchReviewQueue`, `reviewChangeRequest`, `fetchNotifications`, `markNotificationRead`.
+- [~] **API layer:** *Coded 13 Nov (48th update), tested with a fake client (13 tests); not run against a real project.* add to `src/lib/api.ts`: `fetchMyInvitations`, `submitChangeRequest`, `withdrawChangeRequest`, `acknowledgeRejection`, `fetchReviewQueue`, `reviewChangeRequest`, `fetchNotifications`, `markNotificationRead`.
 
 ## B5. Frontend – admin side
 
