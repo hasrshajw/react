@@ -22,7 +22,7 @@ import {
   withdrawChangeRequest,
   type MyInvitation,
 } from "./lib/api";
-import { AuthError, resendEmailConfirmation } from "./lib/auth";
+import { AuthError } from "./lib/auth";
 import { compile } from "./lib/compileInvitation";
 import { ADMIN_EMAIL } from "./lib/config";
 import { readJSON, removeKey, writeJSON } from "./lib/storage";
@@ -84,8 +84,6 @@ const banner: React.CSSProperties = {
 function Landing() {
   const { session } = useAuth();
   const { data, loading, error } = useAsync(fetchMyInvitations);
-  const [resendBusy, setResendBusy] = useState(false);
-  const [resendMsg, setResendMsg] = useState<string | null>(null);
   if (loading) {
     return (
       <Frame>
@@ -453,6 +451,9 @@ function ClientEditor() {
           <b>Changes were rejected.</b>
           {inv.request.adminNote && <p style={{ margin: "6px 0" }}>{inv.request.adminNote}</p>}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <button type="button" style={btnPrimary} disabled={busy} onClick={() => void onAck()}>
+              Edit again
+            </button>
             <button type="button" style={btnGhost} disabled={busy} onClick={() => void onAck()}>
               Got it
             </button>
