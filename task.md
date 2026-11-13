@@ -1,5 +1,48 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 55th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 20 | rest | **55th update: B6 client landing polish + restricted editor** (submit via `submitChangeRequest` only, banners, preview). Invite button still needs B3. |
+
+### 13 Nov 2026 (55th update) – B6: Client landing + restricted editor
+
+**What was done**
+
+1. **`/my` landing:** empty state shows signed-in email + contact admin; 1 invitation redirects; 2+ list with couple names, date, status chip (Live / Pending review / Rejected / Up to date).
+2. **Client editor** (`/my/:id`): maps invitation → `CreateForm` with `mode="client"` (template + client-email sections hidden), sandboxed preview via `fetchClientTemplateHtml` + `compile`.
+3. **Submit for review** with confirm step → `submitChangeRequest` only (never `saveInvitation`). Pending makes the form read-only with Withdraw; rejected/approved banners with **Got it** → `acknowledgeRejection`.
+4. **`CreateForm`:** optional `mode` and `readOnly` props. Helpers + unit tests in `src/features/client/`. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite not re-run here. `my_invitations` does not return `proposed_details`, so pending view shows live details (read-only), not the proposed snapshot (D5 gap).
+- Draft autosave scoped per user and leave-blocker polish left for a follow-up.
+
+**How this affects other tasks**
+
+- **B5 Invite** still blocked on B3.
+- **B6 remaining:** proposed-details on pending (RPC), draft keys, richer mobile polish.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Browser as a non-admin user with `client_email` set on an invitation.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run checks.
+2. Continue B6 polish, or B3 when ready for invite email.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 54th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2480,16 +2523,16 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B6. Frontend – client side
 
-- [ ] **`/my` landing logic** (three cases, in this order):
+- [~] **`/my` landing logic** *Coded 13 Nov (55th update): 0/1/many + status chips; needs browser check.* (three cases, in this order):
   - 0 linked → empty state: "No invitations are linked to this account", showing the signed-in email and a "Contact admin" link (`VITE_ADMIN_EMAIL`).
   - 1 linked → redirect straight to `/my/invitations/:id`.
   - 2+ linked → list (couple names, date, status chip: *Live / Pending review / Rejected / Up to date*) → click opens the editor.
-- [ ] **Client editor** (`/my/invitations/:id`): reuse `CreateForm` + `formReducer` + `LivePreview` in a **restricted mode** (props `mode="client"` with an allow-list that hides template picker, slug, publish and trash controls and disables nothing silently: hidden fields are simply not rendered).
-- [ ] **Pending banner at the top of the editor** when a request is pending: "Your changes are waiting for admin review, submitted <time>", with **View submitted changes**, **Withdraw**. Form is read-only showing the *proposed* values (D5).
-- [ ] **Rejected banner** until acknowledged: shows the admin's note, **Edit again** (prefills from the rejected values) and **Got it** (calls `acknowledge_rejection`). Banner survives reloads and devices because state is server-side.
-- [ ] **Approved:** toast / banner once ("Your changes are live"), then clears.
-- [ ] **Submit button:** label "Submit for review"; disabled when there are no changes; confirm dialog explaining that changes go live only after approval; keep the unsaved-changes blocker and draft autosave, but scope the draft key per user and invitation (and clear on sign-out, M-1).
-- [ ] Never call the admin `saveInvitation` path from `ClientApp`; the client editor submits through `submitChangeRequest` only.
+- [~] **Client editor** (`/my/:id`): *Coded 13 Nov (55th update): restricted CreateForm, submitChangeRequest, banners, sandbox preview. Needs browser check.* reuse `CreateForm` + `formReducer` in a **restricted mode** (props `mode="client"` with an allow-list that hides template picker, slug, publish and trash controls and disables nothing silently: hidden fields are simply not rendered).
+- [~] **Pending banner at the top of the editor** *Coded 13 Nov (55th update, withdraw; proposed values still live details until RPC exposes them).* when a request is pending: "Your changes are waiting for admin review, submitted <time>", with **View submitted changes**, **Withdraw**. Form is read-only showing the *proposed* values (D5).
+- [~] **Rejected banner** until acknowledged: *Coded 13 Nov (55th update: note + Got it → acknowledgeRejection).* shows the admin's note, **Edit again** (prefills from the rejected values) and **Got it** (calls `acknowledge_rejection`). Banner survives reloads and devices because state is server-side.
+- [~] **Approved:** *Coded 13 Nov (55th update: banner + Got it).* toast / banner once ("Your changes are live"), then clears.
+- [~] **Submit button:** *Coded 13 Nov (55th update: confirm + submitChangeRequest only).* label "Submit for review"; disabled when there are no changes; confirm dialog explaining that changes go live only after approval; keep the unsaved-changes blocker and draft autosave, but scope the draft key per user and invitation (and clear on sign-out, M-1).
+- [~] Never call the admin `saveInvitation` path from `ClientApp`; *Coded 13 Nov (55th update).* the client editor submits through `submitChangeRequest` only.
 - [ ] Mobile-first layout (clients will mostly use phones); skeleton loading per the README rules.
 
 ## B7. Edge cases to handle explicitly

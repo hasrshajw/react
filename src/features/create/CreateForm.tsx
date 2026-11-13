@@ -36,9 +36,14 @@ export interface CreateFormProps {
   invitationId: string;
   /** Last saved client email (from the server). Used to warn when the linked client is about to change. */
   originalClientEmail?: string;
+  /** Admin form is the default. Client mode hides template picker and client-email section (B6). */
+  mode?: "admin" | "client";
+  /** Pending review: form stays visible but submission is blocked by the parent. */
+  readOnly?: boolean;
 }
 
-export function CreateForm({ data, categories, templates, categoryId, onCategory, sectionLoading, templatesLoading, expectTemplate, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify, invitationId, originalClientEmail = "" }: CreateFormProps) {
+export function CreateForm({ data, categories, templates, categoryId, onCategory, sectionLoading, templatesLoading, expectTemplate, set, add, patch, remove, focus, vis, touch, tagFor, onSubmit, notify, invitationId, originalClientEmail = "", mode = "admin", readOnly = false }: CreateFormProps) {
+  const isClient = mode === "client";
   /* Each section ghosts its own fields until its own data is there. */
   const fx = (sec: SectionId) => {
     const loading = sectionLoading[sec];
@@ -51,6 +56,8 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
   const clientEmailChanged = normalizedOriginal !== "" && normalizedCurrent !== normalizedOriginal;
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
+      <fieldset disabled={readOnly} style={readOnly ? { border: 0, margin: 0, padding: 0, minInlineSize: 0 } : undefined}>
+      {!isClient && (
       <Section id="template" icon={LayoutTemplate} title="Template Options" tag={tagFor("template")} loading={tpl.loading}>
         <TemplatePicker
           categories={categories} categoryId={categoryId} onCategory={onCategory} templates={templates}
@@ -58,6 +65,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           loading={templatesLoading} pending={tpl.loading && expectTemplate} expectSelected={expectTemplate}
         />
       </Section>
+      )}
 
       <Section id="family" icon={Users} title="Family & Wedding" tag={tagFor("family")} loading={fam.loading}>
         <Bilingual enLabel="Family Surname EN" teLabel="Family Surname తెలుగు" enField="surnameEn" teField="surnameTe" data={data} set={set} fp={fam.fp} />
@@ -133,6 +141,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         )}
       </Section>
 
+      {!isClient && (
       <Section id="client" icon={Mail} title="Client Access" tag={tagFor("client")} loading={client.loading}>
         <Field
           label="Client email"
@@ -151,6 +160,8 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           </div>
         )}
       </Section>
+      )}
+      </fieldset>
     </form>
   );
 }
