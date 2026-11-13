@@ -1,3 +1,20 @@
+### 13 Nov 2026 (79th update) – UI/UX Corrections & Missing Page Audit
+
+**What was done**
+
+1. **Removed Email Verification UI:** As per the owner's explicit decision ("no need Email confirmation"), the "Verify your email" banner and "Resend confirmation email" button have been completely removed from `ClientApp.tsx`. Users now see a clean "No invitations to show" message if none are linked, without any email verification prompts.
+2. **Added "Edit again" to Rejected Banner:** Addressed the gap noted in the spec (B6). The rejected changes banner in `ClientApp.tsx` now includes a prominent "Edit again" button (styled as primary) alongside "Got it", allowing the client to immediately acknowledge the rejection and continue editing their invitation.
+3. **Codebase Cleanup:** Removed unused `resendBusy`, `resendMsg` state variables and `resendEmailConfirmation` imports from `ClientApp.tsx` to keep the bundle clean.
+
+**UI/UX Audit Findings (Documented for Owner Awareness)**
+
+- **Coming Soon Pages:** The admin profile menu and sidebar contain several placeholder routes (`/billing`, `/inventory`, `/customize/*`, `/account`, `/security`, etc.) that render a "Coming Soon" page or show a disabled "Soon" badge. This is intentional for phased rollout but may cause minor confusion for admins expecting full functionality.
+- **Profile Menu UX:** Disabled menu items explicitly show a "Soon" badge, which is good UX for managing expectations, but the owner should plan to either implement or remove these in a future milestone.
+- **Routing Resilience:** The `Gate` component in `App.tsx` correctly handles unknown single-segment paths by routing them to `PublicInvitation`, which gracefully shows an "Invitation isn't available" message. This prevents blank screens for mistyped links.
+- **Client App Empty States:** The "No invitations to show" state now cleanly guides the user to verify they are signed in with the correct email or contact the admin, providing a clear, non-blocking UX.
+
+---
+
 ### 13 Nov 2026 (78th update) – Owner decisions: open sign-up, no email confirmation, email code removal, gap resolutions
 
 **What was done**
