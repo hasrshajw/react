@@ -258,9 +258,10 @@
         .dp-title { min-width: 0; }
         .dp-title b { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .dp-title .red { color: var(--danger-dark); font-weight: 700; }
-        .live-dot.red { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-light); }
+        .dp-title .live-dot.red { background: var(--danger); box-shadow: 0 0 0 3px var(--danger-light); }
         .dp-title small { display: block; margin: 3px 0 0 16px; font-size: 12px; color: var(--gray); }
-        .live-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-light); }
+        /* scoped: the Sidebar has its own .live-dot (live-site link) that must look the same on every page */
+        .dp-title .live-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 3px var(--success-light); }
         .dp-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .dp-body { flex: 1; min-height: 0; background: var(--dx-surface); }
         .dp-body iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }

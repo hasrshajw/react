@@ -43,8 +43,8 @@ export function ReviewDetail({ item, onClose, onDecided, notify }: Props) {
     return () => { live = false; };
   }, [item.id, item.invitationId]);
 
-  const currentDetails = row?.details || {};
-  const proposed = item.proposedDetails || {};
+  const currentDetails = useMemo(() => row?.details || {}, [row]);
+  const proposed = useMemo(() => item.proposedDetails || {}, [item.proposedDetails]);
 
   const proposedPreview = useMemo(() => {
     try {
@@ -186,7 +186,6 @@ export function ReviewDetail({ item, onClose, onDecided, notify }: Props) {
               onChange={(e) => setNote(e.target.value)}
               disabled={busy}
               placeholder="Explain the decision to the client…"
-              style={{ width: "100%", resize: "vertical", font: "inherit", padding: 8, borderRadius: 8, border: "1px solid var(--gray-border)" }}
             />
           </label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>

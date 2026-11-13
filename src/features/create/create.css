@@ -89,9 +89,9 @@
   .sec-tag.ok { background: var(--success-light); color: var(--success-dark); }
   .sec-tag.bad { background: var(--danger-light); color: var(--danger-dark); }
 
-  .sub { display: flex; align-items: center; gap: 12px; margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
-  .sub::after { content: ""; flex: 1; height: 1px; background: var(--gray-border); }
-  .hint { font-size: 12px; color: var(--gray); }
+  .create .sub { display: flex; align-items: center; gap: 12px; margin: 4px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
+  .create .sub::after { content: ""; flex: 1; height: 1px; background: var(--gray-border); }
+  .create .hint { font-size: 12px; color: var(--gray); }
 
   .grid { display: grid; gap: 14px 12px; }
   .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
