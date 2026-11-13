@@ -28,12 +28,13 @@ export function invitationToForm(inv: MyInvitation, preferProposed = false): Inv
   };
 }
 
-export type ClientStatus = "live" | "pending" | "rejected" | "up_to_date" | "draft";
+export type ClientStatus = "live" | "pending" | "rejected" | "up_to_date" | "draft" | "superseded";
 
 export function clientStatus(inv: MyInvitation): ClientStatus {
   const r = inv.request;
   if (r?.status === "pending") return "pending";
   if (r?.status === "rejected" && !r.acknowledgedAt) return "rejected";
+  if (r?.status === "superseded") return "superseded";
   if (inv.published) return "live";
   return "up_to_date";
 }
@@ -44,6 +45,7 @@ export const CLIENT_STATUS_LABEL: Record<ClientStatus, string> = {
   rejected: "Rejected",
   up_to_date: "Up to date",
   draft: "Draft",
+  superseded: "Cancelled",
 };
 
 export const CLIENT_STATUS_CHIP: Record<ClientStatus, string> = {
@@ -52,4 +54,5 @@ export const CLIENT_STATUS_CHIP: Record<ClientStatus, string> = {
   rejected: "bad",
   up_to_date: "muted",
   draft: "muted",
+  superseded: "muted",
 };

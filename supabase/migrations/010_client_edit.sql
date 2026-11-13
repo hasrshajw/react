@@ -54,12 +54,14 @@ create policy "change_requests: own read" on public.change_requests for select t
 drop policy if exists "change_requests: admin read" on public.change_requests;
 create policy "change_requests: admin read" on public.change_requests for select to authenticated using (public.is_admin());
 
--- Changing the client, or trashing the invitation, cancels the pending request (the old client loses access at once
--- because every read goes through current_user_email()).
+-- Changing the client, trashing, or unpublishing the invitation cancels the pending request (B7).
+-- The old client loses access at once because every read goes through current_user_email().
 create or replace function public.invitations_supersede_requests() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if new.client_email is distinct from old.client_email or (new.deleted_at is not null and old.deleted_at is null) then
+  if new.client_email is distinct from old.client_email
+     or (new.deleted_at is not null and old.deleted_at is null)
+     or (new.published is false and old.published is distinct from false) then
     update public.change_requests set status = 'superseded' where invitation_id = new.id and status = 'pending';
   end if;
   return null;

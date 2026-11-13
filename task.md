@@ -1,5 +1,45 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 71st update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 32 | rest | **71st update: B7 superseded banner + unpublish supersede + different-email closed.** |
+
+### 13 Nov 2026 (71st update) – B7 superseded client banner + unpublish path
+
+**What was done**
+
+1. **`src/ClientApp.tsx`:** when the latest request status is `superseded`, show a clear banner: "Your pending changes were cancelled…" (invitation updated/removed by admin).
+2. **`src/features/client/invitationToForm.ts`:** `clientStatus` and labels include `superseded` → "Cancelled" chip on the multi-invite landing.
+3. **`supabase/schema.sql` + migrations `010` / `012`:** `invitations_supersede_requests` now also supersedes pending requests when the invitation is **unpublished** (`published` goes to false), not only on trash or client_email change. Still writes `change_superseded` notification.
+4. **B7 checklist:** marked "different email → none linked shows signed-in email" and "trashed/unpublished/deleted while pending" as done.
+5. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Needs the updated function run on the real Supabase project (re-run schema or the migration SQL).
+- Full suite not re-run here.
+- Remaining B7: conflict path polish, double-submit, multi-invite paging, dual-role, rejected pile-up beyond latest, data minimisation checks.
+
+**Checks to repeat**
+
+1. Apply the supersede function change on Supabase.
+2. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+3. Browser: pending request → admin unpublishes or trashes → client sees Cancelled banner / chip and notification.
+
+**Next steps**
+
+1. Owner: revoke the GitHub token; apply SQL on the project; hard-refresh.
+2. Next open B7 items: conflict path (D7) client messaging, multi-invite paging (M-5), or rejected pile-up.
+
+---
+
 ### Where things stand (13 Nov 2026, 70th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -3119,9 +3159,9 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 ## B7. Edge cases to handle explicitly
 
 - [x] Email normalisation: case, surrounding spaces; +tag kept exact (no stripping). Implemented in api.ts (trim + toLowerCase); matches recommendation. Closed 69th update.
-- [ ] Client signs up with a different email than the one linked (e.g. Gmail vs. work) → sees the "none linked" state with the signed-in email displayed so they can tell the admin.
+- [x] Client signs up with a different email than the one linked (e.g. Gmail vs. work) → sees the "none linked" state with the signed-in email displayed so they can tell the admin. Already coded; closed 71st update.
 - [x] Unverified email → show "Verify your email to see your invitations" + Resend button; no data returned (RLS enforces). Banner + resend coded 68th–69th updates.
-- [ ] Invitation trashed, unpublished or deleted while a request is pending → request marked `superseded`, client notified.
+- [x] Invitation trashed, unpublished or deleted while a request is pending → request marked `superseded`, client notified. SQL now covers unpublish too; client banner for superseded status. Closed 71st update.
 - [ ] Admin edits the invitation while a request is pending → conflict path (D7).
 - [ ] Double-click / two tabs submitting → unique index + idempotent RPC.
 - [ ] Same client email on many invitations; the list must paginate beyond the PostgREST 1,000-row cap (M-5).

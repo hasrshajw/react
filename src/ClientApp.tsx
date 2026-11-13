@@ -232,6 +232,8 @@ function ClientEditor() {
   const pending = inv?.request?.status === "pending";
   const rejectedOpen = inv?.request?.status === "rejected" && !inv.request.acknowledgedAt;
   const approvedOpen = inv?.request?.status === "approved" && !inv.request.acknowledgedAt;
+  /* B7: invitation was trashed / client email changed / unpublished while a request was open. */
+  const superseded = inv?.request?.status === "superseded";
 
   useEffect(() => {
     if (!inv) return;
@@ -401,6 +403,12 @@ function ClientEditor() {
               Withdraw
             </button>
           </div>
+        </div>
+      )}
+
+      {superseded && inv.request && (
+        <div style={{ ...banner, background: "#f3f4f6", border: "1px solid #d1d5db" }} role="status">
+          <b>Your pending changes were cancelled.</b> The invitation was updated or removed by the admin, so this request is no longer active. You can submit new changes if the invitation is still linked to you.
         </div>
       )}
 

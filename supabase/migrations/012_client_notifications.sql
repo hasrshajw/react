@@ -8,7 +8,10 @@
 create or replace function public.invitations_supersede_requests() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if new.client_email is distinct from old.client_email or (new.deleted_at is not null and old.deleted_at is null) then
+  -- B7: also supersede when the invitation is unpublished while a request is pending.
+  if new.client_email is distinct from old.client_email
+     or (new.deleted_at is not null and old.deleted_at is null)
+     or (new.published is false and old.published is distinct from false) then
     with s as (update public.change_requests set status = 'superseded' where invitation_id = new.id and status = 'pending' returning id, requested_by)
     insert into public.notifications (audience, recipient_user_id, type, invitation_id, request_id)
       select 'user', requested_by, 'change_superseded', new.id, id from s;
