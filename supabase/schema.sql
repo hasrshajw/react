@@ -618,6 +618,7 @@ create or replace function public.details_value(d jsonb, k text) returns jsonb l
 $$;
 revoke all on function public.details_value(jsonb, text) from public, anon, authenticated;
 
+-- B7 / M-5: hard cap 500 (under PostgREST's 1,000-row default). Only the caller's linked rows; no views/enquiries/other clients.
 create or replace function public.my_invitations() returns table (
   id text, groom_name text, bride_name text, event_date date, template_id text, published boolean, details jsonb,
   updated_at timestamptz, request_id uuid, request_status text, request_admin_note text,

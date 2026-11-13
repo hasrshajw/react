@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
+import { Loading, Sk } from "./components/Skeleton";
 import {
   CLIENT_STATUS_LABEL,
   clientStatus,
@@ -85,7 +86,21 @@ function Landing() {
   const { data, loading, error } = useAsync(fetchMyInvitations);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMsg, setResendMsg] = useState<string | null>(null);
-  if (loading) return <Frame><p>Loading…</p></Frame>;
+  if (loading) {
+    return (
+      <Frame>
+        <Loading label="Loading invitations" />
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }} aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <li key={i} style={{ padding: "14px 16px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#fff" }}>
+              <Sk h={16} w="40%" r={6} style={{ marginBottom: 8 }} />
+              <Sk h={12} w="24%" r={6} />
+            </li>
+          ))}
+        </ul>
+      </Frame>
+    );
+  }
   if (error || !data) {
     return (
       <Frame>
@@ -171,10 +186,11 @@ function Landing() {
             <li key={i.id}>
               <Link
                 to={`/my/${encodeURIComponent(i.id)}`}
+                className="client-touch"
                 style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
                   padding: "14px 16px", borderRadius: 12, border: "1px solid #e5e7eb",
-                  textDecoration: "none", color: "inherit", background: "#fff",
+                  textDecoration: "none", color: "inherit", background: "#fff", minHeight: 44,
                 }}
               >
                 <span>
@@ -195,6 +211,12 @@ function Landing() {
           );
         })}
       </ul>
+      {/* M-5 / B7: my_invitations is capped at 500 so we never hit the PostgREST 1,000-row default. */}
+      {data.length >= 500 && (
+        <p style={{ marginTop: 14, fontSize: 13, color: "#6b7280" }} role="status">
+          Showing the first 500 invitations linked to this email. Contact the admin if you need an older one.
+        </p>
+      )}
     </Frame>
   );
 }
@@ -374,7 +396,18 @@ function ClientEditor() {
     }
   };
 
-  if (loading && !list) return <Frame><p>Loading…</p></Frame>;
+  if (loading && !list) {
+    return (
+      <Frame>
+        <Loading label="Loading invitation" />
+        <div style={{ display: "grid", gap: 12 }} aria-hidden="true">
+          <Sk h={48} w="100%" r={12} />
+          <Sk h={120} w="100%" r={16} />
+          <Sk h={120} w="100%" r={16} />
+        </div>
+      </Frame>
+    );
+  }
   if (error || !list) {
     return <Frame><p role="alert">We couldn’t load your invitation. Reload the page to try again.</p></Frame>;
   }

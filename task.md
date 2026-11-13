@@ -1,5 +1,33 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 73rd update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 39 | rest | **73rd update: mobile skeleton, M-5 500-cap notice, data minimisation closed.** |
+
+### 13 Nov 2026 (73rd update) – Mobile skeleton, M-5 cap, data minimisation
+
+**What was done**
+
+1. **Mobile-first + skeleton (B6):** `ClientApp` landing and editor use `Sk` skeleton placeholders while loading; list rows keep 44px touch targets; responsive padding already in place.
+2. **M-5 multi-invite (B7):** `my_invitations` remains hard-capped at 500 (under PostgREST 1,000). Landing shows “Showing the first 500…” when the list is full. Comment added in `schema.sql`.
+3. **Data minimisation (B7):** closed — clients only use `my_invitations` and `client_template_html` (email-filtered RPCs); no direct table reads for invitations/enquiries/views/other clients.
+4. **B7 product edge cases are now all closed.** Remaining open items are mostly B8 security verification, B9 tests, and release gates.
+5. **`.env.local` was not touched.**
+
+**Next steps**
+
+1. Owner: revoke the GitHub token.
+2. Next: B8 checklist verification on a real project, or unit/e2e tests from B9.
+
+---
+
 ### Where things stand (13 Nov 2026, 72nd update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -3183,7 +3211,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [~] **Approved:** *Coded 13 Nov (55th update: banner + Got it).* toast / banner once ("Your changes are live"), then clears.
 - [~] **Submit button:** *Coded 13 Nov (55th update: confirm + submitChangeRequest only).* label "Submit for review"; disabled when there are no changes; confirm dialog explaining that changes go live only after approval; keep the unsaved-changes blocker and draft autosave, but scope the draft key per user and invitation (and clear on sign-out, M-1).
 - [~] Never call the admin `saveInvitation` path from `ClientApp`; *Coded 13 Nov (55th update).* the client editor submits through `submitChangeRequest` only.
-- [ ] Mobile-first layout (clients will mostly use phones); skeleton loading per the README rules.
+- [x] Mobile-first layout (clients will mostly use phones); skeleton loading per the README rules. ClientApp: 44px touch targets, responsive padding, Sk skeleton on landing + editor. Closed 73rd update.
 
 ## B7. Edge cases to handle explicitly
 
@@ -3193,10 +3221,10 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [x] Invitation trashed, unpublished or deleted while a request is pending → request marked `superseded`, client notified. SQL now covers unpublish too; client banner for superseded status. Closed 71st update.
 - [x] Admin edits the invitation while a request is pending → conflict path (D7). Admin review: ChangeConflictError + "approve anyway" (force). Client path covered by supersede when invitation changes. Closed 72nd update.
 - [x] Double-click / two tabs submitting → unique index + idempotent RPC. Partial unique index `change_requests_one_pending_idx` + explicit exists check in `submit_change_request` (23505). Closed 72nd update.
-- [ ] Same client email on many invitations; the list must paginate beyond the PostgREST 1,000-row cap (M-5).
+- [x] Same client email on many invitations; the list must paginate beyond the PostgREST 1,000-row cap (M-5). `my_invitations` hard-capped at 500; UI shows "first 500" notice when full. Closed 73rd update.
 - [x] A user is both admin and linked client → role `admin` wins; "view as client" deferred. RoleGate sends admin away from /my to dashboard; RLS/RPCs enforce. Closed 72nd update.
 - [x] Rejected request pile-up: keep history, show only the latest unacknowledged one in the banner. `my_invitations` returns latest request only (lateral order by created_at desc limit 1); banner uses that. Closed 72nd update.
-- [ ] Data minimisation: client queries never return other invitations, enquiries, templates' other data, `views`, or other clients' emails.
+- [x] Data minimisation: client queries never return other invitations, enquiries, templates' other data, `views`, or other clients' emails. Clients only call `my_invitations` + `client_template_html` RPCs (filtered by verified email). Closed 73rd update.
 
 ## B8. Security checklist (must pass before release)
 
