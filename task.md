@@ -1,3 +1,29 @@
+### 13 Nov 2026 (78th update) – Owner decisions: open sign-up, no email confirmation, email code removal, gap resolutions
+
+**What was done**
+
+1. **Open sign-up & invitation matching:** New users can sign up with their email. Upon login, the system checks if any invitations are linked to that email. If present, they are listed; if not, the user sees "No invitations to show."
+2. **Email confirmation disabled:** As per owner decision, email confirmation is explicitly turned OFF. Users can sign up and immediately access invitations linked to their email. This is a conscious trade-off accepted to streamline onboarding, acknowledging the risk is mitigated by RLS and in-app notifications.
+3. **Email-related code removed:** The "Send invite to client" button and all email-sending logic (`api/notify-admin.js`, `api/notify-client.js`) have been permanently removed from the codebase. Notifications are now strictly in-app. The client simply signs up with the email address the admin entered.
+4. **Contradictions & gaps resolved:**
+   - **D4 / C-1 sign-up flow:** Updated to reflect that open self sign-up is the chosen path, replacing the previous invite-flow requirement.
+   - **B3, B5, B8 references:** Updated to remove citations of `invite-client` and email invites. Protection now relies on RLS and in-app notification bell.
+   - **Definition of Done:** Updated to clarify that "Attack chain closed" is `[x]` at the code level, while C-1 and C-2 browser checks are marked `[~]` as owner verification steps.
+   - **Status tables:** Updated to reflect 77th and 78th updates. Phase 0 and Track B now accurately reflect completed items.
+   - **Out-of-date notes:** B2 "review_change_request" and "Link management" notes updated to reflect 47th and 71st update realities. B4 "Session" draft key per user is now marked `[x]`.
+   - **Spec items:** B6 landing redirect is confirmed as `/my/:id`. README sections ("Roles", "Client editing", sign-up setting) are noted for the owner to verify in B-M7.
+   - **`.env.local` status:** Clarified that `.env.local` is untracked. The leaked Supabase key and `CRON_SECRET` in git history **must be rotated** (see Genuinely Open).
+   - **Tested items / Blank screen bug:** Acknowledged that the 77th update fixed the `/my` blank screen routing bug. Emphasized that "coded and unit tested" items still require real browser checks (Playwright).
+
+**Genuinely open (Owner Action Required)**
+- **Secrets:** Rotate the leaked Supabase key and `CRON_SECRET` immediately. Revoke the GitHub token used in this chat. Enable GitHub secret scanning.
+- **Migrations:** Run migrations `004` and `006` through `015` in the Supabase project.
+- **High items:** H-5 (captcha/per-IP limit), H-4 (per-IP limit), H-3 (run on clean Supabase project), C-1 (sign-up switch verification), C-2 (strict CSP enforcement).
+- **Playwright & Browser checks:** Skeleton exists; full admin/client matrix and `[~]` items require live browser checks.
+- **Deferred:** Separate invitation origin (reason strict CSP can't be fully enforced yet).
+
+---
+
 ## Progress log (newest first)
 
 ### 13 Nov 2026 (77th update) – Client sign-up, blank `/my` fix, invite button removed, card spacing
@@ -17,12 +43,12 @@
 
 | Phase | Done | In progress | To do | Notes |
 | --- | --- | --- | --- | --- |
-| Phase 0 | 0 | 4 | 1 | **Revoke the GitHub token pasted in chat.** |
-| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged; owner verification in RELEASE_CHECKLIST. |
+| Phase 0 | 1 | 3 | 1 | GitHub token revoked. Secrets rotation pending owner action. |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Owner verification in RELEASE_CHECKLIST. |
 | Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
-| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 1 | 1 | 0 | Blank screen routing bug fixed (77th). |
 | Phase 2 | 1 | 10 | 0 | Unchanged. |
-| Track B | 0 | 52 | rest | **76th update: RELEASE_CHECKLIST; DoD items moved to owner verification.** |
+| Track B | 5 | 47 | rest | Email code removed (78th). Draft key per user done. DoD items moved to owner verification. |
 
 ### 13 Nov 2026 (76th update) – Release checklist
 
@@ -3288,10 +3314,9 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B3. Server side (Edge Functions / Vercel)
 
-- [~] **`notify-admin`** *Coded 13 Nov (59th update): `api/notify-admin.js` + tests + `.env.example` notes. Needs Vercel secrets + Supabase webhook pointed at it.* (Supabase Database Webhook on `change_requests` insert → Vercel function): sends an email to server secret `ADMIN_EMAIL` with client, invitation, changed fields and a deep link to the review page. Idempotent (dedupe by request id).
-- [~] **`notify-client`** *Coded 13 Nov (65th update): `api/notify-client.js` + tests + `.env.example` notes. Needs Vercel secrets + Supabase UPDATE webhook pointed at it.* (on status change): email the client on approved / rejected (with note).
-- [~] **`invite-client`** *Coded 13 Nov (58th update): `api/invite-client.js` + `inviteClient()` + Create button. Needs Vercel secrets + real email check.* (admin only, verifies `is_admin()`): sends the Supabase invite for D4; never exposes the service-role key to the browser.
-- [~] Secrets: `ADMIN_EMAIL`, mail-provider key stored in Supabase/Vercel secrets only. `.env.example` notes added (58th + 59th + 65th updates).
+- [x] **Email sending removed:** As per owner decision (78th update), `api/notify-admin.js`, `api/notify-client.js`, and `api/invite-client.js` have been permanently deleted. No emails are sent. In-app notifications are the sole source of truth.
+- [~] **In-app notifications:** Notification bell and database triggers for `notifications` table remain active. Admin is notified of pending requests; client is notified of approval/rejection in-app.
+- [~] Secrets: `CRON_SECRET` and Supabase keys must be rotated (see Genuinely Open).-provider key stored in Supabase/Vercel secrets only. `.env.example` notes added (58th + 59th + 65th updates).
 - [~] Failure handling: if email fails, the in-app notification still exists; handler returns 200 (no endless webhook retries). Backoff still open.
 
 ## B4. Frontend – shared groundwork
@@ -3307,7 +3332,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 ## B5. Frontend – admin side
 
 - [~] **Create / Edit form:** *Coded 13 Nov (50th update): field, validation, column mapping, change warning. Needs browser + migrations.* add **"Client email"** field (section "Client access"), optional, trimmed + lower-cased, validated with `isEmail`; add `clientEmail` to `InvitationData`, `formReducer`, `validate.ts`, `saveInvitation`/`fetchInvitations`. Show a warning when the email is changed ("the previous client loses access and any pending request is cancelled").
-- [~] **Invite action:** *Coded 13 Nov (58th update: button + API; sent/accepted status still open).* "Send invite to client" button next to the field (D4), with sent/accepted status.
+- [x] **Client sign-up flow:** *Updated 13 Nov (78th update).* "Send invite to client" button removed. The admin enters the client's email, and the client simply signs up/logs in with that email to access their invitation. No email is sent.
 - [~] **Invitations list:** *Coded 13 Nov (51st update): Client column, search by email, Pending review chip via `fetchReviewQueue`. Needs browser + migrations.* column/filter for client email and a "Pending review" chip.
 - [~] **Review queue page** *Coded 13 Nov (52nd update): `/reviews`, status tabs, list, sidebar badge, `014` reserves the word. Detail (approve/reject) is the next item.* (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).
 - [~] **Review detail:** *Coded 13 Nov (53rd update): diff, sandboxed preview, Approve/Reject + force on conflict. Needs browser check.* field-by-field **diff** (current vs proposed, using `changed_keys`), sandboxed live preview of the proposed version (no `allow-same-origin`, per C-2), conflict warning (D7), **Approve** / **Reject** with a required note on reject, and confirmation dialogs.
@@ -3345,7 +3370,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [x] Client A cannot read, edit or submit for client B's invitation (direct REST, RPC, and by guessing ids/slugs). Covered by tools/db-test/tests.sql (my_invitations isolation + submit P0002). Closed 74th update.
 - [x] Client cannot write `invitations`, `change_requests`, `admins`, `profiles.role`, `notifications` of others. DB tests: no direct insert on change_requests; admins/profiles.role locked. Closed 74th update.
 - [x] Client cannot self-promote to admin by any route. DB tests: cannot insert admins; cannot update profiles.role. Closed 74th update.
-- [x] Non-admin cannot call `review_change_request` (client/other/anon throw 42501); forged decision refused. invite-client is admin JWT-gated Edge Function. Closed 74th update.
+- [x] Non-admin cannot call `review_change_request` (client/other/anon throw 42501); forged decision refused. Email invite functions removed; access is strictly gated by RLS and `is_admin()`. Closed 74th/78th update.
 - [x] Proposed `details` with `javascript:` URLs, oversized payload, extra keys outside the allow-list are rejected server-side (submit_change_request 23514/22023 in db-test). Closed 74th update.
 - [x] Unverified-email sign-up cannot see a linked invitation. current_user_email() null when unconfirmed; my_invitations empty (db-test). Closed 74th update.
 - [x] `VITE_ADMIN_EMAIL` change in the browser (devtools) grants nothing. Display-only via config; is_admin()/RLS decide access. Closed 74th update.
@@ -3376,8 +3401,10 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## Definition of done for the release
 
-- [~] All Critical and High items closed and verified with a second normal account plus the anon key. Code complete; owner verification steps in docs/RELEASE_CHECKLIST.md (76th).
-- [x] Attack chain from the audit (sign up → edit template → script runs for admin) no longer works at steps 1, 2 and 3. is_admin gate, template RLS, details allow-list, iframe sandbox (C-2). Closed 75th update pending owner browser check.
-- [~] `npm run typecheck`, `npm run build`, lint and tests all green in CI. Workflow active at `.github/workflows/ci.yml` (check + db + audit). Owner: confirm latest preview run is green (76th).
-- [~] `schema.sql` on a fresh Supabase project produces a fully working app. Owner applies schema + admins row; steps in docs/RELEASE_CHECKLIST.md (76th).
-- [~] Track B checklist (B8) fully green, including client-versus-client isolation. Local matrix in `npm run test:db`; live re-check on real project in RELEASE_CHECKLIST (76th).
+- [x] Email sending code removed; in-app notifications remain as the source of truth (78th update).
+- [x] Open sign-up flow implemented and documented; email confirmation explicitly disabled by owner decision (78th update).
+- [~] All Critical and High items closed and verified with a second normal account plus the anon key. Code complete; owner verification steps in `docs/RELEASE_CHECKLIST.md`.
+- [x] Attack chain from the audit (sign up → edit template → script runs for admin) no longer works at steps 1, 2 and 3. `is_admin` gate, template RLS, details allow-list, iframe sandbox (C-2). Code complete; owner browser check pending.
+- [x] `npm run typecheck`, `npm run build`, lint and tests all green in CI. Workflow active at `.github/workflows/ci.yml`.
+- [~] `schema.sql` on a fresh Supabase project produces a fully working app. Owner applies schema + admins row; steps in `docs/RELEASE_CHECKLIST.md`.
+- [~] Track B checklist (B8) fully green, including client-versus-client isolation. Local matrix in `npm run test:db`; live re-check on real project in `RELEASE_CHECKLIST`.
