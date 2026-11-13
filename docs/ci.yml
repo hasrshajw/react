@@ -1,6 +1,6 @@
 # CI (task M-14). TO TURN ON: copy this file to .github/workflows/ci.yml (GitHub web UI: Add file > Create new file, or a push
 # with a token that has the `workflow` permission). It sits in docs/ because the token used so far could not write .github/workflows.
-# CI (task M-14): typecheck, lint, unit tests and the production build on every push and pull request to preview and main.
+# CI (task M-14): typecheck, lint, unit tests, the production build and the database tests (job `db`) on every push and pull request to preview and main.
 # The lint tools live in tools/lint with their own lock file (see README, "Scripts"), so they are installed separately.
 name: CI
 
@@ -36,6 +36,19 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  db:
+    # Database rules (task M-14): tools/db-test starts a throwaway PostgreSQL, loads supabase/schema.sql and runs 127+ SQL checks.
+    # Needs no secrets and no Supabase project. See README, "Scripts".
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run test:db
 
   audit:
     # Known problems in production dependencies. Reported, but it does not fail the run: a new advisory in a package we do not
