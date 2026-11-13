@@ -3,7 +3,7 @@ import { createBrowserRouter, RouterProvider, useLocation } from "react-router-d
 import Landing from "./pages/Landing";
 import PublicInvitation from "./pages/PublicInvitation";
 import { isReserved } from "./lib/reserved";
-import { loadAdmin, loadLogin } from "./lib/preload";
+import { loadAdmin, loadClient, loadLogin } from "./lib/preload";
 
 /* CODE SPLITTING
    Only the landing page and public invitations are in the main bundle (they are what strangers and wedding
@@ -11,6 +11,7 @@ import { loadAdmin, loadLogin } from "./lib/preload";
    browser downloads on demand, the first time someone goes to /login or an admin page. */
 const Login = lazy(loadLogin);
 const AdminApp = lazy(loadAdmin);
+const ClientApp = lazy(loadClient);
 
 function ChunkFallback() {
   return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", color: "#6d7081", fontFamily: "system-ui, sans-serif" }}>Loading…</div>;
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
   { path: "/", element: <Landing /> }, /* public landing page; the dashboard is at /dashboard */
   { path: "/login", element: <Lazy><Login /></Lazy> },
   { path: "/i/:slug", element: <PublicInvitation /> }, /* old links that were already shared: no auth, no admin code */
+  { path: "/my/*", element: <Lazy><ClientApp /></Lazy> }, /* client area (Track B): its own chunk, `my` is a reserved word */
   { path: "*", element: <Gate /> },
 ]);
 

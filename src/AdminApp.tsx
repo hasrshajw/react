@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell, Sparkles, AlertTriangle, ArrowRight, User, Users, CreditCard, ShieldCheck, Activity,
   Languages, BookOpen, LifeBuoy, LogOut, ExternalLink,
@@ -14,7 +14,8 @@ import Templates from "./pages/Templates";
 import { useEnquiryBadge } from "./features/dashboard/hooks/useEnquiryBadge";
 import schedyMark from "./assets/schedy-mark.svg";
 import { AccountProvider, useAccount } from "./hooks/useAccount";
-import { AuthProvider, useAuth } from "./hooks/useAuth";
+import { AuthProvider } from "./hooks/useAuth";
+import { RoleGate } from "./components/RoleGate";
 import { Loading, SkText } from "./components/Skeleton";
 import type { Plan } from "./lib/api";
 import { DOCS_URL, SUPPORT_URL, openHelpLink } from "./lib/helpLinks";
@@ -514,13 +515,14 @@ function Shell() {
 /* Everything except /login needs a session. The account is loaded inside the guard, so it is fetched
    fresh after each sign-in and dropped on logout. */
 function Protected() {
-  const { session } = useAuth();
-  const loc = useLocation();
-  if (!session) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
+  /* RoleGate sends nobody to /login, and anybody who is not an administrator to the client area (/my). It is a screen choice only:
+     row level security is the real lock. */
   return (
-    <AccountProvider>
-      <Shell />
-    </AccountProvider>
+    <RoleGate allow="admin">
+      <AccountProvider>
+        <Shell />
+      </AccountProvider>
+    </RoleGate>
   );
 }
 

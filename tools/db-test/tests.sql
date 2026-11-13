@@ -250,6 +250,7 @@ select t.throws('a reserved link name is refused', $$insert into public.invitati
 select t.throws('a reserved link name is refused whatever its case', $$insert into public.invitations (id, slug) values ('r2', 'Admin')$$, '23514');
 select t.throws('a link name that is too short is refused', $$insert into public.invitations (id, slug) values ('r3', 'ab')$$, '23514');
 select t.throws('a link name with a dot is refused', $$insert into public.invitations (id, slug) values ('r4', 'my.link')$$, '23514');
+select t.throws('my is reserved for the client area (013)', $$insert into public.invitations (id, slug) values ('my', 'my')$$, '23514');
 select t.throws('a link name already used (ignoring case) is refused', $$insert into public.invitations (id, slug) values ('r5', 'ALICE-WED')$$, '23505');
 select t.throws('a javascript: map link is refused', $$insert into public.invitations (id, slug, details) values ('d1', 'details-one', '{"venueMaps":"javascript:alert(1)"}')$$, '23514');
 -- \t inside the JSON text is decoded by PostgreSQL into a real tab character, which the validator must strip before reading the scheme

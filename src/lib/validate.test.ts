@@ -25,7 +25,7 @@ describe("okSlug / isReserved", () => {
     expect(isReserved("ravi-weds-priya")).toBe(false);
   });
   it("keeps the routes the app really has reserved", () => {
-    for (const w of ["login", "invitations", "templates", "create", "dashboard", "api", "assets", "admin"]) expect(RESERVED).toContain(w);
+    for (const w of ["login", "invitations", "templates", "create", "dashboard", "api", "assets", "admin", "my"]) expect(RESERVED).toContain(w);
   });
 });
 

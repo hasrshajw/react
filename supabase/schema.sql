@@ -349,7 +349,7 @@ begin
       check (lower(slug) <> all (array[
         'login','invitations','templates','create','inventory','billing','customize',
         'dashboard','api','assets','i','admin','privacy','terms','pricing','about','contact',
-        'favicon','robots','sitemap']));
+        'favicon','robots','sitemap','my']));
   end if;
 end $$;
 

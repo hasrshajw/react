@@ -24,7 +24,7 @@ import { resolveSiteUrl } from "./_siteUrl.js";
 const RESERVED = [
   "login", "invitations", "templates", "create", "inventory", "billing", "customize",
   "dashboard", "api", "assets", "i", "admin", "privacy", "terms", "pricing", "about", "contact",
-  "favicon", "robots", "sitemap",
+  "favicon", "robots", "sitemap", "my",
 ];
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
