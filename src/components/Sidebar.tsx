@@ -8,6 +8,8 @@ import type { IconComponent } from "./Icons";
 import { SkText } from "./Skeleton";
 import { useAccount } from "../hooks/useAccount";
 import { useLatest } from "../hooks/useLatest";
+import { NotificationPanel } from "../features/notifications/NotificationPanel";
+import { useAdminNotifications } from "../features/notifications/useAdminNotifications";
 
 import logo from "../assets/logo.png";
 import logoSmall from "../assets/logo-small.png";
@@ -121,10 +123,14 @@ export default function Sidebar({
   const { loading: accountLoading, user } = useAccount();
   const initial = (user?.name?.trim()[0] ?? "A").toUpperCase();
   const customizeActive = pathname.startsWith("/customize");
+  const notifs = useAdminNotifications();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
 
   const [siteOpen, setSiteOpen] = useState(customizeActive);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const showBellDot = notifs.unread > 0 || enquiryCount > 0;
 
   const overlayMode = panelOpen;
 
@@ -300,13 +306,38 @@ export default function Sidebar({
               </NavLink>
             )}
 
-            <button
-              type="button" className="navbar-icon-button"
-              aria-label={enquiryCount > 0 ? `Notifications, ${enquiryCount} new enquir${enquiryCount === 1 ? "y" : "ies"}` : "Notifications"}
-            >
-              <Bell size={19} strokeWidth={1.8} />
-              {enquiryCount > 0 && <i className="notification-dot" />}
-            </button>
+            <div className="navbar-notif">
+              <button
+                ref={bellRef}
+                type="button"
+                className="navbar-icon-button"
+                aria-label={
+                  notifs.unread > 0
+                    ? `Notifications, ${notifs.unread} unread`
+                    : enquiryCount > 0
+                      ? `Notifications, ${enquiryCount} new enquir${enquiryCount === 1 ? "y" : "ies"}`
+                      : "Notifications"
+                }
+                aria-expanded={notifOpen}
+                aria-haspopup="dialog"
+                onClick={() => setNotifOpen((o) => !o)}
+              >
+                <Bell size={19} strokeWidth={1.8} />
+                {showBellDot && <i className="notification-dot" />}
+              </button>
+              <NotificationPanel
+                open={notifOpen}
+                onClose={() => setNotifOpen(false)}
+                items={notifs.items}
+                loading={notifs.loading}
+                error={notifs.error}
+                unread={notifs.unread}
+                onMarkRead={notifs.markRead}
+                onMarkAllRead={notifs.markAllRead}
+                onRetry={() => notifs.load()}
+                anchorRef={bellRef}
+              />
+            </div>
 
             <i className="navbar-divider" aria-hidden="true" />
 
@@ -647,6 +678,42 @@ export default function Sidebar({
           position: absolute; top: 9px; right: 10px;
           width: 7px; height: 7px; border-radius: 50%;
           background: #fb4778; border: 1.5px solid var(--white);
+        }
+
+        .navbar-notif { position: relative; }
+        .notif-panel {
+          position: absolute; top: calc(100% + 8px); right: 0; z-index: 80;
+          width: min(360px, calc(100vw - 24px));
+          max-height: min(420px, 70vh);
+          display: flex; flex-direction: column;
+          background: var(--white, #fff); border: 1px solid var(--gray-border, #e5e7eb);
+          border-radius: 14px; box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+          overflow: hidden;
+        }
+        .notif-panel-head {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--gray-border, #e5e7eb);
+          font-size: 14px;
+        }
+        .notif-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+        .notif-item {
+          width: 100%; display: flex; flex-direction: column; gap: 2px;
+          padding: 12px 14px; border: 0; border-bottom: 1px solid var(--gray-border, #e5e7eb);
+          background: transparent; text-align: left; cursor: pointer; font: inherit; color: inherit;
+        }
+        .notif-item:hover { background: var(--hover-bg, #f5f6fa); }
+        .notif-item.unread { background: var(--primary-lightest, #f0f7ff); }
+        .notif-item-title {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 13px; font-weight: 700; color: var(--dark, #111);
+        }
+        .notif-dot {
+          width: 7px; height: 7px; border-radius: 50%; background: #fb4778; flex-shrink: 0;
+        }
+        .notif-item-body { font-size: 12.5px; color: var(--gray-dark, #4b5563); line-height: 1.35; }
+        .notif-item-time { font-size: 11.5px; color: var(--gray, #9ca3af); }
+        .notif-empty {
+          margin: 0; padding: 28px 16px; text-align: center; color: var(--gray, #9ca3af); font-size: 13px;
         }
 
         .nav-item .nav-count {

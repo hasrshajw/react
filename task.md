@@ -1,5 +1,53 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 54th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 19 | rest | **54th update: B5 Notification bell** (list, unread, Realtime, deep links to `/reviews`). Invite button still needs B3. |
+
+### 13 Nov 2026 (54th update) – B5: Notification bell
+
+**What was done**
+
+1. **`useAdminNotifications`**: loads via `fetchNotifications`, unread count, mark one / mark all read, refreshes on focus/visibility and on Supabase Realtime `postgres_changes` for `notifications`.
+2. **`NotificationPanel`**: dropdown from the navbar bell; title/body helpers; click marks read and navigates (`change_submitted` → `/reviews`, else invitation edit when id present).
+3. **Sidebar bell**: opens the panel; red dot when there are unread notifications **or** new enquiries (M-6 preserved).
+4. Unit tests for title / href / body helpers. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Realtime needs the `notifications` table in the `supabase_realtime` publication (migration `012` already adds it when possible).
+- Full suite not re-run here.
+
+**How this affects other tasks**
+
+- **B5 remaining:** "Send invite to client" (needs B3 `invite-client`).
+- **B6:** client-side notifications for approved/rejected can reuse the same API later.
+
+**Behaviour changes to check**
+
+- Bell opens a list; unread items show a dot; click goes to Review queue and marks read.
+- New client submit (with migrations applied) should appear without a full page reload if Realtime is enabled.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Browser: bell with seed notifications or a real pending submit.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run checks.
+2. Next open B5 item is **Invite action** only after B3 Edge Function exists; otherwise start **B6 client editor**, or Phase items still `[~]`.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 53rd update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2428,7 +2476,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 - [~] **Invitations list:** *Coded 13 Nov (51st update): Client column, search by email, Pending review chip via `fetchReviewQueue`. Needs browser + migrations.* column/filter for client email and a "Pending review" chip.
 - [~] **Review queue page** *Coded 13 Nov (52nd update): `/reviews`, status tabs, list, sidebar badge, `014` reserves the word. Detail (approve/reject) is the next item.* (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).
 - [~] **Review detail:** *Coded 13 Nov (53rd update): diff, sandboxed preview, Approve/Reject + force on conflict. Needs browser check.* field-by-field **diff** (current vs proposed, using `changed_keys`), sandboxed live preview of the proposed version (no `allow-same-origin`, per C-2), conflict warning (D7), **Approve** / **Reject** with a required note on reject, and confirmation dialogs.
-- [ ] **Notification bell:** unread count via Realtime, list with deep links.
+- [~] **Notification bell:** *Coded 13 Nov (54th update): panel, unread, Realtime refresh, deep links to `/reviews`. Needs browser check.* unread count via Realtime, list with deep links.
 
 ## B6. Frontend – client side
 
