@@ -85,7 +85,10 @@ export async function syncSupabaseSession(): Promise<Session | null> {
   if (existing && existing.email === u.email) return existing;
   const meta = (u.user_metadata ?? {}) as Record<string, string | undefined>;
   const email = u.email ?? "";
-  return startSession({ provider: u.app_metadata?.provider === "google" ? "google" : "email", email, name: meta.full_name || meta.name || nameFromEmail(email) });
+  const provider = u.app_metadata?.provider === "google" ? "google" : "email";
+  /* B7 / D3: Google accounts are treated as verified; email/password only when email_confirmed_at is set. */
+  const emailVerified = provider === "google" || !!u.email_confirmed_at;
+  return startSession({ provider, email, name: meta.full_name || meta.name || nameFromEmail(email), emailVerified });
 }
 
 /* M-7: where to go after the Google round trip. The login page's own navigation state is lost when the browser
@@ -130,7 +133,9 @@ export async function signInWithEmail(email: string, password: string): Promise<
   if (error) throw new AuthError(error.message);
   const meta = (data.user.user_metadata ?? {}) as Record<string, string | undefined>;
   const clean = (data.user.email ?? email).trim().toLowerCase();
-  return startSession({ provider: "email", email: clean, name: meta.full_name || nameFromEmail(clean) });
+  /* B7 / D3: only treat the address as verified when Supabase has confirmed it. */
+  const emailVerified = !!data.user.email_confirmed_at;
+  return startSession({ provider: "email", email: clean, name: meta.full_name || nameFromEmail(clean), emailVerified });
 }
 
 /* M-7: "Forgot password". Supabase emails a link that returns to /login with `type=recovery` in the address; the login

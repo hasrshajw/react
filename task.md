@@ -1,5 +1,50 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 68th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 29 | rest | **68th update: B7 unverified-email banner + Session.emailVerified.** |
+
+### 13 Nov 2026 (68th update) – B7 unverified-email banner + Session.emailVerified
+
+**What was done**
+
+1. **`src/lib/session.ts`:** optional `emailVerified` on `Session` (B7 / D3). Google treated as verified; email/password only when `email_confirmed_at` is set.
+2. **`src/lib/auth.ts`:** `signInWithEmail` and `syncSupabaseSession` set `emailVerified` from the Supabase user (`email_confirmed_at` or Google provider).
+3. **`src/ClientApp.tsx`:** empty client landing shows a yellow status banner "Verify your email to see your invitations" when `session.emailVerified === false` (instead of the generic "none linked" copy). RLS already returns no rows for unverified emails.
+4. **`src/ClientApp.test.tsx`:** mock session includes `emailVerified: true` so existing landing tests stay green.
+5. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Full suite / typecheck not re-run in this environment.
+- Live flow with an unconfirmed email account still needs a browser check (sign up → land on /my → banner → confirm link → reload → invitations appear).
+- Resend-confirmation button not added yet (optional polish).
+
+**How this affects other tasks**
+
+- **B7:** unverified-email banner coded; email normalisation already recorded; remaining edge cases (different email, pile-up of rejects, paging) still open.
+- **B6 / B5:** unchanged this update.
+
+**Checks to repeat**
+
+1. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+2. Browser: sign up with email/password without confirming → /my shows verify banner; after confirming and reload, normal landing.
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; run checks.
+2. Next: Phase browser `[~]` closes, or remaining B7 edge cases, or optional resend-verification control.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 67th update)
 
 | Phase | Done | In progress | To do | Notes |

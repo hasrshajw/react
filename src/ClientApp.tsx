@@ -91,19 +91,36 @@ function Landing() {
     );
   }
   if (data.length === 0) {
+    /* B7: unverified email — RLS returns nothing; show an explicit verify banner instead of the generic "none linked". */
+    const unverified = session?.emailVerified === false;
     return (
       <Frame>
-        <p>No invitations are linked to this account.</p>
-        {session?.email && (
-          <p style={{ color: "#6b7280", fontSize: 14 }}>
-            Signed in as <b>{session.email}</b>. Use the email your invitation was set up with
-            {ADMIN_EMAIL ? <>, or <a href={`mailto:${ADMIN_EMAIL}`}>contact the admin</a></> : null}.
-          </p>
-        )}
-        {!session?.email && ADMIN_EMAIL && (
-          <p style={{ color: "#6b7280", fontSize: 14 }}>
-            <a href={`mailto:${ADMIN_EMAIL}`}>Contact the admin</a> if you expected to see an invitation here.
-          </p>
+        {unverified ? (
+          <div style={{ ...banner, background: "#fffbeb", border: "1px solid #fcd34d" }} role="status">
+            <p style={{ margin: 0 }}>
+              <b>Verify your email to see your invitations.</b> Check your inbox for the confirmation link from Schedy, then reload this page.
+            </p>
+            {session?.email && (
+              <p style={{ margin: "8px 0 0", color: "#6b7280", fontSize: 13 }}>
+                Signed in as <b>{session.email}</b>.
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <p>No invitations are linked to this account.</p>
+            {session?.email && (
+              <p style={{ color: "#6b7280", fontSize: 14 }}>
+                Signed in as <b>{session.email}</b>. Use the email your invitation was set up with
+                {ADMIN_EMAIL ? <>, or <a href={`mailto:${ADMIN_EMAIL}`}>contact the admin</a></> : null}.
+              </p>
+            )}
+            {!session?.email && ADMIN_EMAIL && (
+              <p style={{ color: "#6b7280", fontSize: 14 }}>
+                <a href={`mailto:${ADMIN_EMAIL}`}>Contact the admin</a> if you expected to see an invitation here.
+              </p>
+            )}
+          </>
         )}
       </Frame>
     );

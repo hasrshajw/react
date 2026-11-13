@@ -7,6 +7,9 @@ export interface Session {
   email: string;
   name: string;
   at: number;
+  /** False when the person signed in with email/password and has not confirmed yet. Google is treated as verified.
+   *  RLS already hides invitations for unverified emails (D3); the client UI uses this for the B7 banner. */
+  emailVerified?: boolean;
 }
 
 export const SESSION_KEY = "schedy_session";

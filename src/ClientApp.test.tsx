@@ -9,9 +9,9 @@ import { act, flush } from "./test/renderHook";
 vi.mock("./hooks/useAuth", () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useAuth: () => ({
-    session: { email: "client@x.com", name: "Client", accessToken: "t" },
-    signInGoogle: async () => ({ email: "client@x.com", name: "Client", accessToken: "t" }),
-    signInEmail: async () => ({ email: "client@x.com", name: "Client", accessToken: "t" }),
+    session: { email: "client@x.com", name: "Client", accessToken: "t", emailVerified: true },
+    signInGoogle: async () => ({ email: "client@x.com", name: "Client", accessToken: "t", emailVerified: true }),
+    signInEmail: async () => ({ email: "client@x.com", name: "Client", accessToken: "t", emailVerified: true }),
     logout: async () => {},
   }),
 }));
