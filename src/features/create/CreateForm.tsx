@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { ApiError, inviteClient } from "../../lib/api";
 import { CalendarPlus, Heart, LayoutTemplate, Mail, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
 import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
 import { newEvent } from "./constants";
@@ -54,6 +55,22 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
   const normalizedCurrent = data.clientEmail.trim().toLowerCase();
   const normalizedOriginal = originalClientEmail.trim().toLowerCase();
   const clientEmailChanged = normalizedOriginal !== "" && normalizedCurrent !== normalizedOriginal;
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const sendInvite = async () => {
+    const email = data.clientEmail.trim();
+    if (!email || inviteBusy) return;
+    setInviteBusy(true);
+    try {
+      const r = await inviteClient(email, invitationId);
+      notify(r.alreadyRegistered
+        ? "That address already has an account — they can sign in at /my."
+        : "Invite sent. They will get an email to join and open /my.");
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Couldn’t send the invite", "error");
+    } finally {
+      setInviteBusy(false);
+    }
+  };
   return (
     <form id="create-form" className="create-builder-form" onSubmit={onSubmit} noValidate>
       <fieldset disabled={readOnly} style={readOnly ? { border: 0, margin: 0, padding: 0, minInlineSize: 0 } : undefined}>
@@ -151,8 +168,19 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           value={data.clientEmail}
           onChange={(v) => set("clientEmail", v)}
         />
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+          <button
+            type="button"
+            className="act-btn"
+            disabled={client.loading || inviteBusy || !data.clientEmail.trim() || !!vis("clientEmail")}
+            onClick={() => void sendInvite()}
+          >
+            {inviteBusy ? "Sending…" : "Send invite to client"}
+          </button>
+        </div>
         <div className="hint">
           Optional. The person with this verified email can request edits to this invitation from the client portal.
+          Save the invitation with this email first, then send the invite so they can open /my.
         </div>
         {clientEmailChanged && (
           <div className="hint" role="status" style={{ color: "var(--warn, #b45309)" }}>

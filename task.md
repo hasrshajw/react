@@ -1,5 +1,48 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 58th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 23 | rest | **58th update: B3 `invite-client` + B5 Send invite button.** notify-admin/notify-client emails still open. |
+
+### 13 Nov 2026 (58th update) – B3 invite-client + B5 Send invite button
+
+**What was done**
+
+1. **`api/invite-client.js`:** POST only; requires admin JWT → `is_admin()`; uses `SUPABASE_SERVICE_ROLE_KEY` only on the server for Auth `/invite`; never returns the service key. Handles already-registered as soft success.
+2. **`inviteClient()`** in `src/lib/api.ts` (browser sends user access token).
+3. **Create form** Client Access: **Send invite to client** next to the email field.
+4. Unit tests for the handler; `.env.example` notes. **`.env.local` was not touched.**
+
+**What this does not prove**
+
+- Needs `SUPABASE_SERVICE_ROLE_KEY` and `SITE_URL` on Vercel; Supabase Auth email templates must be enabled.
+- Full suite not re-run here.
+
+**How this affects other tasks**
+
+- **B3 remaining:** `notify-admin`, `notify-client` (mail on change_requests).
+- **B5 Invite** UI is coded; status sent/accepted still open if Auth does not surface it easily.
+
+**Checks to repeat**
+
+1. Deploy `preview` with service role secret; as admin, set client email, save, click Send invite.
+2. `npm ci && npm run lint && npm test && npm run typecheck && npm run build`
+
+**Next steps, in order**
+
+1. Owner: revoke the GitHub token pasted for this push; set Vercel secrets; run checks.
+2. Next: `notify-admin` / `notify-client` webhooks, or Phase browser `[~]` closes.
+3. **Testing env file stays:** `.env.local` was not touched.
+
+---
+
 ### Where things stand (13 Nov 2026, 57th update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -2589,7 +2632,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 - [ ] **`notify-admin`** (Supabase Database Webhook on `change_requests` insert → Edge Function): sends an email to server secret `ADMIN_EMAIL` with client, invitation, changed fields and a deep link to the review page. Idempotent (dedupe by request id).
 - [ ] **`notify-client`** (on status change): email the client on approved / rejected (with note).
-- [ ] **`invite-client`** (admin only, verifies `is_admin()`): sends the Supabase invite for D4; never exposes the service-role key to the browser.
+- [~] **`invite-client`** *Coded 13 Nov (58th update): `api/invite-client.js` + `inviteClient()` + Create button. Needs Vercel secrets + real email check.* (admin only, verifies `is_admin()`): sends the Supabase invite for D4; never exposes the service-role key to the browser.
 - [ ] Secrets: `ADMIN_EMAIL`, mail-provider key stored in Supabase/Vercel secrets only. Add a `.env.example` note.
 - [ ] Failure handling: if email fails, the in-app notification still exists; log and retry with backoff.
 
@@ -2606,7 +2649,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 ## B5. Frontend – admin side
 
 - [~] **Create / Edit form:** *Coded 13 Nov (50th update): field, validation, column mapping, change warning. Needs browser + migrations.* add **"Client email"** field (section "Client access"), optional, trimmed + lower-cased, validated with `isEmail`; add `clientEmail` to `InvitationData`, `formReducer`, `validate.ts`, `saveInvitation`/`fetchInvitations`. Show a warning when the email is changed ("the previous client loses access and any pending request is cancelled").
-- [ ] **Invite action:** "Send invite to client" button next to the field (D4), with sent/accepted status.
+- [~] **Invite action:** *Coded 13 Nov (58th update: button + API; sent/accepted status still open).* "Send invite to client" button next to the field (D4), with sent/accepted status.
 - [~] **Invitations list:** *Coded 13 Nov (51st update): Client column, search by email, Pending review chip via `fetchReviewQueue`. Needs browser + migrations.* column/filter for client email and a "Pending review" chip.
 - [~] **Review queue page** *Coded 13 Nov (52nd update): `/reviews`, status tabs, list, sidebar badge, `014` reserves the word. Detail (approve/reject) is the next item.* (`/reviews`, add to `RESERVED`): list by status with pending count badge in the sidebar (reuse the unused `onEnquiryCountChange` pattern from M-6, via a shared context).
 - [~] **Review detail:** *Coded 13 Nov (53rd update): diff, sandboxed preview, Approve/Reject + force on conflict. Needs browser check.* field-by-field **diff** (current vs proposed, using `changed_keys`), sandboxed live preview of the proposed version (no `allow-same-origin`, per C-2), conflict warning (D7), **Approve** / **Reject** with a required note on reject, and confirmation dialogs.
