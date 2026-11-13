@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, Sk } from "./components/Skeleton";
-import { Mails, Calendar03Icon, Clock01Icon, AlertCircleIcon, CheckCircle02Icon } from "./components/Icons";
+import { Mails, CalendarDays, Clock, AlertCircle, CheckCircle2 } from "./components/Icons";
 import {
   CLIENT_STATUS_LABEL,
   clientStatus,
@@ -192,7 +192,7 @@ function Landing() {
                   <span style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>{label}</span>
                   {i.eventDate && (
                     <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#6b7280" }}>
-                      <Calendar03Icon size={16} color="#9ca3af" /> {i.eventDate}
+                      <CalendarDays size={16} color="#9ca3af" /> {i.eventDate}
                     </span>
                   )}
                 </div>
@@ -432,7 +432,7 @@ function ClientEditor() {
       {pending && inv.request && (
         <div style={{ ...banner, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{ marginTop: 2, flexShrink: 0 }}><Clock01Icon size={20} color="#2563eb" /></div>
+            <div style={{ marginTop: 2, flexShrink: 0 }}><Clock size={20} color="#2563eb" /></div>
             <div style={{ flex: 1 }}>
               <strong style={{ color: "#1e40af", display: "block", marginBottom: 4, fontSize: 15 }}>Awaiting Admin Review</strong>
               <span style={{ color: "#3b82f6", fontSize: 14, lineHeight: 1.5 }}>Your changes were submitted on {fmtDateTime(inv.request.createdAt)} and are waiting for approval.</span>
@@ -455,7 +455,7 @@ function ClientEditor() {
       {rejectedOpen && inv.request && (
         <div style={{ ...banner, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
           <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{ marginTop: 2, flexShrink: 0 }}><AlertCircleIcon size={20} color="#dc2626" /></div>
+            <div style={{ marginTop: 2, flexShrink: 0 }}><AlertCircle size={20} color="#dc2626" /></div>
             <div style={{ flex: 1 }}>
               <strong style={{ color: "#991b1b", display: "block", marginBottom: 4, fontSize: 15 }}>Changes Were Rejected</strong>
               {inv.request.adminNote && <p style={{ margin: "0 0 12px", color: "#7f1d1d", fontSize: 14, lineHeight: 1.5, background: "#fef2f2", padding: 10, borderRadius: 8, border: "1px dashed #fecaca" }}>{inv.request.adminNote}</p>}
@@ -475,7 +475,7 @@ function ClientEditor() {
       {approvedOpen && inv.request && (
         <div style={{ ...banner, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <CheckCircle02Icon size={20} color="#166534" />
+            <CheckCircle2 size={20} color="#166534" />
             <div style={{ flex: 1 }}>
               <strong style={{ color: "#166534", display: "block", fontSize: 15 }}>Changes Approved & Live</strong>
               <span style={{ color: "#15803d", fontSize: 14 }}>Your invitation has been updated and is now visible to your guests.</span>
