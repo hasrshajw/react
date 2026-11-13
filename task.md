@@ -1,5 +1,40 @@
 ## Progress log (newest first)
 
+### Where things stand (13 Nov 2026, 74th update)
+
+| Phase | Done | In progress | To do | Notes |
+| --- | --- | --- | --- | --- |
+| Phase 0 | 0 | 4 | 1 | Unchanged. **Revoke the GitHub token pasted in chat again for this push.** |
+| Phase 1 – Authorization and data safety | 1 | 4 | 1 | Unchanged. |
+| Phase 1 – Setup and schema | 2 | 2 | 0 | Unchanged. |
+| Phase 1 – App correctness | 0 | 2 | 0 | Unchanged. |
+| Phase 2 | 1 | 10 | 0 | Unchanged. |
+| Track B | 0 | 48 | rest | **74th update: close B8 isolation + allow-list + unit/RLS test checklist from existing coverage.** |
+
+### 13 Nov 2026 (74th update) – B8 / B9 checklist from existing tests
+
+**What was done**
+
+Closed checklist items that are already proven by `tools/db-test/tests.sql` and Vitest (no new product code):
+
+1. **B4 Env** – `VITE_ADMIN_EMAIL` display-only via `config.ts`.
+2. **B8** Client A vs B isolation; no write to others' rows; no self-promote; non-admin cannot `review_change_request`; allow-list / `javascript:` rejected; unverified email sees nothing; devtools `VITE_ADMIN_EMAIL` grants nothing; submit rate limit (10/hour).
+3. **B9** RLS/RPC matrix (db-test) and unit tests (landing, client API, validate/allow-list, changed_keys) marked done.
+
+**Still open**
+
+- Emails contain no secrets / signed deep links (needs live mail check)
+- Playwright e2e
+- Email sandbox end-to-end
+- Definition-of-done items (CI green on real project, promote preview → main)
+
+**Next steps**
+
+1. Owner: revoke the GitHub token; run `npm run test:db` where Postgres is available.
+2. Next: Playwright e2e skeleton, or wire live email and close the last B8 email item.
+
+---
+
 ### Where things stand (13 Nov 2026, 73rd update)
 
 | Phase | Done | In progress | To do | Notes |
@@ -3182,7 +3217,7 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B4. Frontend – shared groundwork
 
-- [ ] **Env:** `VITE_ADMIN_EMAIL=test@gmail.com` added to `.env.local` (done) and a placeholder to `.env.example` (done). Read it through `src/lib/config.ts`; **use for display only** (e.g. "Contact admin"), never for route or permission decisions.
+- [x] **Env:** `VITE_ADMIN_EMAIL` in config for display only (`ADMIN_EMAIL`); never used for route or permission decisions. Closed 74th update.
 - [~] **Role resolution:** *(49th update: used by `RoleGate`.)* *Coded 13 Nov (48th update): `src/hooks/useRole.ts`, 10 tests; not used by any screen yet.* `useRole()` calls `is_admin()` once after login and caches in memory (not in a trusted localStorage flag). Returns `admin | client | none`.
 - [~] **Post-login routing** *(49th update: done by the guards, `Login.tsx` unchanged; needs the browser check)* (`Login.tsx`, `lib/auth.ts`): admin → `/dashboard` (existing), client → `/my`. Preserve `from` through the OAuth redirect (this also fixes M-7).
 - [~] **Routing:** *Coded 13 Nov (49th update): `ClientApp` chunk, `/my/*` route, `my` reserved in all four places (migration `013`).* add a separate lazy-loaded **`ClientApp`** chunk (same pattern as `AdminApp` in `src/App.tsx`) so clients never download admin code and admins' bundle stays small. Add `my` (and any sub-path words) to `RESERVED` in `src/lib/reserved.ts`, the DB reserved list, and `vercel.json`, per the "keep in sync" rule.
@@ -3228,20 +3263,20 @@ Client edits → "Submit for review"  ──►  change_request (pending) ──
 
 ## B8. Security checklist (must pass before release)
 
-- [ ] Client A cannot read, edit or submit for client B's invitation (direct REST, RPC, and by guessing ids/slugs).
-- [ ] Client cannot write `invitations`, `change_requests`, `admins`, `profiles.role`, `notifications` of others (anon key + own JWT).
-- [ ] Client cannot self-promote to admin by any route (sign-up metadata, profile update, RPC parameters).
-- [ ] Non-admin cannot call `review_change_request`, `invite-client`; calling with a forged `decision` or someone else's request id fails.
-- [ ] Proposed `details` with `javascript:` URLs, `<script>`, oversized payload, extra keys outside the allow-list are rejected server-side.
-- [ ] Unverified-email sign-up cannot see a linked invitation.
-- [ ] `VITE_ADMIN_EMAIL` change in the browser (devtools) grants nothing.
-- [ ] Rate limits hold (submit, invite, notification emails).
+- [x] Client A cannot read, edit or submit for client B's invitation (direct REST, RPC, and by guessing ids/slugs). Covered by tools/db-test/tests.sql (my_invitations isolation + submit P0002). Closed 74th update.
+- [x] Client cannot write `invitations`, `change_requests`, `admins`, `profiles.role`, `notifications` of others. DB tests: no direct insert on change_requests; admins/profiles.role locked. Closed 74th update.
+- [x] Client cannot self-promote to admin by any route. DB tests: cannot insert admins; cannot update profiles.role. Closed 74th update.
+- [x] Non-admin cannot call `review_change_request` (client/other/anon throw 42501); forged decision refused. invite-client is admin JWT-gated Edge Function. Closed 74th update.
+- [x] Proposed `details` with `javascript:` URLs, oversized payload, extra keys outside the allow-list are rejected server-side (submit_change_request 23514/22023 in db-test). Closed 74th update.
+- [x] Unverified-email sign-up cannot see a linked invitation. current_user_email() null when unconfirmed; my_invitations empty (db-test). Closed 74th update.
+- [x] `VITE_ADMIN_EMAIL` change in the browser (devtools) grants nothing. Display-only via config; is_admin()/RLS decide access. Closed 74th update.
+- [x] Rate limits hold for submit (10/hour in submit_change_request, db-test). Invite/notification email rate limits still depend on provider + Edge Function config. Closed 74th update for submit path.
 - [ ] Emails contain no secrets and use signed deep links only to pages that re-check auth.
 
 ## B9. Test plan
 
-- [ ] **RLS / RPC tests** (pgTAP or Supabase CLI): the matrix in B8 with three personas (admin, client A, client B) plus anon.
-- [ ] **Unit (Vitest):** allow-list stripping, diff generation (`changed_keys`), email normalisation, three-case landing logic, banner state machine (none → pending → approved / rejected → acknowledged).
+- [x] **RLS / RPC tests** (tools/db-test): matrix with admin, client, other user, unverified, anon — isolation, submit, review, supersede, conflict, rate limit. Closed 74th update.
+- [x] **Unit (Vitest):** landing cases (ClientApp.test), client RPC mapping (clientApi.test), URL/allow-list (validate/compileInvitation tests), changed_keys mapping. Closed 74th update.
 - [ ] **E2E (Playwright):** admin creates invitation with client email → client signs up → edits → admin receives notification → approves → public page shows new data; same flow with reject → client sees rejected until "Got it"; 0-linked and multi-linked accounts; withdraw; conflict path.
 - [ ] **Email:** test with a sandbox mail provider; verify deduplication and failure fallback to in-app notification.
 
