@@ -12,7 +12,8 @@ vi.mock("./components/RoleGate", () => ({ RoleGate: ({ children }: { children: R
 vi.mock("./lib/config", () => ({ ADMIN_EMAIL: "help@x.com", SUPABASE_CONFIGURED: true, SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "pk" }));
 vi.mock("./lib/supabase", () => ({ SUPABASE_CONFIGURED: false, db: () => ({}) }));
 vi.mock("./lib/api", () => ({
-  fetchMyInvitations: vi.fn(),
+  fetchMyInvitationList: vi.fn(),
+  fetchMyInvitation: vi.fn(),
   fetchClientTemplateHtml: vi.fn().mockResolvedValue("<html><body>{{groomEn}}</body></html>"),
   submitChangeRequest: vi.fn(),
   withdrawChangeRequest: vi.fn(),
@@ -22,7 +23,7 @@ vi.mock("./lib/api", () => ({
   markNotificationRead: vi.fn(),
 }));
 vi.mock("./lib/transliterate", () => ({ transliterate: async (v: string) => `TE:${v}` }));
-import { fetchMyInvitations } from "./lib/api";
+import { fetchMyInvitationList } from "./lib/api";
 import ClientApp from "./ClientApp";
 
 const invitation = {
@@ -31,7 +32,7 @@ const invitation = {
 } as never;
 
 async function open() {
-  vi.mocked(fetchMyInvitations).mockResolvedValue([invitation]);
+  vi.mocked(fetchMyInvitationList).mockResolvedValue({ items: [invitation] as never, complete: true });
   const host = document.createElement("div");
   document.body.append(host);
   const router = createMemoryRouter([{ path: "/my/*", element: <ClientApp /> }], { initialEntries: ["/my/ab"] });
@@ -83,7 +84,7 @@ describe("client editor layout", () => {
 
   it("while a request is in review: shows the Awaiting admin review card and locks the whole form", async () => {
     const pendingInv = { ...(invitation as object), request: { id: "r1", status: "pending", adminNote: "", createdAt: "2026-02-01T10:00:00Z", acknowledgedAt: null, proposedDetails: null } } as never;
-    vi.mocked(fetchMyInvitations).mockResolvedValue([pendingInv]);
+    vi.mocked(fetchMyInvitationList).mockResolvedValue({ items: [pendingInv] as never, complete: true });
     const host = document.createElement("div");
     document.body.append(host);
     const router = createMemoryRouter([{ path: "/my/*", element: <ClientApp /> }], { initialEntries: ["/my/ab"] });

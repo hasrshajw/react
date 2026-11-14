@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import { LayoutDashboard, Pencil } from "../../components/Icons";
 import { ProfileMenu } from "../../components/ProfileMenu";
 import Sidebar, { type SidebarItem } from "../../components/Sidebar";
-import { fetchMyInvitations, type MyInvitation } from "../../lib/api";
+import { fetchMyInvitation, fetchMyInvitationList, type MyInvitation } from "../../lib/api";
 import { DOCS_URL, SUPPORT_URL } from "../../lib/helpLinks";
 import { clientNotificationBody, clientNotificationHref } from "../notifications/useAdminNotifications";
 import { ClientCtx, publicUrlOf } from "./clientContext";
@@ -20,7 +20,9 @@ const crumbsFor = (pathname: string): string[] => {
 
 export function ClientShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
-  const [list, setList] = useState<MyInvitation[] | null>(null);
+  /* The list is read light (no `details`); the invitation being shown or edited is read in full, one at a time (fetchMyInvitation). */
+  const [light, setLight] = useState<MyInvitation[] | null>(null);
+  const [fulls, setFulls] = useState<Record<string, MyInvitation>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
@@ -29,14 +31,26 @@ export function ClientShell({ children }: { children: ReactNode }) {
   const [hoverExpanded, setHoverExpanded] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const wantedRef = useRef<string | null>(null);
+  const tried = useRef<Set<string>>(new Set());
 
+  /* Reads the list and, in the same step, the invitation that is on screen, so a reload (after a submit) swaps both at once. */
   const reload = useCallback(() => {
     setLoading(true);
     setError(false);
-    fetchMyInvitations().then(
-      (d) => { setList(d); setLoading(false); },
-      () => { setError(true); setLoading(false); },
-    );
+    tried.current = new Set();
+    fetchMyInvitationList().then(
+      async ({ items, complete }) => {
+        const map: Record<string, MyInvitation> = {};
+        if (complete) for (const i of items) map[i.id] = i;
+        else {
+          const ids = items.map((i) => i.id);
+          const w = wantedRef.current && ids.includes(wantedRef.current) ? wantedRef.current : ids[0];
+          if (w) { tried.current.add(w); const f = await fetchMyInvitation(w); if (f) map[w] = f; }
+        }
+        setLight(items); setFulls(map); setLoading(false);
+      },
+    ).catch(() => { setError(true); setLoading(false); }); // a failed list read or a failed read of the invitation on screen
   }, []);
   useEffect(() => { reload(); }, [reload]);
 
@@ -44,11 +58,35 @@ export function ClientShell({ children }: { children: ReactNode }) {
   const routeId = matchPath("/my/:id", pathname)?.params.id;
   const routeInv = routeId ? decodeURIComponent(routeId) : null;
   const selectedId = useMemo(() => {
-    const ids = list?.map((i) => i.id) ?? [];
+    const ids = light?.map((i) => i.id) ?? [];
     if (routeInv && ids.includes(routeInv)) return routeInv;
     if (picked && ids.includes(picked)) return picked;
     return ids[0] ?? null;
-  }, [list, routeInv, picked]);
+  }, [light, routeInv, picked]);
+  wantedRef.current = selectedId;
+
+  /* The invitation on screen has no full copy yet (another one was picked, or the address changed): read just that one. */
+  const needFull = !!selectedId && !fulls[selectedId];
+  useEffect(() => {
+    if (!selectedId || fulls[selectedId] || tried.current.has(selectedId)) return;
+    tried.current.add(selectedId);
+    let live = true;
+    fetchMyInvitation(selectedId).then(
+      (f) => {
+        if (!live) return;
+        if (f) setFulls((m) => ({ ...m, [f.id]: f }));
+        else setLight((l) => (l ? l.filter((i) => i.id !== selectedId) : l)); // not theirs or gone: leave it out
+      },
+      () => { if (live) setError(true); },
+    );
+    return () => { live = false; };
+  }, [selectedId, fulls]);
+
+  /* Consumers see the list only once the invitation on screen is complete, with that one row swapped for its full copy. */
+  const list = useMemo(
+    () => (light && (!selectedId || fulls[selectedId]) ? light.map((i) => fulls[i.id] ?? i) : null),
+    [light, fulls, selectedId],
+  );
   const selected = list?.find((i) => i.id === selectedId) ?? null;
 
   /* Edit only exists once there is an invitation to edit (otherwise it would point at the same page as Dashboard). */
@@ -58,8 +96,8 @@ export function ClientShell({ children }: { children: ReactNode }) {
   ], [selectedId]);
 
   const data = useMemo(
-    () => ({ list, loading, error, reload, selectedId, select: setPicked, setPanelOpen, slot }),
-    [list, loading, error, reload, selectedId, slot],
+    () => ({ list, loading: (loading || needFull) && !error, error, reload, selectedId, select: setPicked, setPanelOpen, slot }),
+    [list, loading, needFull, error, reload, selectedId, slot],
   );
 
   return (

@@ -496,6 +496,34 @@ describe("enquiries", () => {
     expect(await bad.api.fetchInvitationFingerprint()).toBeNull();
   });
 
+  it("fetchMyInvitationList reads the light list and marks rows as list-only; fetchMyInvitation reads one full row", async () => {
+    const { api, calls } = await load((c) => (c.table === "rpc:my_invitations_list"
+      ? { data: [{ id: "a", groom_name: "R", bride_name: "S", template_id: "1", published: true, custom_id: "r-s", updated_at: "t", request_id: null }] }
+      : { data: [{ id: "a", groom_name: "R", bride_name: "S", template_id: "1", published: true, details: { customId: "r-s", venueEn: "Hall" }, updated_at: "t", request_id: null }] }));
+    const l = await api.fetchMyInvitationList();
+    expect(l.complete).toBe(false);
+    expect(l.items[0]).toMatchObject({ id: "a", listOnly: true, details: { customId: "r-s" } });
+    const f = await api.fetchMyInvitation("a");
+    expect(f?.details).toMatchObject({ venueEn: "Hall" });
+    expect(f?.listOnly).toBeUndefined();
+    expect(calls.map((c) => c.table)).toEqual(["rpc:my_invitations_list", "rpc:my_invitation"]);
+  });
+
+  it("fetchMyInvitationList falls back to the full read when the light function is not installed", async () => {
+    const { api, calls } = await load((c) => (c.table === "rpc:my_invitations_list"
+      ? { error: { message: "function not found" } }
+      : { data: [{ id: "a", details: { venueEn: "Hall" }, template_id: "1" }] }));
+    const l = await api.fetchMyInvitationList();
+    expect(l.complete).toBe(true);
+    expect(l.items[0].details).toMatchObject({ venueEn: "Hall" });
+    expect(calls.map((c) => c.table)).toEqual(["rpc:my_invitations_list", "rpc:my_invitations"]);
+  });
+
+  it("fetchMyInvitation gives null when the invitation is not theirs", async () => {
+    const { api } = await load(() => ({ data: [] }));
+    expect(await api.fetchMyInvitation("zzz")).toBeNull();
+  });
+
   it("fetchEnquiryPage asks for one tab, one page and one extra row, and says whether there is more", async () => {
     const data = Array.from({ length: 11 }, (_, i) => ({ id: `e${i}`, created_at: "2026-11-01" }));
     const { api, calls } = await load(() => ({ data }));

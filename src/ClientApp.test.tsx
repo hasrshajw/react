@@ -19,7 +19,8 @@ vi.mock("./components/RoleGate", () => ({ RoleGate: ({ children }: { children: R
 vi.mock("./lib/config", () => ({ ADMIN_EMAIL: "help@x.com", SUPABASE_CONFIGURED: true, SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "pk" }));
 vi.mock("./lib/supabase", () => ({ SUPABASE_CONFIGURED: false, db: () => ({}) }));
 vi.mock("./lib/api", () => ({
-  fetchMyInvitations: vi.fn(),
+  fetchMyInvitationList: vi.fn(),
+  fetchMyInvitation: vi.fn(),
   fetchClientTemplateHtml: vi.fn().mockResolvedValue(""),
   submitChangeRequest: vi.fn(),
   withdrawChangeRequest: vi.fn(),
@@ -28,10 +29,15 @@ vi.mock("./lib/api", () => ({
   fetchNotifications: vi.fn().mockResolvedValue([]),
   markNotificationRead: vi.fn(),
 }));
-import { fetchMyInvitations } from "./lib/api";
+import { fetchMyInvitation, fetchMyInvitationList } from "./lib/api";
 import ClientApp from "./ClientApp";
 
-const get = vi.mocked(fetchMyInvitations);
+const listFn = vi.mocked(fetchMyInvitationList);
+const get = {
+  mockReset: () => { listFn.mockReset(); },
+  mockResolvedValue: (items: unknown[]) => { listFn.mockResolvedValue({ items: items as never, complete: true }); },
+  mockRejectedValue: (e: unknown) => { listFn.mockRejectedValue(e); },
+};
 const inv = (id: string, g = "Ravi", b = "Sita") =>
   ({
     id,
@@ -131,5 +137,45 @@ describe("ClientApp dashboard", () => {
     expect(failed.querySelector(".cd-stats")).toBeNull();
     get.mockResolvedValue([]);
     expect((await open("/my/a/b/c")).textContent).toContain("No invitations to show");
+  });
+});
+
+describe("ClientApp reads (light list + one full invitation)", () => {
+  const light = (id: string, g: string, b: string) => ({ ...(inv(id, g, b) as object), details: { customId: `${id}-link` }, listOnly: true }) as never;
+  const one = vi.mocked(fetchMyInvitation);
+  beforeEach(() => { one.mockReset(); });
+
+  it("reads only the invitation on screen in full, and not the others", async () => {
+    listFn.mockResolvedValue({ items: [light("i1", "Ravi", "Sita"), light("i2", "Amar", "Priya")], complete: false });
+    one.mockImplementation(async (id: string) => inv(id, id === "i1" ? "Ravi" : "Amar", id === "i1" ? "Sita" : "Priya") as never);
+    const h = await open("/my");
+    expect(one.mock.calls.map((c) => c[0])).toEqual(["i1"]);
+    expect(h.querySelector(".cd h1")?.textContent).toBe("Ravi & Sita");
+    expect(h.querySelector(".cd-pick select")).not.toBeNull();
+  });
+
+  it("picking another invitation reads that one in full", async () => {
+    listFn.mockResolvedValue({ items: [light("i1", "Ravi", "Sita"), light("i2", "Amar", "Priya")], complete: false });
+    one.mockImplementation(async (id: string) => inv(id, id === "i1" ? "Ravi" : "Amar", id === "i1" ? "Sita" : "Priya") as never);
+    const h = await open("/my");
+    const select = h.querySelector<HTMLSelectElement>(".cd-pick select")!;
+    await act(async () => { select.value = "i2"; select.dispatchEvent(new Event("change", { bubbles: true })); });
+    await flush();
+    expect(one.mock.calls.map((c) => c[0])).toEqual(["i1", "i2"]);
+    expect(h.querySelector(".cd h1")?.textContent).toBe("Amar & Priya");
+  });
+
+  it("when the full read fails the person gets the try-again message, never a half-empty form", async () => {
+    listFn.mockResolvedValue({ items: [light("i1", "Ravi", "Sita")], complete: false });
+    one.mockRejectedValue(new Error("x"));
+    const h = await open("/my/i1");
+    expect(h.querySelector("[role=alert]")).not.toBeNull();
+    expect(h.querySelector("#create-form")).toBeNull();
+  });
+
+  it("a complete list (light function not installed yet) needs no second read", async () => {
+    get.mockResolvedValue([inv("ab")]);
+    await open("/my");
+    expect(one).not.toHaveBeenCalled();
   });
 });

@@ -29,6 +29,6 @@ which re-read the whole list (up to `LIST_LIMIT` rows) even when nothing had cha
 Run `supabase/migrations/019_invitation_fingerprint.sql` in Supabase > SQL Editor. Until then Auto refresh behaves as before (full read).
 
 ## Left for the next tasks
-1. **Client area reads** (next): client dashboard and editor read the client's full invitation data via `my_invitations`.
+1. ~~Client area reads~~ (done, task4.md).
 2. **Preview image storage:** not yet checked how it is stored.
 3. Note: the first-open role check calls `is_admin`, not `my_invitations` (earlier statement corrected). Nothing to fix there.

@@ -1,3 +1,15 @@
+### 15 Nov 2026 (89th update) – Egress: client area reads one invitation in full, not all (task4.md)
+
+**What was done**
+
+1. New `my_invitations_list()` (no `details`, no proposed details) and `my_invitation(p_id)` (one full row), migration 020.
+2. The client shell reads the light list plus only the invitation on screen in full; a reload reads both together; picking another invitation reads that one. Dashboard and editor are unchanged. If migration 020 is not run yet, the old full read is used.
+3. Fixed a failed full read not being caught. Tests added; 640 pass. **Run migration 020 once.**
+
+**What next:** Preview image storage (check how it is stored first, then report). See `task4.md`.
+
+---
+
 ### 14 Nov 2026 (88th update) – Egress: Auto refresh reads the list only when it changed (task3.md)
 
 **What was done**

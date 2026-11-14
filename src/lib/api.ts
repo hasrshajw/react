@@ -417,6 +417,8 @@ export interface MyInvitation {
   details: InvitationRow["details"]; updatedAt: string;
   /** Times the public page was opened. `null` until migration 016 is applied. */
   views?: number | null; createdAt?: string | null;
+  /** Read for a list: `details` holds only the link ID and `request.proposedDetails` is empty. Read the one invitation (fetchMyInvitation) before using it as a form. */
+  listOnly?: boolean;
   request: null | {
     id: string; status: RequestStatus; adminNote: string; createdAt: string; acknowledgedAt: string | null;
     /** Full proposed details when the latest request still matters (pending / unacked rejected). From migration 015. */
@@ -448,7 +450,8 @@ const rpcFail = (e: { message: string; code?: string }): never => {
 const toMyInvitation = (r: DbRow): MyInvitation => ({
   id: r.id as string, groomName: (r.groom_name ?? "") as string, brideName: (r.bride_name ?? "") as string,
   eventDate: (r.event_date ?? null) as string | null, templateId: String(r.template_id ?? ""), published: r.published !== false,
-  details: (r.details && typeof r.details === "object" ? r.details : {}) as MyInvitation["details"], updatedAt: r.updated_at as string,
+  details: (r.details && typeof r.details === "object" ? r.details : (typeof r.custom_id === "string" && r.custom_id ? { customId: r.custom_id } : {})) as MyInvitation["details"], updatedAt: r.updated_at as string,
+  ...("custom_id" in r ? { listOnly: true } : {}),
   views: typeof r.views === "number" ? r.views : null, createdAt: (r.created_at ?? null) as string | null,
   request: r.request_id ? {
     id: r.request_id as string, status: r.request_status as RequestStatus, adminNote: (r.request_admin_note ?? "") as string,
@@ -463,6 +466,22 @@ export async function fetchMyInvitations(): Promise<MyInvitation[]> {
   const { data, error } = await db().rpc("my_invitations");
   if (error) fail(error);
   return Array.isArray(data) ? (data as DbRow[]).map(toMyInvitation) : [];
+}
+
+/** The list for the client shell: no `details` and no proposed details (rows are marked `listOnly`). `complete` is true when the rows are full
+ *  (the light function is not installed yet, so the old full read was used); the caller then has nothing more to read. */
+export async function fetchMyInvitationList(): Promise<{ items: MyInvitation[]; complete: boolean }> {
+  const { data, error } = await db().rpc("my_invitations_list");
+  if (error) return { items: await fetchMyInvitations(), complete: true };
+  return { items: Array.isArray(data) ? (data as DbRow[]).map(toMyInvitation) : [], complete: false };
+}
+
+/** One of the signed-in person's invitations with everything (details, proposed details). `null` when it is not theirs or not there any more. */
+export async function fetchMyInvitation(id: string): Promise<MyInvitation | null> {
+  const { data, error } = await db().rpc("my_invitation", { p_id: id });
+  if (error) fail(error);
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ? toMyInvitation(row as DbRow) : null;
 }
 
 /** Sends the client's edited form for review. `details` is the whole form; the database keeps only the allowed keys and the changed ones.

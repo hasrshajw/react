@@ -31,4 +31,4 @@ although the lists only need the link ID (`customId`) out of it.
 Nothing to run in the database.
 
 ## Left for the next tasks
-~~Auto refresh after a search~~ (done, task3.md). Still open: client area reads, preview image storage.
+~~Auto refresh after a search~~ (done, task3.md). ~~client area reads~~ (done, task4.md). Still open: preview image storage.
