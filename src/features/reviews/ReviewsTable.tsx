@@ -99,47 +99,72 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, hasMo
   );
 }
 
-/** Placeholder while the queue loads. Reuses the real table's classes and headers. */
-export function ReviewsTableSkeleton({ rows = 4 }: { rows?: number }) {
+interface SkeletonProps {
+  rows?: number;
+  /** Loading has not lasted long enough to show a skeleton yet: keep the space, draw nothing (see useSkeletonPhase). */
+  hold?: boolean;
+}
+
+/** Placeholder while the queue loads. It is built from the same cells as the real rows (couple + status chip + template,
+ *  client email, changes + field list, submitted + full date, Review / Edit buttons) and the same footer, so nothing moves
+ *  when the data arrives. Static text (headers, button labels) is shown as is; only server data is ghosted. */
+export function ReviewsTableSkeleton({ rows = 4, hold = false }: SkeletonProps) {
+  const cls = hold ? "sk-hold" : "sk-reveal";
   return (
-    <div className="table-scroll sk-reveal" aria-busy="true">
-      <table className="inv-table">
-        <caption className="sr-only">Loading review queue</caption>
-        <thead>
-          <tr>
-            <th>Couple</th><th>Client</th><th>Changes</th><th>Submitted</th>
-            <th className="th-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: rows }, (_, i) => (
-            <tr key={i} className="sk-row" aria-hidden="true">
-              <td className="td-couple">
-                <div className="cell-couple">
-                  <div className="row-avatar sk-bg">AB</div>
-                  <div className="cell-stack">
-                    <b><SkText w={16 - (i % 3) * 2} /></b>
-                    <span className="chip sk-bg">Pending</span>
-                  </div>
-                </div>
-              </td>
-              <td className="td-client" data-label="Client"><SkText w={14} /></td>
-              <td className="td-changes" data-label="Changes">
-                <div className="cell-stack"><b><SkText w={6} /></b><small className="rv-fields"><SkText w={12} /></small></div>
-              </td>
-              <td className="td-date" data-label="Submitted">
-                <div className="cell-stack"><span className="cell-date"><CalendarDays size={14} /> <SkText w={8} /></span></div>
-              </td>
-              <td className="td-actions">
-                <div className="row-actions">
-                  <span className="act-btn sk-bg">Review</span>
-                  <span className="act-btn sk-bg"><Pencil size={14} /> Edit</span>
-                </div>
-              </td>
+    <>
+      <div className={`table-scroll ${cls}`} aria-busy="true">
+        <table className="inv-table">
+          <caption className="sr-only">Loading review queue</caption>
+          <thead>
+            <tr>
+              <th>Couple</th><th>Client</th><th>Changes</th><th>Submitted</th>
+              <th className="th-actions">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {Array.from({ length: rows }, (_, i) => (
+              <tr key={i} className="sk-row" aria-hidden="true">
+                <td className="td-couple">
+                  <div className="cell-couple">
+                    <div className="row-avatar sk-bg">AB</div>
+                    <div className="cell-stack">
+                      <b><SkText w={16 - (i % 3) * 2} /></b>
+                      <span className="cell-line">
+                        <span className="chip sk-bg">Pending</span>
+                        <small className="tpl-name"><SkText w={10} /></small>
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td className="td-client" data-label="Client">
+                  <span className="client-email"><SkText w={14 - (i % 2) * 2} /></span>
+                </td>
+                <td className="td-changes" data-label="Changes">
+                  <div className="cell-stack">
+                    <b><SkText w={6} /></b>
+                    <small className="rv-fields"><SkText w={14} /></small>
+                  </div>
+                </td>
+                <td className="td-date" data-label="Submitted">
+                  <div className="cell-stack">
+                    <span className="cell-date"><CalendarDays size={14} /> <SkText w={8} /></span>
+                    <small className="when"><SkText w={13} /></small>
+                  </div>
+                </td>
+                <td className="td-actions">
+                  <div className="row-actions">
+                    <span className="act-btn sk-bg">Review</span>
+                    <span className="act-btn sk-bg"><Pencil size={14} /> Edit</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className={`table-foot ${cls}`} aria-hidden="true">
+        <span><SkText w={16} /></span>
+      </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { ChevronLeft, Smartphone, X } from "../../components/Icons";
+import { SkText } from "../../components/Skeleton";
 import { useEscape } from "../../hooks/useEscape";
 import { useTemplates } from "../../hooks/useTemplates";
 import {
@@ -13,18 +14,21 @@ import {
 import { compile } from "../../lib/compileInvitation";
 import { coupleName, fmtDateTime } from "../../lib/dashboardData";
 import type { InvitationRow } from "../../types/dashboard";
+import { PreviewSkeleton } from "../dashboard/components/PreviewSkeleton";
 import { fieldLabel, formatDiffValue } from "./fieldLabels";
 
 type Props = {
   /** The #preview-slot beside the page. The proposed preview is portalled into it, like the Dashboard preview. */
   slot: HTMLElement | null;
   item: ReviewItem;
+  /** The proposed values are still being read (the list does not carry them). The panel shows its real layout with ghosts in their place. */
+  proposedLoading?: boolean;
   onClose: () => void;
   onDecided: () => void;
   notify: (msg: string, undo?: () => void) => void;
 };
 
-export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) {
+export function ReviewDetail({ slot, item, proposedLoading = false, onClose, onDecided, notify }: Props) {
   const asideRef = useRef<HTMLElement>(null);
   const { templates, loading: tplLoading } = useTemplates();
   const [row, setRow] = useState<InvitationRow | null>(null);
@@ -76,6 +80,10 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
   const keys = item.changedKeys.length
     ? item.changedKeys
     : Object.keys(proposed);
+  /* Ghosts: the current values wait for the invitation, the proposed ones for the request's data. */
+  const currentLoading = row === null && !loadError;
+  /* Without a field list and with the data still on its way, three ghost rows stand in for the table (not "No field list"). */
+  const ghostRows = proposedLoading && keys.length === 0;
 
   const decide = async (decision: "approve" | "reject", force = false) => {
     if (decision === "reject" && !note.trim()) {
@@ -115,7 +123,7 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
         <h2 style={{ margin: 0, fontSize: 18 }}>Review request</h2>
         <p style={{ margin: "4px 0 0", color: "var(--gray)", fontSize: 13 }}>
           {item.clientEmail || "Unknown client"}
-          {row ? ` · ${coupleName(row)}` : ""}
+          {currentLoading ? <> · <SkText w={12} /></> : row ? ` · ${coupleName(row)}` : ""}
           {" · "}
           {fmtDateTime(item.createdAt)}
         </p>
@@ -136,7 +144,7 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
       <div className="review-detail-grid">
         <section>
           <h3 style={{ fontSize: 14, margin: "0 0 10px" }}>Changes</h3>
-          {keys.length === 0 ? (
+          {keys.length === 0 && !ghostRows ? (
             <p className="hint">No field list on this request.</p>
           ) : (
             <table className="diff-table">
@@ -148,14 +156,21 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
                 </tr>
               </thead>
               <tbody>
+                {ghostRows && [0, 1, 2].map((i) => (
+                  <tr key={i} aria-hidden="true">
+                    <td><b><SkText w={11 - i * 2} /></b></td>
+                    <td className="diff-old"><SkText w={13} /></td>
+                    <td className="diff-new"><SkText w={15} /></td>
+                  </tr>
+                ))}
                 {keys.map((key) => {
                   const cur = (currentDetails as Record<string, unknown>)[key];
                   const next = (proposed as Record<string, unknown>)[key];
                   return (
                     <tr key={key}>
                       <td><b>{fieldLabel(key)}</b></td>
-                      <td className="diff-old">{formatDiffValue(cur)}</td>
-                      <td className="diff-new">{formatDiffValue(next)}</td>
+                      <td className="diff-old">{currentLoading ? <SkText w={13} /> : formatDiffValue(cur)}</td>
+                      <td className="diff-new">{proposedLoading ? <SkText w={15} /> : formatDiffValue(next)}</td>
                     </tr>
                   );
                 })}
@@ -184,10 +199,10 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
             </Link>
             {confirm === null && (
               <>
-                <button type="button" className="act-btn danger" disabled={busy} onClick={() => setConfirm("reject")}>
+                <button type="button" className="act-btn danger" disabled={busy || proposedLoading} onClick={() => setConfirm("reject")}>
                   Reject…
                 </button>
-                <button type="button" className="create-btn" disabled={busy} onClick={() => setConfirm("approve")} style={{ border: 0 }}>
+                <button type="button" className="create-btn" disabled={busy || proposedLoading} onClick={() => setConfirm("approve")} style={{ border: 0 }}>
                   Approve…
                 </button>
               </>
@@ -236,18 +251,18 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
         <div className="dp-head">
           <div className="dp-title">
             <b>Proposed preview</b>
-            <small>{who} · mobile preview</small>
+            <small>{currentLoading ? <SkText w={14} /> : who} · mobile preview</small>
           </div>
           <div className="dp-actions">
             <button type="button" className="icon-btn" aria-label="Close preview" onClick={onClose} disabled={busy}><X size={16} /></button>
           </div>
         </div>
         <div className="dp-body">
-          {proposedPreview ? (
+          {proposedPreview && !proposedLoading ? (
             /* No allow-same-origin: template code must not reach the app's storage or cookies. */
             <iframe key={item.id} title="Proposed invitation preview" srcDoc={proposedPreview} sandbox="allow-scripts" />
-          ) : tplLoading ? (
-            <div className="dx-empty-mini"><Smartphone size={22} /><b>Loading preview…</b></div>
+          ) : proposedLoading || currentLoading || tplLoading ? (
+            <PreviewSkeleton />
           ) : (
             <div className="dx-empty-mini"><Smartphone size={22} /><b>Preview unavailable</b><span>The template is missing or not loaded.</span></div>
           )}

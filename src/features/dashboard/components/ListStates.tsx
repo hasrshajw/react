@@ -60,16 +60,20 @@ interface TableSkeletonProps {
 
 /** Placeholder for the invitations table. It reuses the real table's classes and column headers
  *  (static text is shown as is), and only the server data (names, dates, counts, buttons) is replaced.
+ *  `detailed` (All invitations) draws every column of that page: checkbox, couple + chips + template, client, event date + countdown, views, actions.
  *  It uses the same cell classes as the real table, so below 760px it turns into stacked cards just like the real rows. */
 export function InvitationsTableSkeleton({ rows, detailed = false, hold = false }: TableSkeletonProps) {
+  const cls = hold ? "sk-hold" : "sk-reveal";
   return (
-    <div className={`table-scroll${hold ? " sk-hold" : " sk-reveal"}`} aria-busy="true">
+    <>
+    <div className={`table-scroll ${cls}`} aria-busy="true">
       <table className={`inv-table${detailed ? " has-check" : ""}`}>
         <caption className="sr-only">Loading invitations</caption>
         <thead>
           <tr>
             {detailed && <th className="th-check"><input type="checkbox" disabled tabIndex={-1} aria-label="Select all invitations" /></th>}
             <th>Couple</th>
+            {detailed && <th>Client</th>}
             <th>Event date</th>
             <th>Invitation views</th>
             <th className="th-actions">Actions</th>
@@ -95,6 +99,7 @@ export function InvitationsTableSkeleton({ rows, detailed = false, hold = false 
                   </div>
                 </div>
               </td>
+              {detailed && <td className="td-client" data-label="Client"><span className="client-email"><SkText w={14 - (i % 2) * 2} /></span></td>}
               <td className="td-date" data-label="Event date">
                 <div className="cell-stack">
                   <span className="cell-date"><CalendarDays size={14} /> <SkText w={12} /></span>
@@ -117,5 +122,8 @@ export function InvitationsTableSkeleton({ rows, detailed = false, hold = false 
         </tbody>
       </table>
     </div>
+    {/* All invitations always has a footer line ("Showing all N · Most used template…"); the Dashboard's appears only for longer lists. */}
+    {detailed && <div className={`table-foot ${cls}`} aria-hidden="true"><span><SkText w={18} /></span></div>}
+    </>
   );
 }

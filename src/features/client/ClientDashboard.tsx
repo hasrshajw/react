@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertCircle, CalendarDays, CheckCircle2, Check, Clock, Copy, ExternalLink, Eye, Mails, Pencil } from "../../components/Icons";
-import { Sk } from "../../components/Skeleton";
+import { Loading, SkText } from "../../components/Skeleton";
 import { ADMIN_EMAIL } from "../../lib/config";
 import { dayDiff, fmt, fmtDate, fmtDateTime, timeAgo } from "../../lib/dashboardData";
 import { has } from "../../lib/validate";
@@ -21,12 +21,66 @@ function countdown(date: string | null): { value: string; sub: string } {
   return { value: fmt(n), sub: n === 1 ? "day to go" : "days to go" };
 }
 
+/* The checklist's labels are fixed text, so the placeholder shows them as they are (only which ones are ticked is data). */
+const CHECK_LABELS = ["Wedding date & time", "Groom’s details", "Bride’s details", "Venue", "Events & schedule", "Share preview (SEO)"] as const;
+
+/* The dashboard as it will look: the same header, four summary cards and two panels. Fixed text (headings, labels, button names) is shown as is;
+   only what comes from the server (names, numbers, dates, the link, ticks) is a ghost. */
 function Skeleton() {
+  const stats: [typeof Eye, string][] = [[Eye, "Total views"], [CalendarDays, "Wedding countdown"], [CheckCircle2, "Status"], [Clock, "Last updated"]];
   return (
-    <div className="cd" aria-hidden="true">
-      <Sk h={30} w="34%" r={8} style={{ marginBottom: 24 }} />
-      <div className="cd-stats">{[0, 1, 2, 3].map((i) => <Sk key={i} h={112} w="100%" r={18} />)}</div>
-      <div className="cd-cols"><Sk h={260} w="100%" r={18} /><Sk h={260} w="100%" r={18} /></div>
+    <div className="cd" aria-busy="true">
+      <Loading label="Loading your invitation" />
+      <header className="cd-head" aria-hidden="true">
+        <div>
+          <h1><SkText w={20} /></h1>
+          <p><SkText w={24} /></p>
+        </div>
+        <div className="cd-head-actions">
+          <span className="cd-btn sk-bg"><ExternalLink size={16} /> View invitation</span>
+          <span className="cd-btn primary sk-bg"><Pencil size={16} /> Edit</span>
+        </div>
+      </header>
+
+      <section className="cd-stats" aria-hidden="true">
+        {stats.map(([Icon, label], i) => (
+          <div className="cd-stat" key={label}>
+            <span className="cd-ico"><Icon size={19} /></span>
+            <div>
+              <small>{label}</small>
+              <strong>{i === 2 ? <span className="cd-pill sk-bg">Published</span> : <SkText w={i === 3 ? 9 : 5} />}</strong>
+              <em><SkText w={i === 0 ? 18 : 14} /></em>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <div className="cd-cols" aria-hidden="true">
+        <section className="cd-card">
+          <h2>Your invitation link</h2>
+          <p className="cd-note">Share this link with your guests.</p>
+          <div className="cd-link">
+            <input className="sk-bg" readOnly tabIndex={-1} value="" aria-label="Invitation link" />
+            <span className="cd-btn sk-bg"><Copy size={16} /> Copy</span>
+          </div>
+          <dl className="cd-facts">
+            {["Date", "Venue", "Events", "Created"].map((k) => <div key={k}><dt>{k}</dt><dd><SkText w={k === "Events" ? 3 : 12} /></dd></div>)}
+          </dl>
+        </section>
+
+        <section className="cd-card">
+          <h2>Changes &amp; review</h2>
+          <p className="cd-note"><SkText w={44} /><br /><SkText w={30} /></p>
+          <div className="cd-progress">
+            <div className="cd-progress-top"><b>Details completed</b><span><SkText w={6} /></span></div>
+            <div className="cd-bar"><i style={{ width: 0 }} /></div>
+            <ul className="cd-checks">
+              {CHECK_LABELS.map((label) => <li key={label}><span className="sk-bg" />{label}</li>)}
+            </ul>
+          </div>
+          <span className="cd-btn primary wide sk-bg"><Pencil size={16} /> Open editor</span>
+        </section>
+      </div>
     </div>
   );
 }
@@ -48,12 +102,12 @@ export default function ClientDashboard() {
   const checks = useMemo(() => {
     if (!form) return [];
     return [
-      { label: "Wedding date & time", done: has(form.weddingDate) },
-      { label: "Groom’s details", done: has(form.groomEn) },
-      { label: "Bride’s details", done: has(form.brideEn) },
-      { label: "Venue", done: has(form.venueEn) || has(form.venueAddress) },
-      { label: "Events & schedule", done: form.events.length > 0 },
-      { label: "Share preview (SEO)", done: has(form.seoTitle) || has(form.seoDescription) || has(form.seoImage) },
+      { label: CHECK_LABELS[0], done: has(form.weddingDate) },
+      { label: CHECK_LABELS[1], done: has(form.groomEn) },
+      { label: CHECK_LABELS[2], done: has(form.brideEn) },
+      { label: CHECK_LABELS[3], done: has(form.venueEn) || has(form.venueAddress) },
+      { label: CHECK_LABELS[4], done: form.events.length > 0 },
+      { label: CHECK_LABELS[5], done: has(form.seoTitle) || has(form.seoDescription) || has(form.seoImage) },
     ];
   }, [form]);
 

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLatest } from "../hooks/useLatest";
+import { useRowHint } from "../hooks/useRowHint";
+import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
+import { SkText } from "../components/Skeleton";
 import { AlertTriangle, Inbox, Search } from "../components/Icons";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
 import { Toast } from "../features/dashboard/components/Toast";
@@ -137,13 +140,18 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
     [items],
   );
 
-  const skel = loading && lastUpdated === null;
+  /* The skeleton shows on every full load (first visit, a tab change, Retry), not on a silent refresh or "View more", where the
+     rows stay on screen. It waits ~150ms before it appears and stays at least ~300ms, so a fast load does not flash. */
+  const phase = useSkeletonPhase(loading);
+  const skel = phase !== "idle";
+  const firstLoad = skel && lastUpdated === null;
+  const skeletonRows = useRowHint("reviews", items.length, loading, PAGE, 4);
   const emptyTitle = status === "pending"
     ? "No pending reviews"
     : status === "all" ? "No requests yet" : `No ${STATUS_LABEL[status].toLowerCase()} requests`;
 
   return (
-    <div className="dashboard-page inv-page" aria-busy={loading || refreshing}>
+    <div className={`dashboard-page inv-page${phase === "hold" ? " sk-pending" : ""}`} aria-busy={loading || refreshing}>
       {!picked && (
         <>
         <PageHeader
@@ -152,7 +160,7 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
           lastUpdated={lastUpdated}
           now={now}
           onRefresh={() => load(true)}
-          loading={skel}
+          loading={firstLoad}
           refreshing={refreshing}
           createTitle="Create invitation"
         />
@@ -170,7 +178,7 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
                 onClick={() => setStatus(key)}
               >
                 {label}
-                {key === "pending" && !loading && status === "pending" && <em>{pendingTotal ?? pendingOnPage}</em>}
+                {key === "pending" && status === "pending" && (skel ? <em className="sk-bg" aria-hidden="true">00</em> : <em>{pendingTotal ?? pendingOnPage}</em>)}
               </button>
             ))}
           </div>
@@ -181,7 +189,7 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
           <div className="inv-toolbar">
             <div className="inv-chips">
               <span className="insight">
-                {skel ? "Loading requests…" : `${items.length}${hasMore ? "+" : ""} ${items.length === 1 && !hasMore ? "request" : "requests"}`}
+                {skel ? <SkText w={11} /> : `${items.length}${hasMore ? "+" : ""} ${items.length === 1 && !hasMore ? "request" : "requests"}`}
               </span>
               {term && <button type="button" className="link-btn" onClick={() => setQ("")}>Clear search</button>}
             </div>
@@ -204,7 +212,7 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
               <button type="button" className="empty-btn" onClick={() => load()}>Retry</button>
             </div>
           ) : skel ? (
-            <ReviewsTableSkeleton rows={4} />
+            <ReviewsTableSkeleton rows={skeletonRows} hold={phase === "hold"} />
           ) : items.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon"><Inbox size={22} /></div>
@@ -237,26 +245,22 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
         </>
       )}
 
-      {picked && !selected && (
-        <div className="empty-state" role={proposedFailed ? "alert" : "status"}>
-          {proposedFailed ? (
-            <>
-              <div className="empty-icon err"><AlertTriangle size={22} /></div>
-              <b>Couldn’t open this request</b>
-              <span>Check your connection and try again.</span>
-              <button type="button" className="empty-btn" onClick={() => setSelectedId(null)}>Back to the queue</button>
-            </>
-          ) : (
-            <><div className="empty-icon"><Loader2 className="spin" size={22} /></div><b>Opening request…</b></>
-          )}
+      {picked && !selected && proposedFailed && (
+        <div className="empty-state" role="alert">
+          <div className="empty-icon err"><AlertTriangle size={22} /></div>
+          <b>Couldn’t open this request</b>
+          <span>Check your connection and try again.</span>
+          <button type="button" className="empty-btn" onClick={() => setSelectedId(null)}>Back to the queue</button>
         </div>
       )}
 
-      {/* Focused view: while a request is open, the left side shows only that request (the proposed preview is on the right). */
-      selected && (
+      {/* Focused view: while a request is open, the left side shows only that request (the proposed preview is on the right).
+          Until its proposed values arrive, the same panel is drawn with ghosts in their place, so nothing is replaced or moves. */}
+      {picked && (selected || !proposedFailed) && (
         <ReviewDetail
           slot={slot}
-          item={selected}
+          item={selected ?? picked}
+          proposedLoading={!selected}
           onClose={() => setSelectedId(null)}
           onDecided={() => { setSelectedId(null); load(true); }}
           notify={notify}

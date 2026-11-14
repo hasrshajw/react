@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { AppNotification } from "../../lib/api";
+import { Loading, SkText } from "../../components/Skeleton";
 import { fmtDateTime, timeAgo } from "../../lib/dashboardData";
 import {
   notificationBody,
@@ -75,7 +76,21 @@ export function NotificationPanel({
       </div>
 
       {loading && items.length === 0 ? (
-        <p className="notif-empty">Loading…</p>
+        /* Same rows as the real list (title, one line of text, time), so the panel is the same size when the data arrives. */
+        <>
+          <Loading label="Loading notifications" />
+          <ul className="notif-list" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <li key={i}>
+                <div className="notif-item sk-row">
+                  <span className="notif-item-title"><SkText w={20 - i * 3} /></span>
+                  <span className="notif-item-body"><SkText w={28 - i * 2} /></span>
+                  <span className="notif-item-time"><SkText w={7} /></span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : error && items.length === 0 ? (
         <div className="notif-empty">
           <p>Couldn’t load notifications.</p>

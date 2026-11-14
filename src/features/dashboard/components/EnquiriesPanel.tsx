@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import {
   Check, Search, X, MessageCircle, ChevronDown, Phone, Mail, PhoneCall, Clock, Ban, Download, Copy,
 } from "../../../components/Icons";
+import { Loading, SkText } from "../../../components/Skeleton";
 import { ENQ_LABEL, copyText, exportCsv, fmtDateTime, followDue, timeAgo, waLink } from "../../../lib/dashboardData";
 import { fetchEnquiries, type EnquirySummary } from "../../../lib/api";
 import { useEscape } from "../../../hooks/useEscape";
@@ -28,6 +29,48 @@ interface Props {
   onSaveNote: (id: string, value: string) => void;
   onSetFollowDate: (id: string, date: string) => void;
   notify: Notify;
+}
+
+/** Placeholder for one enquiry card while the list loads. The New tab shows its cards fully open, the other tabs show them collapsed
+ *  (name, status, chevron), exactly like the real ones. Only the person's data is ghosted; labels and buttons are shown as they are. */
+function EnquirySkeleton({ open }: { open: boolean }) {
+  return (
+    <div className={`dx-enq${open ? " open" : ""}`} aria-hidden="true">
+      <div className="dx-enq-top static">
+        <div className="row-avatar sk-bg">AB</div>
+        <b className="dx-enq-name"><SkText w={14} /></b>
+        <span className="chip sk-bg">New</span>
+        {!open && <ChevronDown size={18} className="dx-chev" />}
+      </div>
+      {open && (
+        <div className="dx-enq-collapse">
+          <div>
+            <div className="dx-enq-body">
+              <small className="dx-enq-time"><Clock size={11} /> <SkText w={8} /></small>
+              <p className="dx-enq-msg"><SkText w={36} /><br /><SkText w={22} /></p>
+              <div className="dx-enq-meta">
+                <span className="dx-meta-row"><span className="dx-meta-text"><Phone size={13} /> <SkText w={12} /></span></span>
+                <span className="dx-meta-text"><Mail size={13} /> <SkText w={20} /></span>
+              </div>
+              <div className="dx-enq-actions">
+                <span className="act-btn sk-bg"><Phone size={14} /> Call</span>
+                <span className="act-btn sk-bg"><MessageCircle size={14} /> WhatsApp</span>
+              </div>
+              <label className="dx-field">
+                <span>Internal note</span>
+                <textarea className="sk-bg" rows={2} disabled tabIndex={-1} />
+              </label>
+              <div className="dx-enq-actions">
+                <span className="act-btn solid sk-bg"><PhoneCall size={14} /> Mark called</span>
+                <span className="act-btn sk-bg"><Clock size={14} /> Need follow-up</span>
+                <span className="act-btn sk-bg"><Ban size={14} /> Cancelled</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function EnquiriesPanel({ slot, enquiries, counts, loading, hasMore, moreBusy, onMore, search, onSearch, now, tab, onTab, onClose, onSetStatus, onSaveNote, onSetFollowDate, notify }: Props) {
@@ -102,7 +145,12 @@ export function EnquiriesPanel({ slot, enquiries, counts, loading, hasMore, more
       </label>
 
       <div className="dx-req-list" role="tabpanel" id="enq-tabpanel" aria-labelledby={`enq-tab-${tab}`}>
-        {loading && list.length === 0 && <div className="dx-empty-mini" role="status"><span>Loading…</span></div>}
+        {loading && list.length === 0 && (
+          <>
+            <Loading label="Loading enquiries" />
+            {Array.from({ length: tab === "new" ? 2 : 4 }, (_, i) => <EnquirySkeleton key={i} open={tab === "new"} />)}
+          </>
+        )}
         {!loading && list.length === 0 && (
           <div className="dx-empty-mini"><Check size={22} /><b>{empty[0]}</b><span>{empty[1]}</span></div>
         )}

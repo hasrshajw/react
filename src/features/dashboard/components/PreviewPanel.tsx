@@ -10,6 +10,7 @@ import { compile } from "../../../lib/compileInvitation";
 import { coupleName } from "../../../lib/dashboardData";
 import { useEscape } from "../../../hooks/useEscape";
 import type { InvitationRow, TemplateRecord } from "../../../types/dashboard";
+import { PreviewSkeleton } from "./PreviewSkeleton";
 
 interface Props {
   slot: HTMLElement | null;
@@ -72,7 +73,7 @@ export function PreviewPanel({ slot, row: listRow, published, onClose }: Props) 
         ) : failed ? (
           <div className="dx-empty-mini"><Smartphone size={22} /><b>Couldn’t load the preview</b><span>Check your connection and open it again.</span></div>
         ) : tplLoading || !ready ? (
-          <div className="dx-empty-mini"><Smartphone size={22} /><b>Loading preview…</b></div>
+          <PreviewSkeleton />
         ) : (
           <div className="dx-empty-mini"><Smartphone size={22} /><b>No preview available</b><span>This invitation has no template yet.</span></div>
         )}

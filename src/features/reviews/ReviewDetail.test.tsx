@@ -64,4 +64,35 @@ describe("ReviewDetail", () => {
     act(() => back!.click());
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("while the proposed values load: the real panel with ghosts, field names kept, decisions disabled, no preview frame", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewDetail slot={slot} item={{ ...item, proposedDetails: {} }} proposedLoading onClose={vi.fn()} onDecided={vi.fn()} notify={vi.fn()} />
+        </MemoryRouter>,
+      );
+    });
+    expect(host.textContent).toContain("Venue (EN)");
+    expect(host.textContent).not.toContain("New hall");
+    expect(host.querySelectorAll("table.diff-table .sk").length).toBeGreaterThan(0);
+    const names = [...host.querySelectorAll<HTMLButtonElement>(".review-actions button")];
+    expect(names.length).toBeGreaterThan(0);
+    names.forEach((b) => expect(b.disabled, b.textContent || "").toBe(true));
+    const aside = slot.querySelector("aside.dash-side-panel");
+    expect(aside?.querySelector("iframe")).toBeNull();
+    expect(aside?.querySelector(".dp-skel")).not.toBeNull();
+  });
+
+  it("shows three ghost rows instead of 'No field list' when the field list is not known yet", async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter>
+          <ReviewDetail slot={slot} item={{ ...item, changedKeys: [], proposedDetails: {} }} proposedLoading onClose={vi.fn()} onDecided={vi.fn()} notify={vi.fn()} />
+        </MemoryRouter>,
+      );
+    });
+    expect(host.textContent).not.toContain("No field list");
+    expect(host.querySelectorAll("table.diff-table tbody tr").length).toBe(3);
+  });
 });

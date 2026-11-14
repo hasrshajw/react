@@ -1,3 +1,19 @@
+### 15 Nov 2026 (90th update) – Skeleton loading: Review queue and every page checked against its real layout
+
+**What was done**
+
+1. **Review queue table:** the skeleton now has every part of a real row (avatar, name, status chip + template name, client email, change count + field list, "x ago" + full date, Review / Edit buttons) and the footer line. It uses the same delay (~150 ms) and minimum (~300 ms) as the other lists, remembers the row count of the last visit, and also shows on a tab change or Retry (before, switching tab kept the old tab's rows on screen while loading). The Pending badge and the request count are ghosts instead of appearing late.
+2. **Opening a request:** the "Opening request…" spinner is gone. The real review panel is drawn at once (field names, dates, buttons) with ghosts for the proposed and current values, the couple name and the preview; Approve / Reject stay disabled until the proposed values arrive. The panel is not replaced when they do, so nothing jumps. A failed read still shows "Couldn't open this request".
+3. **Preview panel (Dashboard, All invitations, Review queue):** "Loading preview…" is now a phone-shaped placeholder (`PreviewSkeleton`), the same shape as the Create page's.
+4. **All invitations:** the skeleton had no Client column and no footer line; both added.
+5. **Notification bell and Enquiries panel:** plain "Loading…" text replaced by rows / cards shaped like the real ones.
+6. **Client area:** the dashboard placeholder (four grey blocks) is now the real header, four summary cards and two panels with ghosts for the data; the editor placeholder is the real header, section list, sections and preview panel in their loading state.
+7. Checked and left as they were: Dashboard, Templates, Create (per-section ghosts), sidebar, profile menu, plan strip. Tests added; 644 pass.
+
+**What next:** Preview image storage (see `task4.md`).
+
+---
+
 ### 15 Nov 2026 (89th update) – Egress: client area reads one invitation in full, not all (task4.md)
 
 **What was done**

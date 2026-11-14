@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { act } from "../../test/renderHook";
 import type { ReviewItem } from "../../lib/api";
 import type { InvitationRow } from "../../types/dashboard";
-import { ReviewsTable } from "./ReviewsTable";
+import { ReviewsTable, ReviewsTableSkeleton } from "./ReviewsTable";
 
 let host: HTMLDivElement, root: Root;
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
@@ -54,5 +54,26 @@ describe("ReviewsTable", () => {
     show([item()], vi.fn(), new Map());
     expect(host.textContent).toContain("Invitation unavailable");
     expect(host.querySelector(".row-avatar")?.textContent).toBe("?");
+  });
+
+  it("draws a skeleton with the same columns and cell layout as a real row, plus the footer", () => {
+    act(() => { root.render(<ReviewsTableSkeleton rows={3} />); });
+    const heads = [...host.querySelectorAll("thead th")].map((th) => th.textContent);
+    expect(heads).toEqual(["Couple", "Client", "Changes", "Submitted", "Actions"]);
+    const rows = host.querySelectorAll("tbody tr.sk-row");
+    expect(rows.length).toBe(3);
+    const row = rows[0];
+    /* every part a real row has: avatar, name, status chip + template name, client, count + field list, date + full date, two buttons */
+    for (const sel of [".row-avatar", ".cell-couple .cell-stack b", ".cell-line .chip", ".cell-line .tpl-name", ".td-client .client-email", ".td-changes b", ".td-changes .rv-fields", ".td-date .cell-date", ".td-date small.when", ".row-actions .act-btn"]) {
+      expect(row.querySelector(sel), sel).not.toBeNull();
+    }
+    expect(row.querySelectorAll(".row-actions .act-btn").length).toBe(2);
+    expect(host.querySelector(".table-foot")).not.toBeNull();
+  });
+
+  it("keeps the space but draws nothing while the load is still quick (hold)", () => {
+    act(() => { root.render(<ReviewsTableSkeleton hold />); });
+    expect(host.querySelector(".table-scroll")?.className).toContain("sk-hold");
+    expect(host.querySelector(".table-foot")?.className).toContain("sk-hold");
   });
 });

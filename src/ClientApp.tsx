@@ -2,13 +2,13 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { createPortal } from "react-dom";
 import { Link, Navigate, Route, Routes, useBlocker, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
-import { Loading, Sk } from "./components/Skeleton";
+import { Loading, SkText } from "./components/Skeleton";
 import { Clock, AlertCircle, CheckCircle2, Eye, Loader2, Lock, Save } from "./components/Icons";
 import { invitationToForm } from "./features/client/invitationToForm";
 import { CreateForm } from "./features/create/CreateForm";
 import { LivePreview, type FocusRequest } from "./features/create/components/LivePreview";
 import { SectionNav } from "./features/create/components/SectionNav";
-import { EN_TO_TE, PROGRESS_IDS, SECTIONS, uid } from "./features/create/constants";
+import { EN_TO_TE, PROGRESS_IDS, SECTIONS, initial, uid } from "./features/create/constants";
 import { scrollToSection } from "./features/create/scroll";
 import { useTransliteration } from "./features/create/hooks/useTransliteration";
 import { formReducer, initialFormState, snapshot } from "./features/create/formReducer";
@@ -102,6 +102,55 @@ function SubmitConfirm({ busy, onConfirm, onCancel }: { busy: boolean; onConfirm
       </div>
     </div>,
     document.body,
+  );
+}
+
+/* While the invitation is being read, the editor is drawn as it will look: the same header, section list and sections, with every field a ghost
+   (the form already ghosts its fields per section; this is the same state it shows before the invitation is ready) and the preview panel's own placeholder. */
+const noop = () => {};
+const GHOST_SECTIONS = Object.fromEntries(SECTIONS.map((x) => [x.id, true])) as Record<SectionId, boolean>;
+function ClientEditorSkeleton({ slot }: { slot: HTMLElement | null }) {
+  const headBtnRef = useRef<HTMLButtonElement>(null);
+  return (
+    <div className="create client-create" aria-busy="true">
+      <Loading label="Loading invitation" />
+      <header aria-hidden="true">
+        <div>
+          <div className="title-row"><h1><SkText w={22} /></h1></div>
+          <p><SkText w={46} /></p>
+        </div>
+        <div className="actions">
+          <button ref={headBtnRef} className="primary" type="button" disabled tabIndex={-1}><Save size={17} /> Submit for review</button>
+        </div>
+      </header>
+
+      <div className="create-builder-layout" aria-hidden="true">
+        <SectionNav
+          sections={CLIENT_SECTIONS} issues={{}} done={{}} doneCount={0} total={CLIENT_PROGRESS.length}
+          saving={false} saveDisabled saveLabel="Submit for review" headBtnRef={headBtnRef} loading
+        />
+        <CreateForm
+          mode="client" readOnly data={initial} categories={[]} templates={[]} categoryId="ALL" onCategory={noop}
+          sectionLoading={GHOST_SECTIONS} templatesLoading={false} expectTemplate={false}
+          set={noop} add={noop} patch={noop} remove={noop} focus={noop} vis={() => undefined} touch={noop}
+          tagFor={() => ({ tone: "", text: "Required", loading: true })}
+          onSubmit={(e) => e.preventDefault()} notify={noop} invitationId=""
+        />
+      </div>
+
+      <div className="mbar" aria-hidden="true">
+        <button className="secondary" type="button" disabled tabIndex={-1}><Eye size={17} /> Preview</button>
+        <button className="primary" type="button" disabled tabIndex={-1}><Save size={17} /> Submit</button>
+      </div>
+
+      {slot && (
+        <LivePreview
+          slot={slot} compiled="" loading open={false} focusRequest={null} onClose={noop}
+          emptyTitle="No preview available" emptyHint="This invitation has no template yet."
+        />
+      )}
+      <style>{createCss}</style>
+    </div>
   );
 }
 
@@ -342,18 +391,7 @@ function ClientEditor() {
     }
   };
 
-  if (loading && !list) {
-    return (
-      <div aria-busy="true">
-        <Loading label="Loading invitation" />
-        <div style={{ display: "grid", gap: 12 }} aria-hidden="true">
-          <Sk h={48} w="100%" r={12} />
-          <Sk h={120} w="100%" r={16} />
-          <Sk h={120} w="100%" r={16} />
-        </div>
-      </div>
-    );
-  }
+  if (loading && !list) return <ClientEditorSkeleton slot={slot} />;
   if (error || !list) {
     return (
       <div>
