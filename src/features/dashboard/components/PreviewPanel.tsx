@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
   Pencil, Smartphone, X,
 } from "../../../components/Icons";
 import { useTemplates } from "../../../hooks/useTemplates";
+import { fetchInvitation } from "../../../lib/api";
 import { compile } from "../../../lib/compileInvitation";
 import { coupleName } from "../../../lib/dashboardData";
 import { useEscape } from "../../../hooks/useEscape";
@@ -17,12 +18,26 @@ interface Props {
   onClose: () => void;
 }
 
-export function PreviewPanel({ slot, row, published, onClose }: Props) {
+export function PreviewPanel({ slot, row: listRow, published, onClose }: Props) {
+  /* The list row holds only the link ID. The full invitation is read for the one being previewed. */
+  const [full, setFull] = useState<InvitationRow | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFull(null);
+    setFailed(false);
+    if (!listRow.listOnly) return;
+    let live = true;
+    fetchInvitation(listRow.id).then((r) => { if (live) { if (r) setFull(r); else setFailed(true); } }, () => { if (live) setFailed(true); });
+    return () => { live = false; };
+  }, [listRow]);
+  const ready = !listRow.listOnly || full !== null;
+  const row = listRow.listOnly && full ? full : listRow;
   const asideRef = useRef<HTMLElement>(null);
   useEscape(true, onClose);
   const { templates, loading: tplLoading } = useTemplates();
   useEffect(() => { asideRef.current?.focus({ preventScroll: true }); }, []);
   const html = useMemo(() => {
+    if (!ready) return "";
     try {
       const tpl: TemplateRecord | undefined = templates.find((t) => String(t.id) === String(row.template_id ?? row.details?.templateId));
       const source = tpl?.html_code || "";
@@ -35,7 +50,7 @@ export function PreviewPanel({ slot, row, published, onClose }: Props) {
       };
       return compile(source, data);
     } catch { return ""; }
-  }, [row, templates]);
+  }, [row, templates, ready]);
 
   if (!slot) return null;
   return createPortal(
@@ -54,7 +69,9 @@ export function PreviewPanel({ slot, row, published, onClose }: Props) {
         {html ? (
           /* No allow-same-origin: invitation code must not reach the app's storage or cookies. */
           <iframe key={row.id} title="Invitation preview" srcDoc={html} sandbox="allow-scripts allow-forms allow-popups" />
-        ) : tplLoading ? (
+        ) : failed ? (
+          <div className="dx-empty-mini"><Smartphone size={22} /><b>Couldn’t load the preview</b><span>Check your connection and open it again.</span></div>
+        ) : tplLoading || !ready ? (
           <div className="dx-empty-mini"><Smartphone size={22} /><b>Loading preview…</b></div>
         ) : (
           <div className="dx-empty-mini"><Smartphone size={22} /><b>No preview available</b><span>This invitation has no template yet.</span></div>

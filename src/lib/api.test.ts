@@ -86,6 +86,44 @@ describe("egress", () => {
     expect(sel).not.toContain("proposed_details");
   });
 
+  it("invitation lists read the link ID only, not the whole details", async () => {
+    const { api, calls } = await load(() => ({ data: [{ id: "a", groom_name: "G", bride_name: "B", customId: "g-b", published: true, deleted_at: null }] }));
+    const list = await api.fetchInvitations(5);
+    const sel = has(calls[0], "select")?.[0] as string;
+    expect(sel).toContain("customId:details->>customId");
+    expect(sel.split(",").map((c) => c.trim())).not.toContain("details");
+    expect(list.rows[0].details).toEqual({ customId: "g-b" });
+    expect(list.rows[0].listOnly).toBe(true);
+    expect((list.rows[0] as unknown as Record<string, unknown>).customId).toBeUndefined();
+  });
+
+  it("a list row with no link ID gets empty details (links fall back to the id)", async () => {
+    const { api } = await load(() => ({ data: [{ id: "a", customId: null, published: true, deleted_at: null }] }));
+    expect((await api.fetchInvitations(5)).rows[0].details).toEqual({});
+  });
+
+  it("the names for the Review queue are read with the same small columns", async () => {
+    const { api, calls } = await load(() => ({ data: [{ id: "a", customId: null }] }));
+    const [r] = await api.fetchInvitationsByIds(["a"]);
+    expect(has(calls[0], "select")?.[0] as string).not.toMatch(/(^|, )details(,|$)/);
+    expect(r.listOnly).toBe(true);
+  });
+
+  it("one invitation (preview, editor, review detail) still reads the full details", async () => {
+    const { api, calls } = await load(() => ({ data: { id: "a", details: { venue: "Hall" }, published: true } }));
+    const r = await api.fetchInvitation("a");
+    expect(has(calls[0], "select")?.[0] as string).toMatch(/(^|, )details(,|$)/);
+    expect(r?.details).toEqual({ venue: "Hall" });
+    expect(r?.listOnly).toBeUndefined();
+  });
+
+  it("a list row cannot be saved: it would replace the real details with the link ID", async () => {
+    const { api, calls } = await load(() => ({ data: {} }));
+    const { rows } = await (await load(() => ({ data: [{ id: "a", customId: "x", published: true, deleted_at: null }] }))).api.fetchInvitations(5);
+    await expect(api.saveInvitation(rows[0])).rejects.toThrow(/incomplete/);
+    expect(calls).toHaveLength(0);
+  });
+
   it("the Pending chip reads one column", async () => {
     const { api, calls } = await load(() => ({ data: [{ invitation_id: "a" }] }));
     expect(await api.fetchPendingInvitationIds()).toEqual(["a"]);

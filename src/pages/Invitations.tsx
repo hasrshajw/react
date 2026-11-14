@@ -2,7 +2,7 @@ import dashboardCss from "../styles/dashboard.css?inline";
 import invitationsCss from "../features/invitations/invitations.css?inline";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Archive, Copy, EyeOff, Globe, Share, Trash2 } from "../components/Icons";
-import { fetchPendingInvitationIds, saveInvitation } from "../lib/api";
+import { fetchInvitation, fetchPendingInvitationIds, saveInvitation } from "../lib/api";
 import {
   copyText, coupleName, fmt, getInviteLink, isPast, shareOnWhatsApp, sortInvitations, topViewedId,
 } from "../lib/dashboardData";
@@ -156,14 +156,18 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
     if (preview?.id === x.id) closePanel();
   };
 
+  /* The list rows hold only the link ID, so both actions below read the full invitation first (one row, only when the person asks). */
   const duplicate = (x: InvitationRow) => {
-    const { views: _views, created_at: _createdAt, updated_at: _updatedAt, ...rest } = x;
-    saveInvitation({
-      ...rest,
-      id: uid(),
-      // The copy needs its own link: a custom link ID can only belong to one invitation.
-      details: x.details ? { ...x.details, customId: "" } : undefined,
-    }, { published: false }).then(
+    fetchInvitation(x.id).then((full) => {
+      if (!full) throw new Error("gone");
+      const { views: _views, created_at: _createdAt, updated_at: _updatedAt, ...rest } = full;
+      return saveInvitation({
+        ...rest,
+        id: uid(),
+        // The copy needs its own link: a custom link ID can only belong to one invitation.
+        details: full.details ? { ...full.details, customId: "" } : undefined,
+      }, { published: false });
+    }).then(
       (copy) => {
         store.writePub(copy.id, false);
         store.reload();
@@ -174,7 +178,10 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   };
 
   const saveLink = (x: InvitationRow, slug: string) => {
-    saveInvitation({ ...x, details: { ...(x.details || {}), customId: slug } }).then(
+    fetchInvitation(x.id).then((full) => {
+      if (!full) throw new Error("That invitation no longer exists.");
+      return saveInvitation({ ...full, details: { ...(full.details || {}), customId: slug } });
+    }).then(
       () => { store.reload(); notify(slug ? "Link updated" : "Custom link removed"); },
       (e) => notify(e instanceof Error ? e.message : "Couldn’t update the link."),
     );

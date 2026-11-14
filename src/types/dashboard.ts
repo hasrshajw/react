@@ -14,8 +14,12 @@ export interface InvitationRow {
   template_name?: string;
   /** Linked client login (verified email). Top-level column, not inside details. */
   client_email?: string | null;
-  /** The form data as saved. The same shape the editor and the compiler use (Partial because old rows may lack newer fields). */
+  /** The form data as saved. The same shape the editor and the compiler use (Partial because old rows may lack newer fields).
+   *  On a row read for a list (`listOnly`) this holds only `customId`; read the whole invitation with `fetchInvitation(id)` before using it for anything else. */
   details?: Partial<InvitationData>;
+  /** Set on rows read for the admin lists: `details` is cut down to `customId` so the list does not download every invitation's full data.
+   *  `saveInvitation` refuses such a row, because saving it would overwrite the real details. */
+  listOnly?: boolean;
 }
 
 /** A template plus the optional fields a real API may add (thumbnail, alternate name/html keys). */

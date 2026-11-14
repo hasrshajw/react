@@ -9,6 +9,7 @@ import type { InvitationRow } from "../types/dashboard";
    (`lib/api`) and the CSV download are replaced, so what is checked is what the person sees and what is sent to be saved. */
 const h = vi.hoisted(() => ({
   fetchInvitations: vi.fn(),
+  fetchInvitation: vi.fn(),
   savePublished: vi.fn(),
   saveDeleted: vi.fn(),
   saveInvitation: vi.fn(),
@@ -21,6 +22,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock("../lib/api", () => ({
   fetchInvitations: (...a: unknown[]) => h.fetchInvitations(...a),
+  fetchInvitation: (id: string) => h.fetchInvitation(id),
   savePublished: (m: unknown) => h.savePublished(m),
   saveDeleted: (m: unknown) => h.saveDeleted(m),
   saveInvitation: (...a: unknown[]) => h.saveInvitation(...a),
@@ -383,13 +385,18 @@ describe("row menu", () => {
   it("Duplicate saves a copy as a draft with its own link id, then reloads", async () => {
     const withLink = [row("a", "Arjun", "Meera", { details: { customId: "arjun-meera" } as InvitationRow["details"], views: 9 })];
     h.saveInvitation.mockImplementation(async (r: InvitationRow) => r);
+    /* The list row holds only the link ID; the copy must be made from the full invitation. */
+    h.fetchInvitation.mockResolvedValue({ ...withLink[0], listOnly: undefined, details: { customId: "arjun-meera", venueEn: "Hall 7", events: [{ name: "Reception" }] } });
     await show("/invitations", { rows: withLink, published: {}, deleted: {} });
     openMenu(0);
     click(btn("Duplicate"));
     await flush(); await flush();
+    expect(h.fetchInvitation).toHaveBeenCalledWith("a");
     const [copy, opts] = h.saveInvitation.mock.calls[0] as [InvitationRow, { published: boolean }];
     expect(copy.id).not.toBe("a");
     expect(copy.details?.customId).toBe("");
+    expect((copy.details as Record<string, unknown>).venueEn).toBe("Hall 7");
+    expect(copy.listOnly).toBeUndefined();
     expect(copy.views).toBeUndefined();
     expect(opts).toEqual({ published: false });
     expect(text()).toContain("Duplicated Arjun & Meera as a draft");
@@ -397,11 +404,23 @@ describe("row menu", () => {
   });
 
   it("tells the person when a duplicate could not be saved", async () => {
+    h.fetchInvitation.mockResolvedValue({ id: "a", groom_name: "A", bride_name: "B", details: {} });
     h.saveInvitation.mockRejectedValue(new Error("x"));
     await show();
     openMenu(0);
     click(btn("Duplicate"));
     await flush(); await flush();
+    expect(text()).toContain("Couldn’t duplicate that invitation.");
+  });
+
+  it("tells the person when the full invitation could not be read to duplicate it", async () => {
+    h.fetchInvitation.mockRejectedValue(new Error("offline"));
+    h.saveInvitation.mockClear();
+    await show();
+    openMenu(0);
+    click(btn("Duplicate"));
+    await flush(); await flush();
+    expect(h.saveInvitation).not.toHaveBeenCalled();
     expect(text()).toContain("Couldn’t duplicate that invitation.");
   });
 

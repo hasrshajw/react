@@ -123,6 +123,9 @@ export async function readAllPages(page: (from: number, to: number) => PromiseLi
 /* Columns the admin lists read. `slug` and `owner` stay on the server (splitRow dropped them anyway), and a column added later
    (for example the Track B client email) does not reach the list until it is added here on purpose. */
 const INVITATION_COLUMNS = "id, groom_name, bride_name, event_date, template_id, template_name, details, views, published, deleted_at, created_at, updated_at, client_email";
+/* Lists (Dashboard, All invitations, Review queue names) do not need the whole `details` (it holds every field, event and contact of the invitation).
+   They read only the link ID out of it (`customId`, used for links, QR and the duplicate-link check). Preview, Duplicate, Edit link and the editor read the full row. */
+const INVITATION_LIST_COLUMNS = "id, groom_name, bride_name, event_date, template_id, template_name, customId:details->>customId, views, published, deleted_at, created_at, updated_at, client_email";
 const ENQUIRY_COLUMNS = "id, name, phone, email, message, status, note, follow_up_date, history, created_at";
 
 const slugOf = (x: InvitationRow) => (x.details?.customId || "").trim() || x.id;
@@ -130,13 +133,19 @@ const slugOf = (x: InvitationRow) => (x.details?.customId || "").trim() || x.id;
 /** Splits the database-only columns (published, deleted_at) out of a row. */
 function splitRow(r: DbRow): { row: InvitationRow; published: boolean; deletedAt: number | null } {
   const { published, deleted_at, slug: _slug, owner: _owner, ...row } = r;
+  /* A list row has `customId` instead of `details` (INVITATION_LIST_COLUMNS): rebuild the small `details` the list code reads, and mark the row. */
+  if ("customId" in row) {
+    const { customId, ...rest } = row;
+    const slim = { ...rest, details: typeof customId === "string" && customId ? { customId } : {}, listOnly: true };
+    return { row: slim as unknown as InvitationRow, published: published !== false, deletedAt: typeof deleted_at === "string" && deleted_at ? Date.parse(deleted_at) : null };
+  }
   return { row: row as unknown as InvitationRow, published: published !== false, deletedAt: typeof deleted_at === "string" && deleted_at ? Date.parse(deleted_at) : null };
 }
 
 /** Reads run after any flag writes that were already sent, so the list always includes them (H-6). */
 export function fetchInvitations(limit: number = LIST_LIMIT): Promise<InvitationList> {
   return inOrder(async () => {
-    const data = await readAllPages((from, to) => db().from("invitations").select(INVITATION_COLUMNS)
+    const data = await readAllPages((from, to) => db().from("invitations").select(INVITATION_LIST_COLUMNS)
       .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to), limit);
     const rows: InvitationRow[] = [];
     const published: PublishMap = {};
@@ -161,6 +170,8 @@ export async function fetchInvitation(id: string): Promise<InvitationRow | null>
 
 /** Creates or updates one invitation. The link ID (details.customId) must be unique. */
 export async function saveInvitation(record: InvitationRow, opts: { published?: boolean } = {}): Promise<InvitationRow> {
+  /* A list row only holds the link ID. Saving it would replace the invitation's real data with that, so it is refused: read the full row first. */
+  if (record.listOnly) throw new ApiError("This invitation was read for a list and is incomplete. Load the full invitation before saving it.");
   /* `published` is written only when the caller says so (a new copy that must never be public, task H-6 gap). Left out,
      a new row takes the column default (true) and an existing row keeps its value.
      `client_email` is a top-level column (Track B); it is never stored inside details. Empty string clears the link. */
@@ -539,7 +550,7 @@ export async function fetchInvitationSummary(): Promise<InvitationSummary> {
 export async function fetchInvitationsByIds(ids: string[]): Promise<InvitationRow[]> {
   const unique = [...new Set(ids)].slice(0, 200);
   if (!unique.length) return [];
-  const { data, error } = await db().from("invitations").select(INVITATION_COLUMNS).in("id", unique);
+  const { data, error } = await db().from("invitations").select(INVITATION_LIST_COLUMNS).in("id", unique);
   if (error) fail(error);
   return (Array.isArray(data) ? (data as DbRow[]) : []).map((r) => splitRow(r).row);
 }
