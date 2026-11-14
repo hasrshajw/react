@@ -57,6 +57,15 @@ describe("client editor layout", () => {
     expect(h.querySelector(".mbar")?.textContent).toContain("Preview");
   });
 
+  it("uses the admin shell frame: a top strip with the Schedy mark, then the rounded app area", async () => {
+    const h = await open();
+    const strip = h.querySelector(".client-ws > header.client-promo");
+    expect(strip?.querySelector(".promo-mark img")).toBeTruthy();
+    expect(strip?.textContent).toContain("Schedy");
+    expect(strip?.textContent).toContain("Log out");
+    expect(h.querySelector(".client-ws-body > .client-app > .main-content")).toBeTruthy();
+  });
+
   it("typing English fills the Telugu field, like the admin form", async () => {
     const h = await open();
     const en = h.querySelector<HTMLInputElement>("#f-groomEn")!;

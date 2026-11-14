@@ -39,6 +39,7 @@ import { has, validateInvitation } from "./lib/validate";
 import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "./types/invitation";
 import createCss from "./features/create/create.css?inline";
 import clientWsCss from "./features/client/clientWorkspace.css?inline";
+import schedyMark from "./assets/schedy-mark.svg";
 
 /* Track B (B4 shell + B6 client editor). Separate chunk so clients never download admin code. */
 
@@ -568,16 +569,21 @@ function ClientEditor() {
   return (
     <div className="client-ws">
       <style>{clientWsCss}</style>
-      <header className="client-topbar">
-        <span className="client-brand">Schedy</span>
-        {list.length > 1 && (
-          <Link to="/my" className="client-crumb"><ChevronLeft size={16} /> All invitations</Link>
-        )}
-        <span className="client-spacer" />
-        {session?.email && <span className="client-email" title={session.email}>{session.email}</span>}
-        <button type="button" className="client-logout" onClick={() => navigate("/login", { replace: true, state: { loggedOut: true } })}>
-          <LogOut size={15} /> Log out
-        </button>
+      {/* Same strip as the admin shell: the violet glow is drawn by .client-ws behind it. */}
+      <header className="client-promo">
+        <div className="promo-brand">
+          <span className="promo-mark" aria-hidden="true"><img src={schedyMark} alt="" /></span>
+          <span className="promo-name">Schedy</span>
+        </div>
+        <div className="promo-right">
+          {list.length > 1 && (
+            <Link to="/my" className="promo-link"><ChevronLeft size={15} /> All invitations</Link>
+          )}
+          {session?.email && <span className="promo-email" title={session.email}>{session.email}</span>}
+          <button type="button" className="promo-link" onClick={() => navigate("/login", { replace: true, state: { loggedOut: true } })}>
+            <LogOut size={14} /> Log out
+          </button>
+        </div>
       </header>
 
       <div className="client-ws-body">
