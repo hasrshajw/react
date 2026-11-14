@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isoDay } from "../../../lib/dashboardData";
 import { useLatest } from "../../../hooks/useLatest";
-import { fetchEnquiries, saveEnquiry } from "../../../lib/api";
+import { fetchEnquiries, fetchEnquiryFingerprint, saveEnquiry } from "../../../lib/api";
 import type { Enquiry, EnquiryStatus, Notify } from "../../../types/dashboard";
 
 const STATUS_TOAST: Record<EnquiryStatus, string> = {
@@ -21,9 +21,12 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
      overwrites what the person just did. Same rule as the invitation flags (H-6). */
   const changes = useRef(0);
   const saving = useRef(0);
+  /* What the server held when the list was last read. The background check compares against it and downloads the list only on a change. */
+  const seen = useRef<string | null>(null);
 
   useEffect(() => {
     let live = true;
+    fetchEnquiryFingerprint().then((f) => { if (live && seen.current === null) seen.current = f; }, () => {});
     fetchEnquiries().then(
       (rows) => { if (live) { setEnquiries(rows); setLoading(false); } },
       () => { if (live) setLoading(false); },
@@ -35,10 +38,16 @@ export function useEnquiries(notify: Notify, onCountChange?: (n: number) => void
   const refresh = useCallback(() => {
     if (document.hidden || saving.current > 0) return;
     const started = changes.current;
-    fetchEnquiries().then(
-      (rows) => { if (changes.current === started && saving.current === 0) setEnquiries(rows); },
+    /* One tiny request (count + newest id). The whole list, with every history, is downloaded only when something new arrived. */
+    fetchEnquiryFingerprint().then(
+      (f) => {
+        if (f === seen.current) return;
+        return fetchEnquiries().then((rows) => {
+          if (changes.current === started && saving.current === 0) { setEnquiries(rows); seen.current = f; }
+        });
+      },
       () => { /* silent: the list on screen stays as it is */ },
-    );
+    ).catch(() => { /* silent */ });
   }, []);
   useEffect(() => {
     if (loading) return;

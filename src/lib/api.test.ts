@@ -60,6 +60,39 @@ describe("small reads", () => {
   });
 });
 
+describe("egress", () => {
+  it("templates (full HTML) are read once and shared, not downloaded again on every open", async () => {
+    const { api, calls } = await load((c) => (c.table === "templates" ? { data: [{ id: "t1", category_id: "c", name: "T", html_code: "<p>x</p>" }] } : { data: [] }));
+    await Promise.all([api.fetchTemplates(), api.fetchTemplates()]);
+    await api.fetchTemplates();
+    expect(calls.filter((c) => c.table === "templates")).toHaveLength(1);
+    api.clearTemplatesCache();
+    await api.fetchTemplates();
+    expect(calls.filter((c) => c.table === "templates")).toHaveLength(2);
+  });
+
+  it("marking several notifications read is one request", async () => {
+    const { api, calls } = await load(() => ({}));
+    await api.markNotificationsRead([1, 2, 3]);
+    const n = calls.filter((c) => c.table === "notifications");
+    expect(n).toHaveLength(1);
+    expect(has(n[0], "in")).toEqual(["id", [1, 2, 3]]);
+  });
+
+  it("the review list does not download the proposed invitation data", async () => {
+    const { api, calls } = await load(() => ({ data: [] }));
+    await api.fetchReviewPage("pending", 10);
+    const sel = has(calls.find((c) => c.table === "change_requests")!, "select")?.[0] as string;
+    expect(sel).not.toContain("proposed_details");
+  });
+
+  it("the Pending chip reads one column", async () => {
+    const { api, calls } = await load(() => ({ data: [{ invitation_id: "a" }] }));
+    expect(await api.fetchPendingInvitationIds()).toEqual(["a"]);
+    expect(has(calls.find((c) => c.table === "change_requests")!, "select")?.[0]).toBe("invitation_id");
+  });
+});
+
 describe("review queue paging", () => {
   it("reads limit+1 rows, newest first, to know whether \"View more\" is needed", async () => {
     const mk = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `q${i}`, invitation_id: "i1", client_email: "c@x.com", base_updated_at: "t", created_at: "t", status: "pending", changed_keys: [], proposed_details: {} }));

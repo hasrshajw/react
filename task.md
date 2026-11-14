@@ -1,3 +1,15 @@
+### 14 Nov 2026 (87th update) – Egress: alerts (notifications), enquiries polling, review list, templates
+
+**What was done**
+
+1. **Alerts / notifications bell:** a Realtime message now updates the list on screen from the row it carries, with no download (before: the whole list of 40 was read again for every message). "Mark all read" is one request (`markNotificationsRead`) instead of one per notification, and it used to trigger one full re-read per update. Returning to the tab reads at most once a minute (focus and visibilitychange both fired a read).
+2. **Enquiries on the Dashboard:** the 60 s refresh no longer downloads every enquiry with its history. It asks one tiny question (`fetchEnquiryFingerprint`: count + newest id) and reads the full list only when that changed.
+3. **All invitations "Pending review" chip:** reads one column (`fetchPendingInvitationIds`) instead of up to 200 full change requests with their proposed data.
+4. **Review queue:** the list no longer carries `proposed_details`; it is read for the one request that is opened (`fetchReviewProposed`).
+5. **Templates (full HTML):** `fetchTemplates` is shared and kept for 10 minutes, so opening a preview, the Create page or Manage Templates no longer downloads every template again. Cleared on sign-out.
+
+---
+
 ### 14 Nov 2026 (86th update) – Admin lists load a few rows first: Dashboard 5, All invitations 10, Review queue 10
 
 **What was done**

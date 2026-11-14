@@ -14,7 +14,7 @@ const h = vi.hoisted(() => ({
   saveInvitation: vi.fn(),
   fetchExpiredTrashIds: vi.fn(),
   deleteInvitation: vi.fn(),
-  fetchReviewQueue: vi.fn(),
+  fetchPendingInvitationIds: vi.fn(),
   fetchInvitationSummary: vi.fn(),
   exportCsv: vi.fn(),
 }));
@@ -26,7 +26,7 @@ vi.mock("../lib/api", () => ({
   saveInvitation: (...a: unknown[]) => h.saveInvitation(...a),
   fetchExpiredTrashIds: () => h.fetchExpiredTrashIds(),
   deleteInvitation: (id: string) => h.deleteInvitation(id),
-  fetchReviewQueue: () => h.fetchReviewQueue(),
+  fetchPendingInvitationIds: () => h.fetchPendingInvitationIds(),
   fetchInvitationSummary: () => h.fetchInvitationSummary(),
 }));
 vi.mock("../features/invitations/utils", async () => {
@@ -85,7 +85,7 @@ beforeEach(() => {
   h.savePublished.mockResolvedValue(undefined);
   h.saveDeleted.mockResolvedValue(undefined);
   h.fetchExpiredTrashIds.mockResolvedValue([]);
-  h.fetchReviewQueue.mockResolvedValue([]);
+  h.fetchPendingInvitationIds.mockResolvedValue([]);
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
@@ -228,9 +228,7 @@ describe("search and filters", () => {
   });
 
   it("shows the Client column and a Pending review chip when the queue has that invitation", async () => {
-    h.fetchReviewQueue.mockResolvedValue([
-      { id: "r1", invitationId: "a", clientEmail: "client.a@example.com", baseUpdatedAt: "", createdAt: "", status: "pending", changedKeys: [], proposedDetails: {} },
-    ]);
+    h.fetchPendingInvitationIds.mockResolvedValue(["a"]);
     await show();
     await flush();
     expect(text()).toContain("client.a@example.com");

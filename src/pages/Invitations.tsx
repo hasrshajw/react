@@ -2,7 +2,7 @@ import dashboardCss from "../styles/dashboard.css?inline";
 import invitationsCss from "../features/invitations/invitations.css?inline";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Archive, Copy, EyeOff, Globe, Share, Trash2 } from "../components/Icons";
-import { fetchReviewQueue, saveInvitation } from "../lib/api";
+import { fetchPendingInvitationIds, saveInvitation } from "../lib/api";
 import {
   copyText, coupleName, fmt, getInviteLink, isPast, shareOnWhatsApp, sortInvitations, topViewedId,
 } from "../lib/dashboardData";
@@ -65,10 +65,10 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   /* Pending change requests (admin only; RLS returns nothing for others). Used for the "Pending review" chip. */
   useEffect(() => {
     let live = true;
-    fetchReviewQueue().then(
-      (items) => {
+    fetchPendingInvitationIds().then(
+      (ids) => {
         if (!live) return;
-        setPendingIds(new Set(items.map((i) => i.invitationId)));
+        setPendingIds(new Set(ids));
       },
       () => { /* list still works without the chip */ },
     );

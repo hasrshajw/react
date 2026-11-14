@@ -8,7 +8,7 @@ import { ReviewDetail } from "../features/reviews/ReviewDetail";
 import { STATUS_LABEL } from "../features/reviews/status";
 import { ReviewsTable, ReviewsTableSkeleton } from "../features/reviews/ReviewsTable";
 import { fieldLabel } from "../features/reviews/fieldLabels";
-import { fetchInvitationsByIds, fetchPendingReviewCount, fetchReviewPage, type RequestStatus, type ReviewItem } from "../lib/api";
+import { fetchInvitationsByIds, fetchPendingReviewCount, fetchReviewPage, fetchReviewProposed, type RequestStatus, type ReviewItem } from "../lib/api";
 import { Loader2 } from "../components/Icons";
 import { coupleName } from "../lib/dashboardData";
 import type { InvitationRow } from "../types/dashboard";
@@ -95,13 +95,31 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
     if (term0 && hasMore && limitRef.current < SEARCH_LIMIT) { limitRef.current = SEARCH_LIMIT; load(true); }
   }, [term0, hasMore, load]);
 
-  const selected = useMemo(
+  const picked = useMemo(
     () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
     [items, selectedId],
   );
 
+  /* The list does not carry the proposed invitation data (it can be large). It is read for the one request that is open. */
+  const [proposed, setProposed] = useState<{ id: string; data: ReviewItem["proposedDetails"] } | null>(null);
+  const [proposedFailed, setProposedFailed] = useState(false);
+  useEffect(() => {
+    setProposedFailed(false);
+    if (!selectedId) { setProposed(null); return; }
+    let live = true;
+    fetchReviewProposed(selectedId).then(
+      (data) => { if (live) setProposed({ id: selectedId, data }); },
+      () => { if (live) setProposedFailed(true); },
+    );
+    return () => { live = false; };
+  }, [selectedId]);
+  const selected = useMemo(
+    () => (picked && proposed?.id === picked.id ? { ...picked, proposedDetails: proposed.data } : null),
+    [picked, proposed],
+  );
+
   const panelChangeRef = useLatest(onPanelChange);
-  useEffect(() => { panelChangeRef.current?.(!!selected); }, [selected, panelChangeRef]);
+  useEffect(() => { panelChangeRef.current?.(!!picked); }, [picked, panelChangeRef]);
   useEffect(() => () => panelChangeRef.current?.(false), [panelChangeRef]);
 
   const term = q.trim().toLowerCase();
@@ -126,7 +144,7 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
 
   return (
     <div className="dashboard-page inv-page" aria-busy={loading || refreshing}>
-      {!selected && (
+      {!picked && (
         <>
         <PageHeader
           title="Review queue"
@@ -217,6 +235,21 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
 
         </div>
         </>
+      )}
+
+      {picked && !selected && (
+        <div className="empty-state" role={proposedFailed ? "alert" : "status"}>
+          {proposedFailed ? (
+            <>
+              <div className="empty-icon err"><AlertTriangle size={22} /></div>
+              <b>Couldn’t open this request</b>
+              <span>Check your connection and try again.</span>
+              <button type="button" className="empty-btn" onClick={() => setSelectedId(null)}>Back to the queue</button>
+            </>
+          ) : (
+            <><div className="empty-icon"><Loader2 className="spin" size={22} /></div><b>Opening request…</b></>
+          )}
+        </div>
       )}
 
       {/* Focused view: while a request is open, the left side shows only that request (the proposed preview is on the right). */

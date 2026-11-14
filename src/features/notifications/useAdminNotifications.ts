@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchNotifications, markNotificationRead, type AppNotification } from "../../lib/api";
+import { fetchNotifications, markNotificationRead, markNotificationsRead, toNotification, type AppNotification } from "../../lib/api";
 import { db, SUPABASE_CONFIGURED } from "../../lib/supabase";
 
 /** Admin notification list + unread count for the navbar bell (B5).
@@ -34,34 +34,60 @@ export function useAdminNotifications(limit = 40) {
     return () => { alive.current = false; };
   }, [load]);
 
-  /* Realtime: any insert/update on notifications that RLS allows through. */
+  /* Realtime. The message already carries the changed row, so it is applied to the list on screen: no download at all.
+     (This used to read the whole list again for every message, and marking 20 notifications read caused 20 full reads.)
+     Only if a message is unusable does one delayed re-read happen. */
+  const lastLoad = useRef(Date.now());
+  useEffect(() => { if (!loading) lastLoad.current = Date.now(); }, [loading, items]);
   useEffect(() => {
     if (!SUPABASE_CONFIGURED) return;
     let channel: ReturnType<ReturnType<typeof db>["channel"]> | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const reloadLater = () => { clearTimeout(timer); timer = setTimeout(() => load(true), 2000); };
     try {
       channel = db()
         .channel("admin-notifications")
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "notifications" },
-          () => { load(true); },
+          (msg: { eventType?: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+            if (!alive.current) return;
+            if (msg.eventType === "DELETE") {
+              const id = msg.old?.id;
+              if (typeof id === "number") setItems((list) => list.filter((n) => n.id !== id));
+              else reloadLater();
+              return;
+            }
+            const n = toNotification(msg.new);
+            if (!n) { reloadLater(); return; }
+            setItems((list) => {
+              const at = list.findIndex((x) => x.id === n.id);
+              if (at >= 0) return list.map((x) => (x.id === n.id ? n : x));
+              return [n, ...list].slice(0, limit);
+            });
+          },
         )
         .subscribe();
     } catch {
-      /* Realtime unavailable; focus/poll still work */
+      /* Realtime unavailable; coming back to the tab still refreshes */
     }
-    const onFocus = () => load(true);
-    const onVisible = () => { if (!document.hidden) load(true); };
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisible);
+    /* Coming back to the tab: one read, and not more than once a minute (focus and visibilitychange both fire, and each used to read). */
+    const refreshIfStale = () => {
+      if (document.hidden || Date.now() - lastLoad.current < 60_000) return;
+      lastLoad.current = Date.now();
+      load(true);
+    };
+    window.addEventListener("focus", refreshIfStale);
+    document.addEventListener("visibilitychange", refreshIfStale);
     return () => {
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisible);
+      clearTimeout(timer);
+      window.removeEventListener("focus", refreshIfStale);
+      document.removeEventListener("visibilitychange", refreshIfStale);
       if (channel) {
         try { void db().removeChannel(channel); } catch { /* ignore */ }
       }
     };
-  }, [load]);
+  }, [load, limit]);
 
   const unread = useMemo(() => items.filter((n) => !n.readAt).length, [items]);
 
@@ -82,7 +108,7 @@ export function useAdminNotifications(limit = 40) {
     const now = new Date().toISOString();
     setItems((list) => list.map((n) => (n.readAt ? n : { ...n, readAt: now })));
     try {
-      await Promise.all(unreadIds.map((id) => markNotificationRead(id)));
+      await markNotificationsRead(unreadIds);
     } catch {
       setItems(prev);
     }

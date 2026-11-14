@@ -40,7 +40,22 @@ export async function fetchAccount(): Promise<Account> {
 }
 
 /* ---------- templates ---------- */
-export async function fetchTemplates(): Promise<{ templates: Template[]; categories: Category[] }> {
+/* Templates carry their full HTML and are only changed in the database, never from this app. They used to be downloaded again every time
+   a preview panel, the Create page or Manage Templates opened. Now one read is shared for 10 minutes (and by readers that open together). */
+const TEMPLATES_TTL = 10 * 60_000;
+let templatesCache: { at: number; value: Promise<{ templates: Template[]; categories: Category[] }> } | null = null;
+export function clearTemplatesCache(): void { templatesCache = null; }
+onUserDataReset(() => { templatesCache = null; });
+
+export function fetchTemplates(): Promise<{ templates: Template[]; categories: Category[] }> {
+  if (templatesCache && Date.now() - templatesCache.at < TEMPLATES_TTL) return templatesCache.value;
+  const value = readTemplates();
+  templatesCache = { at: Date.now(), value };
+  value.catch(() => { if (templatesCache?.value === value) templatesCache = null; });
+  return value;
+}
+
+async function readTemplates(): Promise<{ templates: Template[]; categories: Category[] }> {
   const [t, c] = await Promise.all([
     db().from("templates").select("id, category_id, name, html_code").order("created_at", { ascending: true }),
     db().from("categories").select("id, name").order("name", { ascending: true }),
@@ -308,6 +323,15 @@ export async function fetchNewEnquiryCount(): Promise<number> {
   return count ?? 0;
 }
 
+/** A tiny "has anything been added?" check for the background refresh: the number of enquiries and the newest id, in one request that
+ *  downloads one row. The full list is read again only when this changes. */
+export async function fetchEnquiryFingerprint(): Promise<string> {
+  const { data, count, error } = await db().from("enquiries").select("id", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1);
+  if (error) fail(error);
+  const newest = Array.isArray(data) && data[0] ? String((data[0] as DbRow).id) : "";
+  return `${count ?? 0}:${newest}`;
+}
+
 /** Saves status, note and follow-up date. `history` is not sent: the database appends an entry (with the server time)
  *  when the status changes (migration 008, task L-7). Returns the history as the server now holds it. */
 export async function saveEnquiry(e: Enquiry): Promise<Enquiry["history"]> {
@@ -415,6 +439,8 @@ export async function fetchIsAdmin(): Promise<boolean> {
 }
 
 const REVIEW_COLUMNS = "id, invitation_id, client_email, base_updated_at, created_at, status, changed_keys, proposed_details";
+/* The list does not need the proposed invitation data (it can be large); the detail view reads it for the one request that is open. */
+const REVIEW_LIST_COLUMNS = "id, invitation_id, client_email, base_updated_at, created_at, status, changed_keys";
 const REVIEW_STATUSES: readonly RequestStatus[] = ["pending", "approved", "rejected", "withdrawn", "superseded"];
 
 const toReviewItem = (r: DbRow): ReviewItem => ({
@@ -471,12 +497,27 @@ export async function fetchInvitationsByIds(ids: string[]): Promise<InvitationRo
 
 /** One page of the review queue, newest first. Reads one extra row to know whether "View more" has anything to show. */
 export async function fetchReviewPage(status: RequestStatus | "all" = "pending", limit = 10): Promise<{ items: ReviewItem[]; hasMore: boolean }> {
-  let q = db().from("change_requests").select(REVIEW_COLUMNS);
+  let q = db().from("change_requests").select(REVIEW_LIST_COLUMNS);
   if (status !== "all") q = q.eq("status", status);
   const { data, error } = await q.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1);
   if (error) fail(error);
   const rows = Array.isArray(data) ? (data as DbRow[]) : [];
   return { items: rows.slice(0, limit).map(toReviewItem), hasMore: rows.length > limit };
+}
+
+/** The proposed invitation data of one change request (read when the admin opens it). */
+export async function fetchReviewProposed(id: string): Promise<ReviewItem["proposedDetails"]> {
+  const { data, error } = await db().from("change_requests").select("proposed_details").eq("id", id).maybeSingle();
+  if (error) fail(error);
+  const d = (data as DbRow | null)?.proposed_details;
+  return (d && typeof d === "object" ? d : {}) as ReviewItem["proposedDetails"];
+}
+
+/** Ids of invitations that have a pending change request: one column, no request data (the "Pending review" chip). */
+export async function fetchPendingInvitationIds(): Promise<string[]> {
+  const { data, error } = await db().from("change_requests").select("invitation_id").eq("status", "pending").limit(1000);
+  if (error) fail(error);
+  return (Array.isArray(data) ? (data as DbRow[]) : []).map((r) => String(r.invitation_id));
 }
 
 /** How many change requests are still pending (admin badge). Count only — no rows downloaded. */
@@ -495,17 +536,23 @@ export async function reviewChangeRequest(requestId: string, decision: ReviewDec
 
 const NOTIFICATION_COLUMNS = "id, audience, type, invitation_id, request_id, payload, read_at, created_at";
 
+/** Turns a notifications row (from a read or from a Realtime message) into an app value. Returns null when the row is not usable. */
+export function toNotification(r: DbRow | null | undefined): AppNotification | null {
+  if (!r || typeof r.id !== "number" || typeof r.type !== "string") return null;
+  return {
+    id: r.id, audience: r.audience as AppNotification["audience"], type: r.type,
+    invitationId: (r.invitation_id ?? null) as string | null, requestId: (r.request_id ?? null) as string | null,
+    payload: (r.payload && typeof r.payload === "object" ? r.payload : {}) as Record<string, unknown>,
+    readAt: (r.read_at ?? null) as string | null, createdAt: (r.created_at ?? "") as string,
+  };
+}
+
 /** Notifications the person may see (RLS: their own, plus the shared admin ones for an admin), newest first. */
 export async function fetchNotifications(limit = 50): Promise<AppNotification[]> {
   const { data, error } = await db().from("notifications").select(NOTIFICATION_COLUMNS).order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(Math.min(Math.max(1, Math.floor(limit) || 50), 200));
   if (error) fail(error);
-  return (Array.isArray(data) ? (data as DbRow[]) : []).map((r) => ({
-    id: r.id as number, audience: r.audience as AppNotification["audience"], type: r.type as string,
-    invitationId: (r.invitation_id ?? null) as string | null, requestId: (r.request_id ?? null) as string | null,
-    payload: (r.payload && typeof r.payload === "object" ? r.payload : {}) as Record<string, unknown>,
-    readAt: (r.read_at ?? null) as string | null, createdAt: r.created_at as string,
-  }));
+  return (Array.isArray(data) ? (data as DbRow[]) : []).map(toNotification).filter((n): n is AppNotification => !!n);
 }
 
 /** Marks one notification read. Only `read_at` can be written (column grant); an admin notification is shared, so this marks it for every admin. */
@@ -514,3 +561,9 @@ export async function markNotificationRead(id: number): Promise<void> {
   if (error) fail(error);
 }
 
+/** Marks several notifications read in ONE request (marking each one separately sent N requests and caused N Realtime refreshes). */
+export async function markNotificationsRead(ids: number[]): Promise<void> {
+  if (!ids.length) return;
+  const { error } = await db().from("notifications").update({ read_at: new Date().toISOString() }).in("id", ids).is("read_at", null);
+  if (error) fail(error);
+}

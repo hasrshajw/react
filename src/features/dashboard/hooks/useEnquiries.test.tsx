@@ -3,11 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, advance, flush, renderHook } from "../../../test/renderHook";
 import type { Enquiry } from "../../../types/dashboard";
 
-vi.mock("../../../lib/api", () => ({ fetchEnquiries: vi.fn(), saveEnquiry: vi.fn() }));
-import { fetchEnquiries, saveEnquiry } from "../../../lib/api";
+vi.mock("../../../lib/api", () => ({ fetchEnquiries: vi.fn(), fetchEnquiryFingerprint: vi.fn(), saveEnquiry: vi.fn() }));
+import { fetchEnquiries, fetchEnquiryFingerprint, saveEnquiry } from "../../../lib/api";
 import { useEnquiries } from "./useEnquiries";
 
 const fetchMock = vi.mocked(fetchEnquiries);
+const fpMock = vi.mocked(fetchEnquiryFingerprint);
 const saveMock = vi.mocked(saveEnquiry);
 let hidden = false;
 
@@ -17,6 +18,7 @@ const enq = (id: string, extra: Partial<Enquiry> = {}): Enquiry => ({
 
 async function setup(list = [enq("a"), enq("b", { status: "followup" })]) {
   fetchMock.mockResolvedValue(list);
+  fpMock.mockResolvedValue("2:b");
   const notify = vi.fn();
   const onCount = vi.fn();
   const h = renderHook(() => useEnquiries(notify, onCount));
@@ -179,8 +181,21 @@ describe("refresh every 60 s (M-6, H-6 rule)", () => {
   it("picks up new enquiries", async () => {
     const { h } = await setup();
     fetchMock.mockResolvedValue([enq("a"), enq("b"), enq("new1")]);
+    fpMock.mockResolvedValue("3:new1");
     await advance(60000);
     expect(h.result.current.enquiries.length).toBe(3);
+    h.unmount();
+  });
+
+  it("downloads the full list only when the count or newest id changed (egress)", async () => {
+    const { h } = await setup();
+    fetchMock.mockClear();
+    await advance(180000); // three checks, nothing new
+    expect(fpMock.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(fetchMock).not.toHaveBeenCalled();
+    fpMock.mockResolvedValue("3:new1");
+    await advance(60000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     h.unmount();
   });
 
@@ -191,6 +206,7 @@ describe("refresh every 60 s (M-6, H-6 rule)", () => {
     await advance(120000);
     expect(fetchMock).not.toHaveBeenCalled();
     hidden = false;
+    fpMock.mockResolvedValue("3:new1");
     await act(async () => { document.dispatchEvent(new Event("visibilitychange")); });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     h.unmount();
@@ -210,6 +226,7 @@ describe("refresh every 60 s (M-6, H-6 rule)", () => {
     const { h } = await setup();
     let release!: (l: Enquiry[]) => void;
     fetchMock.mockImplementation(() => new Promise((r) => { release = r; }));
+    fpMock.mockResolvedValue("3:new1");
     await advance(60000);
     act(() => h.result.current.setStatus("a", "called"));
     await flush();
@@ -221,6 +238,7 @@ describe("refresh every 60 s (M-6, H-6 rule)", () => {
   it("a failed refresh keeps the list on screen", async () => {
     const { h } = await setup();
     fetchMock.mockRejectedValue(new Error("offline"));
+    fpMock.mockResolvedValue("3:new1");
     await advance(60000);
     expect(h.result.current.enquiries.length).toBe(2);
     h.unmount();
