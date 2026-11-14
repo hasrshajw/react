@@ -25,6 +25,7 @@ import { useLatest } from "../hooks/useLatest";
 import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
+import { useInvitationSummary } from "../features/dashboard/hooks/useInvitationSummary";
 import { useEnquiries } from "../features/dashboard/hooks/useEnquiries";
 import { useRowMenu } from "../features/dashboard/hooks/useRowMenu";
 import { useShortcuts } from "../features/dashboard/hooks/useShortcuts";
@@ -38,7 +39,9 @@ interface Props {
 export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props) {
   const navigate = useNavigate();
   const { toast, notify, dismiss } = useNotify();
-  const store = useInvitationStore({ notify, purgeExpired: true });
+  /* Only the newest 5 invitations are read at first. The numbers on the cards come from the database (useInvitationSummary);
+     searching, filtering, sorting or opening the trash reads the rest. */
+  const store = useInvitationStore({ notify, purgeExpired: true, initialLimit: 5, step: 5 });
   const { visible, trashed, isPub, now } = store;
   const enq = useEnquiries(notify, onEnquiryCountChange);
   /* Skeletons wait ~150ms before appearing and stay at least ~300ms, so fast loads do not flash. */
@@ -132,14 +135,22 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   }, [visible, q, sort, filter, isPub]);
 
   const expanded = showAll || q.trim() !== "" || filter !== "all";
+  const needAll = expanded || sort !== "recent";
+  const { hasMore, loadAll } = store;
+  useEffect(() => { if (hasMore && needAll) loadAll(); }, [hasMore, needAll, loadAll]);
+  /* While older invitations are not loaded, the totals come from the database; once everything is loaded they are counted live (so a publish or trash change shows at once). */
+  const summary = useInvitationSummary(`${store.lastUpdated}:${store.savedTick}`, store.hasMore);
+  const counts = store.hasMore && summary ? summary : null;
   const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   const cur = Math.min(page, pages);
   const shown = expanded ? list.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE) : list.slice(0, 5);
-  const topId = useMemo(() => topViewedId(visible), [visible]);
-  const pubCount = visible.filter(isPub).length;
+  const topId = useMemo(() => (counts ? counts.topId : topViewedId(visible)), [visible, counts]);
+  const pubCount = counts ? counts.published : visible.filter(isPub).length;
   /* Real view counts: a visitor's first open of a public link each day adds one (see record_invitation_view in schema.sql). */
-  const totalViews = visible.reduce((n, x) => n + getViews(x), 0);
-  const viewedCount = visible.filter((x) => getViews(x) > 0).length;
+  const totalCount = counts ? counts.total : visible.length;
+  const totalViews = counts ? counts.views : visible.reduce((n, x) => n + getViews(x), 0);
+  const viewedCount = counts ? counts.viewed : visible.filter((x) => getViews(x) > 0).length;
+  const statsLoading = invSkel || (store.hasMore && !summary);
   const skeletonRows = useRowHint("dashboard", visible.length, store.loading, 5);
   const attnReady = !store.loading && !enq.loading;
   const [attnHint] = useState(() => Number(readJSON<number>("schedy-attn", 0)) || 0);
@@ -154,8 +165,8 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   };
 
   /* ---------- "Needs attention" ---------- */
-  const soonDrafts = visible.filter((x) => matchesFilter(x, "draftSoon", isPub(x))).length;
-  const noViews = visible.filter((x) => matchesFilter(x, "noViews", isPub(x))).length;
+  const soonDrafts = counts ? counts.draftSoon : visible.filter((x) => matchesFilter(x, "draftSoon", isPub(x))).length;
+  const noViews = counts ? counts.noViews : visible.filter((x) => matchesFilter(x, "noViews", isPub(x))).length;
   const staleNew = enq.enquiries.filter((e) => e.status === "new" && now - Date.parse(e.createdAt) > DAY).length;
   const dueFollow = enq.enquiries.filter((e) => ["today", "overdue"].includes(followDue(e) || "")).length;
   const attention = [
@@ -211,25 +222,25 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         }
       />
 
-      {store.truncated && <LimitNotice shown={store.rows.length} onLoadMore={store.loadMore} busy={store.refreshing} />}
+      {store.capped && <LimitNotice shown={store.rows.length} onLoadMore={store.loadMore} busy={store.refreshing} />}
 
       <StatCards
-        loading={invSkel} enqLoading={enqSkel}
-        total={visible.length} published={pubCount} drafts={visible.length - pubCount}
+        loading={statsLoading} enqLoading={enqSkel}
+        total={totalCount} published={pubCount} drafts={totalCount - pubCount}
         onFilter={applyFilter}
-        views={totalViews} viewed={viewedCount} unviewed={visible.length - viewedCount}
+        views={totalViews} viewed={viewedCount} unviewed={totalCount - viewedCount}
         enqNew={enq.enqNew} enqTotal={enq.enquiries.length} enqFollow={enq.enqFollow}
         requestsOpen={reqOpen}
         onShowFollowups={() => showRequests("followup")}
         onToggleRequests={toggleRequests}
       />
 
-      <AttentionStrip items={attention} loading={invSkel || enqSkel} expected={attnHint} />
+      <AttentionStrip items={attention} loading={statsLoading || enqSkel} expected={attnHint} />
 
       <RecentInvitations
         tableRef={tableRef} searchRef={searchRef}
         loading={invSkel} holdSkeleton={invPhase === "hold"} skeletonRows={skeletonRows} error={store.error}
-        visible={visible} list={list} shown={shown} trashed={trashed} topId={topId}
+        visible={visible} list={list} shown={shown} trashed={trashed} trashedCount={counts ? counts.trashed : trashed.length} total={totalCount} topId={topId}
         q={q} sort={sort} filter={filter} expanded={expanded} showAll={showAll} page={cur} pages={pages}
         previewId={preview?.id} menuId={menu?.x.id}
         isPub={isPub}
@@ -238,7 +249,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         onClearFilter={() => { setFilter("all"); setPage(1); }}
         onClearAll={() => { setQ(""); setFilter("all"); }}
         onRetry={() => store.load()}
-        onOpenTrash={(e: MouseEvent<HTMLButtonElement>) => { opener.current = e.currentTarget; setTrash(true); }}
+        onOpenTrash={(e: MouseEvent<HTMLButtonElement>) => { opener.current = e.currentTarget; loadAll(); setTrash(true); }}
         onPreview={openPreview} onCopyLink={copyLink} onOpenMenu={openMenu}
         onPage={setPage}
         onShowLess={() => { setShowAll(false); setPage(1); }}

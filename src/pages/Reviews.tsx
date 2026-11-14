@@ -8,11 +8,16 @@ import { ReviewDetail } from "../features/reviews/ReviewDetail";
 import { STATUS_LABEL } from "../features/reviews/status";
 import { ReviewsTable, ReviewsTableSkeleton } from "../features/reviews/ReviewsTable";
 import { fieldLabel } from "../features/reviews/fieldLabels";
-import { fetchInvitations, fetchReviewQueue, type RequestStatus, type ReviewItem } from "../lib/api";
+import { fetchInvitationsByIds, fetchPendingReviewCount, fetchReviewPage, type RequestStatus, type ReviewItem } from "../lib/api";
+import { Loader2 } from "../components/Icons";
 import { coupleName } from "../lib/dashboardData";
 import type { InvitationRow } from "../types/dashboard";
 import dashboardCss from "../styles/dashboard.css?inline";
 import invitationsCss from "../features/invitations/invitations.css?inline";
+
+/* The newest 10 requests are read first; "View more" adds 10. A search reads up to 200 so it can find older ones. */
+const PAGE = 10;
+const SEARCH_LIMIT = 200;
 
 const TABS: { key: RequestStatus | "all"; label: string }[] = [
   { key: "pending", label: "Pending" },
@@ -34,6 +39,9 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
   const { toast, notify, dismiss } = useNotify();
   const [status, setStatus] = useState<RequestStatus | "all">("pending");
   const [items, setItems] = useState<ReviewItem[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [pendingTotal, setPendingTotal] = useState<number | null>(null);
+  const limitRef = useRef(PAGE);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
@@ -50,19 +58,23 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
     if (silent) setRefreshing(true);
     else setLoading(true);
     setError(false);
-    /* Couple names are cosmetic: if the invitation list fails, the queue still loads and rows fall back to a generic label. */
-    Promise.all([
-      fetchReviewQueue(status),
-      fetchInvitations().then((r) => r.rows, () => null),
-    ]).then(
-      ([list, rows]) => {
-        if (rows) setInvitations(new Map(rows.map((r) => [r.id, r])));
+    /* Couple names are cosmetic: if that read fails, the queue still loads and rows fall back to a generic label.
+       Only the invitations of the requests on screen are read, not the whole list. */
+    fetchReviewPage(status, limitRef.current).then(
+      async ({ items: list, hasMore: more }) => {
+        const [rows, pending] = await Promise.all([
+          fetchInvitationsByIds(list.map((i) => i.invitationId)).catch(() => null),
+          fetchPendingReviewCount().catch(() => null),
+        ]);
+        if (rows) setInvitations((prev) => { const m = new Map(prev); rows.forEach((r) => m.set(r.id, r)); return m; });
         setItems(list);
+        setHasMore(more);
         setLoading(false);
         setRefreshing(false);
         setLastUpdated(Date.now());
         setNow(Date.now());
-        if (status === "pending") onPendingCountChange?.(list.length);
+        if (pending !== null) { setPendingTotal(pending); onPendingCountChange?.(pending); }
+        else if (status === "pending" && !more) onPendingCountChange?.(list.length);
         setSelectedId((id) => (id && list.some((i) => i.id === id) ? id : null));
       },
       () => {
@@ -74,7 +86,14 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
     );
   }, [status, onPendingCountChange, notify]);
 
-  useEffect(() => { setSelectedId(null); load(); }, [load]);
+  useEffect(() => { limitRef.current = PAGE; setSelectedId(null); load(); }, [load]);
+
+  const viewMore = () => { limitRef.current += PAGE; load(true); };
+  const term0 = q.trim();
+  /* A search looks through more than the first 10. */
+  useEffect(() => {
+    if (term0 && hasMore && limitRef.current < SEARCH_LIMIT) { limitRef.current = SEARCH_LIMIT; load(true); }
+  }, [term0, hasMore, load]);
 
   const selected = useMemo(
     () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
@@ -133,7 +152,7 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
                 onClick={() => setStatus(key)}
               >
                 {label}
-                {key === "pending" && !loading && status === "pending" && <em>{pendingOnPage}</em>}
+                {key === "pending" && !loading && status === "pending" && <em>{pendingTotal ?? pendingOnPage}</em>}
               </button>
             ))}
           </div>
@@ -144,7 +163,7 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
           <div className="inv-toolbar">
             <div className="inv-chips">
               <span className="insight">
-                {skel ? "Loading requests…" : `${items.length} ${items.length === 1 ? "request" : "requests"}`}
+                {skel ? "Loading requests…" : `${items.length}${hasMore ? "+" : ""} ${items.length === 1 && !hasMore ? "request" : "requests"}`}
               </span>
               {term && <button type="button" className="link-btn" onClick={() => setQ("")}>Clear search</button>}
             </div>
@@ -184,8 +203,16 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
           ) : (
             <ReviewsTable
               items={shown} invitations={invitations} selectedId={selectedId}
-              now={now} total={items.length} onOpen={(i) => setSelectedId(i.id)}
+              now={now} total={items.length} hasMore={hasMore} onOpen={(i) => setSelectedId(i.id)}
             />
+          )}
+
+          {!error && !skel && hasMore && !term0 && (
+            <div className="more-row">
+              <button type="button" className="more-btn" disabled={refreshing} onClick={viewMore}>
+                {refreshing ? <><Loader2 className="spin" size={15} /> Loading…</> : "View more"}
+              </button>
+            </div>
           )}
 
         </div>

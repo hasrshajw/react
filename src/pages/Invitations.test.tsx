@@ -15,6 +15,7 @@ const h = vi.hoisted(() => ({
   fetchExpiredTrashIds: vi.fn(),
   deleteInvitation: vi.fn(),
   fetchReviewQueue: vi.fn(),
+  fetchInvitationSummary: vi.fn(),
   exportCsv: vi.fn(),
 }));
 
@@ -26,6 +27,7 @@ vi.mock("../lib/api", () => ({
   fetchExpiredTrashIds: () => h.fetchExpiredTrashIds(),
   deleteInvitation: (id: string) => h.deleteInvitation(id),
   fetchReviewQueue: () => h.fetchReviewQueue(),
+  fetchInvitationSummary: () => h.fetchInvitationSummary(),
 }));
 vi.mock("../features/invitations/utils", async () => {
   const real = await vi.importActual<typeof import("../features/invitations/utils")>("../features/invitations/utils");
@@ -127,26 +129,55 @@ describe("loading and empty states", () => {
   });
 });
 
-describe("list cut at the read limit (M-5)", () => {
-  it("shows a note above the list when the list was truncated, and none otherwise", async () => {
-    await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
-    expect(text()).toContain("Showing your newest 3 invitations");
-    expect(host.querySelector(".list-limit")).not.toBeNull();
+const SUMMARY = { total: 25, published: 20, drafts: 5, upcoming: 3, week: 1, past: 2, views: 100, viewed: 10, draftSoon: 0, noViews: 0, trashed: 0, topId: null, templates: [] };
+
+describe("newest 10 first, then \"More\"", () => {
+  beforeEach(() => { h.fetchInvitationSummary.mockResolvedValue(SUMMARY); });
+
+  it("reads only the newest 10 invitations at first", async () => {
+    await show();
+    expect(h.fetchInvitations).toHaveBeenLastCalledWith(10);
   });
 
-  it("Load more reads the next 10,000 and the note goes away when nothing older is left", async () => {
+  it("with older invitations on the server: shows \"More\", the totals from the database, and no old limit note", async () => {
     await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
-    expect(h.fetchInvitations).toHaveBeenLastCalledWith(10000);
-    h.fetchInvitations.mockResolvedValue({ rows: [...ROWS, row("d", "Dev", "Anu")], published: {}, deleted: {}, truncated: false });
-    click(btn("Load more"));
-    await flush(); await flush();
-    expect(h.fetchInvitations).toHaveBeenLastCalledWith(20000);
-    expect(text()).toContain("Dev & Anu");
+    expect(btn("More")).toBeTruthy();
+    expect(text()).toContain("Showing 3 of 25");
+    expect([...host.querySelectorAll(".inv-tab")].map((t) => t.textContent)).toEqual(["All 25", "Published 20", "Drafts 5"]);
     expect(host.querySelector(".list-limit")).toBeNull();
   });
 
-  it("has no note for a normal list", async () => {
+  it("\"More\" reads 10 more, and disappears when nothing older is left", async () => {
+    await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
+    h.fetchInvitations.mockResolvedValue({ rows: [...ROWS, row("d", "Dev", "Anu")], published: {}, deleted: {}, truncated: false });
+    click(btn("More"));
+    await flush(); await flush();
+    expect(h.fetchInvitations).toHaveBeenLastCalledWith(20);
+    expect(text()).toContain("Dev & Anu");
+    expect(text()).toContain("Showing all 4");
+    expect(document.body.querySelector(".more-btn")).toBeNull();
+  });
+
+  it("searching reads every invitation, so older ones can be found", async () => {
+    await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
+    h.fetchInvitations.mockResolvedValue({ rows: [...ROWS, row("z", "Zed", "Old")], published: {}, deleted: {}, truncated: false });
+    typeInto($<HTMLInputElement>('input[type="search"]')!, "Zed");
+    await flush(); await flush();
+    expect(h.fetchInvitations).toHaveBeenLastCalledWith(10000);
+    expect(names()).toEqual(["Zed & Old"]);
+  });
+
+  it("shows the old-limit note only when even the full read was cut", async () => {
+    await show("/invitations", { rows: ROWS, published: {}, deleted: {}, truncated: true });
+    h.fetchInvitations.mockResolvedValue({ rows: ROWS, published: {}, deleted: {}, truncated: true });
+    typeInto($<HTMLInputElement>('input[type="search"]')!, "a");
+    await flush(); await flush();
+    expect(host.querySelector(".list-limit")).not.toBeNull();
+  });
+
+  it("has no \"More\" button and no note for a short list", async () => {
     await show();
+    expect(document.body.querySelector(".more-btn")).toBeNull();
     expect(host.querySelector(".list-limit")).toBeNull();
   });
 });
@@ -327,27 +358,14 @@ describe("selection and bulk actions", () => {
   });
 });
 
-describe("paging", () => {
+describe("long list", () => {
   const many = Array.from({ length: 11 }, (_, i) => row(`r${i}`, `G${String(i).padStart(2, "0")}`, "B"));
 
-  it("shows eight rows per page with a range, and Next / Previous move between pages", async () => {
+  it("shows every loaded row on one page, with no pager", async () => {
     await show("/invitations", { rows: many, published: {}, deleted: {} });
-    expect(names()).toHaveLength(8);
-    expect(text()).toContain("Showing 1–8 of 11");
-    click(host.querySelector('button[aria-label="Next page"]')!);
-    expect(names()).toHaveLength(3);
-    expect(text()).toContain("Showing 9–11 of 11");
-    expect(host.querySelector<HTMLButtonElement>('button[aria-label="Next page"]')!.disabled).toBe(true);
-    click(host.querySelector('button[aria-label="Previous page"]')!);
-    expect(text()).toContain("Showing 1–8 of 11");
-  });
-
-  it("changing a filter goes back to page 1", async () => {
-    await show("/invitations", { rows: many, published: {}, deleted: {} });
-    click(host.querySelector('button[aria-label="Next page"]')!);
-    typeInto($<HTMLInputElement>('input[type="search"]')!, "G0");
-    expect(names()).toHaveLength(8); // 10 match; page 1 again, not page 2
-    expect(text()).toContain("Showing 1–8 of 10");
+    expect(names()).toHaveLength(11);
+    expect(text()).toContain("Showing all 11");
+    expect(host.querySelector('button[aria-label="Next page"]')).toBeNull();
   });
 });
 

@@ -93,13 +93,15 @@ export async function readAllPages(page: (from: number, to: number) => PromiseLi
   const seen = new Set<string>();
   const out: DbRow[] = [];
   for (let from = 0; from < maxRows; from += PAGE_SIZE) {
-    const { data, error } = await page(from, from + PAGE_SIZE - 1);
+    /* A small limit (the Dashboard asks for 5) reads only that many rows, not a whole page of 500. */
+    const size = Math.min(PAGE_SIZE, maxRows - from);
+    const { data, error } = await page(from, from + size - 1);
     if (error) fail(error);
     const got = data ?? [];
     for (const r of got) { const key = String(r.id); if (!seen.has(key)) { seen.add(key); out.push(r); } }
-    if (got.length < PAGE_SIZE) return out;
+    if (got.length < size) return out;
   }
-  console.warn(`List stopped at ${maxRows} rows.`);
+  if (maxRows >= MAX_ROWS) console.warn(`List stopped at ${maxRows} rows.`);
   return out;
 }
 
@@ -432,6 +434,49 @@ export async function fetchReviewQueue(status: RequestStatus | "all" = "pending"
   const { data, error } = await q.order("created_at", { ascending }).order("id", { ascending }).limit(200);
   if (error) fail(error);
   return (Array.isArray(data) ? (data as DbRow[]) : []).map(toReviewItem);
+}
+
+/* ---------- list summary + review paging (admin) ---------- */
+export interface InvitationSummary {
+  total: number; published: number; drafts: number; upcoming: number; week: number; past: number;
+  views: number; viewed: number; draftSoon: number; noViews: number; trashed: number; topId: string | null;
+  templates: { key: string; name: string; n: number }[];
+}
+
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+/** Counts for the stat cards and tab counts, computed by the database so the page does not have to download every invitation. */
+export async function fetchInvitationSummary(): Promise<InvitationSummary> {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const { data, error } = await db().rpc("invitation_summary", { p_today: today });
+  if (error) rpcFail(error);
+  const r = (data ?? {}) as Record<string, unknown>;
+  return {
+    total: num(r.total), published: num(r.published), drafts: num(r.drafts), upcoming: num(r.upcoming), week: num(r.week), past: num(r.past),
+    views: num(r.views), viewed: num(r.viewed), draftSoon: num(r.draft_soon), noViews: num(r.no_views), trashed: num(r.trashed),
+    topId: typeof r.top_id === "string" ? r.top_id : null,
+    templates: Array.isArray(r.templates) ? (r.templates as { key: string; name: string; n: number }[]) : [],
+  };
+}
+
+/** Only the invitations with these ids (the Review queue needs names for the 10 requests on screen, not the whole list). */
+export async function fetchInvitationsByIds(ids: string[]): Promise<InvitationRow[]> {
+  const unique = [...new Set(ids)].slice(0, 200);
+  if (!unique.length) return [];
+  const { data, error } = await db().from("invitations").select(INVITATION_COLUMNS).in("id", unique);
+  if (error) fail(error);
+  return (Array.isArray(data) ? (data as DbRow[]) : []).map((r) => splitRow(r).row);
+}
+
+/** One page of the review queue, newest first. Reads one extra row to know whether "View more" has anything to show. */
+export async function fetchReviewPage(status: RequestStatus | "all" = "pending", limit = 10): Promise<{ items: ReviewItem[]; hasMore: boolean }> {
+  let q = db().from("change_requests").select(REVIEW_COLUMNS);
+  if (status !== "all") q = q.eq("status", status);
+  const { data, error } = await q.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1);
+  if (error) fail(error);
+  const rows = Array.isArray(data) ? (data as DbRow[]) : [];
+  return { items: rows.slice(0, limit).map(toReviewItem), hasMore: rows.length > limit };
 }
 
 /** How many change requests are still pending (admin badge). Count only — no rows downloaded. */

@@ -1,3 +1,15 @@
+### 14 Nov 2026 (86th update) – Admin lists load a few rows first: Dashboard 5, All invitations 10, Review queue 10
+
+**What was done**
+
+1. **Dashboard** reads only the newest **5** invitations. The stat cards, "Needs attention" counts, the "Top" badge and the Trash count come from one database call (`invitation_summary`, migration 017) instead of being counted from every row. Searching, filtering, sorting or opening the Trash reads the rest.
+2. **All invitations** reads the newest **10**, with a **More** button under the table that adds 10 each time. The old 8-per-page pager is gone. Tab counts and the template list come from the summary; a search, filter or sort reads everything so nothing is missed.
+3. **Review queue** reads the newest **10** requests (newest first on every tab), with a **View more** button (+10). A search reads up to 200. Couple names are read for the 10 on screen only (`fetchInvitationsByIds`), not the whole invitation list. The sidebar badge uses the pending count query.
+4. `readAllPages` now asks for exactly `limit` rows (it used to fetch a full page of 500 even for a limit of 5). `useInvitationStore` takes `initialLimit` / `step` and offers `loadAll()`.
+5. **Database (run once):** `supabase/migrations/017_invitation_summary.sql` (admin only). Until it is run the Dashboard falls back to counting the 5 loaded rows.
+
+---
+
 ### 14 Nov 2026 (85th update) – Client area gets the admin shell: sidebar, top navigation, Dashboard and Edit
 
 **What was done**

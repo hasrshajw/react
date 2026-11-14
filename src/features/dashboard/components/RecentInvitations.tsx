@@ -21,6 +21,10 @@ interface Props {
   list: InvitationRow[];
   shown: InvitationRow[];
   trashed: TrashItem[];
+  /** Trash count when not every invitation is loaded yet (comes from the database). */
+  trashedCount?: number;
+  /** How many invitations exist in total (the list may hold only the newest few). */
+  total?: number;
   topId: string | null;
   q: string;
   sort: SortKey;
@@ -50,14 +54,15 @@ interface Props {
 export function RecentInvitations(p: Props) {
   const { list, visible, expanded, showAll, page: cur, pages, q, filter } = p;
   const canShowLess = showAll && !q.trim() && filter === "all";
-  const showFoot = (expanded && list.length > PAGE_SIZE) || (!expanded && visible.length > 5) || showAll;
+  const total = p.total ?? visible.length;
+  const showFoot = (expanded && list.length > PAGE_SIZE) || (!expanded && total > 5) || showAll;
 
   return (
     <div className="recent-card" ref={p.tableRef}>
       <div className="recent-head">
         <div className="recent-title">
           <strong>Recent invitations</strong>
-          {p.loading ? <em className="sk-bg" aria-hidden="true">00</em> : visible.length > 0 && <em>{fmt(visible.length)}</em>}
+          {p.loading ? <em className="sk-bg" aria-hidden="true">00</em> : total > 0 && <em>{fmt(total)}</em>}
         </div>
         <div className="recent-tools">
           <label className="search">
@@ -69,9 +74,9 @@ export function RecentInvitations(p: Props) {
             {!q && <kbd className="kbd" aria-hidden="true">/</kbd>}
           </label>
           <Select label="Sort invitations" value={p.sort} options={SORT_OPTIONS} onChange={(v) => p.onSort(v as SortKey)} />
-          {p.trashed.length > 0 && (
+          {(p.trashedCount ?? p.trashed.length) > 0 && (
             <button type="button" className="act-btn" onClick={p.onOpenTrash}>
-              <Trash2 size={14} /> Trash <em className="cnt">{p.trashed.length}</em>
+              <Trash2 size={14} /> Trash <em className="cnt">{p.trashedCount ?? p.trashed.length}</em>
             </button>
           )}
         </div>
@@ -162,7 +167,7 @@ export function RecentInvitations(p: Props) {
                 </>
               ) : !expanded ? (
                 <>
-                  <span>Showing 5 of {visible.length}</span>
+                  <span>Showing 5 of {total}</span>
                   <button type="button" className="head-link as-btn" onClick={p.onViewAll}>
                     View all invitations <ArrowUpRight size={14} />
                   </button>

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { Archive, Copy, EyeOff, Globe, Share, Trash2 } from "../components/Icons";
 import { fetchReviewQueue, saveInvitation } from "../lib/api";
 import {
-  PAGE_SIZE, copyText, coupleName, fmt, getInviteLink, isPast, shareOnWhatsApp, sortInvitations, topViewedId,
+  copyText, coupleName, fmt, getInviteLink, isPast, shareOnWhatsApp, sortInvitations, topViewedId,
 } from "../lib/dashboardData";
 import { PreviewPanel } from "../features/dashboard/components/PreviewPanel";
 import { TrashModal } from "../features/dashboard/components/TrashModal";
@@ -23,6 +23,7 @@ import { BulkBar } from "../features/invitations/components/BulkBar";
 import { InvitationsTable } from "../features/invitations/components/InvitationsTable";
 import { InvitationsToolbar } from "../features/invitations/components/InvitationsToolbar";
 import { ShareModal } from "../features/invitations/components/ShareModal";
+import { useInvitationSummary } from "../features/dashboard/hooks/useInvitationSummary";
 import { useInvitationFilters } from "../features/invitations/hooks/useInvitationFilters";
 import { useSelection } from "../features/invitations/hooks/useSelection";
 import { dateMatch, exportInvitationsCsv, plural, templateOf, uid } from "../features/invitations/utils";
@@ -32,21 +33,20 @@ import type { InvitationRow } from "../types/dashboard";
    and shareable URL filters. Deliberately not laid out like the Dashboard. */
 export default function Invitations({ onPanelChange }: { onPanelChange?: (open: boolean) => void }) {
   const { toast, notify, dismiss } = useNotify();
-  const store = useInvitationStore({ notify });
+  /* Only the newest 10 are read at first; "More" adds 10 each time. A search, filter or sort needs every invitation, so it reads the rest. */
+  const store = useInvitationStore({ notify, initialLimit: 10, step: 10 });
   const { rows, visible, trashed, isPub, loading } = store;
-  const skeletonRows = useRowHint("invitations", visible.length, loading, PAGE_SIZE, 5);
+  const skeletonRows = useRowHint("invitations", visible.length, loading, 10, 5);
   /* The skeleton waits ~150ms before appearing and stays at least ~300ms, so fast loads do not flash. */
   const phase = useSkeletonPhase(loading);
   const skel = phase !== "idle";
 
-  const [page, setPage] = useState(1);
   const selection = useSelection();
   const { sel } = selection;
 
   /* Changing a filter resets paging and clears the selection (a selection should only
      ever cover rows the person can currently see). Sort keeps it. */
   const { status, when, sort, tpl, q, setParams, hasFilters, clearFilters } = useInvitationFilters((patch) => {
-    setPage(1);
     if (!("sort" in patch)) selection.clear();
   });
 
@@ -91,16 +91,26 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   useEffect(() => () => panelChangeRef.current?.(false), [panelChangeRef]);
 
   /* ---------- derived data ---------- */
-  const stats = useMemo(() => ({
+  const needAll = hasFilters || sort !== "recent";
+  const { hasMore, loadAll } = store;
+  useEffect(() => { if (hasMore && needAll) loadAll(); }, [hasMore, needAll, loadAll]);
+  /* Totals come from the database while older invitations are not loaded; once everything is loaded they are counted live. */
+  const summary = useInvitationSummary(`${store.lastUpdated}:${store.savedTick}`, store.hasMore);
+  const counts = store.hasMore && summary ? summary : null;
+
+  const stats = useMemo(() => counts ? ({
+    total: counts.total, pub: counts.published, draft: counts.drafts, upcoming: counts.upcoming, week: counts.week, past: counts.past,
+  }) : ({
     total: visible.length,
     pub: visible.filter(isPub).length,
     draft: visible.filter((x) => !isPub(x)).length,
     upcoming: visible.filter((x) => dateMatch(x, "upcoming")).length,
     week: visible.filter((x) => dateMatch(x, "week")).length,
     past: visible.filter((x) => dateMatch(x, "past")).length,
-  }), [visible, isPub]);
+  }), [visible, isPub, counts]);
 
   const templates = useMemo(() => {
+    if (counts) return counts.templates;
     const m = new Map<string, { key: string; name: string; n: number }>();
     visible.forEach((x) => {
       const t = templateOf(x);
@@ -109,7 +119,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
       m.set(t.key, e);
     });
     return [...m.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
-  }, [visible]);
+  }, [visible, counts]);
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -125,10 +135,9 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
     return sortInvitations(r, sort);
   }, [visible, q, sort, status, when, tpl, isPub]);
 
-  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
-  const cur = Math.min(page, pages);
-  const shown = list.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
-  const topId = useMemo(() => topViewedId(visible), [visible]);
+  const shown = list;
+  const topId = useMemo(() => (counts ? counts.topId : topViewedId(visible)), [visible, counts]);
+  const totalCount = counts ? counts.total : visible.length;
 
   const selectedRows = useMemo(() => list.filter((x) => sel.has(x.id)), [list, sel]);
   const onPageSel = shown.filter((x) => sel.has(x.id)).length;
@@ -240,7 +249,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
         onRefresh={() => store.load()}
       />
 
-      {store.truncated && <LimitNotice shown={store.rows.length} onLoadMore={store.loadMore} busy={store.refreshing} />}
+      {store.capped && <LimitNotice shown={store.rows.length} onLoadMore={store.loadMore} busy={store.refreshing} />}
 
       {/* ---------- status tabs ---------- */}
       <div className="inv-tabbar">
@@ -261,9 +270,9 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
       <div className="inv-panel">
         <InvitationsToolbar
           loading={skel} when={when} counts={stats} hasFilters={hasFilters}
-          q={q} tpl={tpl} sort={sort} templates={templates} trashedCount={trashed.length}
+          q={q} tpl={tpl} sort={sort} templates={templates} trashedCount={counts ? counts.trashed : trashed.length}
           searchRef={searchRef} onParams={setParams} onClearFilters={clearFilters}
-          onOpenTrash={(e: MouseEvent<HTMLButtonElement>) => { opener.current = e.currentTarget; setTrash(true); }}
+          onOpenTrash={(e: MouseEvent<HTMLButtonElement>) => { opener.current = e.currentTarget; loadAll(); setTrash(true); }}
         />
 
         {selectedRows.length > 0 && (
@@ -284,11 +293,12 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
           <NoMatchState query={q} emptyHint="Nothing matches the current filters." onClear={clearFilters} />
         ) : (
           <InvitationsTable
-            shown={shown} total={list.length} visibleCount={visible.length} page={cur} pages={pages}
+            shown={shown} total={list.length} visibleCount={totalCount}
+            hasMore={store.hasMore && !needAll} loadingMore={store.refreshing} onMore={store.loadMore}
             sel={sel} allOnPage={allOnPage} headCheck={headCheck} topId={topId} topTemplate={templates[0]}
             previewId={preview?.id} menuId={menu?.x.id} pendingIds={pendingIds} isPub={isPub}
             onTogglePage={() => selection.togglePage(shown, allOnPage)} onToggle={selection.toggle}
-            onPreview={openPreview} onCopyLink={copyLink} onOpenMenu={openMenu} onPage={setPage}
+            onPreview={openPreview} onCopyLink={copyLink} onOpenMenu={openMenu}
           />
         )}
       </div>

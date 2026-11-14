@@ -15,6 +15,8 @@ interface Props {
   selectedId: string | null;
   now: number;
   total: number;
+  /** Older requests are not loaded yet ("View more" is shown). */
+  hasMore?: boolean;
   onOpen: (item: ReviewItem) => void;
 }
 
@@ -24,7 +26,7 @@ const fieldsText = (item: ReviewItem) => {
 };
 
 /** Review queue table. Same cell layout and classes as the Invitations table, so both look and stack the same on small screens. */
-export function ReviewsTable({ items, invitations, selectedId, now, total, onOpen }: Props) {
+export function ReviewsTable({ items, invitations, selectedId, now, total, hasMore = false, onOpen }: Props) {
   return (
     <>
       <div className="table-scroll">
@@ -91,7 +93,7 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, onOpe
         </table>
       </div>
       <div className="table-foot">
-        <span>{items.length === total ? `Showing all ${total}` : `Showing ${items.length} of ${total}`}</span>
+        <span>{hasMore ? `Showing the newest ${items.length}` : items.length === total ? `Showing all ${total}` : `Showing ${items.length} of ${total}`}</span>
       </div>
     </>
   );

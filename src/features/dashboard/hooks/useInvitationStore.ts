@@ -12,6 +12,10 @@ interface Options {
   notify: Notify;
   /** Hard-delete invitations that have sat in the trash for TRASH_DAYS (when the data layer supports it). */
   purgeExpired?: boolean;
+  /** How many newest invitations the first read fetches (default: everything up to LIST_LIMIT). The Dashboard asks for 5, All Invitations for 10. */
+  initialLimit?: number;
+  /** How many more "Load more" adds (default: LIST_LIMIT). */
+  step?: number;
 }
 
 /** State that changes on screen immediately and is saved afterwards (optimistic update).
@@ -60,7 +64,7 @@ function useOptimisticMap<T>(initial: () => T, persist: (next: T) => Promise<unk
 /** Loads invitations and owns the "published" and "trashed" state shared by Dashboard and All Invitations.
  *  `loading` is true only until the first data arrives (show skeletons). Later reloads set `refreshing`
  *  instead and keep the old rows on screen (stale-while-revalidate). */
-export function useInvitationStore({ notify, purgeExpired = false }: Options) {
+export function useInvitationStore({ notify, purgeExpired = false, initialLimit = LIST_LIMIT, step = LIST_LIMIT }: Options) {
   const [rows, setRows] = useState<InvitationRow[]>([]);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState(false);
@@ -70,7 +74,9 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
   const alive = useRef(true);
   const loadedRef = useRef(false);
   /* How many rows a read may fetch. "Load more" raises it by LIST_LIMIT; refreshes keep using the raised value (M-5). */
-  const limitRef = useRef(LIST_LIMIT);
+  const limitRef = useRef(initialLimit);
+  /* Goes up each time a save finishes, so the summary counts can be read again after a publish / trash change. */
+  const [savedTick, setSavedTick] = useState(0);
   const loading = busy && lastUpdated === null;
   const refreshing = busy && lastUpdated !== null;
 
@@ -81,8 +87,8 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
     notify("Couldn’t save that change, so it was undone.");
     loadRef.current(true);
   }, [notify]);
-  const [pub, pubRef, commitPub, resetPub, adoptPub, pubVersion] = useOptimisticMap<PublishMap>(() => ({}), savePublished, failed);
-  const [deleted, delRef, writeDeleted, resetDeleted, adoptDeleted, delVersion] = useOptimisticMap<DeletedMap>(() => ({}), saveDeleted, failed);
+  const [pub, pubRef, commitPub, resetPub, adoptPub, pubVersion] = useOptimisticMap<PublishMap>(() => ({}), (m) => savePublished(m).finally(() => setSavedTick((t) => t + 1)), failed);
+  const [deleted, delRef, writeDeleted, resetDeleted, adoptDeleted, delVersion] = useOptimisticMap<DeletedMap>(() => ({}), (m) => saveDeleted(m).finally(() => setSavedTick((t) => t + 1)), failed);
 
   const load = useCallback((silent = false) => {
     if (!silent) setBusy(true);
@@ -116,17 +122,21 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
     fetchInvitations(limitRef.current).then((res) => { if (alive.current) { setRows(res.rows); setTruncated(!!res.truncated); } }, () => notify("Couldn’t refresh the list."));
   }, [notify]);
 
-  /* "Load more": read another LIST_LIMIT older invitations. The raised limit is undone if the read fails. */
-  const loadMore = useCallback(() => {
-    if (busy) return;
+  /* Read more rows: `target` is the new limit. It is undone if the read fails. */
+  const grow = useCallback((target: number, failMessage: string) => {
+    if (busy || target <= limitRef.current) return;
     const before = limitRef.current;
-    limitRef.current = before + LIST_LIMIT;
+    limitRef.current = target;
     setBusy(true);
     fetchInvitations(limitRef.current).then(
       (res) => { if (!alive.current) return; setRows(res.rows); setTruncated(!!res.truncated); adoptPub(res.published, pubVersion()); adoptDeleted(res.deleted, delVersion()); setBusy(false); },
-      () => { limitRef.current = before; if (!alive.current) return; notify("Couldn’t load more invitations."); setBusy(false); },
+      () => { limitRef.current = before; if (!alive.current) return; notify(failMessage); setBusy(false); },
     );
   }, [busy, notify, adoptPub, adoptDeleted, pubVersion, delVersion]);
+  /* "Load more" / "More": read another `step` older invitations. */
+  const loadMore = useCallback(() => grow(limitRef.current + step, "Couldn’t load more invitations."), [grow, step]);
+  /* Search, filters and sorting need every invitation, not just the newest few. */
+  const loadAll = useCallback(() => grow(LIST_LIMIT, "Couldn’t load all invitations."), [grow]);
 
   useEffect(() => {
     alive.current = true;
@@ -189,8 +199,10 @@ export function useInvitationStore({ notify, purgeExpired = false }: Options) {
       .catch(() => { /* try again next time the page opens */ });
   }, [rows, purgeExpired]);
 
+  /* `hasMore`: the last read came back full, so older invitations probably exist. `capped`: that read was already the hard limit. */
+  const capped = truncated && limitRef.current >= LIST_LIMIT;
   return {
-    rows, truncated, loadMore, loading, refreshing, error, lastUpdated, now, load, reload,
+    rows, truncated, hasMore: truncated, capped, savedTick, loadMore, loadAll, loading, refreshing, error, lastUpdated, now, load, reload,
     pub, pubRef, isPub, commitPub, writePub, togglePublish,
     deleted, delRef, writeDeleted, restoreInvitation, moveToTrash,
     visible, trashed,

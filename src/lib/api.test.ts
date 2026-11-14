@@ -49,6 +49,30 @@ const inv = (id: string, extra: Record<string, unknown> = {}) => ({ id, groom_na
 beforeEach(() => { vi.spyOn(console, "warn").mockImplementation(() => {}); });
 afterEach(() => { vi.restoreAllMocks(); vi.doUnmock("./supabase"); vi.doUnmock("./auth"); });
 
+describe("small reads", () => {
+  it("readAllPages with a limit of 5 asks for rows 0-4 only, not a whole page of 500", async () => {
+    const { api } = await load(() => ({}));
+    const ranges: [number, number][] = [];
+    const page = async (from: number, to: number) => { ranges.push([from, to]); return { data: [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }, { id: "e" }], error: null }; };
+    const out = await api.readAllPages(page, 5);
+    expect(ranges).toEqual([[0, 4]]);
+    expect(out).toHaveLength(5);
+  });
+});
+
+describe("review queue paging", () => {
+  it("reads limit+1 rows, newest first, to know whether \"View more\" is needed", async () => {
+    const mk = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `q${i}`, invitation_id: "i1", client_email: "c@x.com", base_updated_at: "t", created_at: "t", status: "pending", changed_keys: [], proposed_details: {} }));
+    const { api, calls } = await load((c) => (c.table === "change_requests" ? { data: mk(11) } : {}));
+    const r = await api.fetchReviewPage("pending", 10);
+    expect(r.items).toHaveLength(10);
+    expect(r.hasMore).toBe(true);
+    const call = calls.find((c) => c.table === "change_requests")!;
+    expect(has(call, "limit")).toEqual([11]);
+    expect(has(call, "order")).toEqual(["created_at", { ascending: false }]);
+  });
+});
+
 describe("readAllPages (M-5)", () => {
   it("reads one page when it is not full", async () => {
     const { api } = await load(() => ({}));

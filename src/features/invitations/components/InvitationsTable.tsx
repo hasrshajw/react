@@ -1,7 +1,7 @@
 import type { MouseEvent, RefObject } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Eye } from "../../../components/Icons";
+import { CalendarDays, Eye, Loader2 } from "../../../components/Icons";
 import {
-  PAGE_SIZE, coupleName, fmt, fmtDate, getViews, initials, isPast, statusChip,
+  coupleName, fmt, fmtDate, getViews, initials, isPast, statusChip,
 } from "../../../lib/dashboardData";
 import type { InvitationRow } from "../../../types/dashboard";
 import { RowActions } from "../../dashboard/components/RowActions";
@@ -12,8 +12,10 @@ interface Props {
   shown: InvitationRow[];
   total: number;
   visibleCount: number;
-  page: number;
-  pages: number;
+  /** More invitations exist on the server than are loaded: show the "More" button. */
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onMore?: () => void;
   sel: Set<string>;
   allOnPage: boolean;
   headCheck: RefObject<HTMLInputElement>;
@@ -29,11 +31,10 @@ interface Props {
   onPreview: (x: InvitationRow) => void;
   onCopyLink: (x: InvitationRow) => void;
   onOpenMenu: (e: MouseEvent<HTMLElement>, x: InvitationRow) => void;
-  onPage: (n: number) => void;
 }
 
 export function InvitationsTable(p: Props) {
-  const { page: cur, pages, total } = p;
+  const { total } = p;
   return (
     <>
       <div className="table-scroll">
@@ -108,21 +109,19 @@ export function InvitationsTable(p: Props) {
 
       <div className="table-foot">
         <span>
-          {total > PAGE_SIZE
-            ? `Showing ${(cur - 1) * PAGE_SIZE + 1}–${Math.min(cur * PAGE_SIZE, total)} of ${total}`
-            : `Showing all ${total}`}
+          {p.hasMore ? `Showing ${total} of ${p.visibleCount}` : `Showing all ${total}`}
           {p.topTemplate && p.visibleCount > 1 && (
             <span className="insight" title="Template used by the most invitations"> · Most used template: <b>{p.topTemplate.name}</b> ({p.topTemplate.n} of {p.visibleCount})</span>
           )}
         </span>
-        {total > PAGE_SIZE && (
-          <div className="pager">
-            <button type="button" className="icon-btn" aria-label="Previous page" disabled={cur === 1} onClick={() => p.onPage(cur - 1)}><ChevronLeft size={16} /></button>
-            <span className="page-no">{cur} / {pages}</span>
-            <button type="button" className="icon-btn" aria-label="Next page" disabled={cur === pages} onClick={() => p.onPage(cur + 1)}><ChevronRight size={16} /></button>
-          </div>
-        )}
       </div>
+      {p.hasMore && (
+        <div className="more-row">
+          <button type="button" className="more-btn" disabled={p.loadingMore} onClick={p.onMore}>
+            {p.loadingMore ? <><Loader2 className="spin" size={15} /> Loading…</> : "More"}
+          </button>
+        </div>
+      )}
     </>
   );
 }
