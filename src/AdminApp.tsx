@@ -239,7 +239,7 @@ function Shell() {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard onPanelChange={setPanelOpen} onEnquiryCountChange={enquiries.report} />} />
                 <Route path="/invitations" element={<Invitations onPanelChange={setPanelOpen} />} />
-                <Route path="/reviews" element={<Reviews onPendingCountChange={reviews.report} />} />
+                <Route path="/reviews" element={<Reviews onPendingCountChange={reviews.report} onPanelChange={setPanelOpen} />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/create" element={<CreateRoute onPanelChange={setPanelOpen} />} />
                 <Route path="*" element={<NotFound />} />

@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { X } from "../../components/Icons";
+import { Smartphone, X } from "../../components/Icons";
+import { useEscape } from "../../hooks/useEscape";
 import { useTemplates } from "../../hooks/useTemplates";
 import {
   ChangeConflictError,
@@ -14,20 +16,26 @@ import type { InvitationRow } from "../../types/dashboard";
 import { fieldLabel, formatDiffValue } from "./fieldLabels";
 
 type Props = {
+  /** The #preview-slot beside the page. The proposed preview is portalled into it, like the Dashboard preview. */
+  slot: HTMLElement | null;
   item: ReviewItem;
   onClose: () => void;
   onDecided: () => void;
   notify: (msg: string, undo?: () => void) => void;
 };
 
-export function ReviewDetail({ item, onClose, onDecided, notify }: Props) {
-  const { templates } = useTemplates();
+export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) {
+  const asideRef = useRef<HTMLElement>(null);
+  const { templates, loading: tplLoading } = useTemplates();
   const [row, setRow] = useState<InvitationRow | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<"approve" | "reject" | "force" | null>(null);
   const [conflictMsg, setConflictMsg] = useState<string | null>(null);
+
+  useEscape(!busy, onClose);
+  useEffect(() => { asideRef.current?.focus({ preventScroll: true }); }, [item.id]);
 
   useEffect(() => {
     let live = true;
@@ -95,8 +103,11 @@ export function ReviewDetail({ item, onClose, onDecided, notify }: Props) {
 
   const pending = item.status === "pending";
 
+  const who = row ? coupleName(row) : item.clientEmail || "Change request";
+
   return (
-    <div className="review-detail" role="dialog" aria-modal="true" aria-label="Review change request">
+    <>
+    <div className="review-detail" role="dialog" aria-label="Review change request">
       <div className="review-detail-head">
         <div>
           <h2 style={{ margin: 0, fontSize: 18 }}>Review request</h2>
@@ -155,25 +166,6 @@ export function ReviewDetail({ item, onClose, onDecided, notify }: Props) {
           )}
         </section>
 
-        <section>
-          <h3 style={{ fontSize: 14, margin: "0 0 10px" }}>Proposed preview</h3>
-          <div className="review-preview-frame">
-            {proposedPreview
-              ? (
-                <iframe
-                  title="Proposed invitation preview"
-                  srcDoc={proposedPreview}
-                  sandbox="allow-scripts"
-                />
-              )
-              : (
-                <p className="hint" style={{ padding: 16 }}>Preview unavailable (template missing or not loaded).</p>
-              )}
-          </div>
-          <p className="hint" style={{ marginTop: 8, fontSize: 12 }}>
-            Sandboxed preview (no same-origin). Scripts from the template are not granted extra privileges.
-          </p>
-        </section>
       </div>
 
       {pending && (
@@ -240,5 +232,31 @@ export function ReviewDetail({ item, onClose, onDecided, notify }: Props) {
         </p>
       )}
     </div>
+
+    {slot && createPortal(
+      <aside className="dash-side-panel" aria-label="Proposed preview" ref={asideRef} tabIndex={-1}>
+        <div className="dp-head">
+          <div className="dp-title">
+            <b>Proposed preview</b>
+            <small>{who} · mobile preview</small>
+          </div>
+          <div className="dp-actions">
+            <button type="button" className="icon-btn" aria-label="Close preview" onClick={onClose} disabled={busy}><X size={16} /></button>
+          </div>
+        </div>
+        <div className="dp-body">
+          {proposedPreview ? (
+            /* No allow-same-origin: template code must not reach the app's storage or cookies. */
+            <iframe key={item.id} title="Proposed invitation preview" srcDoc={proposedPreview} sandbox="allow-scripts" />
+          ) : tplLoading ? (
+            <div className="dx-empty-mini"><Smartphone size={22} /><b>Loading preview…</b></div>
+          ) : (
+            <div className="dx-empty-mini"><Smartphone size={22} /><b>Preview unavailable</b><span>The template is missing or not loaded.</span></div>
+          )}
+        </div>
+      </aside>,
+      slot,
+    )}
+    </>
   );
 }

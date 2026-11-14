@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLatest } from "../hooks/useLatest";
 import { AlertTriangle, Inbox, Search } from "../components/Icons";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
 import { Toast } from "../features/dashboard/components/Toast";
@@ -25,9 +26,11 @@ const TABS: { key: RequestStatus | "all"; label: string }[] = [
 type Props = {
   /** Lets AdminApp keep the sidebar pending badge in sync (same pattern as enquiries). */
   onPendingCountChange?: (n: number) => void;
+  /** Tells AdminApp a right-side panel is open so the sidebar collapses and the page makes room. */
+  onPanelChange?: (open: boolean) => void;
 };
 
-export default function Reviews({ onPendingCountChange }: Props) {
+export default function Reviews({ onPendingCountChange, onPanelChange }: Props) {
   const { toast, notify, dismiss } = useNotify();
   const [status, setStatus] = useState<RequestStatus | "all">("pending");
   const [items, setItems] = useState<ReviewItem[]>([]);
@@ -39,6 +42,8 @@ export default function Reviews({ onPendingCountChange }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [invitations, setInvitations] = useState<ReadonlyMap<string, InvitationRow>>(() => new Map());
   const [q, setQ] = useState("");
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback((silent = false) => {
@@ -75,6 +80,10 @@ export default function Reviews({ onPendingCountChange }: Props) {
     () => (selectedId ? items.find((i) => i.id === selectedId) ?? null : null),
     [items, selectedId],
   );
+
+  const panelChangeRef = useLatest(onPanelChange);
+  useEffect(() => { panelChangeRef.current?.(!!selected); }, [selected, panelChangeRef]);
+  useEffect(() => () => panelChangeRef.current?.(false), [panelChangeRef]);
 
   const term = q.trim().toLowerCase();
   const shown = useMemo(() => {
@@ -179,6 +188,7 @@ export default function Reviews({ onPendingCountChange }: Props) {
 
         {selected && (
           <ReviewDetail
+            slot={slot}
             item={selected}
             onClose={() => setSelectedId(null)}
             onDecided={() => { setSelectedId(null); load(true); }}
