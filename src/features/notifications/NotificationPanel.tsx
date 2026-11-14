@@ -19,10 +19,13 @@ type Props = {
   onMarkAllRead: () => void;
   onRetry: () => void;
   anchorRef?: React.RefObject<HTMLElement | null>;
+  /** Override where a click goes / the second line of text (the client area uses its own routes and wording). */
+  hrefFor?: (n: AppNotification) => string | null;
+  bodyFor?: (n: AppNotification) => string;
 };
 
 export function NotificationPanel({
-  open, onClose, items, loading, error, unread, onMarkRead, onMarkAllRead, onRetry, anchorRef,
+  open, onClose, items, loading, error, unread, onMarkRead, onMarkAllRead, onRetry, anchorRef, hrefFor = notificationHref, bodyFor = notificationBody,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -49,7 +52,7 @@ export function NotificationPanel({
 
   const openItem = (n: AppNotification) => {
     if (!n.readAt) onMarkRead(n.id);
-    const href = notificationHref(n);
+    const href = hrefFor(n);
     onClose();
     if (href) navigate(href);
   };
@@ -95,8 +98,8 @@ export function NotificationPanel({
                     {unreadItem && <i className="notif-dot" aria-hidden="true" />}
                     {notificationTitle(n)}
                   </span>
-                  {notificationBody(n) && (
-                    <span className="notif-item-body">{notificationBody(n)}</span>
+                  {bodyFor(n) && (
+                    <span className="notif-item-body">{bodyFor(n)}</span>
                   )}
                   <span className="notif-item-time" title={fmtDateTime(n.createdAt)}>
                     {timeAgo(n.createdAt, now) || fmtDateTime(n.createdAt)}

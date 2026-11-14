@@ -1,3 +1,17 @@
+### 14 Nov 2026 (85th update) – Client area gets the admin shell: sidebar, top navigation, Dashboard and Edit
+
+**What was done**
+
+1. **Same shell as the admin:** `/my` now uses the admin frame: Schedy strip, rounded app area, left sidebar and top navigation (`ClientShell.tsx`). `Sidebar` takes optional props (`items`, `crumbsFor`, `showCreate`, `liveSiteLabel`, …), so the admin keeps its defaults.
+2. **Only two links:** the sidebar has **Dashboard** (`/my`) and **Edit** (`/my/:id`). The old invitation list page and the "All invitations / email / Log out" strip links are gone; log out is in the profile menu.
+3. **"View invitation"** replaces "View live site" in the sidebar footer and opens the public page of the selected invitation.
+4. **Dashboard (`ClientDashboard.tsx`):** total views, wedding countdown, status, last updated, copyable invitation link, review/change-request state and a details-completed checklist. A picker appears when the client has more than one invitation.
+5. **Editor:** opens inside the same shell, with the notifications bell and profile menu in the top navigation. Notifications link to `/my/:id` and use client wording.
+6. **`ProfileMenu`** moved from `AdminApp.tsx` to `components/ProfileMenu.tsx` (`variant="client"` hides the admin-only items).
+7. **Database (run once):** `supabase/migrations/016_my_invitations_views.sql` adds `views` and `created_at` to `my_invitations()`. Until it is run, the Dashboard shows "—" for views. `schema.sql` is updated to match.
+
+---
+
 ### 13 Nov 2026 (84th update) – Premium UI/UX Overhaul for Client "My" Page
 
 **What was done**

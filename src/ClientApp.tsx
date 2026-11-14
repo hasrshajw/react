@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useBlocker, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, Sk } from "./components/Skeleton";
-import { Mails, CalendarDays, Clock, AlertCircle, CheckCircle2, ChevronLeft, Eye, Loader2, LogOut, Save } from "./components/Icons";
-import {
-  CLIENT_STATUS_LABEL,
-  clientStatus,
-  invitationToForm,
-} from "./features/client/invitationToForm";
+import { Clock, AlertCircle, CheckCircle2, Eye, Loader2, Save } from "./components/Icons";
+import { invitationToForm } from "./features/client/invitationToForm";
 import { CreateForm } from "./features/create/CreateForm";
 import { LivePreview, type FocusRequest } from "./features/create/components/LivePreview";
 import { SectionNav } from "./features/create/components/SectionNav";
@@ -19,88 +15,28 @@ import { formReducer, initialFormState, snapshot } from "./features/create/formR
 import { useToast } from "./features/create/hooks/useToast";
 import { useBeforeUnload } from "./features/create/hooks/useUnsavedWarnings";
 import { useAuth, AuthProvider } from "./hooks/useAuth";
+import { AccountProvider } from "./hooks/useAccount";
+import { ClientShell } from "./features/client/ClientShell";
+import ClientDashboard from "./features/client/ClientDashboard";
+import { useClientData } from "./features/client/clientContext";
 import { useEscape, useFocusTrap } from "./hooks/useEscape";
-import { useAsync } from "./hooks/useAsync";
 import {
   acknowledgeRejection,
   ApiError,
   fetchClientTemplateHtml,
-  fetchMyInvitations,
   submitChangeRequest,
   withdrawChangeRequest,
   type MyInvitation,
 } from "./lib/api";
 import { compile } from "./lib/compileInvitation";
-import { ADMIN_EMAIL } from "./lib/config";
 import { readJSON, removeKey, writeJSON } from "./lib/storage";
 import { LS_CLIENT_DRAFT } from "./lib/storageKeys";
-import { fmtDate, fmtDateTime } from "./lib/dashboardData";
+import { fmtDateTime } from "./lib/dashboardData";
 import { has, validateInvitation } from "./lib/validate";
 import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "./types/invitation";
 import createCss from "./features/create/create.css?inline";
-import clientWsCss from "./features/client/clientWorkspace.css?inline";
-import schedyMark from "./assets/schedy-mark.svg";
 
 /* Track B (B4 shell + B6 client editor). Separate chunk so clients never download admin code. */
-
-/* Mobile-first: comfortable padding and min 44px touch targets on small screens. */
-const page: React.CSSProperties = {
-  maxWidth: 720, margin: "0 auto", padding: "16px 12px 96px",
-  fontFamily: '"DM Sans", "Noto Sans Telugu", Inter, system-ui, sans-serif', color: "var(--dark)",
-  boxSizing: "border-box", width: "100%",
-};
-
-function Frame({ children, title = "Your invitations" }: { children: React.ReactNode; title?: string }) {
-  const navigate = useNavigate();
-  useEffect(() => {
-    const prev = document.title;
-    document.title = `${title} · Schedy`;
-    return () => { document.title = prev; };
-  }, [title]);
-  return (
-    <main className="client-frame-main" style={page}>
-      <style>{`
-        @media (min-width: 480px) {
-          .client-frame-main { padding: 32px 24px 96px !important; }
-        }
-        .client-header { flex-wrap: wrap; }
-        .client-touch { min-height: 44px; transition: all 0.15s ease; }
-        .client-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--primary); font-weight: 600; text-decoration: none; }
-        .client-link:hover { text-decoration: underline; }
-        .client-frame-main :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-        @media (prefers-reduced-motion: reduce) { .client-touch, .premium-card { transition: none; transform: none !important; } }
-        .client-touch:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .premium-card {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 16px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(0, 0, 0, 0.04);
-          transition: all 0.2s ease;
-        }
-        .premium-card:hover {
-          border-color: #d1d5db;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06);
-          transform: translateY(-2px);
-        }
-      `}</style>
-      <div className="client-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, gap: 16 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em", lineHeight: 1.25 }}>{title}</h1>
-          <p style={{ margin: "6px 0 0", fontSize: 15, color: "#6b7280" }}>Manage your wedding invitation details and submit updates.</p>
-        </div>
-        <button
-          type="button"
-          className="client-touch"
-          style={{ ...btnGhost, padding: "8px 14px", fontSize: 14 }}
-          onClick={() => navigate("/login", { replace: true, state: { loggedOut: true } })}
-        >
-          Log out
-        </button>
-      </div>
-      {children}
-    </main>
-  );
-}
 
 const btnGhost: React.CSSProperties = {
   border: "1px solid #d1d5db", background: "#fff", borderRadius: 8, padding: "10px 14px", cursor: "pointer", font: "inherit",
@@ -114,128 +50,6 @@ const btnDanger: React.CSSProperties = {
 const banner: React.CSSProperties = {
   padding: "12px 14px", borderRadius: 12, marginBottom: 16, fontSize: 14, lineHeight: 1.45,
 };
-
-function Landing() {
-  const { session } = useAuth();
-  const { data, loading, error } = useAsync(fetchMyInvitations);
-  if (loading) {
-    return (
-      <Frame>
-        <Loading label="Loading invitations" />
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 }} aria-hidden="true">
-          {[0, 1, 2].map((i) => (
-            <li key={i} style={{ padding: "14px 16px", borderRadius: 12, border: "1px solid #e5e7eb", background: "#fff" }}>
-              <Sk h={16} w="40%" r={6} style={{ marginBottom: 8 }} />
-              <Sk h={12} w="24%" r={6} />
-            </li>
-          ))}
-        </ul>
-      </Frame>
-    );
-  }
-  if (error || !data) {
-    return (
-      <Frame>
-        <p role="alert">We couldn’t load your invitations. Check your connection and try again.</p>
-        <button type="button" className="client-touch" style={btnPrimary} onClick={() => window.location.reload()}>Try again</button>
-      </Frame>
-    );
-  }
-    if (data.length === 0) {
-    /* B7: Premium empty state for no invitations (78th/79th/80th update). Email confirmation disabled per owner decision. */
-    return (
-      <Frame>
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          textAlign: "center", padding: "40px 20px", marginTop: "20px",
-          background: "#ffffff", borderRadius: "16px", border: "1px solid #e5e7eb",
-          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)"
-        }}>
-          <div style={{
-            width: "64px", height: "64px", borderRadius: "50%", background: "#f3f4f6",
-            display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "16px"
-          }}>
-            <Mails size={32} color="#9ca3af" />
-          </div>
-          <h2 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 600, color: "#111827" }}>
-            No invitations to show
-          </h2>
-          {session?.email ? (
-            <p style={{ margin: "0 0 16px", color: "#6b7280", fontSize: "14px", lineHeight: 1.5, maxWidth: "400px" }}>
-              You are signed in as <b style={{ color: "#374151" }}>{session.email}</b>.<br />
-              Please ensure you are using the email address your invitation was sent to.
-            </p>
-          ) : (
-            <p style={{ margin: "0 0 16px", color: "#6b7280", fontSize: "14px", lineHeight: 1.5, maxWidth: "400px" }}>
-              Please sign in with the email address your invitation was set up with.
-            </p>
-          )}
-          {ADMIN_EMAIL && (
-            <a
-              href={`mailto:${ADMIN_EMAIL}`}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "6px",
-                padding: "8px 16px", borderRadius: "8px", background: "#f9fafb",
-                border: "1px solid #e5e7eb", color: "#374151", fontSize: "14px",
-                fontWeight: 500, textDecoration: "none", transition: "all 0.15s ease"
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.borderColor = "#d1d5db"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#e5e7eb"; }}
-            >
-              Contact the admin
-            </a>
-          )}
-        </div>
-      </Frame>
-    );
-  }
-  if (data.length === 1) return <Navigate to={`/my/${encodeURIComponent(data[0].id)}`} replace />;
-  return (
-    <Frame>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 16 }}>
-        {data.map((i) => {
-          const st = clientStatus(i);
-          const label = [i.groomName, i.brideName].filter(Boolean).join(" & ") || "Your invitation";
-          return (
-            <li key={i.id}>
-              <Link
-                to={`/my/${encodeURIComponent(i.id)}`}
-                className="client-touch premium-card"
-                style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
-                  padding: "20px", textDecoration: "none", color: "inherit",
-                }}
-              >
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <span style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>{label}</span>
-                  {i.eventDate && (
-                    <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#6b7280" }}>
-                      <CalendarDays size={16} color="#6b7280" /> {fmtDate(i.eventDate)}
-                    </span>
-                  )}
-                </div>
-                <span style={{
-                  fontSize: 12, whiteSpace: "nowrap", padding: "6px 12px", borderRadius: 999, fontWeight: 600,
-                  background: st === "pending" ? "#fffbeb" : st === "rejected" ? "#fef2f2" : st === "live" ? "#ecfdf5" : "#f9fafb",
-                  color: st === "pending" ? "#92400e" : st === "rejected" ? "#991b1b" : st === "live" ? "#166534" : "#4b5563",
-                  border: `1px solid ${st === "pending" ? "#fcd34d" : st === "rejected" ? "#fecaca" : st === "live" ? "#a7f3d0" : "#e5e7eb"}`,
-                }}>
-                  {CLIENT_STATUS_LABEL[st]}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {/* M-5 / B7: my_invitations is capped at 500 so we never hit the PostgREST 1,000-row default. */}
-      {data.length >= 500 && (
-        <p style={{ marginTop: 14, fontSize: 13, color: "#6b7280" }} role="status">
-          Showing the first 500 invitations linked to this email. Contact the admin if you need an older one.
-        </p>
-      )}
-    </Frame>
-  );
-}
 
 type ClientDraft = { data: InvitationData; at: number };
 
@@ -297,19 +111,8 @@ function SubmitConfirm({ busy, onConfirm, onCancel }: { busy: boolean; onConfirm
 function ClientEditor() {
   const { id = "" } = useParams();
   const { session } = useAuth();
-  const [list, setList] = useState<MyInvitation[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const loadList = useCallback(() => {
-    setLoading(true);
-    setError(false);
-    fetchMyInvitations().then(
-      (d) => { setList(d); setLoading(false); },
-      () => { setError(true); setLoading(false); },
-    );
-  }, []);
-  useEffect(() => { loadList(); }, [loadList]);
-  const reload = loadList;
+  /* The shell loads the invitations once and shares them with the Dashboard. */
+  const { list, loading, error, reload, setPanelOpen, slot } = useClientData();
   const { toast, notify } = useToast();
   const [state, dispatch] = useReducer(formReducer, null, () => initialFormState(id));
   const { data, snap, touched, submitted } = state;
@@ -321,9 +124,7 @@ function ClientEditor() {
   const [tplLoading, setTplLoading] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
   const headBtnRef = useRef<HTMLButtonElement>(null);
-  const navigate = useNavigate();
   const schedule = useTransliteration();
   /* "Edit Again" on a rejected request keeps the proposed edits in the form; "Dismiss" goes back to the live version. */
   const keepRef = useRef<InvitationData | null>(null);
@@ -366,6 +167,13 @@ function ClientEditor() {
     );
     return () => { live = false; };
   }, [inv]);
+
+  useEffect(() => {
+    const report = () => setPanelOpen(window.innerWidth > 900);
+    report();
+    window.addEventListener("resize", report);
+    return () => { window.removeEventListener("resize", report); setPanelOpen(false); };
+  }, [setPanelOpen]);
 
   const dirty = useMemo(() => snapshot(data) !== snap, [data, snap]);
   const dirtyRef = useRef(false);
@@ -532,30 +340,30 @@ function ClientEditor() {
 
   if (loading && !list) {
     return (
-      <Frame>
+      <div aria-busy="true">
         <Loading label="Loading invitation" />
         <div style={{ display: "grid", gap: 12 }} aria-hidden="true">
           <Sk h={48} w="100%" r={12} />
           <Sk h={120} w="100%" r={16} />
           <Sk h={120} w="100%" r={16} />
         </div>
-      </Frame>
+      </div>
     );
   }
   if (error || !list) {
     return (
-      <Frame>
+      <div>
         <p role="alert">We couldn’t load your invitation. Check your connection and try again.</p>
         <button type="button" className="client-touch" style={btnPrimary} onClick={reload}>Try again</button>
-      </Frame>
+      </div>
     );
   }
   if (!inv) {
     return (
-      <Frame>
+      <div>
         <p>This invitation isn’t linked to your account.</p>
-        <Link to="/my" className="client-link">← Back to your invitations</Link>
-      </Frame>
+        <Link to="/my" style={{ color: "var(--primary)", fontWeight: 600 }}>← Back to your dashboard</Link>
+      </div>
     );
   }
 
@@ -567,29 +375,8 @@ function ClientEditor() {
       : "Update your details, then submit for review. Changes go live after admin approval.";
 
   return (
-    <div className="client-ws">
-      <style>{clientWsCss}</style>
-      {/* Same strip as the admin shell: the violet glow is drawn by .client-ws behind it. */}
-      <header className="client-promo">
-        <div className="promo-brand">
-          <span className="promo-mark" aria-hidden="true"><img src={schedyMark} alt="" /></span>
-          <span className="promo-name">Schedy</span>
-        </div>
-        <div className="promo-right">
-          {list.length > 1 && (
-            <Link to="/my" className="promo-link"><ChevronLeft size={15} /> All invitations</Link>
-          )}
-          {session?.email && <span className="promo-email" title={session.email}>{session.email}</span>}
-          <button type="button" className="promo-link" onClick={() => navigate("/login", { replace: true, state: { loggedOut: true } })}>
-            <LogOut size={14} /> Log out
-          </button>
-        </div>
-      </header>
-
-      <div className="client-ws-body">
-        <div className="client-app">
-          <main className="main-content" id="main" tabIndex={-1}>
-            <div className="create" aria-busy={!ready}>
+    <>
+            <div className="create client-create" aria-busy={!ready}>
               <header>
                 <div>
                   <div className="title-row">
@@ -689,7 +476,7 @@ function ClientEditor() {
                 <SectionNav
                   sections={CLIENT_SECTIONS} issues={issues} done={done} doneCount={doneCount} total={CLIENT_PROGRESS.length}
                   saving={busy} saveDisabled={submitDisabled} saveLabel="Submit for review" headBtnRef={headBtnRef}
-                  loading={!ready} topOffset={0}
+                  loading={!ready}
                 />
                 <CreateForm
                   mode="client"
@@ -743,11 +530,7 @@ function ClientEditor() {
 
               <style>{createCss}</style>
             </div>
-          </main>
-        </div>
-        <div ref={setSlot} className="preview-slot" />
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -755,13 +538,17 @@ export default function ClientApp() {
   return (
     <AuthProvider>
       <RoleGate allow="client">
-        <Routes>
-          {/* This <Routes> sits inside the parent route "/my/*", so these paths are relative to /my.
-              Absolute paths ("/my") would never match and the screen stayed blank. */}
-          <Route path="/" element={<Landing />} />
-          <Route path="/:id" element={<ClientEditor />} />
-          <Route path="*" element={<Navigate to="/my" replace />} />
-        </Routes>
+        <AccountProvider>
+          <ClientShell>
+            <Routes>
+              {/* This <Routes> sits inside the parent route "/my/*", so these paths are relative to /my.
+                  Absolute paths ("/my") would never match and the screen stayed blank. */}
+              <Route path="/" element={<ClientDashboard />} />
+              <Route path="/:id" element={<ClientEditor />} />
+              <Route path="*" element={<Navigate to="/my" replace />} />
+            </Routes>
+          </ClientShell>
+        </AccountProvider>
       </RoleGate>
     </AuthProvider>
   );

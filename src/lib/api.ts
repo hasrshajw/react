@@ -329,6 +329,8 @@ export type ReviewDecision = "approve" | "reject";
 export interface MyInvitation {
   id: string; groomName: string; brideName: string; eventDate: string | null; templateId: string; published: boolean;
   details: InvitationRow["details"]; updatedAt: string;
+  /** Times the public page was opened. `null` until migration 016 is applied. */
+  views?: number | null; createdAt?: string | null;
   request: null | {
     id: string; status: RequestStatus; adminNote: string; createdAt: string; acknowledgedAt: string | null;
     /** Full proposed details when the latest request still matters (pending / unacked rejected). From migration 015. */
@@ -361,6 +363,7 @@ const toMyInvitation = (r: DbRow): MyInvitation => ({
   id: r.id as string, groomName: (r.groom_name ?? "") as string, brideName: (r.bride_name ?? "") as string,
   eventDate: (r.event_date ?? null) as string | null, templateId: String(r.template_id ?? ""), published: r.published !== false,
   details: (r.details && typeof r.details === "object" ? r.details : {}) as MyInvitation["details"], updatedAt: r.updated_at as string,
+  views: typeof r.views === "number" ? r.views : null, createdAt: (r.created_at ?? null) as string | null,
   request: r.request_id ? {
     id: r.request_id as string, status: r.request_status as RequestStatus, adminNote: (r.request_admin_note ?? "") as string,
     createdAt: r.request_created_at as string, acknowledgedAt: (r.request_acknowledged_at ?? null) as string | null,

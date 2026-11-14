@@ -100,6 +100,7 @@ export function notificationTitle(n: AppNotification): string {
     case "change_rejected":
       return "Changes rejected";
     case "request_superseded":
+    case "change_superseded":
       return "Request cancelled";
     default:
       return n.type.replace(/_/g, " ");
@@ -125,4 +126,19 @@ export function notificationBody(n: AppNotification): string {
   if (email) return email;
   if (n.invitationId) return `Invitation ${n.invitationId.slice(0, 8)}…`;
   return "";
+}
+
+/* Client area: the same notifications table, but the person reading is the client, so links go to /my and the wording is about "your" changes. */
+export function clientNotificationHref(n: AppNotification): string | null {
+  return n.invitationId ? `/my/${encodeURIComponent(n.invitationId)}` : "/my";
+}
+
+export function clientNotificationBody(n: AppNotification): string {
+  switch (n.type) {
+    case "change_approved": return "Your changes are now live";
+    case "change_rejected": return "Open the editor to see the admin's note";
+    case "change_superseded":
+    case "request_superseded": return "The invitation changed, so this request was cancelled";
+    default: return "";
+  }
 }

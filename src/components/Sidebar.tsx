@@ -7,6 +7,7 @@ import type { IconComponent } from "./Icons";
 import { SkText } from "./Skeleton";
 import { useAccount } from "../hooks/useAccount";
 import { useLatest } from "../hooks/useLatest";
+import type { AppNotification } from "../lib/api";
 import { NotificationPanel } from "../features/notifications/NotificationPanel";
 import { useAdminNotifications } from "../features/notifications/useAdminNotifications";
 
@@ -18,7 +19,9 @@ import logoSmall from "../assets/logo-small.png";
    so hover / active states need no extra image files)
 ========================================================= */
 
-const menuItems = [
+export interface SidebarItem { name: string; path: string; Icon: IconComponent; end?: boolean }
+
+const menuItems: SidebarItem[] = [
   { name: "Dashboard", path: "/dashboard", Icon: LayoutDashboard },
   { name: "Create Invitation", path: "/create", Icon: MailPlus },
   { name: "All Invitations", path: "/invitations", Icon: Mails },
@@ -63,11 +66,24 @@ interface SidebarProps {
   profileOpen?: boolean;
   /** Optional: pass a handler to show the search button + Ctrl K shortcut. */
   onSearch?: () => void;
-  liveSiteUrl?: string;
+  /** `null` hides the footer link (the client area has nothing to open before an invitation exists). */
+  liveSiteUrl?: string | null;
   /** Enquiries still marked "new"; the bell shows its dot only when this is above 0. */
   enquiryCount?: number;
   /** Pending change requests; the Review queue nav item shows a count badge when above 0. */
   reviewCount?: number;
+  /** Client area overrides. Everything defaults to the admin shell. */
+  items?: SidebarItem[];
+  crumbsFor?: (pathname: string) => string[];
+  homePath?: string;
+  sectionLabel?: string;
+  showCreate?: boolean;
+  liveSiteLabel?: string;
+  /** Show the green "live" dot on the footer link. */
+  liveSiteDot?: boolean;
+  /** Where a click on a notification goes. Defaults to the admin routes. */
+  notificationHref?: (n: AppNotification) => string | null;
+  notificationBody?: (n: AppNotification) => string;
 }
 
 interface Pill { x: number; y: number; w: number; h: number; sub: boolean }
@@ -84,6 +100,15 @@ export default function Sidebar({
   liveSiteUrl = "/",
   enquiryCount = 0,
   reviewCount = 0,
+  items = menuItems,
+  crumbsFor = getCrumbs,
+  homePath = "/dashboard",
+  sectionLabel = "Manage",
+  showCreate = true,
+  liveSiteLabel = "View live site",
+  liveSiteDot = true,
+  notificationHref,
+  notificationBody,
 }: SidebarProps) {
   const { pathname } = useLocation();
   const { loading: accountLoading, user } = useAccount();
@@ -221,7 +246,7 @@ export default function Sidebar({
 
   const closeMobileDrawer = () => setMobileOpen(false);
 
-  const crumbs = getCrumbs(pathname);
+  const crumbs = crumbsFor(pathname);
 
   return (
     <>
@@ -245,7 +270,7 @@ export default function Sidebar({
               </button>
             )}
 
-            {pathname !== "/create" && (
+            {showCreate && pathname !== "/create" && (
               <NavLink to="/create" className="nav-cta">
                 <Plus size={16} strokeWidth={2.2} />
                 <span>Create</span>
@@ -282,6 +307,8 @@ export default function Sidebar({
                 onMarkAllRead={notifs.markAllRead}
                 onRetry={() => notifs.load()}
                 anchorRef={bellRef}
+                hrefFor={notificationHref}
+                bodyFor={notificationBody}
               />
             </div>
 
@@ -321,7 +348,7 @@ export default function Sidebar({
       >
         <div className="d-sidebar-header">
           {isExpanded ? (
-            <NavLink to="/dashboard" className="brand-logo" onClick={closeOverlay}>
+            <NavLink to={homePath} className="brand-logo" onClick={closeOverlay}>
               <img src={logo} alt="Schedy" />
             </NavLink>
           ) : (
@@ -343,13 +370,13 @@ export default function Sidebar({
 
         <div className="d-sidebar-inner">
           <nav aria-label="Main" className="d-nav" ref={navRef} onClickCapture={handleNavClick}>
-            <div className="nav-section-label">Manage</div>
+            <div className="nav-section-label">{sectionLabel}</div>
 
-            {menuItems.map(({ name, path, Icon }, i) => (
+            {items.map(({ name, path, Icon, end }, i) => (
               <NavLink
-                key={path}
+                key={name}
                 to={path}
-                end={path === "/dashboard"}
+                end={end ?? path === "/dashboard"}
                 style={{ "--i": i }}
                 onClick={path === "/create" ? collapseNow : closeOverlay}
                 aria-label={
@@ -377,12 +404,14 @@ export default function Sidebar({
 
           {/* Footer: a useful action instead of a duplicate of the profile */}
           <div className="d-footer">
-            <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer" aria-label={isExpanded ? undefined : "View live site"}>
+            {liveSiteUrl !== null && (
+            <a className="live-site" href={liveSiteUrl} target="_blank" rel="noreferrer" aria-label={isExpanded ? undefined : liveSiteLabel}>
               <MenuIcon Icon={ExternalLink} size={18} />
-              <span className="nav-label" style={{ "--i": menuItems.length + 1 }}>View live site</span>
+              <span className="nav-label" style={{ "--i": items.length + 1 }}>{liveSiteLabel}</span>
               <ArrowUpRight className="live-arrow" size={16} strokeWidth={2} aria-hidden="true" />
-              <span className="live-dot" aria-label="Site is live" title="Site is live" />
+              {liveSiteDot && <span className="live-dot" aria-label="Site is live" title="Site is live" />}
             </a>
+            )}
             <div className="powered">Powered by Schedy</div>
           </div>
         </div>
@@ -396,7 +425,7 @@ export default function Sidebar({
           <div className="m-menu-lines"><span /></div>
         </button>
 
-        <NavLink to="/dashboard" className="mobile-brand-logo">
+        <NavLink to={homePath} className="mobile-brand-logo">
           <img src={logo} alt="Schedy" />
         </NavLink>
 
@@ -409,7 +438,7 @@ export default function Sidebar({
           aria-expanded={profileOpen}
           onClick={onProfileClick}
         >
-          H
+          {initial}
         </button>
       </header>
 
@@ -422,7 +451,7 @@ export default function Sidebar({
       >
         <div className="m-drawer">
           <div className="m-drawer-header">
-            <NavLink to="/dashboard" className="brand-logo" onClick={closeMobileDrawer}>
+            <NavLink to={homePath} className="brand-logo" onClick={closeMobileDrawer}>
               <img src={logo} alt="Schedy" />
             </NavLink>
             <button className="m-drawer-close" onClick={closeMobileDrawer} aria-label="Close menu">
@@ -431,13 +460,13 @@ export default function Sidebar({
           </div>
 
           <nav className="m-drawer-nav" aria-label="Main">
-            <div className="nav-section-label">Manage</div>
+            <div className="nav-section-label">{sectionLabel}</div>
 
-            {menuItems.map(({ name, path, Icon }) => (
+            {items.map(({ name, path, Icon, end }) => (
               <NavLink
-                key={path}
+                key={name}
                 to={path}
-                end={path === "/dashboard"}
+                end={end ?? path === "/dashboard"}
                 onClick={closeMobileDrawer}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
                 aria-label={path === "/reviews" && reviewCount > 0 ? `${name}, ${reviewCount} pending` : undefined}

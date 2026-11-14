@@ -30,15 +30,15 @@ describe("fetchMyInvitations", () => {
     const api = await load(() => ({ data: [
       { id: "i1", groom_name: "Ravi", bride_name: "Sita", event_date: "2027-01-02", template_id: 7, published: true, details: { groomEn: "Ravi" }, updated_at: "T1",
         request_id: "r1", request_status: "rejected", request_admin_note: "Fix the date", request_created_at: "T0", request_acknowledged_at: null,
-        request_proposed_details: { weddingDate: "2027-02-01" } },
+        request_proposed_details: { weddingDate: "2027-02-01" }, views: 12, created_at: "T-1" },
       { id: "i2", groom_name: null, bride_name: null, event_date: null, template_id: null, published: null, details: null, updated_at: "T2", request_id: null },
     ] }));
     const rows = await api.fetchMyInvitations();
     expect(recs[0]).toMatchObject({ kind: "rpc", name: "my_invitations" });
     expect(rows[0]).toEqual({ id: "i1", groomName: "Ravi", brideName: "Sita", eventDate: "2027-01-02", templateId: "7", published: true,
-      details: { groomEn: "Ravi" }, updatedAt: "T1",
+      details: { groomEn: "Ravi" }, updatedAt: "T1", views: 12, createdAt: "T-1",
       request: { id: "r1", status: "rejected", adminNote: "Fix the date", createdAt: "T0", acknowledgedAt: null, proposedDetails: { weddingDate: "2027-02-01" } } });
-    expect(rows[1]).toMatchObject({ groomName: "", templateId: "", details: {}, request: null });
+    expect(rows[1]).toMatchObject({ groomName: "", templateId: "", details: {}, request: null, views: null, createdAt: null });
   });
   it("gives an empty list for no rows or a non-array answer, and throws the server message on error", async () => {
     expect(await (await load(() => ({ data: [] }))).fetchMyInvitations()).toEqual([]);

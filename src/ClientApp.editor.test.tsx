@@ -10,12 +10,16 @@ vi.mock("./hooks/useAuth", () => ({
 }));
 vi.mock("./components/RoleGate", () => ({ RoleGate: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock("./lib/config", () => ({ ADMIN_EMAIL: "help@x.com", SUPABASE_CONFIGURED: true, SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "pk" }));
+vi.mock("./lib/supabase", () => ({ SUPABASE_CONFIGURED: false, db: () => ({}) }));
 vi.mock("./lib/api", () => ({
   fetchMyInvitations: vi.fn(),
   fetchClientTemplateHtml: vi.fn().mockResolvedValue("<html><body>{{groomEn}}</body></html>"),
   submitChangeRequest: vi.fn(),
   withdrawChangeRequest: vi.fn(),
   acknowledgeRejection: vi.fn(),
+  fetchAccount: vi.fn().mockResolvedValue({ user: { name: "Client", email: "client@x.com", role: "Member" }, plan: { name: "Pro", status: "active", trialDaysLeft: 0 } }),
+  fetchNotifications: vi.fn().mockResolvedValue([]),
+  markNotificationRead: vi.fn(),
 }));
 vi.mock("./lib/transliterate", () => ({ transliterate: async (v: string) => `TE:${v}` }));
 import { fetchMyInvitations } from "./lib/api";
@@ -62,8 +66,19 @@ describe("client editor layout", () => {
     const strip = h.querySelector(".client-ws > header.client-promo");
     expect(strip?.querySelector(".promo-mark img")).toBeTruthy();
     expect(strip?.textContent).toContain("Schedy");
-    expect(strip?.textContent).toContain("Log out");
+    expect(strip?.textContent).not.toContain("Log out");
     expect(h.querySelector(".client-ws-body > .client-app > .main-content")).toBeTruthy();
+  });
+
+  it("has the admin sidebar and top navigation: Dashboard and Edit links, notifications and profile at the top", async () => {
+    const h = await open();
+    const nav = [...h.querySelectorAll(".d-sidebar nav a.nav-item")].map((a) => a.textContent?.trim());
+    expect(nav).toEqual(["Dashboard", "Edit"]);
+    expect(h.querySelector(".d-sidebar nav a.nav-item.active")?.textContent).toContain("Edit");
+    expect(h.querySelector(".d-sidebar .live-site")?.textContent).toContain("View invitation");
+    const top = h.querySelector(".top-navbar")!;
+    expect(top.querySelector('button[aria-label^="Notifications"]')).toBeTruthy();
+    expect(top.querySelector('button[aria-label="Profile"]')).toBeTruthy();
   });
 
   it("typing English fills the Telugu field, like the admin form", async () => {
