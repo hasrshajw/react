@@ -75,12 +75,12 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const { menu, menuRef, openMenu, closeMenu, onMenuKey } = useRowMenu(opener);
 
   /* optional silent auto-refresh */
-  const { load: loadList } = store;
+  const { refreshIfChanged } = store;
   useEffect(() => {
     if (!autoRefresh) return;
-    const t = setInterval(() => loadList(true), 60000);
+    const t = setInterval(refreshIfChanged, 60000);
     return () => clearInterval(t);
-  }, [autoRefresh, loadList]);
+  }, [autoRefresh, refreshIfChanged]);
 
   useEffect(() => { setSlot(document.getElementById("preview-slot")); }, []);
 

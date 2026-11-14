@@ -921,3 +921,16 @@ end $$;
 
 revoke all on function public.enquiry_summary(date) from public, anon;
 grant execute on function public.enquiry_summary(date) to authenticated;
+
+-- ---------- invitation fingerprint (migration 019) ----------
+create or replace function public.invitation_fingerprint() returns text
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'not allowed' using errcode = '42501'; end if;
+  return (
+    select count(*)::text || '|' || coalesce(max(updated_at)::text, '') || '|' || coalesce(sum(coalesce(views, 0)), 0)::text
+    from public.invitations);
+end $$;
+
+revoke all on function public.invitation_fingerprint() from public, anon;
+grant execute on function public.invitation_fingerprint() to authenticated;

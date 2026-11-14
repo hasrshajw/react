@@ -1,3 +1,15 @@
+### 14 Nov 2026 (88th update) – Egress: Auto refresh reads the list only when it changed (task3.md)
+
+**What was done**
+
+1. New `invitation_fingerprint()` (migration 019, admin only): one short text (count, newest `updated_at`, views total).
+2. The Dashboard's **Auto** toggle checks that text every minute and re-reads the invitation list only if it changed (after a search/filter/sort has loaded everything). If the check cannot be read, it reads the list as before.
+3. Tests added; 633 pass. **Run migration 019 once.**
+
+**What next:** Client area reads (`my_invitations` full data), then preview image storage. See `task3.md`.
+
+---
+
 ### 14 Nov 2026 (87th update) – Egress: alerts (notifications), enquiries polling, review list, templates
 
 **What was done**

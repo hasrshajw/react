@@ -546,6 +546,19 @@ export async function fetchInvitationSummary(): Promise<InvitationSummary> {
   };
 }
 
+/** One short text that changes whenever an invitation is added, edited, published, trashed or viewed. The Dashboard's Auto refresh compares it
+ *  with the last one and re-reads the list only when it differs. Returns null when it cannot be read (function not installed yet, offline),
+ *  and the caller then reads the list as it did before. */
+export async function fetchInvitationFingerprint(): Promise<string | null> {
+  try {
+    const { data, error } = await db().rpc("invitation_fingerprint");
+    if (error || typeof data !== "string") return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 /** Only the invitations with these ids (the Review queue needs names for the 10 requests on screen, not the whole list). */
 export async function fetchInvitationsByIds(ids: string[]): Promise<InvitationRow[]> {
   const unique = [...new Set(ids)].slice(0, 200);

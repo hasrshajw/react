@@ -487,6 +487,15 @@ describe("enquiries", () => {
     expect(counting).toHaveLength(7);
   });
 
+  it("fetchInvitationFingerprint reads one short text, and gives null when it cannot be read", async () => {
+    const ok = await load(() => ({ data: "12|2026-11-14T10:00:00+00|40" }));
+    expect(await ok.api.fetchInvitationFingerprint()).toBe("12|2026-11-14T10:00:00+00|40");
+    expect(ok.calls).toHaveLength(1);
+    expect(ok.calls[0].table).toBe("rpc:invitation_fingerprint");
+    const bad = await load(() => ({ error: { message: "function not found" } }));
+    expect(await bad.api.fetchInvitationFingerprint()).toBeNull();
+  });
+
   it("fetchEnquiryPage asks for one tab, one page and one extra row, and says whether there is more", async () => {
     const data = Array.from({ length: 11 }, (_, i) => ({ id: `e${i}`, created_at: "2026-11-01" }));
     const { api, calls } = await load(() => ({ data }));

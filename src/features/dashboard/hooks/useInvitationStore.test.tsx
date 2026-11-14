@@ -4,12 +4,13 @@ import { act, advance, flush, renderHook } from "../../../test/renderHook";
 import type { InvitationRow } from "../../../types/dashboard";
 
 vi.mock("../../../lib/api", () => ({
-  fetchInvitations: vi.fn(), savePublished: vi.fn(), saveDeleted: vi.fn(), fetchExpiredTrashIds: vi.fn(), deleteInvitation: vi.fn(),
+  fetchInvitations: vi.fn(), fetchInvitationFingerprint: vi.fn(), savePublished: vi.fn(), saveDeleted: vi.fn(), fetchExpiredTrashIds: vi.fn(), deleteInvitation: vi.fn(),
 }));
-import { deleteInvitation, fetchExpiredTrashIds, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
+import { deleteInvitation, fetchExpiredTrashIds, fetchInvitationFingerprint, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
 import { useInvitationStore } from "./useInvitationStore";
 
 const list = vi.mocked(fetchInvitations);
+const fpr = vi.mocked(fetchInvitationFingerprint);
 const savePub = vi.mocked(savePublished);
 const saveDel = vi.mocked(saveDeleted);
 const expired = vi.mocked(fetchExpiredTrashIds);
@@ -19,7 +20,7 @@ const DAY = 24 * 3600000;
 const row = (id: string, extra: Partial<InvitationRow> = {}): InvitationRow => ({ id, groom_name: id, bride_name: "B", event_date: "2099-01-01", ...extra });
 const answer = (rows: InvitationRow[], published: Record<string, boolean> = {}, deleted: Record<string, number> = {}, truncated?: boolean) => ({ rows, published, deleted, truncated });
 
-async function setup(first = answer([row("a"), row("b")]), opts: { purgeExpired?: boolean } = {}) {
+async function setup(first = answer([row("a"), row("b")]), opts: { purgeExpired?: boolean; initialLimit?: number } = {}) {
   list.mockResolvedValue(first);
   const notify = vi.fn();
   const h = renderHook(() => useInvitationStore({ notify, ...opts }));
@@ -30,7 +31,7 @@ async function setup(first = answer([row("a"), row("b")]), opts: { purgeExpired?
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-11-12T10:00:00Z"));
-  for (const m of [list, savePub, saveDel, expired, del]) m.mockReset();
+  for (const m of [list, fpr, savePub, saveDel, expired, del]) m.mockReset();
   savePub.mockResolvedValue(undefined);
   saveDel.mockResolvedValue(undefined);
   expired.mockResolvedValue([]);
@@ -335,6 +336,80 @@ describe("clock", () => {
     const t0 = h.result.current.now;
     await advance(30000);
     expect(h.result.current.now).toBeGreaterThan(t0);
+    h.unmount();
+  });
+});
+
+describe("auto refresh (refreshIfChanged)", () => {
+  /* Everything loaded (limit above the first read), as after a search. */
+  async function loadedAll() {
+    const { h } = await setup(answer([row("a"), row("b")], {}, {}, true), { initialLimit: 2 });
+    list.mockResolvedValue(answer([row("a"), row("b"), row("c")]));
+    await act(async () => { h.result.current.loadAll(); });
+    await flush();
+    list.mockClear();
+    return h;
+  }
+
+  it("while only the first rows are loaded it just reads the list again", async () => {
+    const { h } = await setup(answer([row("a"), row("b")]), { initialLimit: 2 });
+    list.mockClear();
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    expect(fpr).not.toHaveBeenCalled();
+    expect(list).toHaveBeenCalledTimes(1);
+    h.unmount();
+  });
+
+  it("after everything is loaded, an unchanged marker means no list read", async () => {
+    const h = await loadedAll();
+    fpr.mockResolvedValue("3|t1|10");
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    expect(list).toHaveBeenCalledTimes(1); // first check has nothing to compare with
+    list.mockClear();
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    expect(fpr).toHaveBeenCalledTimes(2);
+    expect(list).not.toHaveBeenCalled();
+    h.unmount();
+  });
+
+  it("a changed marker reads the list again", async () => {
+    const h = await loadedAll();
+    fpr.mockResolvedValue("3|t1|10");
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    list.mockClear();
+    fpr.mockResolvedValue("3|t2|10");
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    expect(list).toHaveBeenCalledTimes(1);
+    h.unmount();
+  });
+
+  it("a marker that cannot be read falls back to reading the list", async () => {
+    const h = await loadedAll();
+    fpr.mockResolvedValue(null);
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    expect(list).toHaveBeenCalledTimes(2);
+    h.unmount();
+  });
+
+  it("a failed read is retried next time even if the marker did not move again", async () => {
+    const h = await loadedAll();
+    fpr.mockResolvedValue("3|t1|10");
+    list.mockRejectedValueOnce(new Error("x"));
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    list.mockClear();
+    list.mockResolvedValue(answer([row("a")]));
+    await act(async () => { h.result.current.refreshIfChanged(); });
+    await flush();
+    expect(list).toHaveBeenCalledTimes(1);
     h.unmount();
   });
 });

@@ -28,4 +28,4 @@ The 60 s refresh also asked for the whole list again whenever a fingerprint chan
 Run `supabase/migrations/018_enquiry_summary.sql` in Supabase > SQL Editor. Until then the fallback count requests are used (slightly more requests, still no rows).
 
 ## Left for the next tasks
-Invitation rows with `details`, Auto refresh after a search, client area reads, preview image storage.
+~~Invitation rows with `details`~~ (done, task2.md), ~~Auto refresh after a search~~ (done, task3.md). Still open: client area reads, preview image storage.

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LIST_LIMIT } from "../../../lib/listLimit";
-import { deleteInvitation, fetchExpiredTrashIds, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
+import { deleteInvitation, fetchExpiredTrashIds, fetchInvitationFingerprint, fetchInvitations, saveDeleted, savePublished } from "../../../lib/api";
 import {
   DAY, TRASH_DAYS, isPast,
 } from "../../../lib/dashboardData";
@@ -81,6 +81,8 @@ export function useInvitationStore({ notify, purgeExpired = false, initialLimit 
   const refreshing = busy && lastUpdated !== null;
 
   const loadRef = useRef<(silent?: boolean) => void>(() => {});
+  /* Change marker (fetchInvitationFingerprint) of the list as last read by the Auto refresh. Cleared when a read fails, so the next check reads again. */
+  const fpRef = useRef<string | null>(null);
   /* After a failed save the screen goes back to the last state it knew was saved, which can differ from the server
      (a bulk change may have been partly applied). Ask the server and show what it holds. */
   const failed = useCallback(() => {
@@ -110,6 +112,7 @@ export function useInvitationStore({ notify, purgeExpired = false, initialLimit 
       },
       () => {
         if (!alive.current) return;
+        fpRef.current = null;
         if (silent) { /* background refresh: stay quiet */ }
         else if (loadedRef.current) notify("Couldn’t refresh. Showing the last loaded data.");
         else setError(true);
@@ -121,6 +124,20 @@ export function useInvitationStore({ notify, purgeExpired = false, initialLimit 
   const reload = useCallback(() => {
     fetchInvitations(limitRef.current).then((res) => { if (alive.current) { setRows(res.rows); setTruncated(!!res.truncated); } }, () => notify("Couldn’t refresh the list."));
   }, [notify]);
+
+  /* Auto refresh. While only the newest few rows are loaded, reading them again is as small as the check itself. Once a search, filter or sort
+     has loaded everything, the list is read again only if the change marker moved (one short text per minute instead of every invitation).
+     If the marker cannot be read, it reads the list as before. */
+  const refreshIfChanged = useCallback(() => {
+    if (limitRef.current <= initialLimit) { loadRef.current(true); return; }
+    fetchInvitationFingerprint().then((fp) => {
+      if (!alive.current) return;
+      if (fp === null) { fpRef.current = null; loadRef.current(true); return; }
+      if (fp === fpRef.current) return;
+      fpRef.current = fp; // taken before the read, so a change that lands during the read is picked up next time
+      loadRef.current(true);
+    });
+  }, [initialLimit]);
 
   /* Read more rows: `target` is the new limit. It is undone if the read fails. */
   const grow = useCallback((target: number, failMessage: string) => {
@@ -202,7 +219,7 @@ export function useInvitationStore({ notify, purgeExpired = false, initialLimit 
   /* `hasMore`: the last read came back full, so older invitations probably exist. `capped`: that read was already the hard limit. */
   const capped = truncated && limitRef.current >= LIST_LIMIT;
   return {
-    rows, truncated, hasMore: truncated, capped, savedTick, loadMore, loadAll, loading, refreshing, error, lastUpdated, now, load, reload,
+    rows, truncated, hasMore: truncated, capped, savedTick, loadMore, loadAll, refreshIfChanged, loading, refreshing, error, lastUpdated, now, load, reload,
     pub, pubRef, isPub, commitPub, writePub, togglePublish,
     deleted, delRef, writeDeleted, restoreInvitation, moveToTrash,
     visible, trashed,
