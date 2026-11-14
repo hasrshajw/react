@@ -5,7 +5,7 @@ import {
   Archive, EyeOff, Globe, MessageCircle, QrCode, Trash2,
 } from "../components/Icons";
 import {
-  DAY, LS_AUTO, PAGE_SIZE, coupleName, copyText, followDue, getInviteLink, getViews,
+  LS_AUTO, PAGE_SIZE, coupleName, copyText, getInviteLink, getViews,
   isPast, readJSON, shareOnWhatsApp, sortInvitations, topViewedId, writeJSON,
 } from "../lib/dashboardData";
 import { PreviewPanel } from "../features/dashboard/components/PreviewPanel";
@@ -39,11 +39,15 @@ interface Props {
 export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props) {
   const navigate = useNavigate();
   const { toast, notify, dismiss } = useNotify();
+  const [reqOpen, setReqOpen] = useState(false);
+  const [reqTab, setReqTab] = useState<EnquiryTab>("new");
+  const [reqSearch, setReqSearch] = useState("");
   /* Only the newest 5 invitations are read at first. The numbers on the cards come from the database (useInvitationSummary);
      searching, filtering, sorting or opening the trash reads the rest. */
   const store = useInvitationStore({ notify, purgeExpired: true, initialLimit: 5, step: 5 });
   const { visible, trashed, isPub, now } = store;
-  const enq = useEnquiries(notify, onEnquiryCountChange);
+  /* Enquiries: the counts load at once (one small request); the rows are read in pages while the panel is open. */
+  const enq = useEnquiries(notify, onEnquiryCountChange, { open: reqOpen, tab: reqTab, search: reqSearch });
   /* Skeletons wait ~150ms before appearing and stay at least ~300ms, so fast loads do not flash. */
   const invPhase = useSkeletonPhase(store.loading);
   const enqPhase = useSkeletonPhase(enq.loading);
@@ -58,8 +62,6 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   const [showAll, setShowAll] = useState(false);
   const [page, setPage] = useState(1);
 
-  const [reqOpen, setReqOpen] = useState(false);
-  const [reqTab, setReqTab] = useState<EnquiryTab>("new");
   const [preview, setPreview] = useState<InvitationRow | null>(null);
   const [qr, setQr] = useState<InvitationRow | null>(null);
   const [trash, setTrash] = useState(false);
@@ -167,8 +169,8 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
   /* ---------- "Needs attention" ---------- */
   const soonDrafts = counts ? counts.draftSoon : visible.filter((x) => matchesFilter(x, "draftSoon", isPub(x))).length;
   const noViews = counts ? counts.noViews : visible.filter((x) => matchesFilter(x, "noViews", isPub(x))).length;
-  const staleNew = enq.enquiries.filter((e) => e.status === "new" && now - Date.parse(e.createdAt) > DAY).length;
-  const dueFollow = enq.enquiries.filter((e) => ["today", "overdue"].includes(followDue(e) || "")).length;
+  const staleNew = enq.staleNew;
+  const dueFollow = enq.dueFollow;
   const attention = [
     soonDrafts > 0 && { key: "soon", tone: "danger", count: soonDrafts, label: `draft ${soonDrafts === 1 ? "invitation" : "invitations"} with an event in 7 days`, run: () => applyFilter("draftSoon") },
     staleNew > 0 && { key: "stale", tone: "danger", count: staleNew, label: `new ${staleNew === 1 ? "enquiry" : "enquiries"} waiting over 24h`, run: () => showRequests("new") },
@@ -229,7 +231,7 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         total={totalCount} published={pubCount} drafts={totalCount - pubCount}
         onFilter={applyFilter}
         views={totalViews} viewed={viewedCount} unviewed={totalCount - viewedCount}
-        enqNew={enq.enqNew} enqTotal={enq.enquiries.length} enqFollow={enq.enqFollow}
+        enqNew={enq.enqNew} enqTotal={enq.enqTotal} enqFollow={enq.enqFollow}
         requestsOpen={reqOpen}
         onShowFollowups={() => showRequests("followup")}
         onToggleRequests={toggleRequests}
@@ -286,7 +288,8 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
       {trash && <TrashModal items={trashed} onRestore={store.restoreInvitation} onClose={closeAll} />}
       {reqOpen && (
         <EnquiriesPanel
-          slot={slot} enquiries={enq.enquiries} now={now} tab={reqTab} onTab={setReqTab} onClose={closePanel}
+          slot={slot} enquiries={enq.enquiries} counts={enq.counts} loading={enq.listLoading} hasMore={enq.hasMore} moreBusy={enq.moreBusy} onMore={enq.loadMore}
+          search={reqSearch} onSearch={setReqSearch} now={now} tab={reqTab} onTab={setReqTab} onClose={closePanel}
           onSetStatus={enq.setStatus} onSaveNote={enq.saveNote} onSetFollowDate={enq.setFollowDate} notify={notify}
         />
       )}

@@ -4,12 +4,22 @@ import {
   Check, Search, X, MessageCircle, ChevronDown, Phone, Mail, PhoneCall, Clock, Ban, Download, Copy,
 } from "../../../components/Icons";
 import { ENQ_LABEL, copyText, exportCsv, fmtDateTime, followDue, timeAgo, waLink } from "../../../lib/dashboardData";
+import { fetchEnquiries, type EnquirySummary } from "../../../lib/api";
 import { useEscape } from "../../../hooks/useEscape";
 import type { Enquiry, EnquiryStatus, EnquiryTab, Notify } from "../../../types/dashboard";
 
 interface Props {
   slot: HTMLElement | null;
+  /** The rows read so far for this tab and search (10 at a time). */
   enquiries: Enquiry[];
+  /** Counts for the tabs and the title, from the database summary. */
+  counts: EnquirySummary;
+  loading: boolean;
+  hasMore: boolean;
+  moreBusy: boolean;
+  onMore: () => void;
+  search: string;
+  onSearch: (value: string) => void;
   now: number;
   tab: EnquiryTab;
   onTab: (tab: EnquiryTab) => void;
@@ -20,30 +30,26 @@ interface Props {
   notify: Notify;
 }
 
-export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSetStatus, onSaveNote, onSetFollowDate, notify }: Props) {
+export function EnquiriesPanel({ slot, enquiries, counts, loading, hasMore, moreBusy, onMore, search, onSearch, now, tab, onTab, onClose, onSetStatus, onSaveNote, onSetFollowDate, notify }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
   const asideRef = useRef<HTMLElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   useEscape(true, onClose);
   useEffect(() => { asideRef.current?.focus({ preventScroll: true }); }, []);
   if (!slot) return null;
 
-  const count = (s: EnquiryStatus) => enquiries.filter((e) => e.status === s).length;
-  const newCount = count("new");
+  const newCount = counts.new;
   const tabs: { key: EnquiryTab; label: string; count: number }[] = [
-    { key: "new", label: "New", count: newCount },
-    { key: "followup", label: "Follow-up", count: count("followup") },
-    { key: "cancelled", label: "Cancelled", count: count("cancelled") },
-    { key: "all", label: "All", count: enquiries.length },
+    { key: "new", label: "New", count: counts.new },
+    { key: "followup", label: "Follow-up", count: counts.followup },
+    { key: "cancelled", label: "Cancelled", count: counts.cancelled },
+    { key: "all", label: "All", count: counts.total },
   ];
   const idx = Math.max(0, tabs.findIndex((t) => t.key === tab));
   const term = search.trim().toLowerCase();
-  const list = enquiries.filter(
-    (e) =>
-      (tab === "all" || e.status === tab) &&
-      (!term || [e.name, e.phone, e.email, e.message, e.note || ""].some((s) => s.toLowerCase().includes(term)))
-  );
+  /* The database already applied the tab and the search; the tab filter here only takes a row off the screen at once when its status is changed. */
+  const list = enquiries.filter((e) => tab === "all" || e.status === tab);
   const emptyByTab: Record<EnquiryTab, string[]> = {
     new: ["All caught up", "No new enquiries."],
     followup: ["Nothing pending", "No enquiries need a follow-up."],
@@ -70,7 +76,7 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
       <div className="dp-head">
         <div className="dp-title">
           <b><span className="live-dot red" />Site enquiries</b>
-          <small><span className="red">{newCount} new</span> of {enquiries.length} enquiries</small>
+          <small><span className="red">{newCount} new</span> of {counts.total} enquiries</small>
         </div>
         <div className="dp-actions">
           <button type="button" className="icon-btn" aria-label="Close enquiries" onClick={onClose}><X size={16} /></button>
@@ -92,11 +98,12 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
 
       <label className="dx-enq-search">
         <Search size={15} />
-        <input type="search" placeholder="Search name, phone or email" aria-label="Search enquiries" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input type="search" placeholder="Search name, phone or email" aria-label="Search enquiries" value={search} onChange={(e) => onSearch(e.target.value)} />
       </label>
 
       <div className="dx-req-list" role="tabpanel" id="enq-tabpanel" aria-labelledby={`enq-tab-${tab}`}>
-        {list.length === 0 && (
+        {loading && list.length === 0 && <div className="dx-empty-mini" role="status"><span>Loading…</span></div>}
+        {!loading && list.length === 0 && (
           <div className="dx-empty-mini"><Check size={22} /><b>{empty[0]}</b><span>{empty[1]}</span></div>
         )}
         {list.map((e) => {
@@ -202,8 +209,21 @@ export function EnquiriesPanel({ slot, enquiries, now, tab, onTab, onClose, onSe
         })}
       </div>
 
+      {hasMore && (
+        <div className="dx-drawer-foot">
+          <button type="button" className="act-btn" disabled={moreBusy} onClick={onMore}>{moreBusy ? "Loading…" : "More"}</button>
+        </div>
+      )}
+
       <div className="dx-drawer-foot">
-        <button type="button" className="act-btn" onClick={() => exportCsv(enquiries, notify)}><Download size={14} /> Export CSV</button>
+        <button
+          type="button" className="act-btn" disabled={exporting}
+          onClick={() => {
+            /* The CSV holds every enquiry, so they are read now, once, and only for this click. */
+            setExporting(true);
+            fetchEnquiries().then((rows) => exportCsv(rows, notify), () => notify("Couldn’t export enquiries. Try again.")).finally(() => setExporting(false));
+          }}
+        ><Download size={14} /> {exporting ? "Exporting…" : "Export CSV"}</button>
       </div>
     </aside>,
     slot

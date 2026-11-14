@@ -310,10 +310,68 @@ const toEnquiry = (r: DbRow): Enquiry => ({
   history: Array.isArray(r.history) ? (r.history as Enquiry["history"]) : [],
 });
 
+/** Every enquiry. Only the CSV export uses this (on click); the panel reads pages (`fetchEnquiryPage`). */
 export async function fetchEnquiries(): Promise<Enquiry[]> {
   const data = await readAllPages((from, to) => db().from("enquiries").select(ENQUIRY_COLUMNS)
     .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to));
   return data.map(toEnquiry);
+}
+
+/** Counts for the card, the "Needs attention" strip and the panel tabs. `newestId` changes when something arrives, so the background
+ *  check compares whole summaries and reads rows only if the panel is open. */
+export interface EnquirySummary {
+  total: number; new: number; followup: number; called: number; cancelled: number; staleNew: number; dueFollow: number; newestId: string;
+}
+
+/** One small answer from the database (migration 018) instead of the whole list. Before 018 is run it falls back to a few count-only
+ *  requests (no rows are downloaded either way). */
+export async function fetchEnquirySummary(): Promise<EnquirySummary> {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const { data, error } = await db().rpc("enquiry_summary", { p_today: today });
+  if (!error && data && typeof data === "object") {
+    const r = data as Record<string, unknown>;
+    return {
+      total: num(r.total), new: num(r.new), followup: num(r.followup), called: num(r.called), cancelled: num(r.cancelled),
+      staleNew: num(r.stale_new), dueFollow: num(r.due_follow), newestId: typeof r.newest_id === "string" ? r.newest_id : "",
+    };
+  }
+  /* Function not installed yet (or not allowed): count with head requests. A real permission error fails the same way on these. */
+  const base = () => db().from("enquiries").select("id", { count: "exact", head: true });
+  const count = async (f: (q: ReturnType<typeof base>) => PromiseLike<{ count: number | null; error: { message: string } | null }>): Promise<number> => {
+    const res = await f(base());
+    if (res.error) fail(res.error);
+    return res.count ?? 0;
+  };
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const [total, nw, followup, called, cancelled, staleNew, dueFollow, newest] = await Promise.all([
+    count((q) => q), count((q) => q.eq("status", "new")), count((q) => q.eq("status", "followup")),
+    count((q) => q.eq("status", "called")), count((q) => q.eq("status", "cancelled")),
+    count((q) => q.eq("status", "new").lt("created_at", dayAgo)),
+    count((q) => q.eq("status", "followup").not("follow_up_date", "is", null).lte("follow_up_date", today)),
+    db().from("enquiries").select("id").order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1),
+  ]);
+  if (newest.error) fail(newest.error);
+  const first = Array.isArray(newest.data) && newest.data[0] ? String((newest.data[0] as DbRow).id) : "";
+  return { total, new: nw, followup, called, cancelled, staleNew, dueFollow, newestId: first };
+}
+
+export const ENQUIRY_PAGE = 10;
+/** Characters that would break a PostgREST `or()` filter or act as wildcards are dropped from a search term. */
+const cleanTerm = (t: string) => t.trim().replace(/[,()%*_\\"']/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+
+/** A page of enquiries, newest first, for the panel. `offset` rows are skipped; one extra row is read to know whether "More" has anything. */
+export async function fetchEnquiryPage(opts: { tab: "all" | Enquiry["status"]; search?: string; offset?: number; limit?: number }): Promise<{ items: Enquiry[]; hasMore: boolean }> {
+  const limit = opts.limit ?? ENQUIRY_PAGE;
+  const offset = opts.offset ?? 0;
+  let q = db().from("enquiries").select(ENQUIRY_COLUMNS);
+  if (opts.tab !== "all") q = q.eq("status", opts.tab);
+  const term = cleanTerm(opts.search ?? "");
+  if (term) q = q.or(["name", "phone", "email", "message", "note"].map((c) => `${c}.ilike.%${term}%`).join(","));
+  const { data, error } = await q.order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + limit);
+  if (error) fail(error);
+  const rows = Array.isArray(data) ? (data as DbRow[]) : [];
+  return { items: rows.slice(0, limit).map(toEnquiry), hasMore: rows.length > limit };
 }
 
 /** M-6: number of enquiries still marked "new", for the navbar badge. Counts on the server, so no rows are downloaded. */
@@ -321,15 +379,6 @@ export async function fetchNewEnquiryCount(): Promise<number> {
   const { count, error } = await db().from("enquiries").select("id", { count: "exact", head: true }).eq("status", "new");
   if (error) fail(error);
   return count ?? 0;
-}
-
-/** A tiny "has anything been added?" check for the background refresh: the number of enquiries and the newest id, in one request that
- *  downloads one row. The full list is read again only when this changes. */
-export async function fetchEnquiryFingerprint(): Promise<string> {
-  const { data, count, error } = await db().from("enquiries").select("id", { count: "exact" }).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(1);
-  if (error) fail(error);
-  const newest = Array.isArray(data) && data[0] ? String((data[0] as DbRow).id) : "";
-  return `${count ?? 0}:${newest}`;
 }
 
 /** Saves status, note and follow-up date. `history` is not sent: the database appends an entry (with the server time)

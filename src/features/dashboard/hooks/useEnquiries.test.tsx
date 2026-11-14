@@ -2,26 +2,31 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, advance, flush, renderHook } from "../../../test/renderHook";
 import type { Enquiry } from "../../../types/dashboard";
+import type { EnquirySummary } from "../../../lib/api";
 
-vi.mock("../../../lib/api", () => ({ fetchEnquiries: vi.fn(), fetchEnquiryFingerprint: vi.fn(), saveEnquiry: vi.fn() }));
-import { fetchEnquiries, fetchEnquiryFingerprint, saveEnquiry } from "../../../lib/api";
-import { useEnquiries } from "./useEnquiries";
+vi.mock("../../../lib/api", () => ({ fetchEnquiryPage: vi.fn(), fetchEnquirySummary: vi.fn(), saveEnquiry: vi.fn() }));
+import { fetchEnquiryPage, fetchEnquirySummary, saveEnquiry } from "../../../lib/api";
+import { useEnquiries, type EnquiryView } from "./useEnquiries";
 
-const fetchMock = vi.mocked(fetchEnquiries);
-const fpMock = vi.mocked(fetchEnquiryFingerprint);
+const pageMock = vi.mocked(fetchEnquiryPage);
+const sumMock = vi.mocked(fetchEnquirySummary);
 const saveMock = vi.mocked(saveEnquiry);
 let hidden = false;
 
 const enq = (id: string, extra: Partial<Enquiry> = {}): Enquiry => ({
   id, name: id, phone: "", email: "", message: "", createdAt: "2026-11-01T00:00:00Z", status: "new", note: "", followUpDate: "", history: [], ...extra,
 });
+const summary = (extra: Partial<EnquirySummary> = {}): EnquirySummary => ({ total: 2, new: 1, followup: 1, called: 0, cancelled: 0, staleNew: 1, dueFollow: 0, newestId: "b", ...extra });
+const CLOSED: EnquiryView = { open: false, tab: "new", search: "" };
+const OPEN: EnquiryView = { open: true, tab: "all", search: "" };
 
-async function setup(list = [enq("a"), enq("b", { status: "followup" })]) {
-  fetchMock.mockResolvedValue(list);
-  fpMock.mockResolvedValue("2:b");
+/** `view` open by default so the rows are read; pass CLOSED to test the Dashboard before the panel is opened. */
+async function setup(list = [enq("a"), enq("b", { status: "followup" })], view: EnquiryView = OPEN) {
+  pageMock.mockResolvedValue({ items: list, hasMore: false });
+  sumMock.mockResolvedValue(summary());
   const notify = vi.fn();
   const onCount = vi.fn();
-  const h = renderHook(() => useEnquiries(notify, onCount));
+  const h = renderHook((p: { v: EnquiryView }) => useEnquiries(notify, onCount, p.v), { v: view });
   await flush();
   return { h, notify, onCount };
 }
@@ -30,57 +35,97 @@ beforeEach(() => {
   vi.useFakeTimers();
   hidden = false;
   Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
-  fetchMock.mockReset();
+  pageMock.mockReset();
+  sumMock.mockReset();
   saveMock.mockReset();
   saveMock.mockResolvedValue([]);
 });
 afterEach(() => { vi.useRealTimers(); });
 
 describe("loading", () => {
-  it("loads the list, counts new and follow-up, and reports the count once loaded", async () => {
-    const { h, onCount } = await setup();
+  it("the first load is one small summary request: no rows are read until the panel is opened (egress)", async () => {
+    const { h, onCount } = await setup([], CLOSED);
+    expect(sumMock).toHaveBeenCalledTimes(1);
+    expect(pageMock).not.toHaveBeenCalled();
     expect(h.result.current.loading).toBe(false);
-    expect(h.result.current.enquiries.map((e) => e.id)).toEqual(["a", "b"]);
     expect(h.result.current.enqNew).toBe(1);
     expect(h.result.current.enqFollow).toBe(1);
+    expect(h.result.current.enqTotal).toBe(2);
+    expect(h.result.current.staleNew).toBe(1);
     expect(onCount).toHaveBeenCalledWith(1);
     h.unmount();
   });
 
-  it("does not report 0 before the first list arrives (it would wipe the shell's number)", async () => {
-    let release!: (l: Enquiry[]) => void;
-    fetchMock.mockImplementation(() => new Promise((r) => { release = r; }));
+  it("opening the panel reads the first page of the open tab and search", async () => {
+    const { h } = await setup([], CLOSED);
+    pageMock.mockResolvedValue({ items: [enq("a")], hasMore: true });
+    h.rerender({ v: { open: true, tab: "followup", search: "" } });
+    await flush();
+    expect(pageMock).toHaveBeenCalledTimes(1);
+    expect(pageMock).toHaveBeenCalledWith({ tab: "followup", search: "" });
+    expect(h.result.current.enquiries.map((e) => e.id)).toEqual(["a"]);
+    expect(h.result.current.hasMore).toBe(true);
+    h.unmount();
+  });
+
+  it("changing the tab reads that tab again; a search waits a moment so typing does not send a request per letter", async () => {
+    const { h } = await setup();
+    pageMock.mockClear();
+    h.rerender({ v: { open: true, tab: "cancelled", search: "" } });
+    await flush();
+    expect(pageMock).toHaveBeenCalledTimes(1);
+    pageMock.mockClear();
+    h.rerender({ v: { open: true, tab: "cancelled", search: "a" } });
+    h.rerender({ v: { open: true, tab: "cancelled", search: "ab" } });
+    await advance(400);
+    expect(pageMock).toHaveBeenCalledTimes(1);
+    expect(pageMock).toHaveBeenCalledWith({ tab: "cancelled", search: "ab" });
+    h.unmount();
+  });
+
+  it("More adds the next page after the rows on screen, skipping rows already shown", async () => {
+    const { h } = await setup([enq("a"), enq("b")]);
+    pageMock.mockResolvedValue({ items: [enq("b"), enq("c")], hasMore: false });
+    act(() => h.result.current.loadMore());
+    await flush();
+    expect(pageMock).toHaveBeenLastCalledWith({ tab: "all", search: "", offset: 2 });
+    expect(h.result.current.enquiries.map((e) => e.id)).toEqual(["a", "b", "c"]);
+    expect(h.result.current.hasMore).toBe(false);
+    h.unmount();
+  });
+
+  it("does not report 0 before the summary arrives (it would wipe the shell's number)", async () => {
+    let release!: (s: EnquirySummary) => void;
+    sumMock.mockImplementation(() => new Promise((r) => { release = r; }));
     const onCount = vi.fn();
-    const h = renderHook(() => useEnquiries(vi.fn(), onCount));
+    const h = renderHook(() => useEnquiries(vi.fn(), onCount, CLOSED));
     await flush();
     expect(h.result.current.loading).toBe(true);
     expect(onCount).not.toHaveBeenCalled();
-    await act(async () => { release([enq("a")]); });
+    await act(async () => { release(summary()); });
     expect(onCount).toHaveBeenCalledWith(1);
     h.unmount();
   });
 
-  it("a new onCountChange function from the parent does not re-report the same count, and the newest one gets the next change", async () => {
-    fetchMock.mockResolvedValue([enq("a")]);
-    const first = vi.fn();
-    const second = vi.fn();
-    const h = renderHook((p: { cb: (n: number) => void }) => useEnquiries(vi.fn(), p.cb), { cb: first });
+  it("a failed summary read leaves loading on and the count unreported", async () => {
+    sumMock.mockRejectedValue(new Error("x"));
+    const onCount = vi.fn();
+    const h = renderHook(() => useEnquiries(vi.fn(), onCount, CLOSED));
     await flush();
-    expect(first).toHaveBeenCalledTimes(1);
-    h.rerender({ cb: second });
-    expect(second).not.toHaveBeenCalled();
-    act(() => { h.result.current.setStatus("a", "called"); });
-    expect(first).toHaveBeenCalledTimes(1);
-    expect(second).toHaveBeenCalledWith(0);
+    expect(h.result.current.enquiries).toEqual([]);
+    expect(onCount).not.toHaveBeenCalled();
     h.unmount();
   });
 
-  it("a failed first load ends loading with an empty list", async () => {
-    fetchMock.mockRejectedValue(new Error("x"));
-    const h = renderHook(() => useEnquiries(vi.fn()));
+  it("a failed page read ends the panel's loading, keeps the list empty and says so", async () => {
+    sumMock.mockResolvedValue(summary());
+    pageMock.mockRejectedValue(new Error("x"));
+    const notify = vi.fn();
+    const h = renderHook(() => useEnquiries(notify, undefined, OPEN));
     await flush();
-    expect(h.result.current.loading).toBe(false);
+    expect(h.result.current.listLoading).toBe(false);
     expect(h.result.current.enquiries).toEqual([]);
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining("Couldn’t load"));
     h.unmount();
   });
 });
@@ -178,37 +223,46 @@ describe("notes and follow-up dates", () => {
 });
 
 describe("refresh every 60 s (M-6, H-6 rule)", () => {
-  it("picks up new enquiries", async () => {
-    const { h } = await setup();
-    fetchMock.mockResolvedValue([enq("a"), enq("b"), enq("new1")]);
-    fpMock.mockResolvedValue("3:new1");
+  it("a changed summary updates the counts, and reads the first page again only while the panel is open", async () => {
+    const a = enq("a", { createdAt: "2026-11-03T00:00:00Z" });
+    const b = enq("b", { createdAt: "2026-11-02T00:00:00Z" });
+    const { h } = await setup([a, b]);
+    pageMock.mockClear();
+    pageMock.mockResolvedValue({ items: [enq("new1", { createdAt: "2026-11-05T00:00:00Z" }), a, b], hasMore: false });
+    sumMock.mockResolvedValue(summary({ total: 3, new: 2, newestId: "new1" }));
     await advance(60000);
-    expect(h.result.current.enquiries.length).toBe(3);
+    expect(h.result.current.enqTotal).toBe(3);
+    expect(h.result.current.enquiries.map((e) => e.id)).toEqual(["new1", "a", "b"]);
     h.unmount();
   });
 
-  it("downloads the full list only when the count or newest id changed (egress)", async () => {
-    const { h } = await setup();
-    fetchMock.mockClear();
-    await advance(180000); // three checks, nothing new
-    expect(fpMock.mock.calls.length).toBeGreaterThanOrEqual(3);
-    expect(fetchMock).not.toHaveBeenCalled();
-    fpMock.mockResolvedValue("3:new1");
+  it("with the panel closed a change updates the counts and downloads no rows (egress)", async () => {
+    const { h } = await setup([], CLOSED);
+    sumMock.mockResolvedValue(summary({ total: 3, new: 2, newestId: "new1" }));
     await advance(60000);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(h.result.current.enqNew).toBe(2);
+    expect(pageMock).not.toHaveBeenCalled();
+    h.unmount();
+  });
+
+  it("when nothing changed it reads no rows", async () => {
+    const { h } = await setup();
+    pageMock.mockClear();
+    await advance(180000);
+    expect(sumMock.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(pageMock).not.toHaveBeenCalled();
     h.unmount();
   });
 
   it("is skipped while the tab is hidden, and runs when it is shown again", async () => {
     const { h } = await setup();
-    fetchMock.mockClear();
+    sumMock.mockClear();
     hidden = true;
     await advance(120000);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sumMock).not.toHaveBeenCalled();
     hidden = false;
-    fpMock.mockResolvedValue("3:new1");
     await act(async () => { document.dispatchEvent(new Event("visibilitychange")); });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(sumMock).toHaveBeenCalledTimes(1);
     h.unmount();
   });
 
@@ -216,29 +270,28 @@ describe("refresh every 60 s (M-6, H-6 rule)", () => {
     const { h } = await setup();
     saveMock.mockImplementation(() => new Promise(() => {}));
     act(() => h.result.current.setStatus("a", "called"));
-    fetchMock.mockClear();
+    sumMock.mockClear();
     await advance(60000);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sumMock).not.toHaveBeenCalled();
     h.unmount();
   });
 
   it("an answer for a request that started before a change is thrown away", async () => {
     const { h } = await setup();
-    let release!: (l: Enquiry[]) => void;
-    fetchMock.mockImplementation(() => new Promise((r) => { release = r; }));
-    fpMock.mockResolvedValue("3:new1");
+    let release!: (p: { items: Enquiry[]; hasMore: boolean }) => void;
+    pageMock.mockImplementation(() => new Promise((r) => { release = r; }));
+    sumMock.mockResolvedValue(summary({ total: 3, newestId: "new1" }));
     await advance(60000);
     act(() => h.result.current.setStatus("a", "called"));
     await flush();
-    await act(async () => { release([enq("a"), enq("b", { status: "followup" })]); });
+    await act(async () => { release({ items: [enq("a"), enq("b", { status: "followup" })], hasMore: false }); });
     expect(h.result.current.enquiries.find((e) => e.id === "a")!.status).toBe("called");
     h.unmount();
   });
 
   it("a failed refresh keeps the list on screen", async () => {
     const { h } = await setup();
-    fetchMock.mockRejectedValue(new Error("offline"));
-    fpMock.mockResolvedValue("3:new1");
+    sumMock.mockRejectedValue(new Error("offline"));
     await advance(60000);
     expect(h.result.current.enquiries.length).toBe(2);
     h.unmount();
@@ -247,8 +300,31 @@ describe("refresh every 60 s (M-6, H-6 rule)", () => {
   it("stops polling when the page is left", async () => {
     const { h } = await setup();
     h.unmount();
-    fetchMock.mockClear();
+    sumMock.mockClear();
     await advance(180000);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sumMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("counts follow a status change", () => {
+  it("moves one from the old status to the new one at once, and reads exact numbers again when saved", async () => {
+    const { h } = await setup();
+    sumMock.mockClear();
+    act(() => h.result.current.setStatus("a", "called"));
+    expect(h.result.current.enqNew).toBe(0);
+    expect(h.result.current.counts.called).toBe(1);
+    await flush();
+    expect(sumMock).toHaveBeenCalledTimes(1);
+    h.unmount();
+  });
+
+  it("a failed save puts the counts back", async () => {
+    const { h } = await setup();
+    saveMock.mockRejectedValue(new Error("rls"));
+    sumMock.mockResolvedValue(summary());
+    act(() => h.result.current.setStatus("a", "called"));
+    await flush();
+    expect(h.result.current.enqNew).toBe(1);
+    h.unmount();
   });
 });

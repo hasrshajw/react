@@ -434,6 +434,41 @@ describe("enquiries", () => {
     expect(await api.fetchNewEnquiryCount()).toBe(0);
   });
 
+  it("fetchEnquirySummary reads one small answer from enquiry_summary and maps it", async () => {
+    const { api, calls } = await load(() => ({ data: { total: 12, new: 3, followup: 2, called: 5, cancelled: 2, stale_new: 1, due_follow: 2, newest_id: "e9" } }));
+    expect(await api.fetchEnquirySummary()).toEqual({ total: 12, new: 3, followup: 2, called: 5, cancelled: 2, staleNew: 1, dueFollow: 2, newestId: "e9" });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].table).toBe("rpc:enquiry_summary");
+  });
+
+  it("fetchEnquirySummary falls back to count-only requests when the function is not installed (no rows downloaded)", async () => {
+    const { api, calls } = await load((c) => (c.table === "rpc:enquiry_summary" ? { error: { message: "function not found" } } : { count: 2, data: [{ id: "e7" }] }));
+    const s = await api.fetchEnquirySummary();
+    expect(s).toMatchObject({ total: 2, new: 2, staleNew: 2, dueFollow: 2, newestId: "e7" });
+    const counting = calls.filter((c) => c.table === "enquiries" && (has(c, "select") as any)?.[1]?.head);
+    expect(counting).toHaveLength(7);
+  });
+
+  it("fetchEnquiryPage asks for one tab, one page and one extra row, and says whether there is more", async () => {
+    const data = Array.from({ length: 11 }, (_, i) => ({ id: `e${i}`, created_at: "2026-11-01" }));
+    const { api, calls } = await load(() => ({ data }));
+    const p = await api.fetchEnquiryPage({ tab: "followup", offset: 10 });
+    expect(p.items).toHaveLength(10);
+    expect(p.hasMore).toBe(true);
+    expect(has(calls[0], "eq")).toEqual(["status", "followup"]);
+    expect(has(calls[0], "range")).toEqual([10, 20]);
+  });
+
+  it("fetchEnquiryPage searches on the server and strips characters that would break the filter", async () => {
+    const { api, calls } = await load(() => ({ data: [] }));
+    const p = await api.fetchEnquiryPage({ tab: "all", search: " a,b%(c) " });
+    expect(p).toEqual({ items: [], hasMore: false });
+    expect(has(calls[0], "eq")).toBeUndefined();
+    const filter = (has(calls[0], "or") as string[])[0];
+    expect(filter).toContain("name.ilike.%a b c%");
+    expect(filter).not.toMatch(/[()]/);
+  });
+
   const enq: any = { id: "e1", status: "contacted", note: "n", followUpDate: "", history: [{ status: "new", at: "t" }] };
 
   it("saveEnquiry does not send history, sends an empty follow-up date as null, and returns the server's history", async () => {
