@@ -56,4 +56,12 @@ describe("ReviewDetail", () => {
     act(() => slot.querySelector<HTMLButtonElement>('button[aria-label="Close preview"]')!.click());
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("has a Back to queue button that closes the detail", async () => {
+    const onClose = await mount();
+    const back = [...host.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.includes("Back to queue"));
+    expect(back).toBeTruthy();
+    act(() => back!.click());
+    expect(onClose).toHaveBeenCalled();
+  });
 });

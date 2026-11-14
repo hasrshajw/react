@@ -107,95 +107,101 @@ export default function Reviews({ onPendingCountChange, onPanelChange }: Props) 
 
   return (
     <div className="dashboard-page inv-page" aria-busy={loading || refreshing}>
-      <PageHeader
-        title="Review queue"
-        subtitle="Client change requests waiting for your decision"
-        lastUpdated={lastUpdated}
-        now={now}
-        onRefresh={() => load(true)}
-        loading={skel}
-        refreshing={refreshing}
-        createTitle="Create invitation"
-      />
+      {!selected && (
+        <>
+        <PageHeader
+          title="Review queue"
+          subtitle="Client change requests waiting for your decision"
+          lastUpdated={lastUpdated}
+          now={now}
+          onRefresh={() => load(true)}
+          loading={skel}
+          refreshing={refreshing}
+          createTitle="Create invitation"
+        />
 
-      {/* ---------- status tabs ---------- */}
-      <div className="inv-tabbar">
-        <div className="inv-tabs" role="tablist" aria-label="Filter by status">
-          {TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={status === key}
-              className={`inv-tab${status === key ? " on" : ""}`}
-              onClick={() => setStatus(key)}
-            >
-              {label}
-              {key === "pending" && !loading && status === "pending" && <em>{pendingOnPage}</em>}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ---------- list ---------- */}
-      <div className="inv-panel">
-        <div className="inv-toolbar">
-          <div className="inv-chips">
-            <span className="insight">
-              {skel ? "Loading requests…" : `${items.length} ${items.length === 1 ? "request" : "requests"}`}
-            </span>
-            {term && <button type="button" className="link-btn" onClick={() => setQ("")}>Clear search</button>}
-          </div>
-          <div className="recent-tools">
-            <label className="search">
-              <Search size={15} />
-              <input
-                ref={searchRef} type="search" placeholder="Search couple, client or field" value={q}
-                aria-label="Search review requests" onChange={(e) => setQ(e.target.value)}
-              />
-            </label>
+        {/* ---------- status tabs ---------- */}
+        <div className="inv-tabbar">
+          <div className="inv-tabs" role="tablist" aria-label="Filter by status">
+            {TABS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={status === key}
+                className={`inv-tab${status === key ? " on" : ""}`}
+                onClick={() => setStatus(key)}
+              >
+                {label}
+                {key === "pending" && !loading && status === "pending" && <em>{pendingOnPage}</em>}
+              </button>
+            ))}
           </div>
         </div>
 
-        {error ? (
-          <div className="empty-state">
-            <div className="empty-icon err"><AlertTriangle size={22} /></div>
-            <b>Couldn’t load the review queue</b>
-            <span>Check your connection and try again.</span>
-            <button type="button" className="empty-btn" onClick={() => load()}>Retry</button>
+        {/* ---------- list ---------- */}
+        <div className="inv-panel">
+          <div className="inv-toolbar">
+            <div className="inv-chips">
+              <span className="insight">
+                {skel ? "Loading requests…" : `${items.length} ${items.length === 1 ? "request" : "requests"}`}
+              </span>
+              {term && <button type="button" className="link-btn" onClick={() => setQ("")}>Clear search</button>}
+            </div>
+            <div className="recent-tools">
+              <label className="search">
+                <Search size={15} />
+                <input
+                  ref={searchRef} type="search" placeholder="Search couple, client or field" value={q}
+                  aria-label="Search review requests" onChange={(e) => setQ(e.target.value)}
+                />
+              </label>
+            </div>
           </div>
-        ) : skel ? (
-          <ReviewsTableSkeleton rows={4} />
-        ) : items.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon"><Inbox size={22} /></div>
-            <b>{emptyTitle}</b>
-            <span>When a client submits changes, they will show up here.</span>
-          </div>
-        ) : shown.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon"><Search size={22} /></div>
-            <b>No requests match “{q.trim()}”</b>
-            <span>Try a different name, email or field.</span>
-            <button type="button" className="empty-btn" onClick={() => setQ("")}>Clear search</button>
-          </div>
-        ) : (
-          <ReviewsTable
-            items={shown} invitations={invitations} selectedId={selectedId}
-            now={now} total={items.length} onOpen={(i) => setSelectedId(i.id)}
-          />
-        )}
 
-        {selected && (
-          <ReviewDetail
-            slot={slot}
-            item={selected}
-            onClose={() => setSelectedId(null)}
-            onDecided={() => { setSelectedId(null); load(true); }}
-            notify={notify}
-          />
-        )}
-      </div>
+          {error ? (
+            <div className="empty-state">
+              <div className="empty-icon err"><AlertTriangle size={22} /></div>
+              <b>Couldn’t load the review queue</b>
+              <span>Check your connection and try again.</span>
+              <button type="button" className="empty-btn" onClick={() => load()}>Retry</button>
+            </div>
+          ) : skel ? (
+            <ReviewsTableSkeleton rows={4} />
+          ) : items.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon"><Inbox size={22} /></div>
+              <b>{emptyTitle}</b>
+              <span>When a client submits changes, they will show up here.</span>
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon"><Search size={22} /></div>
+              <b>No requests match “{q.trim()}”</b>
+              <span>Try a different name, email or field.</span>
+              <button type="button" className="empty-btn" onClick={() => setQ("")}>Clear search</button>
+            </div>
+          ) : (
+            <ReviewsTable
+              items={shown} invitations={invitations} selectedId={selectedId}
+              now={now} total={items.length} onOpen={(i) => setSelectedId(i.id)}
+            />
+          )}
+
+        </div>
+        </>
+      )}
+
+      {/* Focused view: while a request is open, the left side shows only that request (the proposed preview is on the right). */
+      selected && (
+        <ReviewDetail
+          slot={slot}
+          item={selected}
+          onClose={() => setSelectedId(null)}
+          onDecided={() => { setSelectedId(null); load(true); }}
+          notify={notify}
+        />
+      )}
 
       {toast && <Toast toast={toast} onDismiss={dismiss} />}
 

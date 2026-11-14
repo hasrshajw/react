@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
-import { Smartphone, X } from "../../components/Icons";
+import { ChevronLeft, Smartphone, X } from "../../components/Icons";
 import { useEscape } from "../../hooks/useEscape";
 import { useTemplates } from "../../hooks/useTemplates";
 import {
@@ -108,19 +108,17 @@ export function ReviewDetail({ slot, item, onClose, onDecided, notify }: Props) 
   return (
     <>
     <div className="review-detail" role="dialog" aria-label="Review change request">
+      <button type="button" className="act-btn review-back" onClick={onClose} disabled={busy}>
+        <ChevronLeft size={16} /> Back to queue
+      </button>
       <div className="review-detail-head">
-        <div>
-          <h2 style={{ margin: 0, fontSize: 18 }}>Review request</h2>
-          <p style={{ margin: "4px 0 0", color: "var(--gray)", fontSize: 13 }}>
-            {item.clientEmail || "Unknown client"}
-            {row ? ` · ${coupleName(row)}` : ""}
-            {" · "}
-            {fmtDateTime(item.createdAt)}
-          </p>
-        </div>
-        <button type="button" className="act-btn" aria-label="Close review" onClick={onClose} disabled={busy}>
-          <X size={16} />
-        </button>
+        <h2 style={{ margin: 0, fontSize: 18 }}>Review request</h2>
+        <p style={{ margin: "4px 0 0", color: "var(--gray)", fontSize: 13 }}>
+          {item.clientEmail || "Unknown client"}
+          {row ? ` · ${coupleName(row)}` : ""}
+          {" · "}
+          {fmtDateTime(item.createdAt)}
+        </p>
       </div>
 
       {loadError && (

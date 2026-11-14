@@ -94,6 +94,8 @@
   border-radius: 16px;
   background: var(--ghost-white, #f8f9fb);
 }
+.inv-page > .review-detail { margin: 0; background: var(--white); }
+.review-back { margin-bottom: 14px; }
 .review-detail-head {
   display: flex;
   align-items: flex-start;
