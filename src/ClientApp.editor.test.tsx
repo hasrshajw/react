@@ -81,6 +81,24 @@ describe("client editor layout", () => {
     expect(top.querySelector('button[aria-label="Profile"]')).toBeTruthy();
   });
 
+  it("while a request is in review: shows the Awaiting admin review card and locks the whole form", async () => {
+    const pendingInv = { ...(invitation as object), request: { id: "r1", status: "pending", adminNote: "", createdAt: "2026-02-01T10:00:00Z", acknowledgedAt: null, proposedDetails: null } } as never;
+    vi.mocked(fetchMyInvitations).mockResolvedValue([pendingInv]);
+    const host = document.createElement("div");
+    document.body.append(host);
+    const router = createMemoryRouter([{ path: "/my/*", element: <ClientApp /> }], { initialEntries: ["/my/ab"] });
+    await act(async () => { createRoot(host).render(<RouterProvider router={router} />); });
+    await flush(); await flush(); await flush();
+    const card = host.querySelector(".rv-card");
+    expect(card?.textContent).toContain("Awaiting admin review");
+    expect(card?.textContent).toContain("Editing is locked");
+    expect([...card!.querySelectorAll("button")].some((b) => b.textContent?.includes("Withdraw request"))).toBe(true);
+    expect(host.querySelector<HTMLFieldSetElement>("#create-form fieldset")?.disabled).toBe(true);
+    const submit = [...host.querySelectorAll<HTMLButtonElement>("button[type=submit]")];
+    expect(submit.length).toBeGreaterThan(0);
+    expect(submit.every((b) => b.disabled)).toBe(true);
+  });
+
   it("typing English fills the Telugu field, like the admin form", async () => {
     const h = await open();
     const en = h.querySelector<HTMLInputElement>("#f-groomEn")!;

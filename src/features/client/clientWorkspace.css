@@ -124,3 +124,38 @@
   .cd-head h1 { font-size: 22px; }
   .cd-link { flex-direction: column; }
 }
+
+/* ---------- "Awaiting admin review" card + locked form ---------- */
+.rv-card { margin: 0 0 20px; padding: 18px 20px; border: 1px solid var(--periwinkle, #c5cde9); border-radius: 18px; background: linear-gradient(180deg, var(--white-blue, #f6f4ff) 0%, #fff 100%); }
+.rv-top { display: flex; align-items: center; gap: 14px; }
+.rv-ico { width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: var(--primary); color: #fff; }
+.rv-text { flex: 1; min-width: 0; }
+.rv-text h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--dark); }
+.rv-text p { margin: 3px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--gray-dark, #6d7081); }
+.rv-withdraw { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; flex-shrink: 0; border: 1px solid #fca5a5; border-radius: 12px; background: #fff; color: #b91c1c; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+.rv-withdraw:hover:not(:disabled) { background: #fef2f2; }
+.rv-withdraw:disabled { opacity: .6; cursor: default; }
+
+.rv-steps { list-style: none; margin: 18px 0 0; padding: 0; display: flex; align-items: center; gap: 0; }
+.rv-steps li { position: relative; flex: 1; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--gray, #9a9cac); }
+.rv-steps li:not(:last-child)::after { content: ""; flex: 1; height: 2px; margin: 0 10px; border-radius: 2px; background: var(--gray-border); }
+.rv-steps li:last-child { flex: 0 0 auto; }
+.rv-steps i { width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--gray-border); background: #fff; font-style: normal; color: var(--gray, #9a9cac); }
+.rv-steps li.done { color: var(--dark); }
+.rv-steps li.done i { background: var(--primary); border-color: var(--primary); color: #fff; }
+.rv-steps li.done::after { background: var(--primary); }
+.rv-steps li.now { color: var(--primary); }
+.rv-steps li.now i { border-color: var(--primary); color: var(--primary); }
+
+.rv-lock { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(103, 61, 230, .07); font-size: 13px; line-height: 1.4; color: var(--gray-dark, #4b4d5c); }
+.rv-lock svg { flex-shrink: 0; color: var(--primary); }
+
+/* the form stays visible (so the client can read what was submitted) but clearly reads as locked */
+.create-builder-form fieldset:disabled { opacity: .62; cursor: not-allowed; }
+.create-builder-form fieldset:disabled :is(input, textarea, select, button) { cursor: not-allowed; }
+.create-builder-form fieldset:disabled :is(input, textarea, select) { background: var(--gray-light); }
+
+@media (max-width: 600px) {
+  .rv-top { flex-wrap: wrap; }
+  .rv-withdraw { width: 100%; justify-content: center; }
+}

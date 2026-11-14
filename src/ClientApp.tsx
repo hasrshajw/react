@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Link, Navigate, Route, Routes, useBlocker, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, Sk } from "./components/Skeleton";
-import { Clock, AlertCircle, CheckCircle2, Eye, Loader2, Save } from "./components/Icons";
+import { Clock, AlertCircle, CheckCircle2, Eye, Loader2, Lock, Save } from "./components/Icons";
 import { invitationToForm } from "./features/client/invitationToForm";
 import { CreateForm } from "./features/create/CreateForm";
 import { LivePreview, type FocusRequest } from "./features/create/components/LivePreview";
@@ -43,9 +43,6 @@ const btnGhost: React.CSSProperties = {
 };
 const btnPrimary: React.CSSProperties = {
   border: 0, background: "var(--btn)", color: "#fff", borderRadius: 10, padding: "12px 18px", cursor: "pointer", font: "inherit", fontWeight: 600,
-};
-const btnDanger: React.CSSProperties = {
-  ...btnGhost, color: "#b91c1c", borderColor: "#fca5a5",
 };
 const banner: React.CSSProperties = {
   padding: "12px 14px", borderRadius: 12, marginBottom: 16, fontSize: 14, lineHeight: 1.45,
@@ -133,6 +130,9 @@ function ClientEditor() {
 
   const inv = useMemo(() => list?.find((i) => i.id === id) ?? null, [list, id]);
   const pending = inv?.request?.status === "pending";
+  /* While a request is in review the form is locked: the fieldset disables the inputs and this ref stops any other path (auto-translate, restore) from changing data. */
+  const lockedRef = useRef(false);
+  lockedRef.current = !!pending;
   const rejectedOpen = inv?.request?.status === "rejected" && !inv.request.acknowledgedAt;
   const approvedOpen = inv?.request?.status === "approved" && !inv.request.acknowledgedAt;
   /* B7: invitation was trashed / client email changed / unpublished while a request was open. */
@@ -201,14 +201,17 @@ function ClientEditor() {
   );
   /* English typing fills the Telugu fields, exactly like the admin form. */
   const set = useCallback(<K extends keyof InvitationData>(key: K, value: InvitationData[K]) => {
+    if (lockedRef.current) return;
     dispatch({ type: "field", key, value });
     const target = EN_TO_TE[key as keyof typeof EN_TO_TE];
     if (target && typeof value === "string") schedule(`${key}:${target}`, value, (te) => dispatch({ type: "field", key: target, value: te }));
   }, [schedule]);
   const add = useCallback((field: ListField, make: () => EventItem | ContactItem) => {
+    if (lockedRef.current) return;
     dispatch({ type: "addItem", field, item: make() });
   }, []);
   const patch = useCallback((field: ListField, id: string, p: Partial<EventItem & ContactItem>) => {
+    if (lockedRef.current) return;
     dispatch({ type: "patchItem", field, id, patch: p });
     if (field === "events") {
       if (p.name !== undefined) schedule(`event-${id}-name`, p.name, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
@@ -216,6 +219,7 @@ function ClientEditor() {
     }
   }, [schedule]);
   const remove = useCallback((field: ListField, id: string) => {
+    if (lockedRef.current) return;
     dispatch({ type: "removeItem", field, id });
   }, []);
   const touch = useCallback((key: string) => dispatch({ type: "touch", key }), []);
@@ -395,20 +399,24 @@ function ClientEditor() {
               </header>
 
             {pending && inv.request && (
-              <div style={{ ...banner, background: "var(--white-blue)", border: "1px solid var(--periwinkle)", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
-                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div style={{ marginTop: 2, flexShrink: 0 }}><Clock size={20} color="#673de6" /></div>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ color: "var(--meteorite-dark)", display: "block", marginBottom: 4, fontSize: 15 }}>Awaiting Admin Review</strong>
-                    <span style={{ color: "var(--gray-dark)", fontSize: 14, lineHeight: 1.5 }}>Your changes were submitted on {fmtDateTime(inv.request.createdAt)} and are waiting for approval.</span>
-                    <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button type="button" className="client-touch" style={{ ...btnDanger, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onWithdraw()}>
-                        Withdraw Request
-                      </button>
-                    </div>
+              <section className="rv-card" role="status" aria-label="Awaiting admin review">
+                <div className="rv-top">
+                  <span className="rv-ico" aria-hidden="true"><Lock size={20} /></span>
+                  <div className="rv-text">
+                    <h2>Awaiting admin review</h2>
+                    <p>Submitted {fmtDateTime(inv.request.createdAt)}. You’ll get a notification as soon as the admin decides.</p>
                   </div>
+                  <button type="button" className="rv-withdraw" disabled={busy} onClick={() => void onWithdraw()}>
+                    {busy ? <Loader2 className="spin" size={15} /> : null} Withdraw request
+                  </button>
                 </div>
-              </div>
+                <ol className="rv-steps" aria-label="Review progress">
+                  <li className="done"><i><CheckCircle2 size={14} /></i>Submitted</li>
+                  <li className="now"><i><Clock size={14} /></i>In review</li>
+                  <li><i /> Decision</li>
+                </ol>
+                <p className="rv-lock"><Lock size={14} aria-hidden="true" /> Editing is locked while your request is in review. Withdraw it if you need to make more changes.</p>
+              </section>
             )}
 
             {superseded && inv.request && (
