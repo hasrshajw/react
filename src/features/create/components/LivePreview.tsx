@@ -16,13 +16,16 @@ interface Props {
   loading?: boolean;
   focusRequest: FocusRequest | null;
   onClose: () => void;
-  onChoose: () => void;
+  /** Admin: opens the template section. Omit it (client page) and the empty state has no button. */
+  onChoose?: () => void;
+  emptyTitle?: string;
+  emptyHint?: string;
 }
 
 /* React.memo: typing in the form changes `compiled`, but nothing else here, and
    unrelated renders of the page (toasts, save state, nav) skip this panel entirely.
    The iframe is patched in place (morphdom runs inside the frame, driven by postMessage; L-9: the frame holds the compiled document without its scripts) instead of being reloaded. */
-export const LivePreview = memo(function LivePreview({ slot, compiled, selected, open, loading = false, focusRequest, onClose, onChoose }: Props) {
+export const LivePreview = memo(function LivePreview({ slot, compiled, selected, open, loading = false, focusRequest, onClose, onChoose, emptyTitle = "Pick a template to start", emptyHint = "Your invitation appears here and updates as you type." }: Props) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   /* C-2: the frame has an opaque origin (no allow-same-origin), so everything goes through postMessage.
      `targetOrigin` must be "*" for an opaque origin; the content sent is only this user's own compiled preview. */
@@ -83,9 +86,9 @@ export const LivePreview = memo(function LivePreview({ slot, compiled, selected,
         ) : (
           <div className="empty">
             <LayoutTemplate size={28} />
-            <b>Pick a template to start</b>
-            <span>Your invitation appears here and updates as you type.</span>
-            <button type="button" className="primary" onClick={onChoose}>Choose a template</button>
+            <b>{emptyTitle}</b>
+            <span>{emptyHint}</span>
+            {onChoose && <button type="button" className="primary" onClick={onChoose}>Choose a template</button>}
           </div>
         )}
       </div>

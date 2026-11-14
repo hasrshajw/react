@@ -1,0 +1,41 @@
+/* Client editor workspace: the same two-panel layout as the admin Create page (form on the left, live preview on the right),
+   without the admin sidebar. create.css supplies the form, section nav and preview panel styles. */
+.client-ws {
+  height: 100vh; height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 8px; overflow: hidden;
+  background: var(--page-bg); color: var(--dark); font-family: "DM Sans", "Noto Sans Telugu", Inter, system-ui, sans-serif;
+}
+.client-ws :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.client-topbar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 10px 0 20px; box-sizing: border-box;
+  background: var(--white); border: 1px solid var(--gray-border); border-radius: 20px;
+}
+.client-brand { font-size: 17px; font-weight: 800; letter-spacing: -.02em; color: var(--dark); }
+.client-crumb { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 12px 0 8px; border-radius: 12px; color: var(--primary); font-size: 13.5px; font-weight: 700; text-decoration: none; }
+.client-crumb:hover { background: var(--primary-lightest); }
+.client-spacer { flex: 1; }
+.client-email { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--gray); }
+.client-logout { height: 36px; padding: 0 14px; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--gray-border); border-radius: 12px; background: var(--white); color: var(--gray-dark); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; transition: background .15s, border-color .15s; }
+.client-logout:hover { background: var(--gray-light); border-color: var(--periwinkle); }
+
+.client-ws-body { flex: 1 1 0; min-height: 0; display: flex; gap: 8px; }
+.client-app { position: relative; isolation: isolate; flex: 1 1 0; min-width: 0; overflow: hidden; border-radius: 26px; background: #f5f5f7; }
+.client-ws .main-content { height: 100%; box-sizing: border-box; padding: 24px 32px 32px; overflow-y: auto; background: #f5f5f7; }
+.client-ws .main-content:focus { outline: none; }
+.client-ws .preview-slot { flex: 0 0 auto; min-height: 0; display: flex; }
+.client-ws .preview-slot:empty { display: none; }
+/* No fixed navbar above the scrolling area, so the sticky section nav sits at the very top. */
+.client-ws .create { --sec-top: 0px; --sec-scroll-mt: 76px; }
+
+@media (max-width: 900px) {
+  .client-ws .preview-slot { display: contents; }
+  .client-ws-body { gap: 0; }
+}
+@media (max-width: 768px) {
+  .client-ws { padding: 5px; gap: 5px; }
+  .client-topbar { height: 52px; padding: 0 8px 0 14px; border-radius: 18px; }
+  .client-email { display: none; }
+  .client-app { border-radius: 20px; }
+  .client-ws .main-content { padding: 16px 14px 24px; }
+  .client-ws .create { --sec-scroll-mt: 76px; }
+}
+@media (prefers-reduced-motion: reduce) { .client-logout { transition: none; } }

@@ -15,11 +15,13 @@ interface Props {
   headBtnRef: React.RefObject<HTMLButtonElement | null>;
   /** Editing: the progress count is unknown until the invitation arrives. */
   loading?: boolean;
+  /** Height of anything fixed above the scrolling area. Default: the admin top navbar (64px if not found). The client page has none, so it passes 0. */
+  topOffset?: number;
 }
 
 /* Owns every piece of nav-only state (active tab, stuck, header-button visibility),
    so scrolling never re-renders the form or the live preview. */
-export const SectionNav = memo(function SectionNav({ sections, issues, done, doneCount, total, saving, saveDisabled, saveLabel, headBtnRef, loading = false }: Props) {
+export const SectionNav = memo(function SectionNav({ sections, issues, done, doneCount, total, saving, saveDisabled, saveLabel, headBtnRef, loading = false, topOffset }: Props) {
   const [active, setActive] = useState<string>(sections[0].id);
   const [stuck, setStuck] = useState(false);
   const [navCta, setNavCta] = useState(false);
@@ -75,28 +77,28 @@ export const SectionNav = memo(function SectionNav({ sections, issues, done, don
     const bar = barRef.current;
     const chip = bar?.querySelector<HTMLElement>(`[data-id="${active}"]`);
     if (!bar || !chip) return;
-    bar.scrollTo({ left: chip.offsetLeft - bar.clientWidth / 2 + chip.clientWidth / 2, behavior: "smooth" });
+    bar.scrollTo?.({ left: chip.offsetLeft - bar.clientWidth / 2 + chip.clientWidth / 2, behavior: "smooth" });
   }, [active]);
 
   /* stuck: the nav has stuck under the top navbar, so it can separate from the content */
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
-    const navbarH = document.querySelector(".top-navbar")?.getBoundingClientRect().height || 64;
+    const navbarH = topOffset ?? (document.querySelector(".top-navbar")?.getBoundingClientRect().height || 64);
     const io = new IntersectionObserver(([en]) => setStuck(!en.isIntersecting), { root: getScrollRoot(), rootMargin: `-${Math.round(navbarH)}px 0px 0px 0px`, threshold: 0 });
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [topOffset]);
 
   /* show a Create/Update button in the nav while the real one in the page header is out of view */
   useEffect(() => {
     const btn = headBtnRef.current;
     if (!btn || typeof IntersectionObserver === "undefined") return;
-    const navbarH = document.querySelector(".top-navbar")?.getBoundingClientRect().height || 64;
+    const navbarH = topOffset ?? (document.querySelector(".top-navbar")?.getBoundingClientRect().height || 64);
     const io = new IntersectionObserver(([en]) => setNavCta(!en.isIntersecting), { root: getScrollRoot(), rootMargin: `-${Math.round(navbarH)}px 0px 0px 0px`, threshold: 0.01 });
     io.observe(btn);
     return () => io.disconnect();
-  }, [headBtnRef]);
+  }, [headBtnRef, topOffset]);
 
   return (
     <>

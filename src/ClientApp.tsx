@@ -3,13 +3,18 @@ import { createPortal } from "react-dom";
 import { Link, Navigate, Route, Routes, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, Sk } from "./components/Skeleton";
-import { Mails, CalendarDays, Clock, AlertCircle, CheckCircle2 } from "./components/Icons";
+import { Mails, CalendarDays, Clock, AlertCircle, CheckCircle2, ChevronLeft, Eye, Loader2, LogOut, Save } from "./components/Icons";
 import {
   CLIENT_STATUS_LABEL,
   clientStatus,
   invitationToForm,
 } from "./features/client/invitationToForm";
 import { CreateForm } from "./features/create/CreateForm";
+import { LivePreview, type FocusRequest } from "./features/create/components/LivePreview";
+import { SectionNav } from "./features/create/components/SectionNav";
+import { EN_TO_TE, PROGRESS_IDS, SECTIONS, uid } from "./features/create/constants";
+import { scrollToSection } from "./features/create/scroll";
+import { useTransliteration } from "./features/create/hooks/useTransliteration";
 import { formReducer, initialFormState, snapshot } from "./features/create/formReducer";
 import { useToast } from "./features/create/hooks/useToast";
 import { useBeforeUnload } from "./features/create/hooks/useUnsavedWarnings";
@@ -30,9 +35,10 @@ import { ADMIN_EMAIL } from "./lib/config";
 import { readJSON, removeKey, writeJSON } from "./lib/storage";
 import { LS_CLIENT_DRAFT } from "./lib/storageKeys";
 import { fmtDate, fmtDateTime } from "./lib/dashboardData";
-import { validateInvitation } from "./lib/validate";
+import { has, validateInvitation } from "./lib/validate";
 import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "./types/invitation";
 import createCss from "./features/create/create.css?inline";
+import clientWsCss from "./features/client/clientWorkspace.css?inline";
 
 /* Track B (B4 shell + B6 client editor). Separate chunk so clients never download admin code. */
 
@@ -260,6 +266,33 @@ function LeavePrompt({ onStay, onLeave }: { onStay: () => void; onLeave: () => v
   );
 }
 
+/* The client sees the same sections as the admin form, minus the ones the admin owns (template, client access). */
+const CLIENT_SECTIONS = SECTIONS.filter((x) => x.id !== "template" && x.id !== "client");
+const CLIENT_PROGRESS = PROGRESS_IDS.filter((x) => x !== "template");
+
+/* "Submit for review?" dialog. Same look as the admin dialogs (cx-modal); traps focus and closes on Esc. */
+function SubmitConfirm({ busy, onConfirm, onCancel }: { busy: boolean; onConfirm: () => void; onCancel: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEscape(!busy, onCancel);
+  useFocusTrap(ref);
+  return createPortal(
+    <div className="cx-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}>
+      <div className="cx-modal lv" ref={ref} tabIndex={-1} role="alertdialog" aria-modal="true" aria-labelledby="sc-title" aria-describedby="sc-desc">
+        <div className="cx-ok"><Save size={28} /></div>
+        <h3 id="sc-title">Submit for review?</h3>
+        <p id="sc-desc">Your changes go live only after the admin approves them. You can withdraw the request until then.</p>
+        <div className="cx-grid lv-actions">
+          <button type="button" className="primary" disabled={busy} onClick={onConfirm}>
+            {busy ? <Loader2 className="spin" size={16} /> : <Save size={16} />} {busy ? "Submitting…" : "Submit for review"}
+          </button>
+          <button type="button" className="secondary" disabled={busy} onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function ClientEditor() {
   const { id = "" } = useParams();
   const { session } = useAuth();
@@ -284,6 +317,13 @@ function ClientEditor() {
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [ready, setReady] = useState(false);
   const [draftOffer, setDraftOffer] = useState<ClientDraft | null>(null);
+  const [tplLoading, setTplLoading] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const headBtnRef = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
+  const schedule = useTransliteration();
   /* "Edit Again" on a rejected request keeps the proposed edits in the form; "Dismiss" goes back to the live version. */
   const keepRef = useRef<InvitationData | null>(null);
   const emailKey = (session?.email || "anon").trim().toLowerCase();
@@ -318,9 +358,10 @@ function ClientEditor() {
       setDraftOffer(null);
     }
     let live = true;
+    setTplLoading(true);
     fetchClientTemplateHtml(inv.id).then(
-      (html) => { if (live) setTemplateHtml(html || ""); },
-      () => { if (live) setTemplateHtml(""); },
+      (html) => { if (live) { setTemplateHtml(html || ""); setTplLoading(false); } },
+      () => { if (live) { setTemplateHtml(""); setTplLoading(false); } },
     );
     return () => { live = false; };
   }, [inv]);
@@ -349,20 +390,27 @@ function ClientEditor() {
     (key: string) => ((submitted || touched[key]) ? errors[key]?.msg : undefined),
     [submitted, touched, errors],
   );
+  /* English typing fills the Telugu fields, exactly like the admin form. */
   const set = useCallback(<K extends keyof InvitationData>(key: K, value: InvitationData[K]) => {
     dispatch({ type: "field", key, value });
-  }, []);
+    const target = EN_TO_TE[key as keyof typeof EN_TO_TE];
+    if (target && typeof value === "string") schedule(`${key}:${target}`, value, (te) => dispatch({ type: "field", key: target, value: te }));
+  }, [schedule]);
   const add = useCallback((field: ListField, make: () => EventItem | ContactItem) => {
     dispatch({ type: "addItem", field, item: make() });
   }, []);
   const patch = useCallback((field: ListField, id: string, p: Partial<EventItem & ContactItem>) => {
     dispatch({ type: "patchItem", field, id, patch: p });
-  }, []);
+    if (field === "events") {
+      if (p.name !== undefined) schedule(`event-${id}-name`, p.name, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
+      if (p.venue !== undefined) schedule(`event-${id}-venue`, p.venue, (te) => dispatch({ type: "patchItem", field, id, patch: { venueTe: te } }));
+    }
+  }, [schedule]);
   const remove = useCallback((field: ListField, id: string) => {
     dispatch({ type: "removeItem", field, id });
   }, []);
   const touch = useCallback((key: string) => dispatch({ type: "touch", key }), []);
-  const focus = useCallback((_field: string) => {}, []);
+  const focus = useCallback((field: string) => setFocusRequest({ field, id: uid() }), []);
   const sectionLoading = useMemo<Record<SectionId, boolean>>(
     () => ({
       template: !ready, family: !ready, groom: !ready, bride: !ready,
@@ -370,28 +418,51 @@ function ClientEditor() {
     }),
     [ready],
   );
-  const tagFor = useCallback((sec: SectionId) => {
-    if (!ready) return { tone: "", text: "…", loading: true };
-    return { tone: "", text: sec === "family" || sec === "groom" || sec === "bride" ? "Required" : "Optional" };
-  }, [ready]);
+  const issues = useMemo(() => {
+    const n: Record<string, number> = {};
+    Object.entries(errors).forEach(([k, v]) => { if (submitted || touched[k]) n[v.section] = (n[v.section] || 0) + 1; });
+    return n;
+  }, [errors, touched, submitted]);
+  const done = useMemo<Record<string, boolean>>(() => ({
+    family: has(data.weddingDate),
+    groom: has(data.groomEn),
+    bride: has(data.brideEn),
+    venue: has(data.venueEn) || has(data.venueAddress),
+    seo: has(data.seoTitle) || has(data.seoDescription) || has(data.seoImage),
+    events: data.events.length > 0,
+  }), [data.weddingDate, data.groomEn, data.brideEn, data.venueEn, data.venueAddress, data.events.length, data.seoTitle, data.seoDescription, data.seoImage]);
+  const doneCount = CLIENT_PROGRESS.filter((x) => done[x]).length;
+  const tagFor = useCallback((sec: SectionId): { tone: string; text: string; loading?: boolean } => {
+    const def = SECTIONS.find((x) => x.id === sec)!;
+    if (!ready) return { tone: "", text: "Required", loading: true };
+    if (issues[sec]) return { tone: "bad", text: `${issues[sec]} to fix` };
+    if (done[sec]) return { tone: "ok", text: "Done" };
+    return { tone: "", text: def.hint === "required" ? "Required" : def.hint === "recommended" ? "Recommended" : "Optional" };
+  }, [ready, issues, done]);
 
   const compiled = useMemo(() => {
     try { return templateHtml ? compile(templateHtml, data) : ""; }
     catch { return ""; }
   }, [templateHtml, data]);
 
-  /* Opens the confirm bar only when the form is valid; otherwise jumps to the first field that needs attention. */
+  const selectedInfo = useMemo(() => (templateHtml && inv ? { id: inv.id, name: "Your invitation" } : undefined), [templateHtml, inv]);
+  const title = [inv?.groomName, inv?.brideName].filter(Boolean).join(" & ") || "Your invitation";
+  useEffect(() => {
+    const prev = document.title;
+    document.title = `${title} · Schedy`;
+    return () => { document.title = prev; };
+  }, [title]);
+
+  /* Opens the confirm dialog only when the form is valid; otherwise jumps to the first field that needs attention. */
   const requestSubmit = () => {
     if (!inv || pending || busy) return;
     dispatch({ type: "submit" });
     const keys = Object.keys(errors);
     if (keys.length) {
       notify(`Fix ${keys.length} ${keys.length === 1 ? "field" : "fields"} before submitting`, "error");
-      const el = document.getElementById(`f-${keys[0]}`);
-      if (el) {
-        el.scrollIntoView({ block: "center", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-        el.focus({ preventScroll: true });
-      }
+      const [key, { section }] = Object.entries(errors)[0];
+      scrollToSection(section);
+      window.setTimeout(() => document.getElementById(`f-${key}`)?.focus({ preventScroll: true }), 450);
       return;
     }
     if (!dirty) { notify("No changes to submit"); return; }
@@ -487,191 +558,190 @@ function ClientEditor() {
     );
   }
 
-  const title = [inv.groomName, inv.brideName].filter(Boolean).join(" & ") || "Your invitation";
+  const submitDisabled = busy || !!pending || !dirty;
+  const subtitle = pending
+    ? "Your changes are waiting for admin review."
+    : dirty
+      ? "Review your changes, then submit them for approval."
+      : "Update your details, then submit for review. Changes go live after admin approval.";
 
   return (
-    <Frame title={title}>
-      <style>{createCss}</style>
-      {list.length > 1 && (
-        <p style={{ marginTop: 0 }}>
-          <Link to="/my" className="client-link">← All invitations</Link>
-        </p>
-      )}
+    <div className="client-ws">
+      <style>{clientWsCss}</style>
+      <header className="client-topbar">
+        <span className="client-brand">Schedy</span>
+        {list.length > 1 && (
+          <Link to="/my" className="client-crumb"><ChevronLeft size={16} /> All invitations</Link>
+        )}
+        <span className="client-spacer" />
+        {session?.email && <span className="client-email" title={session.email}>{session.email}</span>}
+        <button type="button" className="client-logout" onClick={() => navigate("/login", { replace: true, state: { loggedOut: true } })}>
+          <LogOut size={15} /> Log out
+        </button>
+      </header>
 
-      {pending && inv.request && (
-        <div style={{ ...banner, background: "var(--white-blue)", border: "1px solid var(--periwinkle)", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{ marginTop: 2, flexShrink: 0 }}><Clock size={20} color="#673de6" /></div>
-            <div style={{ flex: 1 }}>
-              <strong style={{ color: "var(--meteorite-dark)", display: "block", marginBottom: 4, fontSize: 15 }}>Awaiting Admin Review</strong>
-              <span style={{ color: "var(--gray-dark)", fontSize: 14, lineHeight: 1.5 }}>Your changes were submitted on {fmtDateTime(inv.request.createdAt)} and are waiting for approval.</span>
-              <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" className="client-touch" style={{ ...btnDanger, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onWithdraw()}>
-                  Withdraw Request
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {superseded && inv.request && (
-        <div style={{ ...banner, background: "#f3f4f6", border: "1px solid #d1d5db" }} role="status">
-          <b>Your pending changes were cancelled.</b> The invitation was updated or removed by the admin, so this request is no longer active. You can submit new changes if the invitation is still linked to you.
-        </div>
-      )}
-
-      {rejectedOpen && inv.request && (
-        <div style={{ ...banner, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <div style={{ marginTop: 2, flexShrink: 0 }}><AlertCircle size={20} color="#dc2626" /></div>
-            <div style={{ flex: 1 }}>
-              <strong style={{ color: "#991b1b", display: "block", marginBottom: 4, fontSize: 15 }}>Changes Were Rejected</strong>
-              {inv.request.adminNote && <p style={{ margin: "0 0 12px", color: "#7f1d1d", fontSize: 14, lineHeight: 1.5, background: "#fef2f2", padding: 10, borderRadius: 8, border: "1px dashed #fecaca" }}>{inv.request.adminNote}</p>}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button type="button" className="client-touch" style={{ ...btnPrimary, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => { keepRef.current = data; void onAck(); }}>
-                  Edit Again
-                </button>
-                <button type="button" className="client-touch" style={{ ...btnGhost, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
-                  Discard my edits
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {approvedOpen && inv.request && (
-        <div style={{ ...banner, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <CheckCircle2 size={20} color="#166534" />
-            <div style={{ flex: 1 }}>
-              <strong style={{ color: "#166534", display: "block", fontSize: 15 }}>Changes Approved & Live</strong>
-              <span style={{ color: "#15803d", fontSize: 14 }}>Your invitation has been updated and is now visible to your guests.</span>
-            </div>
-            <button type="button" className="client-touch" style={{ ...btnGhost, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
-      {draftOffer && !pending && (
-        <div style={{ ...banner, background: "#fffbeb", border: "1px solid #fcd34d" }} role="status">
-          <span>You have unsaved changes from {new Date(draftOffer.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. Restore them?</span>
-          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" style={btnPrimary} onClick={() => {
-              dispatch({ type: "replaceData", data: draftOffer.data });
-              setDraftOffer(null);
-            }}>Restore</button>
-            <button type="button" style={btnGhost} onClick={() => { removeKey(draftKey); setDraftOffer(null); }}>Discard</button>
-          </div>
-        </div>
-      )}
-
-      {blocker.state === "blocked" && (
-        <LeavePrompt
-          onStay={() => blocker.reset?.()}
-          onLeave={() => { writeJSON(draftKey, { data, at: Date.now() }); blocker.proceed?.(); }}
-        />
-      )}
-
-      <div style={{ display: "grid", gap: 20 }}>
-        <CreateForm
-          mode="client"
-          readOnly={!!pending}
-          data={data}
-          categories={[]}
-          templates={[]}
-          categoryId="ALL"
-          onCategory={() => {}}
-          sectionLoading={sectionLoading}
-          templatesLoading={false}
-          expectTemplate={false}
-          set={set}
-          add={add}
-          patch={patch}
-          remove={remove}
-          focus={focus}
-          vis={vis}
-          touch={touch}
-          tagFor={tagFor}
-          onSubmit={(e) => { e.preventDefault(); requestSubmit(); }}
-          notify={notify}
-          invitationId={inv.id}
-        />
-
-        {compiled ? (
-          <div id="client-preview" style={{ scrollMarginTop: 16 }}>
-            <h2 style={{ fontSize: 15, margin: "0 0 8px" }}>Preview</h2>
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", minHeight: 320, aspectRatio: "3 / 4", maxHeight: 480 }}>
-              <iframe title="Invitation preview" srcDoc={compiled} sandbox="allow-scripts" style={{ width: "100%", height: "100%", border: 0, display: "block", minHeight: 320 }} />
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      {!pending && (
-        <div style={{ position: "sticky", bottom: 0, padding: "16px 0 calc(16px + env(safe-area-inset-bottom, 0px))", background: "linear-gradient(transparent, var(--page-bg) 30%)", marginTop: 24, zIndex: 2, borderTop: "1px solid #f3f4f6" }}>
-          {confirmSubmit ? (
-            <div style={{ ...banner, background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-              <p style={{ margin: "0 0 12px", fontSize: 15, color: "#374151", fontWeight: 500 }}>
-                Submit these changes for admin review? They will go live only after approval.
-              </p>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button type="button" className="client-touch" style={{ ...btnGhost, flex: 1 }} disabled={busy} onClick={() => setConfirmSubmit(false)}>Cancel</button>
-                <button type="button" className="client-touch" style={{ ...btnPrimary, flex: 1 }} disabled={busy || !dirty} onClick={() => void doSubmit()}>
-                  {busy ? "Submitting…" : "Confirm Submit"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: "flex", gap: 10 }}>
-                {compiled ? (
-                  <button
-                    type="button"
-                    className="client-touch"
-                    style={{ ...btnGhost, padding: "14px 18px", fontSize: 15 }}
-                    onClick={() => document.getElementById("client-preview")?.scrollIntoView({ block: "start", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}
-                  >
-                    Preview
+      <div className="client-ws-body">
+        <div className="client-app">
+          <main className="main-content" id="main" tabIndex={-1}>
+            <div className="create" aria-busy={!ready}>
+              <header>
+                <div>
+                  <div className="title-row">
+                    <h1>{title}</h1>
+                    <span aria-live="polite">
+                      {dirty && !pending ? <span className="save-state dirty" title="Changes are also kept as a local draft"><i /> Unsaved changes</span> : null}
+                    </span>
+                  </div>
+                  <p>{subtitle}</p>
+                </div>
+                <div className="actions">
+                  <button ref={headBtnRef} className="primary" type="submit" form="create-form" disabled={submitDisabled}>
+                    {busy ? <Loader2 className="spin" size={17} /> : <Save size={17} />} {busy ? "Submitting…" : "Submit for review"}
                   </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="client-touch"
-                  style={{ ...btnPrimary, flex: 1, opacity: dirty ? 1 : 0.5, padding: "14px 20px", fontSize: 15 }}
-                  disabled={busy || !dirty}
-                  aria-describedby={!dirty ? "client-submit-hint" : undefined}
-                  onClick={requestSubmit}
-                >
-                  {busy ? "Submitting…" : "Submit for Review"}
+                </div>
+              </header>
+
+            {pending && inv.request && (
+              <div style={{ ...banner, background: "var(--white-blue)", border: "1px solid var(--periwinkle)", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ marginTop: 2, flexShrink: 0 }}><Clock size={20} color="#673de6" /></div>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ color: "var(--meteorite-dark)", display: "block", marginBottom: 4, fontSize: 15 }}>Awaiting Admin Review</strong>
+                    <span style={{ color: "var(--gray-dark)", fontSize: 14, lineHeight: 1.5 }}>Your changes were submitted on {fmtDateTime(inv.request.createdAt)} and are waiting for approval.</span>
+                    <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button type="button" className="client-touch" style={{ ...btnDanger, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onWithdraw()}>
+                        Withdraw Request
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {superseded && inv.request && (
+              <div style={{ ...banner, background: "#f3f4f6", border: "1px solid #d1d5db" }} role="status">
+                <b>Your pending changes were cancelled.</b> The invitation was updated or removed by the admin, so this request is no longer active. You can submit new changes if the invitation is still linked to you.
+              </div>
+            )}
+
+            {rejectedOpen && inv.request && (
+              <div style={{ ...banner, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
+                <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ marginTop: 2, flexShrink: 0 }}><AlertCircle size={20} color="#dc2626" /></div>
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ color: "#991b1b", display: "block", marginBottom: 4, fontSize: 15 }}>Changes Were Rejected</strong>
+                    {inv.request.adminNote && <p style={{ margin: "0 0 12px", color: "#7f1d1d", fontSize: 14, lineHeight: 1.5, background: "#fef2f2", padding: 10, borderRadius: 8, border: "1px dashed #fecaca" }}>{inv.request.adminNote}</p>}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button type="button" className="client-touch" style={{ ...btnPrimary, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => { keepRef.current = data; void onAck(); }}>
+                        Edit Again
+                      </button>
+                      <button type="button" className="client-touch" style={{ ...btnGhost, padding: "8px 16px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+                        Discard my edits
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {approvedOpen && inv.request && (
+              <div style={{ ...banner, background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 12, padding: 16, marginBottom: 20 }} role="status">
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <CheckCircle2 size={20} color="#166534" />
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ color: "#166534", display: "block", fontSize: 15 }}>Changes Approved & Live</strong>
+                    <span style={{ color: "#15803d", fontSize: 14 }}>Your invitation has been updated and is now visible to your guests.</span>
+                  </div>
+                  <button type="button" className="client-touch" style={{ ...btnGhost, padding: "8px 14px", fontSize: 14 }} disabled={busy} onClick={() => void onAck()}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {draftOffer && !pending && (
+              <div style={{ ...banner, background: "#fffbeb", border: "1px solid #fcd34d" }} role="status">
+                <span>You have unsaved changes from {new Date(draftOffer.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}. Restore them?</span>
+                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" style={btnPrimary} onClick={() => {
+                    dispatch({ type: "replaceData", data: draftOffer.data });
+                    setDraftOffer(null);
+                  }}>Restore</button>
+                  <button type="button" style={btnGhost} onClick={() => { removeKey(draftKey); setDraftOffer(null); }}>Discard</button>
+                </div>
+              </div>
+            )}
+
+            {blocker.state === "blocked" && (
+              <LeavePrompt
+                onStay={() => blocker.reset?.()}
+                onLeave={() => { writeJSON(draftKey, { data, at: Date.now() }); blocker.proceed?.(); }}
+              />
+            )}
+
+              <div className="create-builder-layout">
+                <SectionNav
+                  sections={CLIENT_SECTIONS} issues={issues} done={done} doneCount={doneCount} total={CLIENT_PROGRESS.length}
+                  saving={busy} saveDisabled={submitDisabled} saveLabel="Submit for review" headBtnRef={headBtnRef}
+                  loading={!ready} topOffset={0}
+                />
+                <CreateForm
+                  mode="client"
+                  readOnly={!!pending}
+                  data={data}
+                  categories={[]}
+                  templates={[]}
+                  categoryId="ALL"
+                  onCategory={() => {}}
+                  sectionLoading={sectionLoading}
+                  templatesLoading={false}
+                  expectTemplate={false}
+                  set={set}
+                  add={add}
+                  patch={patch}
+                  remove={remove}
+                  focus={focus}
+                  vis={vis}
+                  touch={touch}
+                  tagFor={tagFor}
+                  onSubmit={(e) => { e.preventDefault(); requestSubmit(); }}
+                  notify={notify}
+                  invitationId={inv.id}
+                />
+              </div>
+
+              {/* mobile action bar */}
+              <div className="mbar">
+                <button className="secondary" type="button" onClick={() => setPreviewOpen(true)}><Eye size={17} /> Preview</button>
+                <button className="primary" type="submit" form="create-form" disabled={submitDisabled}>
+                  {busy ? <Loader2 className="spin" size={17} /> : <Save size={17} />} {busy ? "Submitting…" : "Submit"}
                 </button>
               </div>
-              {!dirty && !busy && (
-                <p id="client-submit-hint" style={{ margin: "8px 0 0", fontSize: 13, color: "#4b5563", textAlign: "center" }}>
-                  Change something above to enable submitting.
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      )}
 
-      {toast ? (
-        <div
-          role={toast.tone === "error" ? "alert" : "status"}
-          style={{
-            position: "fixed", bottom: pending ? 16 : "calc(112px + env(safe-area-inset-bottom, 0px))", left: "50%", transform: "translateX(-50%)",
-            background: toast.tone === "error" ? "#991b1b" : "#111827", color: "#fff", padding: "10px 16px", borderRadius: 12, fontSize: 14, zIndex: 60,
-            maxWidth: "calc(100vw - 32px)", textAlign: "center",
-          }}
-        >
-          {toast.msg}
+              {confirmSubmit && <SubmitConfirm busy={busy} onConfirm={() => void doSubmit()} onCancel={() => setConfirmSubmit(false)} />}
+
+              {slot && (
+                <LivePreview
+                  slot={slot} compiled={compiled} selected={selectedInfo} loading={!ready || tplLoading} open={previewOpen}
+                  focusRequest={focusRequest} onClose={() => setPreviewOpen(false)}
+                  emptyTitle="No preview available" emptyHint="This invitation has no template yet."
+                />
+              )}
+
+              {toast && createPortal(
+                <div className="dx-toast" role={toast.tone === "error" ? "alert" : "status"}>
+                  {toast.tone === "error" ? <AlertCircle size={15} className="bad" /> : <CheckCircle2 size={15} />} {toast.msg}
+                </div>,
+                document.body,
+              )}
+
+              <style>{createCss}</style>
+            </div>
+          </main>
         </div>
-      ) : null}
-    </Frame>
+        <div ref={setSlot} className="preview-slot" />
+      </div>
+    </div>
   );
 }
 
