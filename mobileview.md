@@ -1,6 +1,6 @@
 # Mobile view: admin pages
 
-Last updated: 16 Nov 2026 · Branch: `preview`
+Last updated: 16 Nov 2026 (second round: card menu + bottom sheet) · Branch: `preview`
 Scope: signed-in admin area (Dashboard, Invitations, Reviews, Templates, Create, shell, profile menu).
 Phone rules apply at 768px and below; desktop is unchanged.
 
@@ -26,7 +26,29 @@ Everything below lives in `src/styles/admin-mobile.css` (imported by `AdminApp.t
 
 Checks: type check clean, build passes, 651 tests pass.
 
-## Pending
+## Round 2: one Menu button per card + bottom sheet (phones, 760px and below)
+Applies to the Dashboard "Recent invitations", the Invitations page and the Review queue (`/reviews`).
+
+| Area | Change |
+|---|---|
+| Cards | Each card shows the details and one full-width **Menu** button; Preview / Edit / Link / More buttons are gone from the card |
+| Cards | Wider cards: less padding around the list (10px 6px), cards fill the row |
+| Bottom sheet | Tapping Menu slides up a sheet with the couple, status, date, views (queue: client, changed fields, submitted time) and every action |
+| Dashboard / Invitations sheet | Preview, Edit, Copy link, then the existing items (WhatsApp, QR code, Share, Duplicate, Publish / Move to draft, Move to trash) |
+| Queue sheet | Review changes / View request, Edit invitation |
+| Behaviour | Closes with the X, a tap on the dimmed area, or Escape; the page behind doesn't scroll; scrolling inside the sheet doesn't close it |
+| Skeletons | Loading cards show one ghost button, so nothing jumps when data arrives |
+| Code | `BottomSheet.tsx`, `useIsPhone.ts`, phone mode in `RowMenu.tsx`, `RowActions.tsx`, `ReviewsTable.tsx`; styles in `dashboard.css` |
+
+Desktop keeps the row buttons and the small dropdown menu. Checks: type check clean, build passes, 654 tests pass (3 new phone tests).
+
+### Pending (round 2)
+- [ ] Decide whether desktop should also move its row buttons under the menu (only phones changed so far).
+- [ ] Swipe-down to close the sheet.
+- [ ] Test the sheet on real iPhone and Android (safe area, keyboard, long names).
+- [ ] Tests for the Dashboard / Invitations sheet (only the queue sheet has tests so far).
+
+## Pending (round 1)
 - [ ] Check every change on real devices (iPhone Safari, Android Chrome); only automated checks were run here.
 - [ ] Create page: audit the form, step progress and live preview on phones.
 - [ ] Notification panel: confirm width and scrolling on small screens.

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type MutableRefObject } from "react";
 import { useEscape } from "../../../hooks/useEscape";
+import { isPhone } from "../../../hooks/useIsPhone";
 import type { InvitationRow } from "../../../types/dashboard";
 
 export interface RowMenuState {
@@ -43,15 +44,21 @@ export function useRowMenu(opener: MutableRefObject<HTMLElement | null>) {
     const close = () => setMenu(null);
     const down = (e: globalThis.MouseEvent) => {
       const t = e.target as Element;
-      if (!t.closest(".row-menu") && !t.closest(".menu-trigger")) close();
+      if (!t.closest(".row-menu") && !t.closest(".bs-sheet") && !t.closest(".menu-trigger")) close();
     };
     document.addEventListener("mousedown", down);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
+    /* The phone sheet scrolls on its own and the keyboard resizes the window: neither should close it. */
+    const sheet = isPhone();
+    if (!sheet) {
+      window.addEventListener("scroll", close, true);
+      window.addEventListener("resize", close);
+    }
     return () => {
       document.removeEventListener("mousedown", down);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
+      if (!sheet) {
+        window.removeEventListener("scroll", close, true);
+        window.removeEventListener("resize", close);
+      }
     };
   }, [menu]);
 

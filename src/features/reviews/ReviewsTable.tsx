@@ -1,5 +1,9 @@
-import { Link } from "react-router-dom";
-import { CalendarDays, Pencil } from "../../components/Icons";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { CalendarDays, Eye, MoreHorizontal, Pencil } from "../../components/Icons";
+import { BottomSheet } from "../../components/BottomSheet";
+import { useEscape } from "../../hooks/useEscape";
+import { useIsPhone } from "../../hooks/useIsPhone";
 import { SkText } from "../../components/Skeleton";
 import type { ReviewItem } from "../../lib/api";
 import { coupleName, fmtDateTime, initials, timeAgo } from "../../lib/dashboardData";
@@ -27,6 +31,11 @@ const fieldsText = (item: ReviewItem) => {
 
 /** Review queue table. Same cell layout and classes as the Invitations table, so both look and stack the same on small screens. */
 export function ReviewsTable({ items, invitations, selectedId, now, total, hasMore = false, onOpen }: Props) {
+  const phone = useIsPhone();
+  const navigate = useNavigate();
+  const [sheet, setSheet] = useState<ReviewItem | null>(null);
+  useEscape(!!sheet, () => setSheet(null));
+  const sheetInv = sheet ? invitations.get(sheet.invitationId) : undefined;
   return (
     <>
       <div className="table-scroll">
@@ -79,12 +88,21 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, hasMo
                     </div>
                   </td>
                   <td className="td-actions">
-                    <div className="row-actions">
-                      <button type="button" className={`act-btn${pending ? " solid" : ""}`} onClick={() => onOpen(item)}>
-                        {pending ? "Review" : "View"}
-                      </button>
-                      <Link to={`/create?edit=${encodeURIComponent(item.invitationId)}`} className="act-btn"><Pencil size={14} /> Edit</Link>
-                    </div>
+                    {phone ? (
+                      /* Phone cards show one Menu button; the bottom sheet holds Review / View and Edit. */
+                      <div className="row-actions">
+                        <button type="button" className="act-btn menu-btn" aria-haspopup="dialog" onClick={() => setSheet(item)}>
+                          <MoreHorizontal size={16} /> Menu
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="row-actions">
+                        <button type="button" className={`act-btn${pending ? " solid" : ""}`} onClick={() => onOpen(item)}>
+                          {pending ? "Review" : "View"}
+                        </button>
+                        <Link to={`/create?edit=${encodeURIComponent(item.invitationId)}`} className="act-btn"><Pencil size={14} /> Edit</Link>
+                      </div>
+                    )}
                   </td>
                 </tr>
               );
@@ -92,6 +110,30 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, hasMo
           </tbody>
         </table>
       </div>
+      {phone && sheet && (
+        <BottomSheet
+          label={`Actions for ${sheetInv ? coupleName(sheetInv) : "this request"}`} onClose={() => setSheet(null)}
+          head={
+            <>
+              <div className="row-avatar">{sheetInv ? initials(sheetInv) : "?"}</div>
+              <div className="bs-text">
+                <b>{sheetInv ? coupleName(sheetInv) : "Invitation unavailable"}</b>
+                <span className="bs-meta"><span className={`chip ${STATUS_CHIP[sheet.status]}`}>{STATUS_LABEL[sheet.status]}</span></span>
+                {sheet.clientEmail && <span className="bs-meta">{sheet.clientEmail}</span>}
+                {sheet.changedKeys.length > 0 && <span className="bs-meta"><Eye size={13} /> {sheet.changedKeys.length} {sheet.changedKeys.length === 1 ? "field" : "fields"}: {fieldsText(sheet)}</span>}
+                <span className="bs-meta"><CalendarDays size={13} /> {timeAgo(sheet.createdAt, now) || fmtDateTime(sheet.createdAt)} · {fmtDateTime(sheet.createdAt)}</span>
+              </div>
+            </>
+          }
+        >
+          <button type="button" role="menuitem" onClick={() => { const it = sheet; setSheet(null); onOpen(it); }}>
+            <Eye size={15} /> {sheet.status === "pending" ? "Review changes" : "View request"}
+          </button>
+          <button type="button" role="menuitem" onClick={() => { const id = sheet.invitationId; setSheet(null); navigate(`/create?edit=${encodeURIComponent(id)}`); }}>
+            <Pencil size={15} /> Edit invitation
+          </button>
+        </BottomSheet>
+      )}
       <div className="table-foot">
         <span>{hasMore ? `Showing the newest ${items.length}` : items.length === total ? `Showing all ${total}` : `Showing ${items.length} of ${total}`}</span>
       </div>

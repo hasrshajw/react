@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { Link } from "react-router-dom";
+import { useIsPhone } from "../../../hooks/useIsPhone";
 import { Link2, MoreHorizontal, Pencil, Smartphone } from "../../../components/Icons";
 import type { InvitationRow } from "../../../types/dashboard";
 
@@ -15,6 +16,19 @@ interface Props {
 
 /** Preview / Edit / Copy link / More buttons at the end of an invitation row. */
 export function RowActions({ x, live, previewActive, menuOpen, onPreview, onCopyLink, onOpenMenu }: Props) {
+  /* Phone cards show one Menu button; the bottom sheet it opens holds Preview, Edit, Link and the rest. */
+  if (useIsPhone()) {
+    return (
+      <div className="row-actions">
+        <button
+          type="button" className="act-btn menu-btn menu-trigger" aria-haspopup="dialog" aria-expanded={menuOpen}
+          onClick={(e) => onOpenMenu(e, x)}
+        >
+          <MoreHorizontal size={16} /> Menu
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="row-actions">
       <button type="button" className={`icon-btn${previewActive ? " on" : ""}`} title="Preview" aria-label="Preview invitation" onClick={() => onPreview(x)}>

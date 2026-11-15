@@ -318,13 +318,35 @@
           .table-foot { padding: 12px 16px; flex-wrap: wrap; }
         }
 
+        /* ---------- bottom sheet (phone row menu) ---------- */
+        .bs-overlay, .bs-overlay * { box-sizing: border-box; font-family: "DM Sans", "Noto Sans Telugu", Inter, sans-serif; }
+        .bs-overlay { position: fixed; inset: 0; z-index: 9400; display: flex; align-items: flex-end; background: var(--backdrop); animation: dx-fade .18s ease; }
+        .bs-sheet { width: 100%; max-height: 85dvh; display: flex; flex-direction: column; border-radius: 24px 24px 0 0; background: var(--white); box-shadow: 0 -12px 40px rgba(24, 28, 45, .25); padding-bottom: env(safe-area-inset-bottom, 0px); animation: bs-up .24s cubic-bezier(.2, .8, .2, 1); }
+        .bs-handle { align-self: center; width: 40px; height: 4px; margin: 8px 0 2px; border-radius: 999px; background: var(--gray-border); }
+        .bs-head { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px 12px 18px; border-bottom: 1px solid var(--gray-border); }
+        .bs-info { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; }
+        .bs-info .row-avatar { flex-shrink: 0; }
+        .bs-text { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+        .bs-text b { font-size: 16px; font-weight: 700; color: var(--dark); overflow-wrap: anywhere; }
+        .bs-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 13px; color: var(--gray); overflow-wrap: anywhere; }
+        .bs-close { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--gray-light); color: var(--gray-dark); cursor: pointer; }
+        .bs-body { display: flex; flex-direction: column; padding: 8px 12px 14px; overflow-y: auto; overscroll-behavior: contain; }
+        .bs-body button { min-height: 50px; padding: 0 14px; display: flex; align-items: center; gap: 12px; border: 0; border-radius: 12px; background: transparent; color: var(--gray-dark); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+        .bs-body button:active:not(:disabled), .bs-body button:focus-visible { background: var(--gray-light); }
+        .bs-body button:disabled { opacity: .45; cursor: not-allowed; }
+        .bs-body button.danger { color: var(--danger-dark); }
+        .bs-body button svg { flex-shrink: 0; }
+        .bs-sheet :focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+        @keyframes bs-up { from { transform: translateY(100%); } to { transform: none; } }
+        @media (prefers-reduced-motion: reduce) { .bs-overlay, .bs-sheet { animation: none; } }
+
         /* ---------- mobile: each table row becomes a stacked card (the skeleton uses the same classes) ---------- */
         @media (max-width: 760px) {
           .table-scroll { overflow: visible; }
           .table-scroll .inv-table { display: block; min-width: 0; }
           .inv-table thead { display: none; }
-          .inv-table tbody { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
-          .inv-table tbody tr { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 14px; padding: 14px; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); }
+          .inv-table tbody { display: flex; flex-direction: column; gap: 10px; padding: 10px 6px; }
+          .inv-table tbody tr { position: relative; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 14px; padding: 14px; border: 1px solid var(--gray-border); border-radius: 16px; background: var(--white); }
           .inv-table tbody tr:hover { background: var(--white); }
           .inv-table tbody tr.active { background: var(--primary-lightest); border-color: var(--primary); }
           .inv-table tbody td { display: block; min-width: 0; padding: 0; border: 0; }
@@ -335,5 +357,9 @@
           .inv-table .row-actions { justify-content: stretch; }
           .inv-table .row-actions .act-btn { flex: 1; min-width: 0; }
           .inv-table tbody tr.sk-row .td-actions .act-btn { flex: 1; }
+          /* one Menu button per card (the skeleton shows a single ghost button too) */
+          .inv-table .row-actions .menu-btn { width: 100%; height: 44px; font-size: 14px; font-weight: 700; }
+          .inv-table tbody tr.sk-row .row-actions > :not(:first-child) { display: none; }
+          .inv-table tbody tr.sk-row .row-actions > :first-child { flex: 1; width: auto; height: 44px; }
         }
 

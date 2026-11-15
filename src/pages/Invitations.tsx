@@ -9,7 +9,7 @@ import {
 import { PreviewPanel } from "../features/dashboard/components/PreviewPanel";
 import { TrashModal } from "../features/dashboard/components/TrashModal";
 import { PageHeader } from "../features/dashboard/components/PageHeader";
-import { RowMenu } from "../features/dashboard/components/RowMenu";
+import { RowMenu, RowMenuLead } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
 import { ErrorState, InvitationsTableSkeleton, LimitNotice, NoInvitationsState, NoMatchState } from "../features/dashboard/components/ListStates";
 import { useRowHint } from "../hooks/useRowHint";
@@ -316,7 +316,10 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
         const live = isPub(x);
         const past = isPast(x);
         return (
-          <RowMenu menu={menu} menuRef={menuRef} onKeyDown={onMenuKey}>
+          <RowMenu
+            menu={menu} menuRef={menuRef} onKeyDown={onMenuKey} onClose={closeMenu} live={live}
+            lead={<RowMenuLead x={x} live={live} onPreview={openPreview} onCopyLink={copyLink} onClose={closeMenu} />}
+          >
             <button type="button" role="menuitem" onClick={() => { setShareId(x.id); closeMenu(false); }}>
               <Share size={15} /> Share…
             </button>

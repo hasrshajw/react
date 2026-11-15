@@ -17,7 +17,7 @@ import { LimitNotice } from "../features/dashboard/components/ListStates";
 import { StatCards } from "../features/dashboard/components/StatCards";
 import { AttentionStrip, type AttentionItem } from "../features/dashboard/components/AttentionStrip";
 import { RecentInvitations } from "../features/dashboard/components/RecentInvitations";
-import { RowMenu } from "../features/dashboard/components/RowMenu";
+import { RowMenu, RowMenuLead } from "../features/dashboard/components/RowMenu";
 import { Toast } from "../features/dashboard/components/Toast";
 import { matchesFilter } from "../features/dashboard/filters";
 import { useRowHint } from "../hooks/useRowHint";
@@ -264,7 +264,10 @@ export default function Dashboard({ onPanelChange, onEnquiryCountChange }: Props
         const live = isPub(x);
         const past = isPast(x);
         return (
-          <RowMenu menu={menu} menuRef={menuRef} onKeyDown={onMenuKey}>
+          <RowMenu
+            menu={menu} menuRef={menuRef} onKeyDown={onMenuKey} onClose={closeMenu} live={live}
+            lead={<RowMenuLead x={x} live={live} onPreview={openPreview} onCopyLink={copyLink} onClose={closeMenu} />}
+          >
             <button type="button" role="menuitem" disabled={!live} onClick={() => { shareOnWhatsApp(x); closeMenu(true); }}>
               <MessageCircle size={15} /> Share on WhatsApp
             </button>
