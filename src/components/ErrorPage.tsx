@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
-import "../styles/error-page.css";
+import ErrorCard, { type Tone } from "./ErrorCard";
 
 /* The screen people see when a page crashes (used as `errorElement` on the root route in App.tsx).
    It replaces React Router's built-in "Hey developer" page. Three situations get their own wording, because the fix differs:
@@ -49,12 +49,10 @@ export default function ErrorPage() {
   const kind = classifyError(error);
   const { message, stack } = describeError(error);
   const copy = COPY[kind];
-  const heading = useRef<HTMLHeadingElement>(null);
-  const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     console.error("[ErrorPage]", error);
-    heading.current?.focus();
   }, [error]);
 
   /* Everything a person can paste into a message: what happened, where and when. */
@@ -71,24 +69,22 @@ export default function ErrorPage() {
 
   const primary = () => { if (kind === "notfound") location.assign("/"); else location.reload(); };
 
+  const tone: Tone = kind === "network" ? "warning" : kind === "generic" ? "danger" : "primary";
   return (
-    <main className="ep-wrap" role="alert" aria-live="assertive">
-      <section className="ep-card">
-        <div className={`ep-icon ep-icon-${kind}`}><Icon kind={kind} /></div>
-        <h1 className="ep-title" tabIndex={-1} ref={heading}>{copy.title}</h1>
-        <p className="ep-body">{copy.body}</p>
-        <div className="ep-actions">
-          <button type="button" className="ep-btn ep-btn-primary" onClick={primary}>{copy.primary}</button>
-          {kind !== "notfound" && <a className="ep-btn ep-btn-ghost" href="/">Go to home</a>}
-        </div>
-        {kind !== "notfound" && (
-          <details className="ep-details">
-            <summary>Technical details</summary>
-            <pre className="ep-pre">{details}</pre>
-            <button type="button" className="ep-copy" onClick={copyDetails}>{copied ? "Copied" : "Copy details"}</button>
-          </details>
-        )}
-      </section>
-    </main>
+    <ErrorCard
+      tone={tone} icon={<Icon kind={kind} />} title={copy.title} body={copy.body}
+      actions={<>
+        <button type="button" className="ep-btn ep-btn-primary" onClick={primary}>{copy.primary}</button>
+        {kind !== "notfound" && <a className="ep-btn ep-btn-ghost" href="/">Go to home</a>}
+      </>}
+    >
+      {kind !== "notfound" && (
+        <details className="ep-details">
+          <summary>Technical details</summary>
+          <pre className="ep-pre">{details}</pre>
+          <button type="button" className="ep-copy" onClick={copyDetails}>{copied ? "Copied" : "Copy details"}</button>
+        </details>
+      )}
+    </ErrorCard>
   );
 }

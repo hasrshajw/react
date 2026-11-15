@@ -53,9 +53,17 @@
   background: var(--white, #fff); color: var(--gray-dark, #36344d);
 }
 .ep-copy:hover { background: var(--gray-light, #f2f3f6); }
+.ep-icon-warning { color: var(--warning-dark, #fea419); background: var(--warning-light, #fff8e2); }
+.ep-signed { margin: 18px 0 0; font-size: 13px; color: var(--gray, #6d7081); word-break: break-all; }
+.ep-signed strong { color: var(--gray-dark, #36344d); font-weight: 600; }
+.ep-help { margin: 12px 0 0; font-size: 13px; line-height: 1.6; color: var(--gray, #6d7081); }
+.ep-help code { padding: 1px 5px; border-radius: 5px; background: var(--gray-light, #f2f3f6); font-size: 12px; }
+.ep-loading { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; color: var(--gray, #6d7081); }
+.ep-spinner { width: 20px; height: 20px; border-radius: 50%; border: 3px solid var(--primary-light, #ebe4ff); border-top-color: var(--primary, #673de6); animation: ep-spin .8s linear infinite; }
+@keyframes ep-spin { to { transform: rotate(360deg); } }
 @media (max-width: 480px) {
   .ep-card { padding: 32px 20px 22px; border-radius: 16px; }
   .ep-title { font-size: 21px; }
   .ep-btn { flex: 1 1 100%; }
 }
-@media (prefers-reduced-motion: reduce) { .ep-btn { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .ep-btn { transition: none; } .ep-spinner { animation-duration: 2.4s; } }
