@@ -17,6 +17,7 @@ import { Loading, SkText } from "./components/Skeleton";
 import type { Plan } from "./lib/api";
 import { DOCS_URL, SUPPORT_URL } from "./lib/helpLinks";
 import { ProfileMenu } from "./components/ProfileMenu";
+import "./styles/admin-mobile.css";
 
 /* ADMIN APP. Everything the signed-in user sees (shell, sidebar, dashboard, create, invitations, templates)
    lives in this file's import tree. App.tsx loads it with React.lazy(), so the landing page, the login page

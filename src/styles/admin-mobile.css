@@ -1,0 +1,71 @@
+/* Admin mobile view. Loaded once by AdminApp.tsx. Phone rules only (<= 768px), so desktop is untouched.
+   Selectors start with .app so they win over the page-level <style> blocks injected later.
+   Status and open items: see mobileview.md */
+
+@media (max-width: 768px) {
+  /* Never let the page scroll sideways */
+  .app .main-content { overflow-x: hidden; }
+
+  /* Notch / home-bar safe areas (needs viewport-fit=cover in index.html) */
+  .workspace-shell { padding-left: max(5px, env(safe-area-inset-left)); padding-right: max(5px, env(safe-area-inset-right)); padding-bottom: max(5px, env(safe-area-inset-bottom)); }
+  .app .main-content, .app .main-content.content-expanded, .app .main-content.content-collapsed { padding: 88px 14px max(24px, env(safe-area-inset-bottom)); }
+
+  /* 16px inputs stop iOS Safari zooming the page on focus */
+  .app .search input,
+  .app .dx-enq-search input,
+  .app .dx-field input,
+  .app .dx-field textarea,
+  .app .tpl-search input,
+  .app .share-row input,
+  .app .review-actions .f textarea { font-size: 16px; }
+
+  /* Tap targets of about 44px */
+  .app .act-btn, .app .more-btn, .app .create-btn, .app .refresh { min-height: 44px; }
+  .app .tpl-cat { height: 40px; }
+  .app .tpl-use { height: 44px; }
+  .app .tpl-x { width: 44px; height: 44px; }
+  .app .dx-seg button { height: 38px; }
+
+  /* Dashboard: toast clears the home bar and fits the screen; side panel and modals use the dynamic viewport */
+  .dx-toast { bottom: max(20px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
+  .dash-side-panel { inset: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+  .dx-modal { max-height: calc(100dvh - 24px); }
+
+  /* Reviews: change table scrolls inside the panel, action buttons are full width */
+  .review-detail { margin: 12px 0 0; padding: 14px; }
+  .review-detail-head { flex-direction: column; align-items: stretch; }
+  .review-detail .diff-table { display: block; overflow-x: auto; }
+  .review-actions { flex-direction: column; align-items: stretch; }
+  .review-actions .act-btn { width: 100%; justify-content: center; }
+
+  /* Templates: stacked header, full-width search, swipeable category chips, two-up grid, bottom-sheet preview */
+  .app .tpl-head { flex-direction: column; align-items: stretch; }
+  .app .tpl-head h1 { font-size: 22px; }
+  .app .tpl-search { width: 100%; }
+  .app .tpl-cats { flex-wrap: nowrap; overflow-x: auto; margin-right: -14px; padding-right: 14px; padding-bottom: 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .app .tpl-cats::-webkit-scrollbar { display: none; }
+  .app .tpl-cat { flex: 0 0 auto; }
+  .app .tpl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .app .tpl-card { padding: 10px; gap: 10px; border-radius: 18px; }
+  .app .tpl-card:hover { transform: none; }
+  .app .tpl-info { flex-wrap: wrap; }
+  .app .tpl-eye { display: none; }
+  .tpl-modal { padding: 0; place-items: end center; }
+  .tpl-modal-box { max-width: none; max-height: 100dvh; border-radius: 24px 24px 0 0; padding: 16px 16px max(16px, env(safe-area-inset-bottom)); }
+  .tpl-phone { height: min(694px, 70dvh); }
+
+  /* Profile menu stays on screen */
+  .pm { max-width: calc(100vw - 16px); }
+}
+
+/* Small phones: one template per row, tighter page padding */
+@media (max-width: 400px) {
+  .app .main-content, .app .main-content.content-expanded, .app .main-content.content-collapsed { padding-left: 10px; padding-right: 10px; }
+  .app .tpl-grid { grid-template-columns: 1fr; }
+  .app .tpl-thumb { max-width: 260px; margin: 0 auto; }
+}
+
+/* Touch screens have no hover: keep the template preview hint visible and drop lift effects */
+@media (hover: none) {
+  .app .tpl-card:hover { transform: none; }
+}
