@@ -210,6 +210,10 @@ export async function saveInvitation(record: InvitationRow, opts: { published?: 
 
 /* The bucket (PREVIEW_BUCKET, lib/previewUrl.ts) is created by supabase/schema.sql: public read, owner write, JPEG only, 300 KB at most. */
 
+/** How long browsers and the CDN may keep a preview file. The returned URL carries a new `?v=` stamp on every upload, so a changed image
+ *  is a different URL and a long time is safe: each device and crawler downloads a given picture once (one year, the usual maximum). */
+export const PREVIEW_CACHE_SECONDS = "31536000";
+
 /** Uploads the link-preview image to `<userId>/<invitationId>.jpg` and returns its public https URL.
  *  The path is reused (upsert), so a `?v=` stamp is added to make crawlers and browsers fetch the new file. */
 export async function uploadPreviewImage(image: Blob, invitationId: string): Promise<string> {
@@ -217,7 +221,7 @@ export async function uploadPreviewImage(image: Blob, invitationId: string): Pro
   if (authError || !auth.user) throw new ApiError("Please sign in again to upload an image.");
   const path = `${auth.user.id}/${invitationId}.jpg`;
   const { error } = await db().storage.from(PREVIEW_BUCKET).upload(path, image, {
-    upsert: true, contentType: "image/jpeg", cacheControl: "3600",
+    upsert: true, contentType: "image/jpeg", cacheControl: PREVIEW_CACHE_SECONDS,
   });
   if (error) {
     if (/bucket not found/i.test(error.message)) throw new ApiError("Preview storage is not set up. Run supabase/migrations/001_seo_previews.sql first.");

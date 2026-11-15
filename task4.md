@@ -33,4 +33,4 @@ one invitation on screen. Every `reload()` (after a submit, withdraw or "Got it"
 Run `supabase/migrations/020_my_invitations_light.sql` in Supabase > SQL Editor. Until then the client area reads everything as before.
 
 ## Left for the next tasks
-1. **Preview image storage** (last item): not yet checked how it is stored. Next step is to read `uploadSeoImage`/storage code in `src/lib/api.ts` and the `invitation_images` bucket policies, then report before changing anything.
+1. ~~Preview image storage~~ (done, task5.md). Nothing left on the egress list.

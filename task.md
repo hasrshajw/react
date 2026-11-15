@@ -1,3 +1,15 @@
+### 15 Nov 2026 (90th update) – Egress: preview image storage checked and cached long (task5.md)
+
+**What was done**
+
+1. Checked how it is stored: public bucket, JPEG up to 300 KB, one file per invitation, only the URL in the database. Size was already fine.
+2. Uploads now use a one-year cache time (the URL changes with `?v=` when the picture changes), so each device and crawler downloads a picture once instead of hourly. The editor's two preview images load lazily.
+3. Test added; 645 pass. No migration. Older files get the long cache time when their picture is uploaded again.
+
+**What next:** nothing left on the egress list. Optional later: the M-4 orphan-file cleanup job. See `task5.md`.
+
+---
+
 ### 15 Nov 2026 (90th update) – Skeleton loading: Review queue and every page checked against its real layout
 
 **What was done**

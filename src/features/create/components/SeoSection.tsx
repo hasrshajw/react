@@ -94,7 +94,7 @@ export function SeoSection({ data, set, fp, loading, invitationId, notify }: Pro
         ) : data.seoImage ? (
           <div className="ph-row">
             <div className="ph-item og">
-              <img src={data.seoImage} alt="Link preview" />
+              <img src={data.seoImage} alt="Link preview" loading="lazy" decoding="async" />
               <button type="button" className="ph-x" aria-label="Remove preview image" onClick={() => set("seoImage", "")}><Trash2 size={14} /></button>
             </div>
             <DropButton label={uploading ? "Uploading..." : "Replace image"} hint="" onFiles={pick} compact />
@@ -110,7 +110,7 @@ export function SeoSection({ data, set, fp, loading, invitationId, notify }: Pro
       </div>
 
       <div className="seo-card" aria-label="Link preview example">
-        <div className="seo-img">{data.seoImage ? <img src={data.seoImage} alt="" /> : <span>No image yet</span>}</div>
+        <div className="seo-img">{data.seoImage ? <img src={data.seoImage} alt="" loading="lazy" decoding="async" /> : <span>No image yet</span>}</div>
         <div className="seo-text">
           <small>{window.location.host}</small>
           <b>{shownTitle}</b>

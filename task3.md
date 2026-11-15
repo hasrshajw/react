@@ -30,5 +30,5 @@ Run `supabase/migrations/019_invitation_fingerprint.sql` in Supabase > SQL Edito
 
 ## Left for the next tasks
 1. ~~Client area reads~~ (done, task4.md).
-2. **Preview image storage:** not yet checked how it is stored.
+2. ~~Preview image storage~~ (done, task5.md).
 3. Note: the first-open role check calls `is_admin`, not `my_invitations` (earlier statement corrected). Nothing to fix there.

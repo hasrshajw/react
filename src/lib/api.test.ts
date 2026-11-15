@@ -581,3 +581,14 @@ describe("fetchAccount (M-13)", () => {
     expect(a.plan).toMatchObject({ name: "Pro", status: "active", trialDaysLeft: 3 });
   });
 });
+
+describe("uploadPreviewImage (egress)", () => {
+  it("uploads to <user>/<invitation>.jpg with a long cache time and a ?v= stamp, so each picture is downloaded once per device", async () => {
+    const upload = vi.fn(async () => ({ error: null }));
+    const getPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://x.supabase.co/storage/v1/object/public/invitation-previews/u1/x1.jpg" } }));
+    const { api } = await load(() => ({}), { storage: { from: () => ({ upload, getPublicUrl }) } });
+    const url = await api.uploadPreviewImage(new Blob(["x"], { type: "image/jpeg" }), "x1");
+    expect(upload).toHaveBeenCalledWith("u1/x1.jpg", expect.any(Blob), { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
+    expect(url).toMatch(/\/u1\/x1\.jpg\?v=\d+$/);
+  });
+});
