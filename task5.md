@@ -22,7 +22,7 @@ although the URL changes (`?v=`) whenever the picture really changes.
 ## Notes
 - Files uploaded before this change keep their old 1-hour setting until that invitation's picture is uploaded again. Nothing to run, no migration.
 - Not changed on purpose: removing a picture in the editor clears the URL only; the file stays in storage (uses space, not egress).
-  The orphan cleanup job is still open in M-4 (see `removePreviewImage` in `src/lib/api.ts`).
+  Leftover files are handled by the orphan cleanup route `api/cleanup-previews.js` (M-4, dry run by default; see also `removePreviewImage` in `src/lib/api.ts`).
 
 ## Left for the next tasks
-Nothing is left from the egress list (tasks 1 to 5 are done). Optional later: the M-4 orphan-file cleanup job.
+Nothing is left from the egress list (tasks 1 to 5 are done).

@@ -6,7 +6,7 @@
 2. Uploads now use a one-year cache time (the URL changes with `?v=` when the picture changes), so each device and crawler downloads a picture once instead of hourly. The editor's two preview images load lazily.
 3. Test added; 645 pass. No migration. Older files get the long cache time when their picture is uploaded again.
 
-**What next:** nothing left on the egress list. Optional later: the M-4 orphan-file cleanup job. See `task5.md`.
+**What next:** nothing left on the egress list. (The M-4 orphan cleanup route already exists: `api/cleanup-previews.js`.) What is still pending in this file is owner action, not code: see "Genuinely open (Owner Action Required)". See `task5.md`.
 
 ---
 
