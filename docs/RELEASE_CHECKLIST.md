@@ -10,8 +10,8 @@ Owner steps that cannot be finished from code alone. Run these on a real Supabas
 
 ## 2. Apply schema
 
-- [ ] Run `supabase/schema.sql` (or migrations `001`–`015`) on a clean project.
-- [ ] Insert your user into `public.admins`.
+- [ ] Run `supabase/01_schema.sql`, then optionally `02_seed_templates.sql`, on a clean project.
+- [ ] Run `supabase/03_make_admin.sql` (with your email) to make your user an admin.
 - [ ] Smoke: login, create invitation, publish, open public slug, client `/my` flow.
 
 ## 3. CI

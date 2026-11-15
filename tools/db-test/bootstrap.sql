@@ -1,4 +1,4 @@
--- Test-only stand-in for the parts of Supabase that supabase/schema.sql expects to exist already.
+-- Test-only stand-in for the parts of Supabase that supabase/01_schema.sql expects to exist already.
 -- It is NOT part of the app and must never be run on a real Supabase project.
 -- Loaded by tools/db-test/run.sh into a throwaway local cluster, before schema.sql.
 

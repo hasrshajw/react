@@ -1,5 +1,7 @@
 # Change plan: short links, custom link previews and SEO
 
+> **Note:** the SQL files this document mentions (`supabase/migrations/*`, `schema.sql`, `seed.sql`) were consolidated. A new project now runs only `supabase/01_schema.sql`, `02_seed_templates.sql` and `03_make_admin.sql` (see README, "Set up Supabase"). The text below is kept as history.
+
 Branch: `feature/supabase-connection`
 Stack found in this repo: Vite + React 18 + TypeScript, react-router-dom v7, Supabase, deployed on Vercel.
 

@@ -208,7 +208,7 @@ export async function saveInvitation(record: InvitationRow, opts: { published?: 
   return splitRow(data!).row;
 }
 
-/* The bucket (PREVIEW_BUCKET, lib/previewUrl.ts) is created by supabase/schema.sql: public read, owner write, JPEG only, 300 KB at most. */
+/* The bucket (PREVIEW_BUCKET, lib/previewUrl.ts) is created by supabase/01_schema.sql: public read, owner write, JPEG only, 300 KB at most. */
 
 /** How long browsers and the CDN may keep a preview file. The returned URL carries a new `?v=` stamp on every upload, so a changed image
  *  is a different URL and a long time is safe: each device and crawler downloads a given picture once (one year, the usual maximum). */
@@ -232,7 +232,7 @@ export async function uploadPreviewImage(image: Blob, invitationId: string): Pro
 }
 
 /** L-8: ids of this person's invitations whose time in the trash is over. The server compares its own clock with the date it
- *  stamped itself (see `expired_trash_ids()` in supabase/schema.sql), so a wrong clock on this device cannot empty the trash early
+ *  stamped itself (see `expired_trash_ids()` in supabase/01_schema.sql), so a wrong clock on this device cannot empty the trash early
  *  or keep things for ever. If the function is missing (migration 009 not run yet) or fails, this rejects and nothing is purged. */
 export async function fetchExpiredTrashIds(): Promise<string[]> {
   const { data, error } = await db().rpc("expired_trash_ids");

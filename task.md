@@ -9,10 +9,10 @@ pending Vercel and database (Supabase) steps are done.
 ## What was finished recently (data-use / "egress" fixes)
 | Area | What changed | Database step |
 |---|---|---|
-| Enquiries, first load | Reads one small summary, then pages of 10 rows when a panel opens | migration 018 |
-| Invitation lists | Rows carry only the link ID; full details are read only when needed (preview, duplicate, edit link) | migration 017 |
-| Dashboard "Auto" refresh | Checks one short change marker each minute and re-reads the list only if it changed | migration 019 |
-| Client area | Reads a light list, and only the invitation on screen in full | migration 020 |
+| Enquiries, first load | Reads one small summary, then pages of 10 rows when a panel opens | included in 01_schema.sql |
+| Invitation lists | Rows carry only the link ID; full details are read only when needed (preview, duplicate, edit link) | included in 01_schema.sql |
+| Dashboard "Auto" refresh | Checks one short change marker each minute and re-reads the list only if it changed | included in 01_schema.sql |
+| Client area | Reads a light list, and only the invitation on screen in full | included in 01_schema.sql |
 | Preview images | Cached for a year (the URL changes when the picture changes); editor previews load lazily | none |
 
 Checks at the last change: type check clean, build passes, 645 tests pass.
@@ -34,4 +34,4 @@ Checks at the last change: type check clean, build passes, 645 tests pass.
 ## Where to find things
 - Release steps: `docs/RELEASE_CHECKLIST.md`
 - Short-link and SEO notes: `docs/SEO_SHORT_LINK_CHANGES.md`
-- Database changes: `supabase/migrations/` (full current schema in `supabase/schema.sql`)
+- Database setup for a new project: `supabase/01_schema.sql`, `02_seed_templates.sql`, `03_make_admin.sql` (run in that order; see README, "Set up Supabase")

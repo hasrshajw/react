@@ -1,4 +1,4 @@
--- Database tests for supabase/schema.sql (task M-14). Plain SQL, no extension needed; run with tools/db-test/run.sh.
+-- Database tests for supabase/01_schema.sql (task M-14). Plain SQL, no extension needed; run with tools/db-test/run.sh.
 -- Each check prints "ok - <name>"; the first failing check raises an error and the run stops with a non-zero exit code.
 -- Everything runs in one transaction and is rolled back at the end.
 -- People: alice and bob are ordinary users, carol is an admin, anon is a visitor with only the public key.
@@ -322,8 +322,8 @@ select t.throws('a visitor cannot submit a change request',
 -- what a client can read
 select t.as_user('dddddddd-0000-0000-0000-000000000004');
 select t.ok('the client sees exactly the invitation linked to their email', t.rows('select 1 from public.my_invitations()') = 1);
-select t.ok('my_invitations gives no owner, slug, views or client_email',
-  not exists (select 1 from public.my_invitations() m where to_jsonb(m) ?| array['owner','slug','views','client_email']));
+select t.ok('my_invitations gives no owner, slug or client_email (views is allowed: the client sees their own count)',
+  not exists (select 1 from public.my_invitations() m where to_jsonb(m) ?| array['owner','slug','client_email']));
 select t.ok('the client cannot read the invitations table directly', t.rows('select 1 from public.invitations') = 0);
 select t.ok('the client cannot change an invitation', t.affected($$update public.invitations set groom_name = 'Hacked' where id = 'c1'$$) = 0);
 select t.throws('the client cannot write a change request directly',

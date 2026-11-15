@@ -1,20 +1,19 @@
--- Schedy database schema for Supabase. Run in: Supabase dashboard > SQL Editor.
+-- =====================================================================================================================
+-- 01_schema.sql  -  COMPLETE database setup for a brand-new Supabase project.
 --
--- This file is SAFE TO RE-RUN: it never deletes tables or data (tables use "if not exists"; functions, policies and
--- triggers are replaced). It already includes everything from supabase/migrations/001, 003, 007, 008 and 009, so a NEW project only
--- needs this file, then supabase/seed.sql (optional starter templates).
--- (Migration 002 only cleans old template rows; seed.sql is already clean, so a new project does not need it.)
+-- Run order for a fresh project (Supabase dashboard > SQL Editor > New query, paste the whole file, Run):
+--   1. supabase/01_schema.sql           (this file: tables, security rules, functions, triggers, storage bucket, daily trash purge)
+--   2. supabase/02_seed_templates.sql   (optional: two starter invitation templates)
+--   3. supabase/03_make_admin.sql       (after you create your login user: makes that user the administrator)
 --
--- To wipe everything and start over, run supabase/reset.sql first. That is a separate file on purpose.
+-- This one file replaces the old schema.sql and all 20 migrations (001-020); nothing else needs to be run.
+-- It creates: tables (categories, templates, invitations, enquiries, profiles, admins, change_requests, audit_log, notifications,
+-- view-counting tables), row-level-security policies, the RPC functions the app calls, validation triggers, the public
+-- "invitation-previews" storage bucket with its policies, and (when the pg_cron extension is available) the daily trash purge.
 --
--- Existing project that already has data: re-running this file is fine, but if the "slug rules" step below fails with
--- "violates check constraint", fix the rows listed by this query first (it must return no rows), then run again:
---   select id, slug from public.invitations
---   where not (lower(slug) ~ '^[a-z0-9_-]{3,30}$' or slug = id)
---      or lower(slug) = any (array[
---        'login','invitations','templates','create','inventory','billing','customize',
---        'dashboard','api','assets','i','admin','privacy','terms','pricing','about','contact',
---        'favicon','robots','sitemap']);
+-- Safe to re-run: it never deletes tables or data (tables use "if not exists"; functions, policies and triggers are replaced).
+-- It touches only the "public" schema, the "invitation-previews" storage bucket and its policies on storage.objects.
+-- =====================================================================================================================
 
 -- ---------- 1. tables ----------
 create table if not exists public.categories (
