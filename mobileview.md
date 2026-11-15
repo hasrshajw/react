@@ -47,6 +47,26 @@ Desktop keeps the row buttons and the small dropdown menu. Checks: type check cl
 - Event date, views, client email, template and the "Top" badge moved into the bottom sheet, next to all the action buttons (both Dashboard/Invitations and the queue sheet).
 - Loading cards match: name, status and one small ghost button.
 
+### Round 4: card redesign + selection mode (phones)
+| Area | Change |
+|---|---|
+| Card layout | One compact row, centred vertically: avatar, name (up to 2 lines) and status chip on the left, icon-only menu button (vertical dots, 44px) at the right centre |
+| Card tap | Tapping anywhere on a card opens its bottom sheet (Dashboard, Invitations, queue); the icon button stays for screen readers and keyboards (`aria-label="More actions for <couple>"`) |
+| Look | Soft shadow, press highlight, tap highlight removed, 2-line name clamp so long names never push the layout |
+| Checkboxes | Hidden on phone cards. The sheet on Invitations has a **Select** item: it closes the sheet, turns on selection mode and ticks that card |
+| Selection mode | Every card shows a checkbox at its left, the menu icon is hidden, tapping a card toggles it. A bar at the top has select-all, the count and **Done** |
+| Bulk actions | Dock at the bottom as four icon + label buttons (Publish, Move to draft, Export CSV, Move to trash) instead of a wrapping row |
+| Guard | A selection made on a wide screen is cleared when the window becomes phone-sized, so hidden checkboxes can't hold a stale selection |
+| Code | `cardTap.ts`, selection state in `Invitations.tsx`, `InvitationsTable.tsx`, `RowActions.tsx`, `ReviewsTable.tsx`, CSS in `dashboard.css` and `invitations.css` |
+
+Checks: type check clean, build passes, 659 tests pass. Not yet looked at in a real browser or on a phone.
+
+### Pending (round 4)
+- [ ] Look at every card, the sheet and selection mode on real iPhone and Android.
+- [ ] Select-all bar currently scrolls away with the list; make it stick under the mobile header.
+- [ ] Back gesture / back button should close the sheet and leave selection mode.
+- [ ] Long-press on a card as a shortcut into selection mode.
+
 ### Pending (round 2)
 - [ ] Decide whether desktop should also move its row buttons under the menu (only phones changed so far).
 - [ ] Swipe-down to close the sheet.

@@ -1,7 +1,7 @@
 import dashboardCss from "../styles/dashboard.css?inline";
 import invitationsCss from "../features/invitations/invitations.css?inline";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { Archive, Copy, EyeOff, Globe, Share, Trash2 } from "../components/Icons";
+import { Archive, Check, Copy, EyeOff, Globe, Share, Trash2 } from "../components/Icons";
 import { fetchInvitation, fetchPendingInvitationIds, saveInvitation } from "../lib/api";
 import {
   copyText, coupleName, fmt, getInviteLink, isPast, shareOnWhatsApp, sortInvitations, topViewedId,
@@ -18,6 +18,7 @@ import { useSkeletonPhase } from "../hooks/useSkeletonPhase";
 import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
 import { useRowMenu } from "../features/dashboard/hooks/useRowMenu";
+import { useIsPhone } from "../hooks/useIsPhone";
 import { useShortcuts } from "../features/dashboard/hooks/useShortcuts";
 import { BulkBar } from "../features/invitations/components/BulkBar";
 import { InvitationsTable } from "../features/invitations/components/InvitationsTable";
@@ -43,6 +44,12 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
 
   const selection = useSelection();
   const { sel } = selection;
+  /* Phone only: checkboxes are hidden until "Select" is chosen in a card's menu. */
+  const phone = useIsPhone();
+  const [selecting, setSelecting] = useState(false);
+  const leaveSelecting = () => { selection.clear(); setSelecting(false); };
+  /* A selection made on a wide screen must not follow the person onto a phone, where its checkboxes are hidden. */
+  useEffect(() => { if (phone && !selecting) selection.clear(); }, [phone]);
 
   /* Changing a filter resets paging and clears the selection (a selection should only
      ever cover rows the person can currently see). Sort keeps it. */
@@ -274,7 +281,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
       </div>
 
       {/* ---------- list ---------- */}
-      <div className="inv-panel">
+      <div className={`inv-panel${phone && selecting ? " selecting" : ""}`}>
         <InvitationsToolbar
           loading={skel} when={when} counts={stats} hasFilters={hasFilters}
           q={q} tpl={tpl} sort={sort} templates={templates} trashedCount={counts ? counts.trashed : trashed.length}
@@ -306,6 +313,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
             previewId={preview?.id} menuId={menu?.x.id} pendingIds={pendingIds} isPub={isPub}
             onTogglePage={() => selection.togglePage(shown, allOnPage)} onToggle={selection.toggle}
             onPreview={openPreview} onCopyLink={copyLink} onOpenMenu={openMenu}
+            selecting={selecting} onDone={leaveSelecting}
           />
         )}
       </div>
@@ -320,6 +328,11 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
             menu={menu} menuRef={menuRef} onKeyDown={onMenuKey} onClose={closeMenu} live={live}
             lead={<RowMenuLead x={x} live={live} onPreview={openPreview} onCopyLink={copyLink} onClose={closeMenu} />}
           >
+            {phone && (
+              <button type="button" role="menuitem" onClick={() => { if (!sel.has(x.id)) selection.toggle(x.id); setSelecting(true); closeMenu(false); }}>
+                <Check size={15} /> Select
+              </button>
+            )}
             <button type="button" role="menuitem" onClick={() => { setShareId(x.id); closeMenu(false); }}>
               <Share size={15} /> Share…
             </button>

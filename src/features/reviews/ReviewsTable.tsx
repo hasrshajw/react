@@ -4,6 +4,7 @@ import { CalendarDays, Eye, LayoutTemplate, Mail, MoreHorizontal, Pencil } from 
 import { BottomSheet } from "../../components/BottomSheet";
 import { useEscape } from "../../hooks/useEscape";
 import { useIsPhone } from "../../hooks/useIsPhone";
+import { onCardTap } from "../dashboard/cardTap";
 import { SkText } from "../../components/Skeleton";
 import type { ReviewItem } from "../../lib/api";
 import { coupleName, fmtDateTime, initials, timeAgo } from "../../lib/dashboardData";
@@ -55,7 +56,7 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, hasMo
               const pending = item.status === "pending";
               const count = item.changedKeys.length;
               return (
-                <tr key={item.id} className={selectedId === item.id ? "active" : undefined}>
+                <tr key={item.id} className={selectedId === item.id ? "active" : undefined} onClick={phone ? (e) => onCardTap(e, () => setSheet(item)) : undefined}>
                   <td className="td-couple">
                     <div className="cell-couple">
                       <div className="row-avatar">{inv ? initials(inv) : "?"}</div>
@@ -91,8 +92,11 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, hasMo
                     {phone ? (
                       /* Phone cards show one Menu button; the bottom sheet holds Review / View and Edit. */
                       <div className="row-actions">
-                        <button type="button" className="act-btn menu-btn" aria-haspopup="dialog" onClick={() => setSheet(item)}>
-                          <MoreHorizontal size={16} /> Menu
+                        <button
+                          type="button" className="act-btn menu-btn" aria-haspopup="dialog"
+                          aria-label={`More actions for ${inv ? coupleName(inv) : "this request"}`} onClick={() => setSheet(item)}
+                        >
+                          <MoreHorizontal size={20} />
                         </button>
                       </div>
                     ) : (

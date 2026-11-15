@@ -34,11 +34,18 @@ function show(onOpen = vi.fn()) {
 }
 
 describe("ReviewsTable on a phone", () => {
-  it("shows one Menu button per card instead of the action buttons", () => {
+  it("shows one icon-only menu button per card instead of the action buttons", () => {
     show();
     const buttons = [...host.querySelectorAll("td.td-actions button, td.td-actions a")];
     expect(buttons.length).toBe(1);
-    expect(buttons[0].textContent).toContain("Menu");
+    expect(buttons[0].textContent).toBe("");
+    expect(buttons[0].getAttribute("aria-label")).toBe("More actions for Ravi & Sita");
+  });
+
+  it("opens the sheet when the card itself is tapped", () => {
+    show();
+    act(() => { (host.querySelector("tbody tr") as HTMLElement).click(); });
+    expect(document.body.querySelector(".bs-sheet")).toBeTruthy();
   });
 
   it("opens a bottom sheet with the details and every action, and Review opens the request", () => {

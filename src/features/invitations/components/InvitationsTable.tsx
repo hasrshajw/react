@@ -6,6 +6,8 @@ import {
 import type { InvitationRow } from "../../../types/dashboard";
 import { RowActions } from "../../dashboard/components/RowActions";
 import { Countdown } from "./Countdown";
+import { useIsPhone } from "../../../hooks/useIsPhone";
+import { onCardTap } from "../../dashboard/cardTap";
 import { templateOf } from "../utils";
 
 interface Props {
@@ -31,18 +33,32 @@ interface Props {
   onPreview: (x: InvitationRow) => void;
   onCopyLink: (x: InvitationRow) => void;
   onOpenMenu: (e: MouseEvent<HTMLElement>, x: InvitationRow) => void;
+  /** Phone only: checkboxes are hidden until "Select" is chosen in a card's menu; Done leaves selection mode. */
+  selecting?: boolean;
+  onDone?: () => void;
 }
 
 export function InvitationsTable(p: Props) {
   const { total } = p;
+  const phone = useIsPhone();
+  const selecting = phone && !!p.selecting;
   return (
     <>
+      {selecting && (
+        <div className="sel-bar">
+          <label>
+            <input ref={p.headCheck} type="checkbox" checked={p.allOnPage} aria-label="Select all invitations on this page" onChange={p.onTogglePage} />
+            <span>{p.sel.size ? `${p.sel.size} selected` : "Select all"}</span>
+          </label>
+          <button type="button" className="act-btn solid" onClick={p.onDone}>Done</button>
+        </div>
+      )}
       <div className="table-scroll">
-        <table className="inv-table has-check">
+        <table className={`inv-table has-check${selecting ? " selecting" : ""}`}>
           <thead>
             <tr>
               <th className="th-check">
-                <input ref={p.headCheck} type="checkbox" checked={p.allOnPage} aria-label="Select all invitations on this page" onChange={p.onTogglePage} />
+                <input ref={selecting ? undefined : p.headCheck} type="checkbox" checked={p.allOnPage} aria-label="Select all invitations on this page" onChange={p.onTogglePage} />
               </th>
               <th>Couple</th>
               <th>Client</th>
@@ -60,7 +76,10 @@ export function InvitationsTable(p: Props) {
               const clientEmail = (x.client_email || "").trim();
               const pending = p.pendingIds?.has(x.id) ?? false;
               return (
-                <tr key={x.id} className={`${p.previewId === x.id ? "active" : ""}${checked ? " sel" : ""}${past ? " is-past" : ""}`.trim()}>
+                <tr
+                  key={x.id} className={`${p.previewId === x.id ? "active" : ""}${checked ? " sel" : ""}${past ? " is-past" : ""}`.trim()}
+                  onClick={phone ? (e) => onCardTap(e, () => (selecting ? p.onToggle(x.id) : p.onOpenMenu(e, x))) : undefined}
+                >
                   <td className="td-check">
                     <input type="checkbox" checked={checked} aria-label={`Select ${coupleName(x)}`} onChange={() => p.onToggle(x.id)} />
                   </td>

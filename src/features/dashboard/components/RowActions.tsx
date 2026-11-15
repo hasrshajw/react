@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { useIsPhone } from "../../../hooks/useIsPhone";
+import { coupleName } from "../../../lib/dashboardData";
 import { Link2, MoreHorizontal, Pencil, Smartphone } from "../../../components/Icons";
 import type { InvitationRow } from "../../../types/dashboard";
 
@@ -22,9 +23,9 @@ export function RowActions({ x, live, previewActive, menuOpen, onPreview, onCopy
       <div className="row-actions">
         <button
           type="button" className="act-btn menu-btn menu-trigger" aria-haspopup="dialog" aria-expanded={menuOpen}
-          onClick={(e) => onOpenMenu(e, x)}
+          aria-label={`More actions for ${coupleName(x)}`} onClick={(e) => onOpenMenu(e, x)}
         >
-          <MoreHorizontal size={16} /> Menu
+          <MoreHorizontal size={20} />
         </button>
       </div>
     );

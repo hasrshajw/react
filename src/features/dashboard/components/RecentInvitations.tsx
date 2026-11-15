@@ -6,6 +6,8 @@ import {
 import type { InvitationRow, SortKey, TableFilter, TrashItem } from "../../../types/dashboard";
 import { SORT_OPTIONS, Select } from "./Select";
 import { RowActions } from "./RowActions";
+import { useIsPhone } from "../../../hooks/useIsPhone";
+import { onCardTap } from "../cardTap";
 import { ErrorState, InvitationsTableSkeleton, NoInvitationsState, NoMatchState } from "./ListStates";
 
 interface Props {
@@ -53,6 +55,7 @@ interface Props {
 /** The "Recent invitations" card: toolbar, filter chip, table, empty/error states and footer. */
 export function RecentInvitations(p: Props) {
   const { list, visible, expanded, showAll, page: cur, pages, q, filter } = p;
+  const phone = useIsPhone();
   const canShowLess = showAll && !q.trim() && filter === "all";
   const total = p.total ?? visible.length;
   const showFoot = (expanded && list.length > PAGE_SIZE) || (!expanded && total > 5) || showAll;
@@ -118,7 +121,7 @@ export function RecentInvitations(p: Props) {
                   const chip = statusChip(x, live);
                   const when = whenText(dayDiff(x.event_date));
                   return (
-                    <tr key={x.id} className={p.previewId === x.id ? "active" : ""}>
+                    <tr key={x.id} className={p.previewId === x.id ? "active" : ""} onClick={phone ? (e) => onCardTap(e, () => p.onOpenMenu(e, x)) : undefined}>
                       <td className="td-couple">
                         <div className="cell-couple">
                           <div className="row-avatar">{initials(x)}</div>
