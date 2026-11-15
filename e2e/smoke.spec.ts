@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 /**
  * Smoke paths that do not need a signed-in account.
  * Client-edit and admin review flows stay skipped until BASE_URL points at a
- * project with test users (see task.md B9).
+ * project with test users (see docs/RELEASE_CHECKLIST.md).
  */
 test.describe("public smoke", () => {
   test("login page renders", async ({ page }) => {
