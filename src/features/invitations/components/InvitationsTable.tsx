@@ -7,7 +7,7 @@ import type { InvitationRow } from "../../../types/dashboard";
 import { RowActions } from "../../dashboard/components/RowActions";
 import { Countdown } from "./Countdown";
 import { useIsPhone } from "../../../hooks/useIsPhone";
-import { onCardTap } from "../../dashboard/cardTap";
+import { onCardTap, useLongPress } from "../../dashboard/cardTap";
 import { templateOf } from "../utils";
 
 interface Props {
@@ -36,12 +36,15 @@ interface Props {
   /** Phone only: checkboxes are hidden until "Select" is chosen in a card's menu; Done leaves selection mode. */
   selecting?: boolean;
   onDone?: () => void;
+  /** Phone only: long-press on a card (a shortcut into selection mode, ticking that card). */
+  onLongPress?: (x: InvitationRow) => void;
 }
 
 export function InvitationsTable(p: Props) {
   const { total } = p;
   const phone = useIsPhone();
   const selecting = phone && !!p.selecting;
+  const longPress = useLongPress();
   return (
     <>
       {selecting && (
@@ -78,7 +81,8 @@ export function InvitationsTable(p: Props) {
               return (
                 <tr
                   key={x.id} className={`${p.previewId === x.id ? "active" : ""}${checked ? " sel" : ""}${past ? " is-past" : ""}`.trim()}
-                  onClick={phone ? (e) => onCardTap(e, () => (selecting ? p.onToggle(x.id) : p.onOpenMenu(e, x))) : undefined}
+                  onClick={phone ? (e) => { if (longPress.consumed()) return; onCardTap(e, () => (selecting ? p.onToggle(x.id) : p.onOpenMenu(e, x))); } : undefined}
+                  {...(phone && !selecting && p.onLongPress ? longPress.bind(() => p.onLongPress?.(x)) : {})}
                 >
                   <td className="td-check">
                     <input type="checkbox" checked={checked} aria-label={`Select ${coupleName(x)}`} onChange={() => p.onToggle(x.id)} />

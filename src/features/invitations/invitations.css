@@ -86,7 +86,11 @@
   .inv-table.has-check tbody tr.sel { background: var(--primary-lightest); border-color: var(--primary); }
   .inv-table.has-check tbody tr.is-past td:not(.td-check):not(:last-child) { opacity: .75; }
 
-  .sel-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 14px; border-bottom: 1px solid var(--gray-border); background: var(--primary-lightest); }
+  /* The bar sticks under the 72px mobile header while the list scrolls. .inv-panel must not clip (overflow: hidden would stop sticky). */
+  .inv-panel.selecting { overflow: visible; }
+  .sel-bar { position: sticky; top: 72px; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 14px; border-bottom: 1px solid var(--gray-border); border-radius: 18px 18px 0 0; background: var(--primary-lightest); box-shadow: 0 2px 8px rgba(24, 28, 45, .08); }
+  /* A long press must not select text or show the native callout. */
+  .inv-table.has-check tbody tr { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
   .sel-bar label { min-height: 44px; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 700; color: var(--primary-dark); cursor: pointer; }
   .sel-bar input[type="checkbox"] { width: 22px; height: 22px; margin: 0; accent-color: var(--primary); }
 

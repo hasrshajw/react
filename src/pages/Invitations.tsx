@@ -19,6 +19,7 @@ import { useNotify } from "../features/dashboard/hooks/useNotify";
 import { useInvitationStore } from "../features/dashboard/hooks/useInvitationStore";
 import { useRowMenu } from "../features/dashboard/hooks/useRowMenu";
 import { useIsPhone } from "../hooks/useIsPhone";
+import { useBackClose } from "../hooks/useBackClose";
 import { useShortcuts } from "../features/dashboard/hooks/useShortcuts";
 import { BulkBar } from "../features/invitations/components/BulkBar";
 import { InvitationsTable } from "../features/invitations/components/InvitationsTable";
@@ -48,6 +49,14 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
   const phone = useIsPhone();
   const [selecting, setSelecting] = useState(false);
   const leaveSelecting = () => { selection.clear(); setSelecting(false); };
+  /* Selection mode starts from a card's menu ("Select") or a long-press on a card; either way that card is ticked. */
+  const startSelecting = (x: InvitationRow) => {
+    if (!sel.has(x.id)) selection.toggle(x.id);
+    setSelecting(true);
+    try { navigator.vibrate?.(12); } catch { /* not supported */ }
+  };
+  /* The browser's back action leaves selection mode (the bottom sheet does the same for itself). */
+  useBackClose(phone && selecting, leaveSelecting);
   /* A selection made on a wide screen must not follow the person onto a phone, where its checkboxes are hidden. */
   useEffect(() => { if (phone && !selecting) selection.clear(); }, [phone]);
 
@@ -313,7 +322,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
             previewId={preview?.id} menuId={menu?.x.id} pendingIds={pendingIds} isPub={isPub}
             onTogglePage={() => selection.togglePage(shown, allOnPage)} onToggle={selection.toggle}
             onPreview={openPreview} onCopyLink={copyLink} onOpenMenu={openMenu}
-            selecting={selecting} onDone={leaveSelecting}
+            selecting={selecting} onDone={leaveSelecting} onLongPress={startSelecting}
           />
         )}
       </div>
@@ -329,7 +338,7 @@ export default function Invitations({ onPanelChange }: { onPanelChange?: (open: 
             lead={<RowMenuLead x={x} live={live} onPreview={openPreview} onCopyLink={copyLink} onClose={closeMenu} />}
           >
             {phone && (
-              <button type="button" role="menuitem" onClick={() => { if (!sel.has(x.id)) selection.toggle(x.id); setSelecting(true); closeMenu(false); }}>
+              <button type="button" role="menuitem" onClick={() => { startSelecting(x); closeMenu(false); }}>
                 <Check size={15} /> Select
               </button>
             )}

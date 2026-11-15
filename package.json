@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:db": "bash tools/db-test/run.sh",
     "test:e2e": "playwright test",
+    "test:e2e:phone": "playwright test --project=phone-390x844 --project=phone-360x740",
     "test:e2e:install": "npm i -D @playwright/test && npx playwright install chromium"
   },
   "dependencies": {

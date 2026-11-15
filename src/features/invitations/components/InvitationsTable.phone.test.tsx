@@ -62,6 +62,45 @@ describe("InvitationsTable on a phone", () => {
     expect(fns.onDone).toHaveBeenCalled();
   });
 
+  it("a long press on a card starts selection with that card, and the click after it does not open the menu", () => {
+    vi.useFakeTimers();
+    const onLongPress = vi.fn();
+    const fns = show({ onLongPress });
+    const row = host.querySelector("tbody tr") as HTMLElement;
+    const touch = (type: string, x = 10, y = 10) => act(() => {
+      const e = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(e, "touches", { value: [{ clientX: x, clientY: y }] });
+      row.dispatchEvent(e);
+    });
+    touch("touchstart");
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(onLongPress).toHaveBeenCalledWith(rows[0]);
+    touch("touchend");
+    act(() => { row.click(); });
+    expect(fns.onOpenMenu).not.toHaveBeenCalled();
+    /* the next plain tap opens the menu again */
+    act(() => { row.click(); });
+    expect(fns.onOpenMenu).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it("moving the finger cancels the long press (scrolling the list)", () => {
+    vi.useFakeTimers();
+    const onLongPress = vi.fn();
+    show({ onLongPress });
+    const row = host.querySelector("tbody tr") as HTMLElement;
+    const touch = (type: string, y: number) => act(() => {
+      const e = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(e, "touches", { value: [{ clientX: 10, clientY: y }] });
+      row.dispatchEvent(e);
+    });
+    touch("touchstart", 10);
+    touch("touchmove", 60);
+    act(() => { vi.advanceTimersByTime(800); });
+    expect(onLongPress).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it("on a wide screen the selection bar never shows, even if selecting is set", () => {
     setPhone(false);
     show({ selecting: true });

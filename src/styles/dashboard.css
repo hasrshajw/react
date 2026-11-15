@@ -326,6 +326,7 @@
         .bs-overlay, .bs-overlay * { box-sizing: border-box; font-family: "DM Sans", "Noto Sans Telugu", Inter, sans-serif; }
         .bs-overlay { position: fixed; inset: 0; z-index: 9400; display: flex; align-items: flex-end; background: var(--backdrop); animation: dx-fade .18s ease; }
         .bs-sheet { width: 100%; max-height: 85dvh; display: flex; flex-direction: column; border-radius: 24px 24px 0 0; background: var(--white); box-shadow: 0 -12px 40px rgba(24, 28, 45, .25); padding-bottom: env(safe-area-inset-bottom, 0px); animation: bs-up .24s cubic-bezier(.2, .8, .2, 1); }
+        .bs-grab { display: flex; flex-direction: column; flex-shrink: 0; touch-action: none; }
         .bs-handle { align-self: center; width: 40px; height: 4px; margin: 8px 0 2px; border-radius: 999px; background: var(--gray-border); }
         .bs-head { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px 12px 18px; border-bottom: 1px solid var(--gray-border); }
         .bs-info { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; }

@@ -41,6 +41,17 @@ BASE_URL=https://your-preview.vercel.app npm run test:e2e
 
 Full client matrix needs `E2E_CLIENT_EMAIL` / `E2E_CLIENT_PASSWORD`.
 
+Phone sizes (admin mobile view, see `mobileview.md`): runs `e2e/*.phone.spec.ts` at 390x844 and 360x740.
+
+```bash
+BASE_URL=https://your-preview.vercel.app npm run test:e2e:phone
+```
+
+Admin pages need `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD`; without them only the login page is checked.
+
+- [ ] Phone runs pass: no sideways scrolling on Dashboard, Invitations, Reviews, Templates, Create.
+- [ ] By hand on a real iPhone (Safari) and Android (Chrome): cards, bottom sheet (swipe down, back button), selection mode (long-press, back), notification bell.
+
 ## 7. Promote
 
 - [ ] All items above acceptable.

@@ -7,6 +7,7 @@ import type { IconComponent } from "./Icons";
 import { SkText } from "./Skeleton";
 import { useAccount } from "../hooks/useAccount";
 import { useLatest } from "../hooks/useLatest";
+import { useIsPhone } from "../hooks/useIsPhone";
 import type { AppNotification } from "../lib/api";
 import { NotificationPanel } from "../features/notifications/NotificationPanel";
 import { useAdminNotifications } from "../features/notifications/useAdminNotifications";
@@ -116,6 +117,9 @@ export default function Sidebar({
   const notifs = useAdminNotifications();
   const [notifOpen, setNotifOpen] = useState(false);
   const bellRef = useRef<HTMLButtonElement>(null);
+  /* On a phone the top bar is hidden, so the bell lives in the mobile header and the panel opens as a near full-width card. */
+  const phone = useIsPhone();
+  const mBellRef = useRef<HTMLButtonElement>(null);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -297,7 +301,7 @@ export default function Sidebar({
                 {showBellDot && <i className="notification-dot" />}
               </button>
               <NotificationPanel
-                open={notifOpen}
+                open={notifOpen && !phone}
                 onClose={() => setNotifOpen(false)}
                 items={notifs.items}
                 loading={notifs.loading}
@@ -429,17 +433,54 @@ export default function Sidebar({
           <img src={logo} alt="Schedy" />
         </NavLink>
 
-        <button
-          type="button"
-          className="m-profile-btn"
-          data-pm-trigger
-          aria-label="Profile"
-          aria-haspopup="menu"
-          aria-expanded={profileOpen}
-          onClick={onProfileClick}
-        >
-          {initial}
-        </button>
+        <div className="m-actions">
+          <div className="m-notif">
+            <button
+              ref={mBellRef}
+              type="button"
+              className="m-bell-btn"
+              aria-label={
+                notifs.unread > 0
+                  ? `Notifications, ${notifs.unread} unread`
+                  : enquiryCount > 0
+                    ? `Notifications, ${enquiryCount} new enquir${enquiryCount === 1 ? "y" : "ies"}`
+                    : "Notifications"
+              }
+              aria-expanded={notifOpen && phone}
+              aria-haspopup="dialog"
+              onClick={() => setNotifOpen((o) => !o)}
+            >
+              <Bell size={19} strokeWidth={1.8} />
+              {showBellDot && <i className="notification-dot" />}
+            </button>
+            <NotificationPanel
+              open={notifOpen && phone}
+              onClose={() => setNotifOpen(false)}
+              items={notifs.items}
+              loading={notifs.loading}
+              error={notifs.error}
+              unread={notifs.unread}
+              onMarkRead={notifs.markRead}
+              onMarkAllRead={notifs.markAllRead}
+              onRetry={() => notifs.load()}
+              anchorRef={mBellRef}
+              hrefFor={notificationHref}
+              bodyFor={notificationBody}
+            />
+          </div>
+
+          <button
+            type="button"
+            className="m-profile-btn"
+            data-pm-trigger
+            aria-label="Profile"
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+            onClick={onProfileClick}
+          >
+            {initial}
+          </button>
+        </div>
       </header>
 
       {/* ===================================================
@@ -991,6 +1032,14 @@ export default function Sidebar({
           display: flex; align-items: center; justify-content: center; cursor: pointer;
         }
 
+        .m-actions { display: flex; align-items: center; gap: 8px; }
+        .m-bell-btn {
+          width: 40px; height: 40px; border-radius: 10px; position: relative;
+          border: 1px solid var(--gray-border); background: var(--gray-light); color: var(--icon-color);
+          display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .m-bell-btn .notification-dot { top: 8px; right: 9px; }
+        .m-bell-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .m-profile-btn {
           width: 40px; height: 40px; border-radius: 50%;
           border: 1px solid var(--border-subtle);

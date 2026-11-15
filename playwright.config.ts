@@ -18,5 +18,11 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    /* Desktop runs everything except the phone-only specs. */
+    { name: "chromium", testIgnore: /\.phone\.spec\.ts$/, use: { ...devices["Desktop Chrome"] } },
+    /* Phone sizes for the admin mobile view (docs/RELEASE_CHECKLIST.md section 6): only e2e/*.phone.spec.ts. */
+    { name: "phone-390x844", testMatch: /\.phone\.spec\.ts$/, use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 } },
+    { name: "phone-360x740", testMatch: /\.phone\.spec\.ts$/, use: { ...devices["Desktop Chrome"], viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 } },
+  ],
 });
