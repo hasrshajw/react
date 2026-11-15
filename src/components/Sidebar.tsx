@@ -707,6 +707,7 @@ export default function Sidebar({
         .d-sidebar {
           width: var(--sidebar-width);
           height: 100vh;
+          height: 100dvh;
           background: var(--sidebar-bg);
           border-right: 1px solid var(--border-subtle);
           display: flex; flex-direction: column;

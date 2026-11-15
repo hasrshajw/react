@@ -4,7 +4,7 @@
 
 @media (max-width: 768px) {
   /* Never let the page scroll sideways */
-  .app .main-content { overflow-x: hidden; }
+  .app .main-content { overflow-x: hidden; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch; }
 
   /* Notch / home-bar safe areas (needs viewport-fit=cover in index.html) */
   .workspace-shell { padding-left: max(5px, env(safe-area-inset-left)); padding-right: max(5px, env(safe-area-inset-right)); padding-bottom: max(5px, env(safe-area-inset-bottom)); }

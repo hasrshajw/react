@@ -71,7 +71,7 @@ export function ProfileMenu({ onClose, variant = "admin" }: { onClose: () => voi
     <style>{PROFILE_MENU_CSS}</style>
     <div
       className="pm" role="menu" aria-label="Profile menu"
-      style={pos ? { top: pos.top, right: pos.right, maxHeight: `calc(100vh - ${pos.top}px - 12px)` } : undefined}
+      style={pos ? { top: pos.top, right: pos.right, maxHeight: `calc(100dvh - ${pos.top}px - 12px)` } : undefined}
     >
       <div className="pm-head">
         <div className="pm-head-row">
@@ -116,6 +116,7 @@ export const PROFILE_MENU_CSS = `
           width: 304px;
           max-width: calc(100vw - 16px);
           max-height: calc(100vh - var(--chrome-top, 44px) - 76px);
+          max-height: calc(100dvh - var(--chrome-top, 44px) - 76px);
           overflow-y: auto;
           padding: 6px 0;
           border-radius: 24px;

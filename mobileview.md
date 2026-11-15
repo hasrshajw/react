@@ -61,6 +61,10 @@ Desktop keeps the row buttons and the small dropdown menu. Checks: type check cl
 
 Checks: type check clean, build passes, 659 tests pass. Not yet looked at in a real browser or on a phone.
 
+### Fix: could not scroll to the bottom on phones
+Cause: the admin shell was `height: 100vh` with `overflow: hidden`. On phones `100vh` is taller than the visible screen (the address bar covers part of it), so the bottom of every page sat below the screen edge.
+Fix: `100dvh` (with a `100vh` fallback) on the shell, sidebar, profile menu and modals; smoother touch scrolling inside the page.
+
 ### Pending (round 4)
 - [ ] Look at every card, the sheet and selection mode on real iPhone and Android.
 - [ ] Select-all bar currently scrolls away with the list; make it stick under the mobile header.

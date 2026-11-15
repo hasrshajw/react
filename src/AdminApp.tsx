@@ -179,6 +179,7 @@ function Shell() {
         .workspace-shell {
           width: 100%;
           height: 100vh;
+          height: 100dvh; /* phones: 100vh is taller than the visible area, which hid the bottom of every page */
           min-height: 0;
           display: flex;
           flex-direction: column;

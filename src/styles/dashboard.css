@@ -246,7 +246,7 @@
 
         /* ---------- modals / drawer ---------- */
         .dx-overlay { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 20px; background: rgba(23, 19, 38, .55); backdrop-filter: blur(3px); animation: dx-fade .15s ease; }
-        .dx-modal { max-width: 100%; max-height: calc(100vh - 40px); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: var(--white); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); animation: dx-pop .18s ease; }
+        .dx-modal { max-width: 100%; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px; background: var(--white); box-shadow: 0 24px 60px rgba(0, 0, 0, .3); animation: dx-pop .18s ease; }
         .dx-modal-head { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--gray-border); }
         .dx-modal-head b { display: block; font-size: 15px; font-weight: 700; }
         .dx-modal-head small { display: block; margin-top: 3px; font-size: 12px; color: var(--gray); }
