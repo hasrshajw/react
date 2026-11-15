@@ -1,11 +1,12 @@
 import { createPortal } from "react-dom";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarDays, Eye, Link2, Pencil, Smartphone } from "../../../components/Icons";
+import { CalendarDays, Eye, LayoutTemplate, Link2, Mail, Pencil, Smartphone } from "../../../components/Icons";
 import { BottomSheet } from "../../../components/BottomSheet";
 import { useIsPhone } from "../../../hooks/useIsPhone";
 import { coupleName, dayDiff, fmt, fmtDate, getViews, initials, statusChip, whenText } from "../../../lib/dashboardData";
 import type { InvitationRow } from "../../../types/dashboard";
+import { templateOf } from "../../invitations/utils";
 import type { RowMenuState } from "../hooks/useRowMenu";
 
 interface Props {
@@ -40,6 +41,8 @@ export function RowMenu({ menu, menuRef, onKeyDown, onClose, live, lead, childre
               <span className="bs-meta"><span className={`chip ${chip[0]}`}>{chip[1]}</span></span>
               <span className="bs-meta"><CalendarDays size={13} /> {x.event_date ? fmtDate(x.event_date) : "Date not set"}{when && <> · {when}</>}</span>
               <span className="bs-meta"><Eye size={13} /> {fmt(getViews(x))} views</span>
+              {(x.client_email || "").trim() && <span className="bs-meta"><Mail size={13} /> {x.client_email}</span>}
+              <span className="bs-meta"><LayoutTemplate size={13} /> {templateOf(x).name}</span>
             </div>
           </>
         }

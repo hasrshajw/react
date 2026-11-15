@@ -42,6 +42,11 @@ Applies to the Dashboard "Recent invitations", the Invitations page and the Revi
 
 Desktop keeps the row buttons and the small dropdown menu. Checks: type check clean, build passes, 654 tests pass (3 new phone tests).
 
+### Round 3: slimmer phone cards
+- A phone card now shows only the couple name and the status chip (Published, Draft, Pending review...), with a small **Menu** button at its bottom right.
+- Event date, views, client email, template and the "Top" badge moved into the bottom sheet, next to all the action buttons (both Dashboard/Invitations and the queue sheet).
+- Loading cards match: name, status and one small ghost button.
+
 ### Pending (round 2)
 - [ ] Decide whether desktop should also move its row buttons under the menu (only phones changed so far).
 - [ ] Swipe-down to close the sheet.

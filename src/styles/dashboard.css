@@ -357,9 +357,14 @@
           .inv-table .row-actions { justify-content: stretch; }
           .inv-table .row-actions .act-btn { flex: 1; min-width: 0; }
           .inv-table tbody tr.sk-row .td-actions .act-btn { flex: 1; }
-          /* one Menu button per card (the skeleton shows a single ghost button too) */
-          .inv-table .row-actions .menu-btn { width: 100%; height: 44px; font-size: 14px; font-weight: 700; }
+          /* Phone card = name + status, with a small Menu button at the bottom right. Everything else is in the bottom sheet. */
+          .inv-table tbody td.td-date, .inv-table tbody td.td-views, .inv-table tbody td.td-client, .inv-table tbody td.td-changes { display: none; }
+          .inv-table .tpl-name { display: none; }
+          .inv-table tbody tr { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+          .inv-table tbody td.td-actions { padding-top: 0; border-top: 0; }
+          .inv-table .row-actions { justify-content: flex-end; }
+          .inv-table .row-actions .menu-btn { flex: 0 0 auto; width: auto; min-width: 104px; height: 40px; padding: 0 16px; font-size: 14px; font-weight: 700; }
           .inv-table tbody tr.sk-row .row-actions > :not(:first-child) { display: none; }
-          .inv-table tbody tr.sk-row .row-actions > :first-child { flex: 1; width: auto; height: 44px; }
+          .inv-table tbody tr.sk-row .row-actions > :first-child { flex: 0 0 auto; width: 104px; height: 40px; }
         }
 

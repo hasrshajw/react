@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CalendarDays, Eye, MoreHorizontal, Pencil } from "../../components/Icons";
+import { CalendarDays, Eye, LayoutTemplate, Mail, MoreHorizontal, Pencil } from "../../components/Icons";
 import { BottomSheet } from "../../components/BottomSheet";
 import { useEscape } from "../../hooks/useEscape";
 import { useIsPhone } from "../../hooks/useIsPhone";
@@ -119,7 +119,8 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, hasMo
               <div className="bs-text">
                 <b>{sheetInv ? coupleName(sheetInv) : "Invitation unavailable"}</b>
                 <span className="bs-meta"><span className={`chip ${STATUS_CHIP[sheet.status]}`}>{STATUS_LABEL[sheet.status]}</span></span>
-                {sheet.clientEmail && <span className="bs-meta">{sheet.clientEmail}</span>}
+                {sheet.clientEmail && <span className="bs-meta"><Mail size={13} /> {sheet.clientEmail}</span>}
+                {sheetInv && <span className="bs-meta"><LayoutTemplate size={13} /> {templateOf(sheetInv).name}</span>}
                 {sheet.changedKeys.length > 0 && <span className="bs-meta"><Eye size={13} /> {sheet.changedKeys.length} {sheet.changedKeys.length === 1 ? "field" : "fields"}: {fieldsText(sheet)}</span>}
                 <span className="bs-meta"><CalendarDays size={13} /> {timeAgo(sheet.createdAt, now) || fmtDateTime(sheet.createdAt)} · {fmtDateTime(sheet.createdAt)}</span>
               </div>
