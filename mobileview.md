@@ -1,6 +1,6 @@
 # Mobile view: admin pages
 
-Last updated: 16 Nov 2026 (round 5: back button, swipe-down, long-press, sticky bar, phone bell) · Branch: `preview`
+Last updated: 16 Nov 2026 (round 6: phone polish, checked in a real browser) · Branch: `preview`
 Scope: signed-in admin area (Dashboard, Invitations, Reviews, Templates, Create, shell, profile menu).
 Phone rules apply at 768px and below; desktop is unchanged.
 
@@ -60,6 +60,21 @@ Desktop keeps the row buttons and the small dropdown menu. Checks: type check cl
 | Code | `cardTap.ts`, selection state in `Invitations.tsx`, `InvitationsTable.tsx`, `RowActions.tsx`, `ReviewsTable.tsx`, CSS in `dashboard.css` and `invitations.css` |
 
 Checks: type check clean, build passes, 659 tests pass. Not yet looked at in a real browser or on a phone.
+
+### Round 6: phone polish, checked in a real browser
+This round was looked at in Chrome at 390x844 and 360x740 (touch, 2x), with the app running against a stand-in backend. No sideways scrolling on Dashboard, Invitations, Reviews, Templates or Create at either size. Also confirmed in the browser: a card opens its sheet, the back button closes it, long-press starts selection, back leaves selection, the bell opens a panel that fits the screen.
+
+| Area | Change |
+|---|---|
+| Shell | Full-bleed on phones: the dark frame around the page is gone (about 10px more width). Plan strip 44px to 38px; rounded corners only at the top |
+| Header | 72px to 60px, logo 30px, edge to edge. One variable (`--m-head`) drives the content offset, the notification panel and the header; `--chrome-top` is 38px on phones |
+| Page header | Title 24px; one action row: Refresh is an icon button, Create invitation takes the rest of the width; "Updated ..." text hidden on phones |
+| Dashboard | Stat cards shorter (padding, 40px icon, 24px numbers) so more fits per screen |
+| Invitations | Filter chips are one swipeable row; tighter filter panel |
+| Templates | Two per row down to 340px wide (was one giant card per row under 400px); category tag always under the name |
+| Selection bar | Fixed a real bug: it stuck about 86px too low, because sticky offsets start at the scroller's content edge, not its padding. Now sits exactly under the header (`top: -14px` in `invitations.css`) |
+
+Checks: type check clean, build passes, lint 0 errors, 674 tests pass.
 
 ### Round 5: gestures, back button, notifications (phones)
 | Area | Change |

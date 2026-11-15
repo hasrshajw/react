@@ -48,7 +48,7 @@
   .app .tpl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .app .tpl-card { padding: 10px; gap: 10px; border-radius: 18px; }
   .app .tpl-card:hover { transform: none; }
-  .app .tpl-info { flex-wrap: wrap; }
+  .app .tpl-info { flex-direction: column; align-items: flex-start; gap: 6px; }
   .app .tpl-eye { display: none; }
   .tpl-modal { padding: 0; place-items: end center; }
   .tpl-modal-box { max-width: none; max-height: 100dvh; border-radius: 24px 24px 0 0; padding: 16px 16px max(16px, env(safe-area-inset-bottom)); }
@@ -61,6 +61,8 @@
 /* Small phones: one template per row, tighter page padding */
 @media (max-width: 400px) {
   .app .main-content, .app .main-content.content-expanded, .app .main-content.content-collapsed { padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 340px) {
   .app .tpl-grid { grid-template-columns: 1fr; }
   .app .tpl-thumb { max-width: 260px; margin: 0 auto; }
 }
@@ -73,8 +75,8 @@
 /* Notification panel (bell in the mobile header): a card pinned under the header, as wide as the screen, scrolling inside */
 @media (max-width: 768px) {
   .m-notif .notif-panel {
-    position: fixed; top: calc(72px + 8px); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right));
-    width: auto; max-height: calc(100dvh - 72px - 24px - env(safe-area-inset-bottom, 0px));
+    position: fixed; top: calc(var(--chrome-top, 38px) + var(--m-head, 60px) + 8px); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right));
+    width: auto; max-height: calc(100dvh - var(--chrome-top, 38px) - var(--m-head, 60px) - 24px - env(safe-area-inset-bottom, 0px));
   }
   .m-notif .notif-list { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .m-notif .notif-item { min-height: 56px; }
@@ -86,4 +88,44 @@
   .m-drawer-header { height: 56px; padding: 0 16px; }
   .m-drawer-nav { padding: 8px 10px 12px; }
   .m-account-section { padding: 12px 16px; }
+}
+
+/* ---------- Round 6: phone polish (full-bleed shell, slim header, compact cards) ---------- */
+@media (max-width: 768px) {
+  html:root { --m-head: 60px; --chrome-top: 38px; }
+
+  /* Full-bleed: no dark frame around the page on a phone. The rounded top corners stay under the plan strip. */
+  .workspace-shell.workspace-shell { padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); }
+  .workspace-shell .workspace-promo { height: 38px; flex: 0 0 38px; padding: 0 8px 0 12px; }
+  .workspace-shell .promo-center { padding: 3px 3px 3px 12px; gap: 6px; font-size: 12.5px; }
+  .workspace-shell .promo-arrow { width: 22px; height: 22px; }
+  .workspace-shell .promo-mark { width: 24px; height: 24px; }
+  .app { border-radius: 18px 18px 0 0 !important; clip-path: inset(0 round 18px 18px 0 0) !important; -webkit-clip-path: inset(0 round 18px 18px 0 0) !important; }
+
+  /* Slimmer header; page content starts right under it */
+  .app .m-header { height: var(--m-head); padding: 0 12px; left: 0 !important; right: 0 !important; border-radius: 18px 18px 0 0; }
+  .app .mobile-brand-logo img { height: 30px; }
+  .app .main-content, .app .main-content.content-expanded, .app .main-content.content-collapsed { padding-top: calc(var(--m-head) + 14px); }
+
+  /* Page header: smaller title, actions on one row (Create takes the spare width, Refresh is an icon) */
+  .app .page-head { gap: 10px; margin-bottom: 12px; }
+  .app .main-content h1, .app .page-head h1 { font-size: 24px; letter-spacing: -.02em; }
+  .app .page-head p { margin-top: 2px; font-size: 13.5px; line-height: 1.4; }
+  .app .head-actions { width: 100%; display: flex; align-items: center; gap: 8px; }
+  .app .head-actions .updated { display: none; }
+  .app .head-actions .refresh { flex: 0 0 44px; width: 44px; padding: 0; justify-content: center; gap: 0; font-size: 0; }
+  .app .head-actions .refresh svg { margin: 0; }
+  .app .head-actions .create-btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+
+  /* Dashboard stat cards: shorter, so all three and the first list fit sooner */
+  .app .stat-card { min-height: 0; padding: 12px 14px; gap: 12px; border-radius: 16px; }
+  .app .stat-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .app .stat-body strong { font-size: 24px; }
+
+  /* Invitations filters: one swipeable row of chips, tighter panel */
+  .app .inv-toolbar { padding: 10px 12px; gap: 8px; }
+  .app .inv-chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -12px; padding: 0 12px 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .app .inv-chips::-webkit-scrollbar { display: none; }
+  .app .inv-chips > * { flex: 0 0 auto; }
+  .app .inv-tabs { gap: 20px; }
 }
