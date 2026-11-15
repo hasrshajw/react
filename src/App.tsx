@@ -1,6 +1,7 @@
 import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, RouterProvider, useLocation } from "react-router-dom";
 import Landing from "./pages/Landing";
+import ErrorPage from "./components/ErrorPage";
 import PublicInvitation from "./pages/PublicInvitation";
 import { isReserved } from "./lib/reserved";
 import { loadAdmin, loadClient, loadLogin } from "./lib/preload";
@@ -39,12 +40,19 @@ function Gate() {
   return <Lazy><AdminApp /></Lazy>;
 }
 
+/* One pathless parent route carries the error screen for every page below it (a crash while rendering, or a code chunk
+   that fails to load, shows src/components/ErrorPage.tsx instead of React Router's developer-only default). */
 const router = createBrowserRouter([
-  { path: "/", element: <Landing /> }, /* public landing page; the dashboard is at /dashboard */
-  { path: "/login", element: <Lazy><Login /></Lazy> },
-  { path: "/i/:slug", element: <PublicInvitation /> }, /* old links that were already shared: no auth, no admin code */
-  { path: "/my/*", element: <Lazy><ClientApp /></Lazy> }, /* client area (Track B): its own chunk, `my` is a reserved word */
-  { path: "*", element: <Gate /> },
+  {
+    errorElement: <ErrorPage />,
+    children: [
+      { path: "/", element: <Landing /> }, /* public landing page; the dashboard is at /dashboard */
+      { path: "/login", element: <Lazy><Login /></Lazy> },
+      { path: "/i/:slug", element: <PublicInvitation /> }, /* old links that were already shared: no auth, no admin code */
+      { path: "/my/*", element: <Lazy><ClientApp /></Lazy> }, /* client area (Track B): its own chunk, `my` is a reserved word */
+      { path: "*", element: <Gate /> },
+    ],
+  },
 ]);
 
 function App() {
