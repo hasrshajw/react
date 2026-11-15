@@ -309,7 +309,11 @@
           .head-actions { width: 100%; flex-wrap: wrap; }
           .head-actions > .refresh, .head-actions > .create-btn { flex: 1; justify-content: center; }
           .updated { display: none; }
-          .dashboard-grid { grid-template-columns: 1fr; }
+          .dashboard-grid, .narrow .dashboard-grid { grid-template-columns: 1fr; }
+          .stat-body > span, .stat-sub { white-space: normal; }
+          .stat-sub { flex-wrap: wrap; }
+          .recent-tools .search { flex: 1 1 100%; }
+          .recent-tools .search .kbd { display: none; }
           .recent-head { padding: 12px 16px; }
           .recent-tools { width: 100%; }
           .search { flex: 1; width: auto; min-width: 140px; }
