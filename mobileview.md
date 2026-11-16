@@ -71,6 +71,7 @@ Checked in Chrome at 390x844 and 360x740 (touch, 2x), against a stand-in backend
 | Other actions | Select, Share, Duplicate, Publish / Move to draft sit in one rounded white group with hairline dividers and violet icons |
 | Move to trash | Its own red-tinted group at the bottom, away from the safe actions |
 | Sheet | Grey background so the white groups lift off it, 28px top corners, softer shadow, smoother slide-up, taller limit (88dvh), body still scrolls on short screens |
+| Reviews | The Reviews sheet uses the same header and grouped list (checked with sample requests) |
 | Unchanged | Swipe down, back button, tap outside, keyboard arrows; the sheet content and actions are the same |
 
 Checks: type check clean, build passes, lint 0 errors, 674 tests pass (the Copy link test now looks for the tile and its "Publish first" hint).

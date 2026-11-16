@@ -119,14 +119,17 @@ export function ReviewsTable({ items, invitations, selectedId, now, total, hasMo
           label={`Actions for ${sheetInv ? coupleName(sheetInv) : "this request"}`} onClose={() => setSheet(null)}
           head={
             <>
-              <div className="row-avatar">{sheetInv ? initials(sheetInv) : "?"}</div>
+              <div className="row-avatar bs-avatar">{sheetInv ? initials(sheetInv) : "?"}</div>
               <div className="bs-text">
                 <b>{sheetInv ? coupleName(sheetInv) : "Invitation unavailable"}</b>
                 <span className="bs-meta"><span className={`chip ${STATUS_CHIP[sheet.status]}`}>{STATUS_LABEL[sheet.status]}</span></span>
-                {sheet.clientEmail && <span className="bs-meta"><Mail size={13} /> {sheet.clientEmail}</span>}
-                {sheetInv && <span className="bs-meta"><LayoutTemplate size={13} /> {templateOf(sheetInv).name}</span>}
-                {sheet.changedKeys.length > 0 && <span className="bs-meta"><Eye size={13} /> {sheet.changedKeys.length} {sheet.changedKeys.length === 1 ? "field" : "fields"}: {fieldsText(sheet)}</span>}
-                <span className="bs-meta"><CalendarDays size={13} /> {timeAgo(sheet.createdAt, now) || fmtDateTime(sheet.createdAt)} · {fmtDateTime(sheet.createdAt)}</span>
+                <span className="bs-facts">
+                  <span className="bs-fact"><CalendarDays size={13} />{timeAgo(sheet.createdAt, now) || fmtDateTime(sheet.createdAt)}</span>
+                  {sheetInv && <span className="bs-fact"><LayoutTemplate size={13} />{templateOf(sheetInv).name}</span>}
+                  {sheet.changedKeys.length > 0 && <span className="bs-fact"><Eye size={13} />{sheet.changedKeys.length} {sheet.changedKeys.length === 1 ? "field" : "fields"}</span>}
+                </span>
+                {sheet.changedKeys.length > 0 && <span className="bs-email">{fieldsText(sheet)}</span>}
+                {sheet.clientEmail && <span className="bs-email"><Mail size={13} />{sheet.clientEmail}</span>}
               </div>
             </>
           }
