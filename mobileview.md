@@ -1,6 +1,6 @@
 # Mobile view: admin pages
 
-Last updated: 16 Nov 2026 (round 7: premium bottom sheet) · Branch: `preview`
+Last updated: 16 Nov 2026 (round 8: motion across the app) · Branch: `preview`
 Scope: signed-in admin area (Dashboard, Invitations, Reviews, Templates, Create, shell, profile menu).
 Phone rules apply at 768px and below; desktop is unchanged.
 
@@ -60,6 +60,27 @@ Desktop keeps the row buttons and the small dropdown menu. Checks: type check cl
 | Code | `cardTap.ts`, selection state in `Invitations.tsx`, `InvitationsTable.tsx`, `RowActions.tsx`, `ReviewsTable.tsx`, CSS in `dashboard.css` and `invitations.css` |
 
 Checks: type check clean, build passes, 659 tests pass. Not yet looked at in a real browser or on a phone.
+
+### Round 8: smooth motion across the app
+One file, `src/styles/motion.css`, imported in `main.tsx`. It covers the admin pages, the client workspace, sign in and the landing page. Everything is inside `prefers-reduced-motion: no-preference`, so people who ask for less motion get none of it (checked: 0 animations running with reduced motion on). Only `transform` and `opacity` are animated.
+
+| Where | Effect |
+|---|---|
+| Every page | Content fades in (opacity only, so fixed panels are never trapped); page title and actions rise in |
+| Dashboard | Stat cards rise in one after another; the recent list follows |
+| Invitations / Reviews | The panel rises in; the first 8 rows stagger, later rows fade together so long lists never lag |
+| Templates | Cards stagger in (first 6), then fade together |
+| Mouse only (`hover: hover`) | Cards lift 4px with a soft shadow; the Create button lifts, brightens and a light sheen sweeps across; refresh icon turns. Touch screens get none of this, so nothing sticks after a tap |
+| All buttons | Smooth colour / border / shadow changes; a firm press-down (scale .965) |
+| Fields | Border and focus ring ease in |
+| Menus and panels | Row menu and notification panel pop from their corner; notifications stagger in; template preview zooms in with a small spring and a blurred backdrop |
+| Bottom sheet | Avatar pops, the three tiles rise in just after the sheet, the list fades in after them |
+| Sign in / error page | Card rises, its contents follow one by one |
+| Landing | Cards reveal as they scroll into view (scroll-driven animation; browsers without it just show them) |
+| Left alone | The desktop sidebar: its code says the slide indicator is meant to be the only animation there |
+
+Checked in Chrome: entrances run on desktop and phone sizes with no sideways scrolling; hover lift confirmed with a desktop pointer.
+Not done: number count-up on dashboard stats, a sliding underline under the tabs, page-to-page cross-fade (pages fade in, they do not fade out).
 
 ### Round 7: premium bottom sheet
 Checked in Chrome at 390x844 and 360x740 (touch, 2x), against a stand-in backend.

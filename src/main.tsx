@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import "./styles/skeleton.css";
+import "./styles/motion.css";
 import App from "./App";
 import { SUPABASE_CONFIGURED } from "./lib/config";
 

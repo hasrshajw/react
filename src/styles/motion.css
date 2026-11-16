@@ -1,0 +1,120 @@
+/* ==========================================================================
+   Motion layer: one place for the app's "feel".
+   - Only transform and opacity are animated (smooth, no layout work).
+   - Everything is inside prefers-reduced-motion: no-preference, so people who ask for less motion get none of it.
+   - Low specificity on purpose: a component's own rules still win where it already has an animation.
+   - The desktop sidebar is left alone: its slide indicator is meant to be the only animation there.
+   ========================================================================== */
+:root {
+  --m-ease: cubic-bezier(.16, 1, .3, 1);          /* fast start, long soft landing: entrances */
+  --m-ease-io: cubic-bezier(.65, 0, .35, 1);      /* symmetric: things that move across the screen */
+  --m-spring: cubic-bezier(.34, 1.45, .64, 1);    /* small overshoot: modals, pop-ins */
+  --m-fast: .16s;
+  --m-base: .28s;
+  --m-slow: .55s;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes m-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes m-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes m-rise-sm { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes m-pop { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+  @keyframes m-zoom { from { opacity: 0; transform: translateY(12px) scale(.95); } to { opacity: 1; transform: none; } }
+  @keyframes m-shine { from { transform: translateX(-120%) skewX(-18deg); } to { transform: translateX(260%) skewX(-18deg); } }
+
+  /* ---------- Pages: the content fades in; its parts rise in one after another ---------- */
+  /* Opacity only on the page itself: a transform here would trap fixed children (panels, modals) while it runs. */
+  .main-content > * { animation: m-fade .4s ease-out backwards; }
+  .main-content .page-head { animation: m-rise var(--m-slow) var(--m-ease) backwards; }
+  .main-content .page-head h1 + p, .main-content .page-head > div > p { animation: m-fade .8s ease-out .12s backwards; }
+  .main-content .head-actions { animation: m-rise var(--m-slow) var(--m-ease) .08s backwards; }
+
+  .stat-card { animation: m-rise .6s var(--m-ease) backwards; }
+  .stat-card:nth-child(1) { animation-delay: .06s; }
+  .stat-card:nth-child(2) { animation-delay: .13s; }
+  .stat-card:nth-child(3) { animation-delay: .20s; }
+  .stat-card:nth-child(4) { animation-delay: .27s; }
+
+  .recent-card, .inv-panel, .rv-card, .cd-card { animation: m-rise .6s var(--m-ease) .12s backwards; }
+
+  /* Template cards and table rows: a short stagger on the first screenful; later ones just fade so a long list never lags */
+  .tpl-card { animation: m-rise .55s var(--m-ease) backwards; }
+  .tpl-card:nth-child(1) { animation-delay: .04s; } .tpl-card:nth-child(2) { animation-delay: .08s; }
+  .tpl-card:nth-child(3) { animation-delay: .12s; } .tpl-card:nth-child(4) { animation-delay: .16s; }
+  .tpl-card:nth-child(5) { animation-delay: .20s; } .tpl-card:nth-child(6) { animation-delay: .24s; }
+  .tpl-card:nth-child(n+7) { animation-delay: .28s; }
+
+  .inv-table tbody tr { animation: m-rise-sm .45s var(--m-ease) backwards; }
+  .inv-table tbody tr:nth-child(1) { animation-delay: .04s; } .inv-table tbody tr:nth-child(2) { animation-delay: .08s; }
+  .inv-table tbody tr:nth-child(3) { animation-delay: .12s; } .inv-table tbody tr:nth-child(4) { animation-delay: .16s; }
+  .inv-table tbody tr:nth-child(5) { animation-delay: .20s; } .inv-table tbody tr:nth-child(6) { animation-delay: .24s; }
+  .inv-table tbody tr:nth-child(7) { animation-delay: .28s; } .inv-table tbody tr:nth-child(8) { animation-delay: .32s; }
+  .inv-table tbody tr:nth-child(n+9) { animation-delay: .36s; }
+
+  /* ---------- Hover lift (mouse only: a touch screen has no hover, and a stuck hover after a tap looks broken) ---------- */
+  :root :is(.stat-card, .tpl-card, .recent-card, .cd-card, .rv-card, .lp-card) {
+    transition: transform .4s var(--m-ease), box-shadow .4s var(--m-ease), border-color .25s ease, background-color .25s ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :root :is(.stat-card, .tpl-card, .cd-card, .lp-card):hover { transform: translateY(-4px); box-shadow: 0 18px 40px -12px rgba(24, 28, 45, .18), 0 2px 6px rgba(24, 28, 45, .05); }
+    :root :is(.recent-card, .rv-card):hover { box-shadow: 0 14px 34px -14px rgba(24, 28, 45, .16); }
+    .inv-table tbody tr { transition: background-color .2s ease; }
+  }
+
+  /* ---------- Buttons and links: soft hover, firm press ---------- */
+  :where(button, [role="button"]),
+  :root :is(.create-btn, .refresh, .lc-btn, .cd-btn, .link-btn, .more-btn, .icon-btn, .round-btn, .act-btn, .mini-btn, .auto-btn, .dd-btn, .inv-tab, .chip) {
+    transition: transform var(--m-base) var(--m-ease), background-color var(--m-base) ease, border-color var(--m-base) ease,
+                color var(--m-base) ease, box-shadow var(--m-base) var(--m-ease), opacity var(--m-base) ease, filter var(--m-base) ease;
+  }
+  :root :is(button:not(:disabled), [role="button"]):active { transform: scale(.965); transition-duration: .08s; }
+  @media (hover: hover) and (pointer: fine) {
+    :root :is(.create-btn, .lc-btn, .cd-btn):hover { transform: translateY(-1px); box-shadow: 0 10px 24px -8px rgba(76, 44, 200, .55); filter: brightness(1.05); }
+    :root :is(.create-btn, .lc-btn, .cd-btn):active { transform: scale(.97); box-shadow: none; }
+    :root :is(.icon-btn, .round-btn, .act-btn, .mini-btn):hover { transform: translateY(-1px); }
+  }
+  /* A light sheen sweeps across the main call to action */
+  .create-btn { position: relative; overflow: hidden; isolation: isolate; }
+  .create-btn::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 45%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .28), transparent); transform: translateX(-120%) skewX(-18deg); pointer-events: none; }
+  @media (hover: hover) and (pointer: fine) { .create-btn:hover::after { animation: m-shine .9s var(--m-ease-io); } }
+
+  /* The refresh icon turns a little on hover */
+  .refresh svg { transition: transform .6s var(--m-ease); }
+  @media (hover: hover) and (pointer: fine) { .refresh:hover svg { transform: rotate(180deg); } }
+
+  /* Keyboard focus: the ring eases in */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible { transition: outline-offset .15s ease, box-shadow .15s ease; }
+
+  /* Fields: a soft ring instead of a hard jump */
+  :where(input, select, textarea) { transition: border-color var(--m-base) ease, box-shadow var(--m-base) ease, background-color var(--m-base) ease; }
+
+  /* ---------- Layers: menus pop, dialogs zoom, dimmed areas fade ---------- */
+  .row-menu { transform-origin: top right; animation: m-pop var(--m-base) var(--m-ease) backwards; }
+  .notif-panel { transform-origin: top right; animation: m-pop var(--m-base) var(--m-ease) backwards; }
+  .tpl-modal { animation: m-fade .25s ease-out backwards; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .tpl-modal-box { animation: m-zoom .42s var(--m-spring) backwards; }
+  .cx-overlay, .dx-overlay { backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+  .bs-overlay { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+  .notif-panel .notif-item { animation: m-rise-sm .4s var(--m-ease) backwards; }
+  .notif-panel .notif-item:nth-child(2) { animation-delay: .05s; } .notif-panel .notif-item:nth-child(3) { animation-delay: .1s; }
+  .notif-panel .notif-item:nth-child(4) { animation-delay: .15s; } .notif-panel .notif-item:nth-child(n+5) { animation-delay: .2s; }
+
+  /* Bottom-sheet actions rise in just after the sheet itself */
+  .bs-quick button { animation: m-rise-sm .45s var(--m-ease) backwards; }
+  .bs-quick button:nth-child(1) { animation-delay: .10s; } .bs-quick button:nth-child(2) { animation-delay: .15s; } .bs-quick button:nth-child(3) { animation-delay: .20s; }
+  .bs-body > button { animation: m-fade .4s ease-out .22s backwards; }
+  .bs-avatar { animation: m-zoom .5s var(--m-spring) .08s backwards; }
+
+  /* ---------- Sign in and landing ---------- */
+  .login-card { animation: m-rise .7s var(--m-ease) backwards; }
+  .login-card > * { animation: m-rise-sm .6s var(--m-ease) backwards; }
+  .login-card > :nth-child(1) { animation-delay: .08s; } .login-card > :nth-child(2) { animation-delay: .14s; }
+  .login-card > :nth-child(3) { animation-delay: .20s; } .login-card > :nth-child(4) { animation-delay: .26s; }
+  .login-card > :nth-child(n+5) { animation-delay: .32s; }
+  .ep-card { animation: m-rise .7s var(--m-ease) backwards; }
+
+  /* Landing sections reveal as they scroll into view (browsers without scroll-driven animation just show them) */
+  @supports (animation-timeline: view()) {
+    .lp-card { animation: m-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 45%; }
+  }
+}
