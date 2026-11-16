@@ -325,22 +325,44 @@
         /* ---------- bottom sheet (phone row menu) ---------- */
         .bs-overlay, .bs-overlay * { box-sizing: border-box; font-family: "DM Sans", "Noto Sans Telugu", Inter, sans-serif; }
         .bs-overlay { position: fixed; inset: 0; z-index: 9400; display: flex; align-items: flex-end; background: var(--backdrop); animation: dx-fade .18s ease; }
-        .bs-sheet { width: 100%; max-height: 85dvh; display: flex; flex-direction: column; border-radius: 24px 24px 0 0; background: var(--white); box-shadow: 0 -12px 40px rgba(24, 28, 45, .25); padding-bottom: env(safe-area-inset-bottom, 0px); animation: bs-up .24s cubic-bezier(.2, .8, .2, 1); }
-        .bs-grab { display: flex; flex-direction: column; flex-shrink: 0; touch-action: none; }
-        .bs-handle { align-self: center; width: 40px; height: 4px; margin: 8px 0 2px; border-radius: 999px; background: var(--gray-border); }
-        .bs-head { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px 12px 18px; border-bottom: 1px solid var(--gray-border); }
-        .bs-info { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; }
+        .bs-sheet { position: relative; width: 100%; max-height: 88dvh; display: flex; flex-direction: column; border-radius: 28px 28px 0 0; background: var(--gray-light); box-shadow: 0 -1px 0 rgba(255, 255, 255, .6) inset, 0 -18px 50px rgba(24, 28, 45, .28); padding-bottom: env(safe-area-inset-bottom, 0px); overflow: hidden; animation: bs-up .3s cubic-bezier(.16, 1, .3, 1); }
+        .bs-grab { display: flex; flex-direction: column; flex-shrink: 0; touch-action: none; background: linear-gradient(180deg, var(--primary-light) 0%, var(--white) 100%); border-bottom: 1px solid var(--gray-border); }
+        .bs-handle { align-self: center; width: 44px; height: 5px; margin: 10px 0 2px; border-radius: 999px; background: rgba(24, 28, 45, .16); }
+        .bs-head { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px 16px 18px; }
+        .bs-info { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 14px; }
         .bs-info .row-avatar { flex-shrink: 0; }
-        .bs-text { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
-        .bs-text b { font-size: 16px; font-weight: 700; color: var(--dark); overflow-wrap: anywhere; }
+        .bs-avatar { width: 56px; height: 56px; font-size: 16px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #fff; box-shadow: 0 0 0 3px var(--white), 0 6px 16px rgba(76, 44, 200, .32); }
+        .bs-text { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+        .bs-text b { font-size: 18px; line-height: 1.2; font-weight: 800; letter-spacing: -.01em; color: var(--dark); overflow-wrap: anywhere; }
         .bs-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; font-size: 13px; color: var(--gray); overflow-wrap: anywhere; }
-        .bs-close { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--gray-light); color: var(--gray-dark); cursor: pointer; }
-        .bs-body { display: flex; flex-direction: column; padding: 8px 12px 14px; overflow-y: auto; overscroll-behavior: contain; }
-        .bs-body button { min-height: 50px; padding: 0 14px; display: flex; align-items: center; gap: 12px; border: 0; border-radius: 12px; background: transparent; color: var(--gray-dark); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
-        .bs-body button:active:not(:disabled), .bs-body button:focus-visible { background: var(--gray-light); }
-        .bs-body button:disabled { opacity: .45; cursor: not-allowed; }
-        .bs-body button.danger { color: var(--danger-dark); }
-        .bs-body button svg { flex-shrink: 0; }
+        .bs-facts { display: flex; flex-wrap: wrap; gap: 6px; }
+        .bs-fact { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: var(--white); border: 1px solid var(--gray-border); color: var(--gray-dark); font-size: 12px; font-weight: 600; }
+        .bs-fact svg { color: var(--primary); flex-shrink: 0; }
+        .bs-email { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; color: var(--gray); font-size: 12.5px; overflow-wrap: anywhere; }
+        .bs-email svg { flex-shrink: 0; }
+        .bs-close { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid var(--gray-border); border-radius: 50%; background: var(--white); color: var(--gray-dark); cursor: pointer; box-shadow: 0 1px 2px rgba(24, 28, 45, .06); }
+        .bs-close:active { background: var(--gray-light); }
+        .bs-body { display: flex; flex-direction: column; padding: 14px 14px 18px; overflow-y: auto; overscroll-behavior: contain; }
+        /* Quick actions: three icon tiles */
+        .bs-quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+        .bs-body .bs-quick button { display: flex; min-height: 86px; font-family: inherit; color: var(--dark); cursor: pointer; padding: 12px 6px 10px; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--gray-border); border-radius: 18px; white-space: nowrap; background: var(--white); box-shadow: 0 1px 2px rgba(24, 28, 45, .05); font-size: 13px; font-weight: 700; text-align: center; line-height: 1.15; }
+        .bs-body .bs-quick button small { display: block; margin-top: -4px; line-height: 1; font-size: 10.5px; font-weight: 600; color: var(--gray); }
+        .bs-tile-ic { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; background: var(--primary-light); color: var(--primary); }
+        .bs-body .bs-quick button:active:not(:disabled) { transform: scale(.97); background: var(--primary-lightest); }
+        .bs-body .bs-quick button:disabled .bs-tile-ic { background: var(--gray-light); color: var(--gray); }
+        /* Other actions: rounded grouped lists; each separator starts a new group */
+        .bs-body > .menu-sep { height: 12px; margin: 0; background: transparent; }
+        .bs-body > button { min-height: 54px; padding: 0 16px; display: flex; align-items: center; gap: 14px; border: 0; border-radius: 0; background: var(--white); color: var(--dark); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+        .bs-body > button + button { box-shadow: 0 -1px 0 var(--gray-border); }
+        .bs-body > button:first-child, .bs-body > .menu-sep + button, .bs-body > .bs-quick + button { border-radius: 18px 18px 0 0; box-shadow: none; }
+        .bs-body > button:last-child, .bs-body > button:has(+ .menu-sep) { border-radius: 0 0 18px 18px; }
+        .bs-body > button:only-child, .bs-body > .menu-sep + button:last-child, .bs-body > .bs-quick + button:last-child, .bs-body > .menu-sep + button:has(+ .menu-sep) { border-radius: 18px; }
+        .bs-body > button svg { flex-shrink: 0; width: 20px; height: 20px; color: var(--primary); }
+        .bs-body > button:active:not(:disabled), .bs-body > button:focus-visible { background: var(--primary-lightest); }
+        .bs-body button:disabled { opacity: .5; cursor: not-allowed; }
+        .bs-body > button.danger { color: var(--danger-dark); background: var(--danger-light, #fff1f4); }
+        .bs-body > button.danger svg { color: var(--danger-dark); }
+        .bs-body > button.danger:active:not(:disabled) { background: #ffe0e7; }
         .bs-sheet :focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
         @keyframes bs-up { from { transform: translateY(100%); } to { transform: none; } }
         @media (prefers-reduced-motion: reduce) { .bs-overlay, .bs-sheet { animation: none; } }

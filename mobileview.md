@@ -1,6 +1,6 @@
 # Mobile view: admin pages
 
-Last updated: 16 Nov 2026 (round 6: phone polish, checked in a real browser) · Branch: `preview`
+Last updated: 16 Nov 2026 (round 7: premium bottom sheet) · Branch: `preview`
 Scope: signed-in admin area (Dashboard, Invitations, Reviews, Templates, Create, shell, profile menu).
 Phone rules apply at 768px and below; desktop is unchanged.
 
@@ -60,6 +60,20 @@ Desktop keeps the row buttons and the small dropdown menu. Checks: type check cl
 | Code | `cardTap.ts`, selection state in `Invitations.tsx`, `InvitationsTable.tsx`, `RowActions.tsx`, `ReviewsTable.tsx`, CSS in `dashboard.css` and `invitations.css` |
 
 Checks: type check clean, build passes, 659 tests pass. Not yet looked at in a real browser or on a phone.
+
+### Round 7: premium bottom sheet
+Checked in Chrome at 390x844 and 360x740 (touch, 2x), against a stand-in backend.
+
+| Area | Change |
+|---|---|
+| Header | Soft violet-to-white gradient card; 56px gradient avatar with a white ring and glow; 18px bold couple name; status chip; date / views / template as small outlined pills; client email on its own line; round white close button |
+| Quick actions | Preview, Edit and Copy link are now three icon tiles (violet icon chip, label under it, press-down effect) instead of three list rows. When the invitation is not published, Copy link is greyed with a "Publish first" hint |
+| Other actions | Select, Share, Duplicate, Publish / Move to draft sit in one rounded white group with hairline dividers and violet icons |
+| Move to trash | Its own red-tinted group at the bottom, away from the safe actions |
+| Sheet | Grey background so the white groups lift off it, 28px top corners, softer shadow, smoother slide-up, taller limit (88dvh), body still scrolls on short screens |
+| Unchanged | Swipe down, back button, tap outside, keyboard arrows; the sheet content and actions are the same |
+
+Checks: type check clean, build passes, lint 0 errors, 674 tests pass (the Copy link test now looks for the tile and its "Publish first" hint).
 
 ### Round 6: phone polish, checked in a real browser
 This round was looked at in Chrome at 390x844 and 360x740 (touch, 2x), with the app running against a stand-in backend. No sideways scrolling on Dashboard, Invitations, Reviews, Templates or Create at either size. Also confirmed in the browser: a card opens its sheet, the back button closes it, long-press starts selection, back leaves selection, the bell opens a panel that fits the screen.

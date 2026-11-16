@@ -35,20 +35,21 @@ export function RowMenu({ menu, menuRef, onKeyDown, onClose, live, lead, childre
         label={`Actions for ${coupleName(x)}`} onClose={() => onClose(true)} bodyRef={menuRef} onBodyKeyDown={onKeyDown}
         head={
           <>
-            <div className="row-avatar">{initials(x)}</div>
+            <div className="row-avatar bs-avatar">{initials(x)}</div>
             <div className="bs-text">
               <b>{coupleName(x)}</b>
               <span className="bs-meta"><span className={`chip ${chip[0]}`}>{chip[1]}</span></span>
-              <span className="bs-meta"><CalendarDays size={13} /> {x.event_date ? fmtDate(x.event_date) : "Date not set"}{when && <> · {when}</>}</span>
-              <span className="bs-meta"><Eye size={13} /> {fmt(getViews(x))} views</span>
-              {(x.client_email || "").trim() && <span className="bs-meta"><Mail size={13} /> {x.client_email}</span>}
-              <span className="bs-meta"><LayoutTemplate size={13} /> {templateOf(x).name}</span>
+              <span className="bs-facts">
+                <span className="bs-fact"><CalendarDays size={13} />{x.event_date ? fmtDate(x.event_date) : "Date not set"}{when && <> · {when}</>}</span>
+                <span className="bs-fact"><Eye size={13} />{fmt(getViews(x))} views</span>
+                <span className="bs-fact"><LayoutTemplate size={13} />{templateOf(x).name}</span>
+              </span>
+              {(x.client_email || "").trim() && <span className="bs-email"><Mail size={13} />{x.client_email}</span>}
             </div>
           </>
         }
       >
         {lead}
-        <i className="menu-sep" />
         {children}
       </BottomSheet>
     );
@@ -72,20 +73,21 @@ interface LeadProps {
   onClose: (refocus?: boolean) => void;
 }
 
-/** Preview / Edit / Copy link: the three buttons a phone card no longer shows, as the first items of the sheet. */
+/** Preview / Edit / Copy link: the three buttons a phone card no longer shows, as a row of tiles at the top of the sheet. */
 export function RowMenuLead({ x, live, onPreview, onCopyLink, onClose }: LeadProps) {
   const navigate = useNavigate();
   return (
-    <>
+    <div className="bs-quick">
       <button type="button" role="menuitem" onClick={() => { onClose(false); onPreview(x); }}>
-        <Smartphone size={15} /> Preview
+        <span className="bs-tile-ic"><Smartphone size={20} /></span><span>Preview</span>
       </button>
       <button type="button" role="menuitem" onClick={() => { onClose(false); navigate(`/create?edit=${x.id}`); }}>
-        <Pencil size={15} /> Edit
+        <span className="bs-tile-ic"><Pencil size={20} /></span><span>Edit</span>
       </button>
       <button type="button" role="menuitem" disabled={!live} onClick={() => { onCopyLink(x); onClose(true); }}>
-        <Link2 size={15} /> {live ? "Copy link" : "Publish to copy link"}
+        <span className="bs-tile-ic"><Link2 size={20} /></span><span>Copy link</span>
+        {!live && <small>Publish first</small>}
       </button>
-    </>
+    </div>
   );
 }

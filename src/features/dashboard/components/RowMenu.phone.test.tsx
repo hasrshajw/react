@@ -52,7 +52,8 @@ describe("RowMenu on a phone (Dashboard / Invitations sheet)", () => {
 
   it("Copy link is disabled until the invitation is published", () => {
     const fns = show(false);
-    const btn = item("Publish to copy link")!;
+    const btn = item("Copy link")!;
+    expect(btn.textContent).toContain("Publish first");
     expect(btn.disabled).toBe(true);
     act(() => { btn.click(); });
     expect(fns.onCopyLink).not.toHaveBeenCalled();
