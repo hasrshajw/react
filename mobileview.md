@@ -1,6 +1,6 @@
 # Mobile view: admin pages
 
-Last updated: 16 Nov 2026 (round 8: motion across the app) · Branch: `preview`
+Last updated: 16 Nov 2026 (round 9: no tap colour) · Branch: `preview`
 Scope: signed-in admin area (Dashboard, Invitations, Reviews, Templates, Create, shell, profile menu).
 Phone rules apply at 768px and below; desktop is unchanged.
 
@@ -60,6 +60,10 @@ Desktop keeps the row buttons and the small dropdown menu. Checks: type check cl
 | Code | `cardTap.ts`, selection state in `Invitations.tsx`, `InvitationsTable.tsx`, `RowActions.tsx`, `ReviewsTable.tsx`, CSS in `dashboard.css` and `invitations.css` |
 
 Checks: type check clean, build passes, 659 tests pass. Not yet looked at in a real browser or on a phone.
+
+### Round 9: no tap colour on phones
+`index.css` now sets `-webkit-tap-highlight-color: transparent` on everything, so the blue / grey flash when tapping is gone in the whole app (admin pages, client workspace, sign in, landing). Before this only the phone invitation cards had it. Buttons, links and menu items also get `touch-action: manipulation` (no double-tap zoom delay) and no text selection or callout on tap. Pressed feedback is still there (cards tint, buttons press down), so taps do not feel dead. Checked in Chrome: 0 of ~340 controls on Dashboard, Invitations, Templates, Reviews and Create still report a tap colour.
+Not covered: invitation previews and the guest page, which are the template's own HTML inside iframes.
 
 ### Round 8: smooth motion across the app
 One file, `src/styles/motion.css`, imported in `main.tsx`. It covers the admin pages, the client workspace, sign in and the landing page. Everything is inside `prefers-reduced-motion: no-preference`, so people who ask for less motion get none of it (checked: 0 animations running with reduced motion on). Only `transform` and `opacity` are animated.

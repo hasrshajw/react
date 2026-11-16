@@ -57,6 +57,12 @@
   --tooltip-bg: var(--gray-dark);
 }
 
+/* No blue / grey flash when tapping on a phone. Buttons and cards give their own pressed feedback (see motion.css). */
+* { -webkit-tap-highlight-color: transparent; }
+/* Tapping a control selects no text, and a quick second tap never waits for, or turns into, a double-tap zoom. */
+:where(button, a, summary, label, select, [role="button"], [role="menuitem"], [role="tab"]) { touch-action: manipulation; -webkit-touch-callout: none; }
+:where(button, [role="button"], [role="menuitem"], [role="tab"]) { -webkit-user-select: none; user-select: none; }
+
 * {
   box-sizing: border-box;
 }
