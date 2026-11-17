@@ -20,7 +20,7 @@ interface Props {
   onMore?: () => void;
   sel: Set<string>;
   allOnPage: boolean;
-  headCheck: RefObject<HTMLInputElement>;
+  headCheck: RefObject<HTMLInputElement | null>;
   topId: string | null;
   topTemplate?: { name: string; n: number };
   previewId?: string;

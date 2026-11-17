@@ -11,7 +11,7 @@ import type { RowMenuState } from "../hooks/useRowMenu";
 
 interface Props {
   menu: RowMenuState;
-  menuRef: RefObject<HTMLDivElement>;
+  menuRef: RefObject<HTMLDivElement | null>;
   onKeyDown: (e: KeyboardEvent<HTMLElement>) => void;
   /** Phone only: the sheet closes through this. */
   onClose: (refocus?: boolean) => void;

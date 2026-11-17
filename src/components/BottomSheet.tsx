@@ -11,7 +11,7 @@ interface Props {
   head: ReactNode;
   /** Action list. Gets role="menu" so the arrow keys work the same as in the desktop menu. */
   children: ReactNode;
-  bodyRef?: RefObject<HTMLDivElement>;
+  bodyRef?: RefObject<HTMLDivElement | null>;
   onBodyKeyDown?: (e: KeyboardEvent<HTMLElement>) => void;
 }
 
