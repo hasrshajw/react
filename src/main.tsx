@@ -1,5 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./styles/layers.css"; /* first: declares the Astryx cascade-layer order */
+import "@astryxdesign/core/reset.css";
+import "@astryxdesign/core/astryx.css";
+import { Theme } from "@astryxdesign/core/theme";
+import { themes, defaultThemeSlug } from "./astryx-themes";
 import "./index.css";
 import "./styles/skeleton.css";
 import "./styles/motion.css";
@@ -18,6 +23,9 @@ function SetupNeeded() {
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {SUPABASE_CONFIGURED ? <App /> : <SetupNeeded />}
+    {/* The app is light-only today, so the theme mode is pinned to light. */}
+    <Theme theme={themes[defaultThemeSlug]} mode="light">
+      {SUPABASE_CONFIGURED ? <App /> : <SetupNeeded />}
+    </Theme>
   </React.StrictMode>
 );

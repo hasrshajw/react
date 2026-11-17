@@ -13,8 +13,10 @@
 - Old project status (pre-migration, Supabase/egress work) moved to `docs/PROJECT_STATUS_2026-11-15.md`.
 
 ## Current state
-- Stage: **0, planning done; no code changed yet.**
-- Baseline on `preview`: `npx tsc --noEmit` clean, `npx vitest run` = **674 passed**. Every stage must keep both green.
+- Stage: **1 and 2 DONE (foundation + theme). Next: Stage 3 (shell and navigation).**
+- Now on `preview-astryx`: React 19.3, Astryx core/theme/cli 0.7.16, StyleX 0.19, local theme `schedy` is the app default,
+  `<Theme mode="light">` wraps the app in `src/main.tsx`. NO screen uses an Astryx component yet; the UI still looks as before.
+- Baseline on `preview`: tsc clean, 674 tests. Latest on `preview-astryx`: tsc clean, `npm run build` OK, **675 tests pass** (674 + 1 Astryx smoke test). Every stage must keep all green.
 - Stack today: Vite 6, React 18.3, react-router-dom 7, hand-written CSS (~1,650 lines in `src/index.css`,
   `src/styles/*.css`, `src/features/*/*.css`), HugeIcons, Supabase. No Tailwind, no StyleX.
 - Astryx versions on npm (checked 18 Nov 2026): `@astryxdesign/core|theme-neutral|cli` = 0.7.16, `@stylexjs/stylex` = 0.19.2.
@@ -54,22 +56,22 @@ Hard-coded off-token colours also exist in CSS (e.g. `#101011`, `#b91c1c`, `#166
 - [x] Read Astryx Getting Started; confirm package versions and peer deps
 - [x] Record baseline (tsc clean, 674 tests pass)
 - [x] Create branch `preview-astryx`; write this `task.md`
-- [ ] Push the branch (needs a NEW token with write access to `hasrshajw/react`; the earlier one must be revoked)
+- [x] Push the branch (done 2026-11-18; later pushes need a token with Contents read/write on `hasrshajw/react`; revoke any token pasted in chat)
 
 ### Stage 1: Foundation (React 19 + Astryx install)
-- [ ] Upgrade `react`, `react-dom`, `@types/react`, `@types/react-dom` to 19; fix type/test breakages
-- [ ] Check `react-router-dom`, `@vitejs/plugin-react`, `@testing-library/*`, `jsdom` work with React 19
-- [ ] `npm i @astryxdesign/core @stylexjs/stylex @astryxdesign/theme-neutral @astryxdesign/cli` (same versions)
-- [ ] `npx @astryxdesign/cli init` (agent docs); add `"astryx"` script to package.json
-- [ ] Decide on StyleX build setup for Vite (see `astryx docs styling`, `docs migration`); add plugin to `vite.config.ts` if needed
-- [ ] Add `@import '@astryxdesign/core/reset.css'` and `astryx.css`; declare CSS layer order so legacy CSS still works during migration
-- [ ] Confirm `npm run build` and `vercel.json` still work
+- [x] Upgrade `react`, `react-dom`, `@types/react`, `@types/react-dom` to 19; fix type/test breakages
+- [x] Check `react-router-dom`, `@vitejs/plugin-react`, `@testing-library/*`, `jsdom` work with React 19
+- [x] `npm i @astryxdesign/core @stylexjs/stylex @astryxdesign/theme-neutral @astryxdesign/cli` (same versions)
+- [x] `npx @astryxdesign/cli init` (agent docs); add `"astryx"` script to package.json
+- [x] StyleX build setup: NOT needed yet. Astryx ships prebuilt CSS, so plain `className`/CSS works. Add the StyleX Vite plugin only if we start using `xstyle`/`stylex.create()` (see `npx astryx docs styling`)
+- [x] Add `@import '@astryxdesign/core/reset.css'` and `astryx.css`; declare CSS layer order so legacy CSS still works during migration
+- [x] Confirm `npm run build` works (`vercel.json` unchanged; Vercel preview deploy still NOT verified)
 
 ### Stage 2: Theme with current colours
-- [ ] `npx @astryxdesign/cli theme add neutral` (generates `astryx-themes` module)
-- [ ] Create `src/theme/schedyTheme.ts` using `defineTheme({extends: neutral, ...})` with the colour mapping above (light mode; keep font stack)
-- [ ] Wrap the app root (`src/main.tsx`) in `<Theme>`; keep legacy CSS variables as aliases until Stage 8
-- [ ] Visual check: no colour regressions vs `preview`
+- [x] `npx @astryxdesign/cli theme add neutral` (generates `astryx-themes` module)
+- [x] Create `src/themes/schedy/schedyTheme.ts` using `defineTheme({extends: neutral, ...})` with the colour mapping above (light mode; keep font stack)
+- [x] Wrap the app root (`src/main.tsx`) in `<Theme>`; keep legacy CSS variables as aliases until Stage 8
+- [ ] Visual check in a real browser: no colour regressions vs `preview` (NOT done: only build/tests so far; do this with Playwright screenshots or by eye)
 
 ### Stage 3: Shell and navigation
 - [ ] `Sidebar.tsx`, `ProfileMenu.tsx`, `PageHeader.tsx`, `AdminApp.tsx`, `ClientShell.tsx`, `ClientApp.tsx` -> Astryx layout/nav components
@@ -102,8 +104,19 @@ Hard-coded off-token colours also exist in CSS (e.g. `#101011`, `#b91c1c`, `#166
 ## Change log (newest first; add a row every session)
 | Date | Stage | What changed | Files | Result |
 |---|---|---|---|---|
+| 2026-11-18 | 1, 2 | React 18 -> 19 (ref prop types now `RefObject<T \| null>` in 5 components); installed Astryx core/theme-neutral/cli 0.7.16 + StyleX 0.19; ran `astryx init` (AGENTS.md, GEMINI.md); created local theme `schedy` (neutral + current colours + DM Sans/Noto Sans Telugu); made it default and removed the neutral import (drops Figtree font); added `src/styles/layers.css` (layer order) and wired reset.css, astryx.css, `<Theme mode="light">` in `main.tsx`; added `src/astryx.smoke.test.tsx` | `package.json`, `package-lock.json`, `src/main.tsx`, `src/astryx-themes.ts` (generated, do not edit), `src/themes/schedy/*`, `src/styles/layers.css`, `src/astryx.smoke.test.tsx`, 5 ref-typed components, `AGENTS.md`, `GEMINI.md` | tsc clean, build OK, 675 tests pass |
 | 2026-11-18 | 0 | Created branch `preview-astryx`; moved old `task.md` to `docs/PROJECT_STATUS_2026-11-15.md`; wrote this tracker | `task.md`, `docs/` | tsc clean, 674 tests pass (baseline, no code changed) |
 
+## Notes learned (read before Stage 3)
+- Legacy app CSS is UNLAYERED, so it beats every Astryx layer. That is intentional during migration: a migrated component may
+  still pick up old rules (e.g. `textarea` in `src/index.css`). When you migrate a component, delete its old CSS in the same commit.
+- `src/themes/schedy/schedy.{css,js,d.ts}` are BUILT files. After editing `schedyTheme.ts` run
+  `npx astryx theme build src/themes/schedy/schedyTheme.ts`. `src/astryx-themes.ts` is generated by `astryx theme ...`; do not hand-edit.
+- Warning colour text uses `#9a6700` (old `#fea419` is unreadable as text on white); the fill stays `#ffcd35`.
+- Tests that render the app need `// @vitest-environment jsdom` on line 1 and use `act` from `src/test/renderHook`.
+- Use `npx astryx doctor` to verify the setup; `npx astryx component` lists all components; `npx astryx template --list` lists page templates
+  (use them as skeletons for Stage 3 app shell and Stage 5 pages).
+
 ## Open questions / decisions
-- Push access: new fine-grained token (Contents: read/write) for `hasrshajw/react` needed to push `preview-astryx`.
+- Radius/spacing still follow Astryx neutral, not the old 10/14px radii. Decide in Stage 3 whether to match the old radii in the theme.
 - Vercel preview deploy for `preview-astryx` is not verified.

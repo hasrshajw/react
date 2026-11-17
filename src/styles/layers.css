@@ -1,0 +1,4 @@
+/* Cascade-layer order for the Astryx design system. Import this FIRST (see main.tsx).
+   Legacy app CSS (index.css, styles/*.css, features/**.css) is deliberately left UNLAYERED, so it keeps beating Astryx
+   while screens are migrated. When a legacy rule is deleted in Stage 8, Astryx takes over with no other change. */
+@layer reset, astryx-base, astryx-theme;
