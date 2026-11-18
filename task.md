@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **no task started yet**
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 done, next task is T1**
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -99,7 +99,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 
 | ID | Task | Depends on | Touches DB? | Status |
 |---|---|---|---|---|
-| T0 | Baseline check (no code) | none | no | TODO |
+| T0 | Baseline check (no code) | none | no | DONE |
 | T1 | Parent status: alive / late / hidden | T0 | yes | TODO |
 | T2 | Closing title, who-appears selector, custom names | T1 | yes | TODO |
 | T3 | Separate house names, gotram, honorific | T0 | yes | TODO |
@@ -131,7 +131,36 @@ priority (closing names). Backlog (do NOT start) is in section 7.
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 18 Nov 2026 by Claude   Commit(s): see git log for the commit that touches only task.md
+How it was updated:
+  - task.md: status table row T0 set to DONE, this record, handoff log line. No application code, SQL or tests were changed.
+Environment used: Node v22.23.5, npm 10.9.9, PostgreSQL 16 (installed with apt-get in the working container; CI installs it
+  the same way in .github/workflows/ci.yml). Branch `preview` at 6fe4f28 (the plan commit) on top of 24012f9.
+Tests (baseline numbers, use these to spot regressions later):
+  - npm ci: ok (165 packages)
+  - npm run typecheck: ok, 0 errors
+  - npm run lint (after npm run lint:install): ok, 0 errors, 2 warnings that already exist and are NOT part of this plan:
+      src/ClientApp.tsx 229:6   react-hooks/exhaustive-deps (missing dependency 'draftKey')
+      src/pages/Invitations.tsx 61:68  react-hooks/exhaustive-deps (missing 'selecting', 'selection')
+  - npm test: 50 test files, 690 tests passed, 0 failed (about 61 s). The old status page said 645; it was out of date.
+  - npm run build: ok (tsc + vite build, about 7 s). Largest chunk index-*.js 316 kB (103 kB gzip).
+  - npm run test:db: 233 passed, 0 failed (runs the real supabase/01_schema.sql + 02_seed_templates.sql in a throwaway PostgreSQL).
+  - npm run test:e2e: not run (needs a deployed preview URL and Playwright browsers; not required for T1 to T9 unless a task says so).
+Behaviour check done: read the files named in the T0 steps (CreateForm.tsx, compileInvitation.ts, inviteText.ts, details_problem and
+  submit_change_request in 01_schema.sql). Facts confirmed while reading, which later tasks rely on:
+  - Old saved invitations are merged with defaults via `...initial` (src/pages/Create.tsx and src/features/client/invitationToForm.ts).
+  - Events are limited by `data.events.length < 2` in CreateForm.tsx and by `[0,1].forEach` in compileInvitation.ts.
+  - Contacts are limited by `items.length < 1` in components/Contacts.tsx and valuesFor() reads only index 0.
+  - The inviter block prints at most 4 lines (inviter-line-1..4-te) and the template uses exactly those four placeholders.
+  - details_problem() has a text branch, a boolean branch (receptionEnabled only) and an object-list branch; there is no array-of-strings branch.
+  - The repo has no supabase/updates/ folder yet; the first task that changes SQL (T1) must create it.
+Pending / not done: nothing for T0. The two lint warnings are left alone on purpose (outside this plan).
+Owner steps (live project): none.
+Notes for the next person:
+  - Start T1 from a clean `git pull` of preview. If any baseline number above changes before you start, note why.
+  - `npm run test:db` as root needs a `postgres` OS user; installing the `postgresql` apt package creates it.
+  - Never paste a GitHub token into chat or files. Push with your own credentials.
 ```
 
 ---
@@ -418,7 +447,8 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
-2026-11-18  Plan written. No code changed. Next: T0, then T1.
+2026-11-18  T0 baseline done and recorded (690 unit tests, 233 db tests, build ok). No app code changed. Next: T1.
+2026-11-18  Plan written. No code changed.
 ```
 
 ## 7. Backlog (ideas, not approved, do not start without the owner)
