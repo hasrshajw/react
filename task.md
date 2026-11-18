@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T3 done, next task is T4** (T5, T6 and T7 are independent and can go in any order)
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T4 done, next task is T5** (T5, T6 and T7 are independent and can go in any order; T8 needs T1 and T4, both done)
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -103,7 +103,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | T1 | Parent status: alive / late / hidden | T0 | yes | DONE |
 | T2 | Closing title, who-appears selector, custom names | T1 | yes | DONE |
 | T3 | Separate house names, gotram, honorific | T0 | yes | DONE |
-| T4 | Birth order and the "son / daughter of" line | T3 | yes | TODO |
+| T4 | Birth order and the "son / daughter of" line | T3 | yes | DONE |
 | T5 | Separate reception venue | T0 | yes | TODO |
 | T6 | More events, event types, end time, description | T0 | yes | TODO |
 | T7 | More contacts per side, contact role | T0 | yes | TODO |
@@ -484,7 +484,48 @@ a single surviving parent prints alone). A constant table maps order -> Telugu w
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 19 Nov 2026 by Claude   Commit(s): cad1a57 (code, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/types/invitation.ts: three new text keys: groomOrder, brideOrder, showParentage.
+  - src/features/create/constants.ts: defaults "" in `initial`; TARGETS point groomOrder / showParentage at the groom card and brideOrder at the bride card.
+      (No EN_TO_TE entry: none of the three has a Telugu twin.)
+  - src/lib/inviteText.ts: BIRTH_ORDERS table (id, English label, Telugu word: ఏకైక / పెద్ద / రెండవ / మూడవ / నాల్గవ / చిన్న), birthOrder(), okBirthOrder(),
+      parentageOn(), and parentageLineTe(side, data). Two parents print "శ్రీ X, శ్రీమతి Y ల <order> కుమారుడు" (bride: కుమార్తె); one parent prints
+      "శ్రీ X గారి <order> కుమారుడు"; a late parent uses "కీ.శే." (T1 helpers reused); no order prints just కుమారుడు / కుమార్తె; both parents hidden or
+      both names empty gives "". It uses the Telugu names only (groomFatherTe...), like the existing card lines.
+  - src/lib/compileInvitation.ts valuesFor(): groom-parentage-te, bride-parentage-te, and groom-plain-lines / bride-plain-lines ("1" while the old
+      "ఆత్మీయ కుమారుడు" lines should stay, i.e. when the new line is empty).
+  - docs/templates/telugu-traditional.html: each couple card gets the parentage line after the gotram line; the two old "గారి ఆత్మీయ కుమారుడు / కుమార్తె"
+      lines are wrapped in {{#if <side>-plain-lines}} so the new line REPLACES them instead of repeating them.
+  - src/features/create/CreateForm.tsx: "Position among children" dropdown in the groom and bride sections (after gotram); checkbox
+      "Show son of / daughter of line" in the Family section.
+  - src/lib/validate.ts: an unknown groomOrder / brideOrder is an error in the "groom" / "bride" section (cannot happen from the form).
+  - src/features/reviews/fieldLabels.ts: labels for the three keys.
+  - supabase/01_schema.sql: details_problem() has the three keys in text_keys; groomOrder / brideOrder must be one of the seven values and
+      showParentage must be '' or '1'; submit_change_request() has the three keys in `allowed`.
+  - supabase/updates/04_T4_birth_order.sql (new): the two changed functions, generated from 01_schema.sql.
+  - tools/db-test/tests.sql: 5 new checks (unknown order, bad showParentage, good records, two client submits that prove the keys are on the allowed list).
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings; run `npm ci` inside tools/lint first) · unit 813 passed (was 790, +23) · build ok · db tests 264 passed (was 259, +5).
+  The update file was also checked: the OLD schema (git HEAD before this task) + supabase/updates/04_T4_birth_order.sql passes the same 264 checks.
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser.
+  - Old record: the compiled template is byte-identical to one with the three keys at their defaults and still has the "ఆత్మీయ కుమారుడు" lines.
+  - Each order for son and daughter; one parent late; one parent hidden; both hidden (line omitted, plain lines flag stays "1"); no leftover {{.
+Pending / not done:
+  - Only the Telugu line exists. There is no English parentage line or `-parentage-en` placeholder (the spec asked for Telugu only).
+  - The parentage line uses the parents' Telugu names; if only the English name was typed the line is empty and the old plain lines stay.
+  - The line is not added to the closing block or the hero. The T3 house name is not part of the line.
+  - Not tried in a real browser or in the client area (/my); same CreateForm, and the db test proves a client may submit the keys.
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/04_T4_birth_order.sql (after 01, 02, 03 if they were not run; safe to re-run; no table or data changes).
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (needed for the line; without it everything still
+      works, but the line does not appear).
+  3. Deploy `preview` and try: pick "Second" for the groom, tick the checkbox, check the preview and the public page; open an invitation saved
+      before this task and confirm it looks the same.
+Notes for the next person (T5 and later):
+  - A template that wants the old plain lines AND the new line must test `<side>-plain-lines`; the compiler has no {{else}}.
+  - Hidden parents are already blank in `<side>-father-te` / `-mother-te`, so the plain lines also vanish for them; parentageLineTe re-checks the status itself.
+  - T8 (family members) can reuse BIRTH_ORDERS for sibling order if needed.
 ```
 
 ---
@@ -613,6 +654,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-19  T4 done (birth order, parentage line). 813 unit tests, 264 db tests, build ok. Owner: run supabase/updates/04_T4_birth_order.sql (after 01 to 03) and re-paste the template. Next: T5 (or T6 / T7 / T8).
 2026-11-18  T3 done (house names, gotram, honorific). 790 unit tests, 259 db tests, build ok. Owner: run supabase/updates/03_T3_house_names.sql (after 01, 02) and re-paste the template. Next: T4 (or T5 / T6 / T7).
 2026-11-18  T2 done (closing title, who appears, custom names). 774 unit tests, 252 db tests, build ok. Owner: run supabase/updates/02_T2_closing_names.sql (after 01) and re-paste the template. Next: T3 (or T5 / T6 / T7, which are independent).
 2026-11-18  T1 done (parent status). 709 unit tests, 240 db tests, build ok. Owner: run supabase/updates/01_T1_parent_status.sql and re-paste the template. Next: T2.
