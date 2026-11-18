@@ -118,10 +118,6 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <Field label="Google Maps Link" inputMode="url" {...venue.fp("venueMaps")} value={data.venueMaps} onChange={(v) => set("venueMaps", v)} />
       </Section>
 
-      <Section id="seo" icon={Search} title="Link Preview & Custom Link" tag={tagFor("seo")} loading={seo.loading}>
-        <SeoSection data={data} set={set} fp={seo.fp} loading={seo.loading} invitationId={invitationId} notify={notify} />
-      </Section>
-
       <Section id="events" icon={CalendarPlus} title="Additional Events" tag={tagFor("events")} loading={events.loading}>
         {!events.loading && data.events.map((ev, i) => (
           <div className="repeat" key={ev.id}>
@@ -145,6 +141,10 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         ) : (
           <div className="hint">This template supports two additional event slots.</div>
         )}
+      </Section>
+
+      <Section id="seo" icon={Search} title="Link Preview & Custom Link" tag={tagFor("seo")} loading={seo.loading}>
+        <SeoSection data={data} set={set} fp={seo.fp} loading={seo.loading} invitationId={invitationId} notify={notify} />
       </Section>
 
       {!isClient && (

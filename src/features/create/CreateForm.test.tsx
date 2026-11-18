@@ -69,7 +69,7 @@ describe("CreateForm: layout", () => {
   it("shows the nine sections with their titles and the tag that tagFor gives", () => {
     show();
     const titles = [...host.querySelectorAll("section h2")].map((x) => x.textContent);
-    expect(titles).toEqual(["Template Options", "Family & Wedding", "Groom's Details", "Bride's Details", "Invitation Text", "Reception & Venue", "Link Preview & Custom Link", "Additional Events", "Client Access"]);
+    expect(titles).toEqual(["Template Options", "Family & Wedding", "Groom's Details", "Bride's Details", "Invitation Text", "Reception & Venue", "Additional Events", "Link Preview & Custom Link", "Client Access"]);
     for (const id of IDS) expect(host.querySelector(`#sec-${id} .sec-tag`)?.textContent).toBe(`tag-${id}`);
   });
 

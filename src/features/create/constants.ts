@@ -53,8 +53,8 @@ export const SECTIONS: SectionDef[] = [
   { id: "bride", label: "Bride", icon: Heart, hint: "required" },
   { id: "message", label: "Invitation text", icon: FileText, hint: "optional" },
   { id: "venue", label: "Venue", icon: MapPin, hint: "recommended" },
-  { id: "seo", label: "Link preview", icon: Search, hint: "recommended" },
   { id: "events", label: "Events", icon: CalendarPlus, hint: "optional" },
+  { id: "seo", label: "Link preview", icon: Search, hint: "recommended" },
   { id: "client", label: "Client access", icon: Mail, hint: "optional" },
 ];
 /* Optional sections do not count towards progress. */
