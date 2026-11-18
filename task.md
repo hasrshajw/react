@@ -1,37 +1,438 @@
-# Project status
+# Task plan: complete the Create form (family, closing names, venues, events)
 
-Last updated: 15 Nov 2026 · Branch: `preview`
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **no task started yet**
 
-## In short
-The app is an invitation maker with an admin area and a client area. The code work on the list is finished. The owner says all the
-pending Vercel and database (Supabase) steps are done.
+This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
+the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
 
-## What was finished recently (data-use / "egress" fixes)
-| Area | What changed | Database step |
+---
+
+## 1. Goal
+
+The Create form (`src/features/create/`) is missing fields that real (Telugu) wedding invitations need. This plan adds them
+in small, separately shippable tasks. **Nothing may break existing invitations**: every new field is optional and has a
+default that renders exactly what is rendered today.
+
+Missing items, in plain words:
+
+1. A parent can be **late (deceased)**, or should not be shown at all. Today the text always prints "శ్రీ" / "శ్రీమతి".
+2. The closing block (after "ఇట్లు") has only 5 fixed choices and **one** custom name. It needs a **closing title**
+   (ఇట్లు / ఆహ్వానించువారు / With Best Compliments / custom), a choice of **which people appear** (groom, bride, parents,
+   families, all) and **several custom names**.
+3. Only one shared **family surname**. Groom and bride families often have different house names (ఇంటి పేరు). No gotram.
+4. No **birth order** ("second son", "youngest daughter") and no honorific (చి|| / చి.ల.సౌ||).
+5. No **siblings / grandparents / maternal uncle** list.
+6. **Wedding venue and reception venue are the same field.** The reception cannot be in a different hall.
+7. Only **2 extra events** and no event type, end time or description.
+8. Only **1 extra contact** per side.
+
+## 2. How the app works (what you must know before editing)
+
+- Form state: one reducer, `src/features/create/formReducer.ts` (actions `field`, `addItem`, `patchItem`, `removeItem`, `load`...).
+- The whole form is saved as JSON in the `details` column of `public.invitations`. `clientEmail` is the only form key that is
+  NOT stored inside `details`.
+- The invitation page is made by `compile(source, data)` in `src/lib/compileInvitation.ts`. A template is plain HTML with
+  `{{key}}` placeholders and `{{#if key}} ... {{/if}}` blocks. The placeholder map is built in `valuesFor()`. A key missing
+  from a template is simply ignored, so **old templates keep working** when new keys are added.
+- Keys in `valuesFor()` use dashes (`groom-father-te`); a `{{groom_father_te}}` with underscores is also accepted.
+- Telugu text for the "ఇట్లు" block is built in `src/lib/inviteText.ts` (`inviterLinesTe`, `inviteMessageTe`).
+- The reference template is `docs/templates/telugu-traditional.html` (the live copy of a template is edited in the admin
+  app and stored in `public.templates.html_code`; see "Owner steps" in each task).
+- The database re-checks every saved `details` object in `public.details_problem()` (in `supabase/01_schema.sql`): text keys
+  <= 1000 chars, lists <= 20 items, phones 10 to 13 digits, URLs on an allow-list, whole object <= 64 KB.
+- Clients (`/my`) can only change keys listed in `allowed` inside `public.submit_change_request()`. **A new key that is not
+  in that list is silently dropped for client edits.**
+- Old saved invitations are merged with defaults when loaded (`...initial` in `src/pages/Create.tsx` and
+  `src/features/client/invitationToForm.ts`), so a new key only needs a default in `initial`.
+
+## 3. The "add a field" checklist (use it in EVERY task)
+
+For each new form key, touch all of these, or the field will work in the editor and fail somewhere else:
+
+| # | Where | What |
 |---|---|---|
-| Enquiries, first load | Reads one small summary, then pages of 10 rows when a panel opens | included in 01_schema.sql |
-| Invitation lists | Rows carry only the link ID; full details are read only when needed (preview, duplicate, edit link) | included in 01_schema.sql |
-| Dashboard "Auto" refresh | Checks one short change marker each minute and re-reads the list only if it changed | included in 01_schema.sql |
-| Client area | Reads a light list, and only the invitation on screen in full | included in 01_schema.sql |
-| Preview images | Cached for a year (the URL changes when the picture changes); editor previews load lazily | none |
+| 1 | `src/types/invitation.ts` | add the key to `InvitationData` (and to `EventItem` / `ContactItem` for list items) |
+| 2 | `src/features/create/constants.ts` | default in `initial`; add to `EN_TO_TE` if it is an English field with an auto Telugu twin; add to `TARGETS` so the live preview scrolls to it |
+| 3 | `src/features/create/CreateForm.tsx` (+ `components/`) | the input; use `fp(name)` / `fpx()` so focus, blur and errors work; keep every control inside the existing `loading` ghost pattern |
+| 4 | `src/lib/compileInvitation.ts` | add the placeholder(s) to `valuesFor()` |
+| 5 | `docs/templates/telugu-traditional.html` | use the placeholder (wrap optional parts in `{{#if key}}`) |
+| 6 | `src/lib/validate.ts` (+ `validate.test.ts`) | format rules and error messages; error `section` must be a valid `SectionId` |
+| 7 | `src/features/reviews/fieldLabels.ts` (+ test) | human label for the review diff |
+| 8 | `supabase/01_schema.sql` -> `details_problem()` | add to `text_keys` (or a new boolean / list branch) and its sub-keys |
+| 9 | `supabase/01_schema.sql` -> `submit_change_request()` | add to `allowed` |
+| 10 | `tools/db-test/tests.sql` | a case that accepts a good value and rejects a bad one |
+| 11 | tests | `CreateForm.test.tsx`, `formReducer.test.ts`, `inviteText.test.ts`, `teluguTemplate.test.ts` as relevant |
+| 12 | this file | fill in the task's "Completion record" |
 
-Checks at the last change: type check clean, build passes, 645 tests pass.
+Database changes: edit `supabase/01_schema.sql` (source of truth, all functions are `create or replace`, so re-running is
+safe) AND put only the changed blocks in a new file `supabase/updates/NN_<task-id>.sql` so the owner can run just that on
+the live project. State the file name in the completion record.
 
-## Done by the owner (reported, not checked by Claude)
-- Secrets rotated and the GitHub token revoked.
-- Migrations run in Supabase.
-- Vercel settings in place.
+## 4. Rules for whoever does a task
 
-## Worth a quick look yourself
-- Open the Dashboard, turn "Auto" on after a search, and confirm the list still updates when you change something.
-- Open `/my` as a client with two invitations and switch between them.
-- Run the browser checks in `docs/RELEASE_CHECKLIST.md`, then promote `preview` to `main` when you are happy.
+1. Do tasks **in order** unless the task says it is independent. One task = one commit (or a small series) pushed to `preview`.
+2. Start by running the baseline (T0). If it is red, stop and fix or report; do not stack work on a red tree.
+3. **Backward compatible**: defaults must reproduce today's output. Add a test that proves an old record (without the new
+   keys) compiles to the same HTML as before.
+4. Do not rename or remove existing keys (`inviterMode`, `surnameEn`...). Add new keys beside them.
+5. English UI labels, Telugu labels where a Telugu twin exists. No new dependencies unless unavoidable.
+6. After the task: run `npm run typecheck && npm run lint && npm test && npm run build`. Run `npm run test:db` when SQL changed
+   (needs PostgreSQL 14+ binaries; if not available, say so in the record, do not claim it passed).
+7. **Update this file before you push** (see the template below). Never leave a task as `DONE` with an empty record.
+8. Never paste tokens, keys or passwords into this file, commits or chat. If one was shared, tell the owner to revoke it.
 
-## Not done on purpose
-- Serving invitations from a separate origin (not blocking release).
-- Per-IP rate limits and captcha (H-4, H-5) need Vercel/Supabase settings, not code.
+### Completion record template (copy under the task you finish)
 
-## Where to find things
-- Release steps: `docs/RELEASE_CHECKLIST.md`
-- Short-link and SEO notes: `docs/SEO_SHORT_LINK_CHANGES.md`
-- Database setup for a new project: `supabase/01_schema.sql`, `02_seed_templates.sql`, `03_make_admin.sql` (run in that order; see README, "Set up Supabase")
+```
+Status: DONE | PARTIAL | BLOCKED
+Finished: <date> by <person / AI name>   Commit(s): <short hashes>
+How it was updated:
+  - <file>: <what changed and why, one line each>
+Tests: typecheck <ok/fail> · lint <ok/fail> · unit <N passed> · build <ok/fail> · db tests <ok / not run + why>
+Behaviour check done: <what was tried by hand or in a test>
+Pending / not done: <anything left, with the reason>
+Owner steps (live project): <SQL file to run, template to re-paste, Vercel setting, or "none">
+Notes for the next person: <gotchas, decisions, things that surprised you>
+```
+
+## 5. Task list and status
+
+| ID | Task | Depends on | Touches DB? | Status |
+|---|---|---|---|---|
+| T0 | Baseline check (no code) | none | no | TODO |
+| T1 | Parent status: alive / late / hidden | T0 | yes | TODO |
+| T2 | Closing title, who-appears selector, custom names | T1 | yes | TODO |
+| T3 | Separate house names, gotram, honorific | T0 | yes | TODO |
+| T4 | Birth order and the "son / daughter of" line | T3 | yes | TODO |
+| T5 | Separate reception venue | T0 | yes | TODO |
+| T6 | More events, event types, end time, description | T0 | yes | TODO |
+| T7 | More contacts per side, contact role | T0 | yes | TODO |
+| T8 | Family members list (siblings, grandparents, uncle) | T1, T4 | yes | TODO |
+| T9 | Cross-field validation, progress tags, docs, final pass | T1 to T8 | maybe | TODO |
+
+T3, T5, T6 and T7 are independent of each other and can be done in any order after T0. T1 -> T2 is the user's first
+priority (closing names). Backlog (do NOT start) is in section 7.
+
+---
+
+## T0. Baseline check (no code)
+
+**Goal:** know the tree is green before changing anything, so later failures are attributable.
+
+**Steps**
+1. `npm ci` then `npm run typecheck`, `npm run lint:install && npm run lint`, `npm test`, `npm run build`.
+2. If PostgreSQL 14+ is installed: `npm run test:db`.
+3. Record the numbers (test count, which commands ran) in the record below. The previous status page said 645 tests
+   passed; confirm or update that number.
+4. Read `src/features/create/CreateForm.tsx`, `src/lib/compileInvitation.ts`, `src/lib/inviteText.ts` and
+   `supabase/01_schema.sql` lines 355 to 460 (`details_problem`) and 640 to 700 (`submit_change_request`).
+
+**Acceptance:** record filled in; commit only this file.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T1. Parent status: alive / late / hidden
+
+**Goal:** each of the four parents can be marked Alive, Late (deceased) or Hidden. The invitation prints the right Telugu
+prefix, and hides the phone number of a late or hidden parent.
+
+**Data model (new keys, all text, default `""` meaning alive)**
+- `groomFatherStatus`, `groomMotherStatus`, `brideFatherStatus`, `brideMotherStatus` : `"" | "late" | "hidden"`.
+
+**UI (`CreateForm.tsx`, groom and bride sections)**
+- Under each parent's name, a small 3-option segmented control (reuse the `seg` / `role="radio"` pattern from
+  `InviteSection.tsx`): Alive, Late, Hide.
+- When Late: keep the name inputs, disable the phone input and show the hint "Phone is not shown for a late parent".
+- When Hide: grey out the name and phone inputs (values are kept, so switching back loses nothing).
+- Optional (same task if small): a Telugu / English title override per parent is NOT part of this task (see T2 prefixes).
+
+**Logic**
+- `src/lib/inviteText.ts` `parents()`: take the statuses. Alive: `శ్రీ X` / `శ్రీమతి Y` (unchanged). Late: `కీ.శే. X` /
+  `కీ.శే. Y` (keep the exact prefix in one constant so it is easy to change). Hidden: skipped.
+- If every parent line is skipped, fall back to the person's own name (the current behaviour of `parents()`).
+- `compileInvitation.ts` `valuesFor()`: add `groom-father-status`, ... (value `"late"` or `""`) and make
+  `groom-father-phone` (and the `-wa` link) empty when the status is late or hidden. Add `{{#if groom-father-late}}` style
+  keys: `groom-father-late`, `groom-mother-late`, `bride-father-late`, `bride-mother-late` = `"1"` when late, so a template
+  can print "(Late)" if it wants.
+- Template: where a parent name is printed, add the late marker with `{{#if ...-late}}`.
+
+**Other touch points:** checklist rows 1 to 12. SQL: add the four keys to `text_keys` and `allowed`; optionally enforce
+`'' | 'late' | 'hidden'` in `details_problem`.
+
+**Tests**
+- `inviteText.test.ts`: alive / late / hidden for each mode (`surname`, `groom`, `bride`, `both`, `custom`).
+- `teluguTemplate.test.ts`: phone is not rendered for late; old record without the keys is unchanged.
+- `CreateForm.test.tsx`: switching to Late disables the phone input.
+- `tools/db-test/tests.sql`: `'late'` accepted, a number rejected as text type.
+
+**Acceptance:** an old invitation renders byte-for-byte as before; a late father shows `కీ.శే.` and no phone.
+
+**Owner steps:** run `supabase/updates/01_T1_parent_status.sql`; re-paste the updated template if the late marker is used.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T2. Closing title, who-appears selector, custom names
+
+**Goal (the user's request):** the block after the invitation message has a **title** (complimentary / closing title), a choice
+of **which people appear**, and **any number of custom names**. Bride, groom, or all can be selected.
+
+**Data model (new keys; `inviterMode` stays as the legacy fallback)**
+- `closingTitleMode` : `"" | "itlu" | "aahvaninchuvaaru" | "compliments" | "invitedBy" | "regards" | "custom" | "none"`. `""` = today's behaviour (prints "ఇట్లు").
+- `closingTitleEn`, `closingTitleTe` : custom title text (only read when mode is `custom`).
+- `inviterSources` : comma-separated ids from
+  `groom,groomFather,groomMother,bride,brideFather,brideMother,groomFamily,brideFamily,surname`.
+  Empty string = fall back to `inviterMode` (today's behaviour). Stored as text on purpose, so `details_problem()` needs no
+  new array branch. Validate the ids in TS and in SQL with a regex.
+- `inviterNames` : list of `{ id, prefix, nameEn, nameTe, relationEn, relationTe }`. `prefix` is one of
+  `"" | "sri" | "smt" | "chi" | "late" | "dr"`.
+
+**UI (`components/InviteSection.tsx`, section id stays `message`)**
+1. "Closing title" dropdown with the presets above plus "Custom" (shows EN and TE inputs) and "Hide title".
+2. "Who is inviting" becomes a checklist of the nine sources with three quick buttons: **Groom side**, **Bride side**,
+   **All**. The existing 5-button control stays working: choosing "Groom's family" ticks `groomFather`+`groomMother`, etc.
+   When the legacy value is loaded and `inviterSources` is empty, show the matching boxes ticked (do not write them back
+   until the user changes something, so untouched invitations are not marked as edited).
+3. "Custom names": repeatable rows (copy the `repeat` / `del` / Add button pattern used by events). Each row: prefix
+   dropdown, Name EN, Name తెలుగు (auto-transliterated using `EN_TO_TE`-style behaviour: see `useTransliteration.ts`), optional
+   relation (EN and TE), delete. Max 8 rows. Up / down buttons to reorder.
+4. A one-line preview of the final lines under the controls.
+
+**Logic**
+- `inviteText.ts`: new `closingTitleTe(d)` and an extended `inviterLinesTe(d)`:
+  1. resolve sources (new `inviterSources`, else legacy `inviterMode`);
+  2. build lines in a fixed order (groom side, then bride side, then custom names);
+  3. apply T1 status to parent lines; apply `prefix` to custom names (`sri` -> `శ్రీ`, `smt` -> `శ్రీమతి`, `chi` -> `చి||`,
+     `late` -> `కీ.శే.`, `dr` -> `డాక్టర్`); append the relation on the same line;
+  4. no hard cap of 4 any more: cap at 10 and let the template wrap.
+- `compileInvitation.ts`: add `inviter-title-te`, `inviter-title-en`, and `inviter-line-5-te` to `inviter-line-10-te`
+  (keep 1 to 4 and `inviter-te` as they are). Add `inviter-title-visible` = `"1"` unless mode is `none`.
+- Template: print the title from `{{inviter-title-te}}` (fallback text "ఇట్లు" when empty), and lines 1 to 10, each wrapped in
+  `{{#if inviter-line-N-te}}`.
+
+**Other touch points:** checklist rows 1 to 12. SQL: `text_keys` gets `closingTitleMode`, `closingTitleEn`, `closingTitleTe`,
+`inviterSources`; `list_keys` gets `inviterNames`; `sub_text` gets `prefix`, `relationEn`, `relationTe` (`id`, `nameEn`,
+`nameTe` already exist); `allowed` gets all four text keys and `inviterNames`. Add `'inviterNames'` to `ListField` in the
+types and to the reducer (the reducer already handles any `ListField`).
+
+**Tests:** legacy invitations unchanged; each preset; every source combination; custom names with each prefix; late parent
+plus custom names; 10-line cap; SQL accepts good, rejects a bad source id and a 21-item list.
+
+**Acceptance:** a user can choose title "With Best Compliments", tick Groom side only, add two custom names with relations,
+and the preview shows exactly that; an invitation saved before this task looks unchanged.
+
+**Owner steps:** run `supabase/updates/02_T2_closing_names.sql`; re-paste the updated template into the live template.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T3. Separate house names, gotram, honorific
+
+**Goal:** groom and bride can have their own house name and gotram; optional honorific before the couple's names.
+
+**Data model (new text keys, default `""`)**
+- `groomSurnameEn`, `groomSurnameTe`, `brideSurnameEn`, `brideSurnameTe` (house name / ఇంటి పేరు).
+  The existing `surnameEn/Te` stays as the shared family surname and as the fallback when these are empty.
+- `groomGotramEn`, `groomGotramTe`, `brideGotramEn`, `brideGotramTe`.
+- `coupleHonorific` : `"" | "chiranjeevi"`. When set, prints `చి||` before the groom and `చి.ల.సౌ||` before the bride.
+
+**UI:** in the groom and bride sections add the house name and gotram as `Bilingual` fields (`Bilingual.tsx`); add the
+honorific as a checkbox "Show చి|| / చి.ల.సౌ|| before names" in the Family section. Add the new EN keys to `EN_TO_TE`.
+
+**Logic / template:** placeholders `groom-surname-te`, `bride-surname-te`, `groom-gotram-te`, `bride-gotram-te`,
+`couple-honorific` and `groom-honorific-te`, `bride-honorific-te`. Existing `{{surname-te}}` placeholders must keep working.
+
+**Other touch points:** checklist rows 1 to 12, including SQL `text_keys` and `allowed`.
+
+**Tests:** old record unchanged; gotram renders only when set; honorific on and off.
+
+**Owner steps:** `supabase/updates/03_T3_house_names.sql`; re-paste template.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T4. Birth order and the "son / daughter of" line
+
+**Goal:** print lines such as "second son of Sri X & Smt Y" (Telugu: `శ్రీ X, శ్రీమతి Y ల ద్వితీయ కుమారుడు`).
+
+**Data model (text keys, default `""`)**
+- `groomOrder`, `brideOrder` : `"" | "only" | "eldest" | "second" | "third" | "fourth" | "youngest"`.
+- `showParentage` : `"" | "1"` (checkbox "Show 'son of / daughter of' line"). Default off so today's output is unchanged.
+
+**UI:** in each of the groom and bride sections, a dropdown "Position among children" and (once, in the Family section) the
+checkbox above.
+
+**Logic:** new `parentageLineTe(side, data)` in `inviteText.ts` using the T1 statuses (a late parent prints with `కీ.శే.`;
+a single surviving parent prints alone). A constant table maps order -> Telugu word (`పెద్ద`, `రెండవ`, `మూడవ`, `నాల్గవ`,
+`చిన్న`, `ఏకైక`) and son / daughter -> `కుమారుడు` / `కుమార్తె`. Placeholders `groom-parentage-te`, `bride-parentage-te`.
+
+**Tests:** each order for son and daughter; one parent late; both hidden (line omitted).
+
+**Owner steps:** `supabase/updates/04_T4_birth_order.sql`; re-paste template.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T5. Separate reception venue
+
+**Goal:** the reception can have its own venue. Today `valuesFor()` sets `reception-venue-te` to the wedding venue.
+
+**Data model**
+- `receptionSameVenue` : boolean, default `true` (keeps today's behaviour).
+- `receptionVenueEn`, `receptionVenueTe`, `receptionVenueAddress`, `receptionVenueMaps` : text.
+
+**UI:** in "Reception & Venue", when reception is on show the checkbox "Same venue as the wedding"; when unticked, show the four
+fields. Add `receptionVenueMaps` to the URL validation (`okUrl`).
+
+**Logic:** `reception-venue-te`, `reception-venue-en`, `reception-venue-address`, `reception-venue-maps` equal the wedding venue
+when `receptionSameVenue` is true, else the new fields. Keep `same-venue`.
+
+**SQL:** `receptionSameVenue` needs its own boolean branch next to `receptionEnabled` in `details_problem()`; add the text keys
+to `text_keys`; add `receptionVenueMaps` to `url_keys`; add all five to `allowed`.
+
+**Tests:** same-venue default; separate venue; bad maps link rejected in TS and SQL.
+
+**Owner steps:** `supabase/updates/05_T5_reception_venue.sql`; re-paste template.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T6. More events, event types, end time, description
+
+**Goal:** more than two extra events, with presets and extra fields.
+
+**Data model (add to `EventItem`)**
+- `type` (`"" | "engagement" | "haldi" | "mehendi" | "sangeet" | "pellikoduku" | "pellikuthuru" | "varapuja" | "baraat" | "dinner" | "griha" | "custom"`),
+  `endTime`, `descEn`, `descTe`, `dress`.
+
+**Limits:** introduce `MAX_EVENTS = 6` in `constants.ts` and use it in `CreateForm.tsx` (replace the hard-coded `< 2` and the
+hint text) and in `compileInvitation.ts` (replace `[0,1]` with a loop to `MAX_EVENTS`). Templates get slots
+`event-1-*` to `event-6-*` wrapped in `{{#if event-N-name-te}}`. SQL list limit (20) already allows this; add the new
+sub-keys to `sub_text`.
+
+**UI:** a type dropdown that fills the Telugu / English name when the name is still empty; end time; description (EN / TE);
+dress code. Keep the existing layout classes (`repeat`, `grid two`, `grid three`).
+
+**Tests:** old two-event record unchanged; six events; type fills the name only when empty.
+
+**Owner steps:** `supabase/updates/06_T6_events.sql`; re-paste template (it needs the extra slots).
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T7. More contacts per side, contact role
+
+**Goal:** `Contacts.tsx` shows the Add button only while `items.length < 1` and `valuesFor()` reads only `[0]`.
+
+**Changes:** `MAX_CONTACTS = 3`; `ContactItem` gets `roleEn`, `roleTe` (for example "Coordinator"); `valuesFor()` emits
+`groom-extra-1..3-*` and `bride-extra-1..3-*` (name, phone, `-wa`, role); validation keys already use the contact id; SQL adds
+`roleEn`, `roleTe` to `sub_text`. Keep the existing `groom-extra-1-*` names working.
+
+**Tests:** three contacts per side; the phone rule still applies to each.
+
+**Owner steps:** `supabase/updates/07_T7_contacts.sql`; re-paste template.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T8. Family members list (siblings, grandparents, maternal uncle)
+
+**Goal:** an optional list of relatives shown on the invitation. Do this after T1 and T4 (it reuses the late status and titles).
+
+**Data model:** new list `familyMembers` of `{ id, side ("groom"|"bride"), relation ("brother"|"sister"|"grandfather"|"grandmother"|"maternalUncle"|"uncle"|"aunt"|"other"), prefix, nameEn, nameTe, late ("" | "1"), spouseEn, spouseTe, show ("" | "1") }`.
+Add `familyMembers` to `ListField`, to `list_keys`, `allowed`, and add `relation`, `side`, `prefix`, `late`, `spouseEn`,
+`spouseTe`, `show` to `sub_text`.
+
+**UI:** a new section id `family2` is NOT needed: add a "Relatives" sub-block inside each of the groom and bride sections
+(filtered by `side`). Max 8 per side.
+
+**Template:** placeholders `groom-relatives-te` and `bride-relatives-te` (one pre-joined text each, built in `inviteText.ts`),
+so the template needs no loops.
+
+**Tests:** ordering, late marker, hidden members skipped, 8-per-side limit.
+
+**Owner steps:** `supabase/updates/08_T8_relatives.sql`; re-paste template.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## T9. Cross-field validation, progress tags, docs, final pass
+
+**Goal:** tidy everything the earlier tasks left open.
+
+**Checklist**
+- `validate.ts`: reception date not before the wedding date (warning), event dates not before today for new invitations
+  (warning only), the maximum number of custom names and relatives, the closing-name source ids.
+- `ClientApp.tsx` `tagFor()` and `SECTIONS` / `PROGRESS_IDS` in `constants.ts`: make sure new fields count correctly
+  (required stays required; new fields are optional and must not lower progress).
+- Client mode (`mode="client"`): confirm every new field is editable and appears in the review diff with its label.
+- `README.md` and `docs/RELEASE_CHECKLIST.md`: add one line per new SQL update file and the "re-paste template" step.
+- Merge all `supabase/updates/*.sql` knowledge into `01_schema.sql` (already done per task) and confirm
+  `npm run test:db` on a clean database.
+- Re-run the full command set; update the test count here.
+
+**Completion record**
+```
+Status: TODO
+```
+
+---
+
+## 6. Handoff log (newest first; add one line per work session, even if no task finished)
+
+```
+2026-11-18  Plan written. No code changed. Next: T0, then T1.
+```
+
+## 7. Backlog (ideas, not approved, do not start without the owner)
+
+RSVP and guest count; personalised guest links ("Dear {name}"); calendar file (.ics) per event; gallery and video; background
+music; extra languages (Hindi, Tamil, Kannada); invitation types other than weddings; draft / expiry / password; analytics;
+country code and "is on WhatsApp" flag for phones; invocation / deity header with image; native place and address per family;
+couple, groom and bride photos; education / profession lines; panchang line (tithi, masam) for the muhurtham.
+
+## 8. Where to find things
+
+- Release steps: `docs/RELEASE_CHECKLIST.md` · Short-link and SEO notes: `docs/SEO_SHORT_LINK_CHANGES.md`
+- Database: `supabase/01_schema.sql`, `02_seed_templates.sql`, `03_make_admin.sql` (run in that order) and, from this plan on,
+  `supabase/updates/NN_*.sql`
+- Create form: `src/features/create/` · Template compiler: `src/lib/compileInvitation.ts` · Closing text: `src/lib/inviteText.ts`
+- Tests: `npm test` (unit), `npm run test:db` (SQL), `npm run test:e2e` (browser)
+- Security: if any token or key was pasted into a chat, revoke it before releasing.
