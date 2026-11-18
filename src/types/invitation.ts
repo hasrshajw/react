@@ -11,6 +11,12 @@ export interface EventItem {
   venue: string;
   venueTe: string;
   maps: string;
+  /* T6 (all optional: a record saved before T6 has none of them). type is a preset id from src/lib/eventTypes.ts; endTime is HH:MM. */
+  type?: string;
+  endTime?: string;
+  descEn?: string;
+  descTe?: string;
+  dress?: string;
 }
 
 export interface ContactItem {

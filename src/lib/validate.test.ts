@@ -57,6 +57,18 @@ describe("validateInvitation", () => {
     expect(e["event-e1-date"]).toBeDefined();
     expect(e["event-e1-maps"]).toBeDefined();
   });
+  it("T6: checks event type, end time, description length and the number of events", () => {
+    const base = { id: "e1", name: "Sangeet", nameTe: "", date: "2027-02-01", time: "", venue: "", venueTe: "", maps: "" };
+    expect(validateInvitation(valid({ events: [{ ...base, type: "sangeet", endTime: "21:30", descEn: "ok", descTe: "ok", dress: "x" }] }))["event-e1-type"]).toBeUndefined();
+    expect(validateInvitation(valid({ events: [base] }))["event-e1-type"]).toBeUndefined();   // an old record has none of the new keys
+    const e = validateInvitation(valid({ events: [{ ...base, type: "party", endTime: "25:99", descEn: "x".repeat(301), descTe: "y".repeat(301) }] }));
+    expect(e["event-e1-type"]?.section).toBe("events");
+    expect(e["event-e1-endTime"]?.section).toBe("events");
+    expect(e["event-e1-descEn"]).toBeDefined();
+    expect(e["event-e1-descTe"]).toBeDefined();
+    expect(validateInvitation(valid({ events: Array.from({ length: 7 }, (_, i) => ({ ...base, id: `e${i}` })) })).events?.section).toBe("events");
+    expect(validateInvitation(valid({ events: Array.from({ length: 6 }, (_, i) => ({ ...base, id: `e${i}` })) })).events).toBeUndefined();
+  });
   it("needs a reception date only when the reception is on", () => {
     expect(validateInvitation(valid({ receptionEnabled: true, receptionDate: "" })).receptionDate).toBeDefined();
     expect(validateInvitation(valid({ receptionEnabled: false, receptionDate: "" })).receptionDate).toBeUndefined();

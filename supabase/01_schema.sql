@@ -393,7 +393,8 @@ declare
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
   list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
-  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe'];
+  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe',
+    'type','endTime','descEn','descTe','dress'];   -- T6: the last five belong to events
 begin
   if d is null or jsonb_typeof(d) <> 'object' then return 'details must be a JSON object'; end if;
   if octet_length(d::text) > 65536 then return 'details is larger than 64 KB'; end if;
@@ -446,6 +447,11 @@ begin
               is_ := iv #>> '{}';
               if is_ is not null and char_length(is_) > 1000 then return k || '.' || ik || ' is longer than 1000 characters'; end if;
               if ik = 'maps' and not public.is_safe_url(is_) then return k || '.maps has a link type that is not allowed'; end if;
+              -- T6: event type (same ids as EVENT_TYPES in src/lib/eventTypes.ts) and end time (HH:MM or empty)
+              if k = 'events' and ik = 'type' and coalesce(is_, '') not in ('', 'engagement', 'haldi', 'mehendi', 'sangeet', 'pellikoduku', 'pellikuthuru', 'varapuja', 'baraat', 'dinner', 'griha', 'custom') then
+                return 'events.type is not a known event type'; end if;
+              if k = 'events' and ik = 'endTime' and coalesce(is_, '') !~ '^(([01][0-9]|2[0-3]):[0-5][0-9])?$' then
+                return 'events.endTime must be a time like 18:30'; end if;
               if k = 'inviterNames' and ik = 'prefix' and coalesce(is_, '') not in ('', 'sri', 'smt', 'chi', 'late', 'dr') then
                 return 'inviterNames.prefix is not a known prefix'; end if;
               if ik = 'phone' and btrim(coalesce(is_, '')) <> '' and not (

@@ -8,7 +8,8 @@ export const DASHBOARD_PATH = "/dashboard";
 export { LS_DRAFT } from "../../lib/storageKeys";
 
 export { uid };
-export const newEvent = (): EventItem => ({ id: uid(), name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "" });
+export const newEvent = (): EventItem => ({ id: uid(), name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "", type: "", endTime: "", descEn: "", descTe: "", dress: "" });
+export { MAX_EVENTS } from "../../lib/eventTypes";
 export { MAX_INVITER_NAMES } from "../../lib/inviteText";
 export const newInviterName = (): InviterName => ({ id: uid(), prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "" });
 export const newContact = (): ContactItem => ({ id: uid(), nameEn: "", nameTe: "", phone: "" });

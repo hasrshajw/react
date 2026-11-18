@@ -280,3 +280,68 @@ describe("telugu-traditional template: reception venue (T5)", () => {
     expect(html).not.toMatch(/javascript:/i);
   });
 });
+
+describe("telugu-traditional template: more events (T6)", () => {
+  const mk = (n: number, over: Record<string, unknown> = {}) => ({
+    id: `e${n}`, name: `Event ${n}`, nameTe: `కార్యక్రమం ${n}`, date: "2027-02-13", time: "18:00", venue: "", venueTe: `వేదిక ${n}`, maps: `https://maps.google.com/?q=${n}`, ...over,
+  });
+  const extraCards = (d: Document) => [...d.querySelectorAll(".event-card")].filter((c) => (c.textContent || "").includes("అదనపు కార్యక్రమం"));
+  const cardText = (c: Element) => (c.textContent || "").replace(/\s+/g, " ").trim();
+
+  it("an old two-event record (no T6 keys) compiles exactly as one with the keys at their defaults, and shows no new rows", () => {
+    const old = { ...full, events: [mk(1), mk(2)] };
+    const withDefaults = { ...full, events: [mk(1, { type: "", endTime: "", descEn: "", descTe: "", dress: "" }), mk(2, { type: "", endTime: "", descEn: "", descTe: "", dress: "" })] };
+    expect(compile(src, { ...initial, ...old })).toBe(compile(src, { ...initial, ...withDefaults }));
+    const d = doc(old);
+    expect(extraCards(d).length).toBe(2);
+    expect(d.querySelector(".event-desc")).toBeNull();
+    expect(cardText(extraCards(d)[0])).not.toContain("వస్త్రధారణ");
+    expect(cardText(extraCards(d)[0])).not.toContain("–");
+    expect(compile(src, { ...initial, ...old })).not.toMatch(/\{\{/);
+  });
+
+  it("six events all show, in order, each with its own name, venue and map link", () => {
+    const d = doc({ ...full, events: [1, 2, 3, 4, 5, 6].map((n) => mk(n)) });
+    const cards = extraCards(d);
+    expect(cards.length).toBe(6);
+    cards.forEach((c, i) => {
+      expect(cardText(c)).toContain(`కార్యక్రమం ${i + 1}`);
+      expect(cardText(c)).toContain(`వేదిక ${i + 1}`);
+      expect(c.querySelector(".venue-badge")?.getAttribute("href")).toBe(`https://maps.google.com/?q=${i + 1}`);
+    });
+    expect(d.querySelectorAll(".event-card").length).toBe(8);   // wedding + reception + 6
+  });
+
+  it("a seventh event is not shown (the template has six slots)", () => {
+    const d = doc({ ...full, events: [1, 2, 3, 4, 5, 6, 7].map((n) => mk(n)) });
+    expect(extraCards(d).length).toBe(6);
+    expect(compile(src, { ...initial, ...full, events: [1, 2, 3, 4, 5, 6, 7].map((n) => mk(n)) })).not.toContain("కార్యక్రమం 7");
+  });
+
+  it("end time follows the start time; an end time with no start time shows nothing", () => {
+    const d = doc({ ...full, events: [mk(1, { endTime: "21:30" }), mk(2, { time: "", endTime: "21:30" })] });
+    const [c1, c2] = extraCards(d);
+    expect(cardText(c1)).toMatch(/6:00\s*pm\s*–\s*9:30\s*pm/i);
+    expect(cardText(c2)).not.toMatch(/9:30/);
+  });
+
+  it("description and dress code show only when filled", () => {
+    const d = doc({ ...full, events: [mk(1, { descTe: "విందు ఉంటుంది", dress: "సంప్రదాయ దుస్తులు" }), mk(2)] });
+    const [c1, c2] = extraCards(d);
+    expect(c1.querySelector(".event-desc")?.textContent).toBe("విందు ఉంటుంది");
+    expect(cardText(c1)).toContain("వస్త్రధారణ");
+    expect(cardText(c1)).toContain("సంప్రదాయ దుస్తులు");
+    expect(c2.querySelector(".event-desc")).toBeNull();
+    expect(cardText(c2)).not.toContain("వస్త్రధారణ");
+  });
+
+  it("a javascript: map link of any event never reaches the page", () => {
+    const html = compile(src, { ...initial, ...full, events: [mk(1), mk(2), mk(3), mk(4, { maps: "javascript:alert(1)" }), mk(5), mk(6)] });
+    expect(html).not.toMatch(/javascript:/i);
+  });
+
+  it("the preview scroll targets exist for every slot", () => {
+    const html = compile(src, { ...initial, ...full, events: [1, 2, 3, 4, 5, 6].map((n) => mk(n, { descTe: "x", dress: "y" })) });
+    for (let n = 1; n <= 6; n++) ["name-te", "date", "time", "venue-te", "desc-te", "dress"].forEach((k) => expect(html).toContain(`data-scroll-target="event-${n}-${k}"`));
+  });
+});

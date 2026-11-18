@@ -308,6 +308,15 @@ select t.throws('a reception venue name longer than 1000 characters is refused',
 select t.ok('a separate reception venue and the same-venue switch are accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d38', 'details-thirtyeight', '{"receptionEnabled":true,"receptionSameVenue":false,"receptionVenueEn":"Hall B","receptionVenueTe":"హాల్ బి","receptionVenueAddress":"Vijayawada","receptionVenueMaps":"https://maps.google.com/?q=hallb"}')$$) = 1
   and t.affected($$insert into public.invitations (id, slug, details) values ('d39', 'details-thirtynine', '{"receptionSameVenue":true,"receptionVenueMaps":""}')$$) = 1);
+-- T6: event type, end time, description and dress code (list items of `events`)
+select t.throws('an event type that is not in the list is refused', $$insert into public.invitations (id, slug, details) values ('d40', 'details-forty', '{"events":[{"id":"e1","type":"party"}]}')$$, '23514');
+select t.throws('an event type that is not text is refused', $$insert into public.invitations (id, slug, details) values ('d41', 'details-fortyone', '{"events":[{"id":"e1","type":5}]}')$$, '23514');
+select t.throws('an event end time that is not a time is refused', $$insert into public.invitations (id, slug, details) values ('d42', 'details-fortytwo', '{"events":[{"id":"e1","endTime":"25:99"}]}')$$, '23514');
+select t.throws('an event description longer than 1000 characters is refused', format($$insert into public.invitations (id, slug, details) values ('d43', 'details-fortythree', %L)$$, jsonb_build_object('events', jsonb_build_array(jsonb_build_object('id', 'e1', 'descTe', repeat('x', 1001))))::text), '23514');
+select t.throws('an event dress code that is not text is refused', $$insert into public.invitations (id, slug, details) values ('d44', 'details-fortyfour', '{"events":[{"id":"e1","dress":["a"]}]}')$$, '23514');
+select t.ok('six events with type, end time, descriptions and dress code are accepted',
+  t.affected(format($$insert into public.invitations (id, slug, details) values ('d45', 'details-fortyfive', %L)$$, jsonb_build_object('events', (select jsonb_agg(jsonb_build_object('id', 'e' || g, 'type', (array['engagement','haldi','mehendi','sangeet','baraat','custom'])[g], 'time', '18:00', 'endTime', '21:30', 'descEn', 'Dinner follows', 'descTe', 'విందు ఉంటుంది', 'dress', 'Traditional')) from generate_series(1, 6) g))::text)) = 1
+  and t.affected($$insert into public.invitations (id, slug, details) values ('d46', 'details-fortysix', '{"events":[{"id":"e1","name":"Old","type":"","endTime":""},{"id":"e2","name":"Older"}]}')$$) = 1);
 select t.ok('a preview image from this app''s own bucket is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d8', 'details-eight', '{"seoImage":"https://abc.supabase.co/storage/v1/object/public/invitation-previews/aaaaaaaa-0000-0000-0000-000000000001/d8.jpg?v=1"}')$$) = 1);
 select t.ok('other columns of an old row stay editable (the check runs only when details change)',

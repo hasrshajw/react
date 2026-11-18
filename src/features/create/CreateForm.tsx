@@ -1,14 +1,15 @@
 import React from "react";
 import { CalendarPlus, FileText, Heart, LayoutTemplate, Mail, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
 import type { Category, InvitationData, ListField, ListItem, ListPatch, SectionId, Template } from "../../types/invitation";
-import { newEvent } from "./constants";
+import { newEvent, MAX_EVENTS } from "./constants";
+import { EVENT_TYPES, applyEventType, okEventType } from "../../lib/eventTypes";
 import { Bilingual } from "./components/Bilingual";
 import { Contacts } from "./components/Contacts";
 import { Field } from "./components/Field";
 import { InviteSection } from "./components/InviteSection";
 import { ParentStatus } from "./components/ParentStatus";
 import { BIRTH_ORDERS, birthOrder, parentStatus } from "../../lib/inviteText";
-import { has, okUrl } from "../../lib/validate";
+import { EVENT_DESC_MAX, has, okUrl } from "../../lib/validate";
 import { Section } from "./components/Section";
 import { SeoSection } from "./components/SeoSection";
 import { TemplatePicker } from "./components/TemplatePicker";
@@ -167,23 +168,36 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           <div className="repeat" key={ev.id}>
             <button type="button" className="del" aria-label="Remove event" onClick={() => remove("events", ev.id)}><Trash2 size={15} /></button>
             <div className="sub">Event {i + 1}</div>
+            <div className="f">
+              <label htmlFor={`f-event-${ev.id}-type`}>Event type</label>
+              <select id={`f-event-${ev.id}-type`} value={okEventType(ev.type) ? ev.type || "" : ""} onChange={(e) => { patch("events", ev.id, applyEventType({ name: ev.name, nameTe: ev.nameTe }, e.target.value)); focus(`event-${i + 1}-name-te`); }}>
+                <option value="">Choose a type (optional)</option>
+                {EVENT_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
             <div className="grid two">
               <Field label="Event Name EN" {...events.fpx(`event-${ev.id}-name`, `event-${i + 1}-name-te`)} value={ev.name} onChange={(v) => patch("events", ev.id, { name: v })} />
               <Field label="Event Name తెలుగు" lang="te" {...events.fpx(`event-${ev.id}-nameTe`, `event-${i + 1}-name-te`)} value={ev.nameTe} onChange={(v) => patch("events", ev.id, { nameTe: v })} />
             </div>
             <div className="grid three">
               <Field label="Date" type="date" {...events.fpx(`event-${ev.id}-date`, `event-${i + 1}-date`)} value={ev.date} onChange={(v) => patch("events", ev.id, { date: v })} />
-              <Field label="Time" type="time" {...events.fpx(`event-${ev.id}-time`, `event-${i + 1}-time`)} value={ev.time} onChange={(v) => patch("events", ev.id, { time: v })} />
-              <Field label="Venue EN" {...events.fpx(`event-${ev.id}-venue`, `event-${i + 1}-venue-te`)} value={ev.venue} onChange={(v) => patch("events", ev.id, { venue: v })} />
+              <Field label="Start time" type="time" {...events.fpx(`event-${ev.id}-time`, `event-${i + 1}-time`)} value={ev.time} onChange={(v) => patch("events", ev.id, { time: v })} />
+              <Field label="End time" type="time" {...events.fpx(`event-${ev.id}-endTime`, `event-${i + 1}-end-time`)} value={ev.endTime || ""} onChange={(v) => patch("events", ev.id, { endTime: v })} />
             </div>
+            <Field label="Venue EN" {...events.fpx(`event-${ev.id}-venue`, `event-${i + 1}-venue-te`)} value={ev.venue} onChange={(v) => patch("events", ev.id, { venue: v })} />
             <Field label="Venue తెలుగు" lang="te" {...events.fpx(`event-${ev.id}-venueTe`, `event-${i + 1}-venue-te`)} value={ev.venueTe} onChange={(v) => patch("events", ev.id, { venueTe: v })} />
             <Field label="Google Maps Link" inputMode="url" {...events.fpx(`event-${ev.id}-maps`, `event-${i + 1}-venue-te`)} value={ev.maps} onChange={(v) => patch("events", ev.id, { maps: v })} />
+            <div className="grid two">
+              <Field label="Description EN" maxLength={EVENT_DESC_MAX} {...events.fpx(`event-${ev.id}-descEn`, `event-${i + 1}-desc-te`)} value={ev.descEn || ""} onChange={(v) => patch("events", ev.id, { descEn: v })} />
+              <Field label="Description తెలుగు" lang="te" maxLength={EVENT_DESC_MAX} {...events.fpx(`event-${ev.id}-descTe`, `event-${i + 1}-desc-te`)} value={ev.descTe || ""} onChange={(v) => patch("events", ev.id, { descTe: v })} />
+            </div>
+            <Field label="Dress code" maxLength={120} {...events.fpx(`event-${ev.id}-dress`, `event-${i + 1}-dress`)} value={ev.dress || ""} onChange={(v) => patch("events", ev.id, { dress: v })} />
           </div>
         ))}
-        {events.loading ? <span className="outline sk-bg" aria-hidden="true"><Plus size={15} /> Add event</span> : data.events.length < 2 ? (
+        {events.loading ? <span className="outline sk-bg" aria-hidden="true"><Plus size={15} /> Add event</span> : data.events.length < MAX_EVENTS ? (
           <button type="button" className="outline" onClick={() => add("events", newEvent)}><Plus size={15} /> Add event</button>
         ) : (
-          <div className="hint">This template supports two additional event slots.</div>
+          <div className="hint">This template supports up to {MAX_EVENTS} additional events.</div>
         )}
       </Section>
 

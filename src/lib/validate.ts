@@ -2,6 +2,7 @@ import type { ErrorMap, InvitationData } from "../types/invitation";
 import { isEmail } from "./auth";
 import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
+import { MAX_EVENTS, okEventType } from "./eventTypes";
 import { INVITER_PREFIX_IDS, okBirthOrder, okHonorific, MAX_INVITER_NAMES, okSources, parentStatus } from "./inviteText";
 
 export const has = (v: unknown): boolean => String(v ?? "").trim() !== "";
@@ -20,6 +21,7 @@ export const okUrl = (v: string): boolean => {
 export const PHONE_MSG = "Enter a valid phone number (10 digits, optional +91)";
 export const URL_MSG = "Enter a full link starting with https://";
 
+export const EVENT_DESC_MAX = 300;
 export const SEO_TITLE_MAX = 60;
 export const SEO_DESC_MAX = 160;
 export const SLUG_MIN = 3;
@@ -58,7 +60,13 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   data.events.forEach((ev) => {
     if (has(ev.name) && !has(ev.date)) add(`event-${ev.id}-date`, "events", "Add a date for this event");
     if (has(ev.maps) && !okUrl(ev.maps)) add(`event-${ev.id}-maps`, "events", URL_MSG);
+    /* T6: the form cannot produce these problems; they can only come from pasted or damaged data. */
+    if (!okEventType(ev.type)) add(`event-${ev.id}-type`, "events", "Choose an event type from the list");
+    if (has(ev.endTime) && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(ev.endTime))) add(`event-${ev.id}-endTime`, "events", "Enter a valid end time");
+    if (String(ev.descEn || "").length > EVENT_DESC_MAX) add(`event-${ev.id}-descEn`, "events", `Keep the description under ${EVENT_DESC_MAX} characters`);
+    if (String(ev.descTe || "").length > EVENT_DESC_MAX) add(`event-${ev.id}-descTe`, "events", `Keep the description under ${EVENT_DESC_MAX} characters`);
   });
+  if (data.events.length > MAX_EVENTS) add("events", "events", `Use at most ${MAX_EVENTS} additional events`);
   /* Soft warnings: the inputs also have maxLength, so these only appear for pasted or old data. */
   if (data.seoTitle.length > SEO_TITLE_MAX) add("seoTitle", "seo", `Keep the title under ${SEO_TITLE_MAX} characters`);
   if (data.seoDescription.length > SEO_DESC_MAX) add("seoDescription", "seo", `Keep the description under ${SEO_DESC_MAX} characters`);

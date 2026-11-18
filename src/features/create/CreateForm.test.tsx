@@ -285,19 +285,58 @@ describe("CreateForm: contacts", () => {
 });
 
 describe("CreateForm: additional events", () => {
-  it("offers Add event with up to two events, then shows the hint instead", () => {
+  it("offers Add event up to six events, then shows the hint instead", () => {
     show({ data: { ...initial, events: [] } });
     click(button("Add event"));
     expect(props.add).toHaveBeenCalledWith("events", expect.any(Function));
     const made = (props.add as ReturnType<typeof vi.fn>).mock.calls[0][1]() as EventItem;
-    expect(made).toMatchObject({ name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "" });
+    expect(made).toMatchObject({ name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "", type: "", endTime: "", descEn: "", descTe: "", dress: "" });
 
-    act(() => { root.render(<CreateForm {...props} data={{ ...initial, events: [ev({ id: "e1" })] }} />); });
+    const many = (n: number) => Array.from({ length: n }, (_, i) => ev({ id: `e${i + 1}` }));
+    act(() => { root.render(<CreateForm {...props} data={{ ...initial, events: many(2) }} />); });
+    expect(button("Add event")).toBeDefined();
+    act(() => { root.render(<CreateForm {...props} data={{ ...initial, events: many(5) }} />); });
     expect(button("Add event")).toBeDefined();
 
-    act(() => { root.render(<CreateForm {...props} data={{ ...initial, events: [ev({ id: "e1" }), ev({ id: "e2" })] }} />); });
+    act(() => { root.render(<CreateForm {...props} data={{ ...initial, events: many(6) }} />); });
     expect(button("Add event")).toBeUndefined();
-    expect(host.querySelector("#sec-events .hint")?.textContent).toBe("This template supports two additional event slots.");
+    expect(host.querySelectorAll("#sec-events .repeat").length).toBe(6);
+    expect(host.querySelector("#sec-events .hint")?.textContent).toBe("This template supports up to 6 additional events.");
+  });
+
+  it("T6: end time, descriptions and dress code patch the event", () => {
+    show({ data: { ...initial, events: [ev({ id: "e1" })] } });
+    typeInto(input("event-e1-endTime"), "21:30");
+    expect(props.patch).toHaveBeenCalledWith("events", "e1", { endTime: "21:30" });
+    typeInto(input("event-e1-descEn"), "Dinner follows");
+    expect(props.patch).toHaveBeenCalledWith("events", "e1", { descEn: "Dinner follows" });
+    typeInto(input("event-e1-descTe"), "విందు ఉంటుంది");
+    expect(props.patch).toHaveBeenCalledWith("events", "e1", { descTe: "విందు ఉంటుంది" });
+    typeInto(input("event-e1-dress"), "Traditional");
+    expect(props.patch).toHaveBeenCalledWith("events", "e1", { dress: "Traditional" });
+    focusEl(input("event-e1-endTime"));
+    expect(props.focus).toHaveBeenCalledWith("event-1-end-time");
+    focusEl(input("event-e1-dress"));
+    expect(props.focus).toHaveBeenCalledWith("event-1-dress");
+  });
+
+  it("T6: choosing a type fills the names only while they are empty", () => {
+    const choose = (id: string, value: string) => {
+      const sel = host.querySelector(`#f-event-${id}-type`) as HTMLSelectElement;
+      act(() => {
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(sel, value);
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    };
+    show({ data: { ...initial, events: [ev({ id: "e1", name: "", nameTe: "" }), ev({ id: "e2", name: "My own name", nameTe: "" })] } });
+    choose("e1", "haldi");
+    expect(props.patch).toHaveBeenCalledWith("events", "e1", { type: "haldi", name: "Haldi", nameTe: "పసుపు వేడుక" });
+    choose("e2", "sangeet");
+    expect(props.patch).toHaveBeenCalledWith("events", "e2", { type: "sangeet", nameTe: "సంగీత్" });   // the typed English name is kept
+    choose("e1", "custom");
+    expect(props.patch).toHaveBeenLastCalledWith("events", "e1", { type: "custom" });   // custom fills nothing
+    choose("e1", "");
+    expect(props.patch).toHaveBeenLastCalledWith("events", "e1", { type: "" });
   });
 
   it("numbers the events and patches the event with the typed value", () => {
