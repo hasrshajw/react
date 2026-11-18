@@ -1,4 +1,4 @@
-import { CalendarPlus, Heart, LayoutTemplate, Mail, MapPin, Search, User, Users } from "../../components/Icons";
+import { CalendarPlus, FileText, Heart, LayoutTemplate, Mail, MapPin, Search, User, Users } from "../../components/Icons";
 import type { ContactItem, EventItem, InvitationData, SectionDef } from "../../types/invitation";
 import { uid } from "../../lib/uid";
 
@@ -19,6 +19,7 @@ export const initial: InvitationData = {
   receptionEnabled: false, receptionDate: "", receptionTime: "",
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
   events: [], groomContacts: [], brideContacts: [],
+  inviterMode: "surname", inviterEn: "", inviterTe: "", inviteMessageTe: "",
   seoTitle: "", seoDescription: "", seoImage: "",
   clientEmail: "",
 };
@@ -26,7 +27,7 @@ export const initial: InvitationData = {
 /** English field -> the Telugu field that is filled in automatically. */
 export const EN_TO_TE = {
   surnameEn: "surnameTe", groomEn: "groomTe", groomFatherEn: "groomFatherTe", groomMotherEn: "groomMotherTe",
-  brideEn: "brideTe", brideFatherEn: "brideFatherTe", brideMotherEn: "brideMotherTe", venueEn: "venueTe",
+  brideEn: "brideTe", brideFatherEn: "brideFatherTe", brideMotherEn: "brideMotherTe", venueEn: "venueTe", inviterEn: "inviterTe",
 } as const satisfies Partial<Record<keyof InvitationData, keyof InvitationData>>;
 
 /** Field -> element inside the live preview that should scroll into view. */
@@ -37,6 +38,7 @@ export const TARGETS: Record<string, string> = {
   brideMotherEn: "bride-mother-te", brideMotherTe: "bride-mother-te",
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
+  inviteMessageTe: "invite-text", inviterMode: "invite-text", inviterEn: "invite-text", inviterTe: "invite-text",
   groomFatherPhone: "groom-father-phone", groomMotherPhone: "groom-mother-phone", brideFatherPhone: "bride-father-phone", brideMotherPhone: "bride-mother-phone",
   groomContacts: "groom-extra-1-phone", brideContacts: "bride-extra-1-phone",
 };
@@ -49,6 +51,7 @@ export const SECTIONS: SectionDef[] = [
   { id: "family", label: "Family", icon: Users, hint: "required" },
   { id: "groom", label: "Groom", icon: User, hint: "required" },
   { id: "bride", label: "Bride", icon: Heart, hint: "required" },
+  { id: "message", label: "Invitation text", icon: FileText, hint: "optional" },
   { id: "venue", label: "Venue", icon: MapPin, hint: "recommended" },
   { id: "seo", label: "Link preview", icon: Search, hint: "recommended" },
   { id: "events", label: "Events", icon: CalendarPlus, hint: "optional" },

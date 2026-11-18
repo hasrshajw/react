@@ -1,0 +1,56 @@
+import React from "react";
+import type { InvitationData } from "../../../types/invitation";
+import { DEFAULT_INVITE_MESSAGE_TE, INVITER_OPTIONS, INVITE_MESSAGE_MAX, inviteTextTe, inviterMode } from "../../../lib/inviteText";
+import { Bilingual } from "./Bilingual";
+
+type FieldProps = (name: string) => { name: string; onFocus: () => void; onBlur: () => void; error?: string; loading?: boolean };
+interface Props {
+  data: InvitationData;
+  set: <K extends keyof InvitationData>(key: K, value: InvitationData[K]) => void;
+  fp: FieldProps;
+  loading?: boolean;
+}
+
+/** Edit the invitation paragraph: the message itself, and who is inviting. */
+export function InviteSection({ data, set, fp, loading = false }: Props) {
+  const mode = inviterMode(data);
+  const msg = fp("inviteMessageTe");
+  return (
+    <>
+      <label className="f te" htmlFor="f-inviteMessageTe">
+        <span>Invitation message తెలుగు</span>
+        <textarea
+          id="f-inviteMessageTe" rows={5} lang="te" value={loading ? "" : data.inviteMessageTe} disabled={loading}
+          className={loading ? "sk-bg" : undefined} placeholder={DEFAULT_INVITE_MESSAGE_TE} maxLength={INVITE_MESSAGE_MAX}
+          onFocus={msg.onFocus} onBlur={msg.onBlur} onChange={(e) => set("inviteMessageTe", e.target.value)}
+        />
+        <small className="counter">{loading ? "" : `${data.inviteMessageTe.length}/${INVITE_MESSAGE_MAX}`}</small>
+      </label>
+      <div className="hint">Leave it empty to use the standard text.</div>
+      {!loading && data.inviteMessageTe.trim() !== DEFAULT_INVITE_MESSAGE_TE && (
+        <button type="button" className="outline" onClick={() => set("inviteMessageTe", DEFAULT_INVITE_MESSAGE_TE)}>Use the standard text</button>
+      )}
+
+      <div className="sub">Who is inviting</div>
+      <div className="seg wrap" role="radiogroup" aria-label="Who is inviting">
+        {INVITER_OPTIONS.map((o) => (
+          <button key={o.id} type="button" role="radio" aria-checked={mode === o.id} className={mode === o.id ? "on" : undefined} disabled={loading}
+            onClick={() => { set("inviterMode", o.id); fp("inviterMode").onFocus(); }}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {mode === "custom" && (
+        <Bilingual enLabel="Name EN" teLabel="Name తెలుగు" enField="inviterEn" teField="inviterTe" data={data} set={set as never} fp={fp} />
+      )}
+      <div className="hint">
+        {mode === "surname" && "Uses the family surname."}
+        {mode === "groom" && "Uses the groom’s father’s name (or the groom’s name if there is no father)."}
+        {mode === "bride" && "Uses the bride’s father’s name (or the bride’s name if there is no father)."}
+        {mode === "both" && "Uses both families, groom’s first."}
+        {mode === "custom" && "Shown before “కుటుంబము వారి”."}
+      </div>
+      {!loading && <div className="hint te-preview" lang="te"><b>Reads:</b> {inviteTextTe(data)}</div>}
+    </>
+  );
+}

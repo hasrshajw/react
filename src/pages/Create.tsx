@@ -200,7 +200,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   /* Each section has its own loading flag, so a section can appear as soon as ITS data is there.
      (Today the invitation arrives in one piece, so its sections appear together, with a short stagger.) */
   const sectionLoading = useMemo<Record<SectionId, boolean>>(() => ({
-    template: recordLoading, family: recordLoading, groom: recordLoading, bride: recordLoading,
+    template: recordLoading, family: recordLoading, groom: recordLoading, bride: recordLoading, message: recordLoading,
     venue: recordLoading, seo: recordLoading, events: recordLoading, client: recordLoading,
   }), [recordLoading]);
 

@@ -38,6 +38,12 @@ describe("telugu-traditional template", () => {
     expect(d.getElementById("typeText")?.textContent).toContain("కొమ్మినేని");
   });
 
+  it("the invitation paragraph follows the chosen inviter and the edited message", () => {
+    expect(text(doc(full), "#typeText")).toContain("కొమ్మినేని కుటుంబము వారి శుభ వివాహ");
+    const d = doc({ ...full, inviterMode: "both", inviteMessageTe: "మా పెళ్ళికి రండి." });
+    expect(text(d, "#typeText")).toBe("రామారావు & కృష్ణ కుటుంబముల వారి మా పెళ్ళికి రండి.");
+  });
+
   it("builds clean call and WhatsApp links from messy phone numbers", () => {
     const d = doc(full);
     const wa = [...d.querySelectorAll<HTMLAnchorElement>("a[href^='https://wa.me/']")].map((a) => a.getAttribute("href"));

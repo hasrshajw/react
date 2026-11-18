@@ -286,7 +286,7 @@ function ClientEditor() {
   const focus = useCallback((field: string) => setFocusRequest({ field, id: uid() }), []);
   const sectionLoading = useMemo<Record<SectionId, boolean>>(
     () => ({
-      template: !ready, family: !ready, groom: !ready, bride: !ready,
+      template: !ready, family: !ready, groom: !ready, bride: !ready, message: !ready,
       venue: !ready, seo: !ready, events: !ready, client: !ready,
     }),
     [ready],

@@ -22,7 +22,7 @@ import { CreateForm, type CreateFormProps } from "./CreateForm";
 import { initial } from "./constants";
 import type { ContactItem, EventItem, SectionId } from "../../types/invitation";
 
-const IDS: SectionId[] = ["template", "family", "groom", "bride", "venue", "seo", "events", "client"];
+const IDS: SectionId[] = ["template", "family", "groom", "bride", "message", "venue", "seo", "events", "client"];
 const allLoading = (v: boolean) => Object.fromEntries(IDS.map((i) => [i, v])) as Record<SectionId, boolean>;
 
 let host: HTMLDivElement, root: Root;
@@ -66,10 +66,10 @@ beforeEach(() => { host = document.createElement("div"); document.body.appendChi
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
 describe("CreateForm: layout", () => {
-  it("shows the eight sections with their titles and the tag that tagFor gives", () => {
+  it("shows the nine sections with their titles and the tag that tagFor gives", () => {
     show();
     const titles = [...host.querySelectorAll("section h2")].map((x) => x.textContent);
-    expect(titles).toEqual(["Template Options", "Family & Wedding", "Groom's Details", "Bride's Details", "Reception & Venue", "Link Preview & Custom Link", "Additional Events", "Client Access"]);
+    expect(titles).toEqual(["Template Options", "Family & Wedding", "Groom's Details", "Bride's Details", "Invitation Text", "Reception & Venue", "Link Preview & Custom Link", "Additional Events", "Client Access"]);
     for (const id of IDS) expect(host.querySelector(`#sec-${id} .sec-tag`)?.textContent).toBe(`tag-${id}`);
   });
 
@@ -310,5 +310,28 @@ describe("CreateForm: children", () => {
     expect(h.seo!.notify).toBe(props.notify);
     show({ invitationId: "inv-77" });
     expect(h.seo).toMatchObject({ loading: false });
+  });
+
+  describe("invitation text section", () => {
+    const radio = (label: string) => [...host.querySelectorAll('[role="radio"]')].find((b) => b.textContent === label) as HTMLButtonElement;
+    it("choosing who invites calls set with the mode", () => {
+      show();
+      click(radio("Both families"));
+      expect(props.set).toHaveBeenCalledWith("inviterMode", "both");
+    });
+    it("the message box writes the edited message", () => {
+      show();
+      const box = host.querySelector("#f-inviteMessageTe") as HTMLTextAreaElement;
+      act(() => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(box, "హలో");
+        box.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      expect(props.set).toHaveBeenCalledWith("inviteMessageTe", "హలో");
+    });
+    it("Custom name shows the name boxes", () => {
+      show({ data: { ...initial, inviterMode: "custom" } });
+      expect(input("inviterEn")).toBeTruthy();
+      expect(input("inviterTe")).toBeTruthy();
+    });
   });
 });

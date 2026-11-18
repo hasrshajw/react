@@ -1,10 +1,11 @@
 import React from "react";
-import { CalendarPlus, Heart, LayoutTemplate, Mail, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
+import { CalendarPlus, FileText, Heart, LayoutTemplate, Mail, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
 import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
 import { newEvent } from "./constants";
 import { Bilingual } from "./components/Bilingual";
 import { Contacts } from "./components/Contacts";
 import { Field } from "./components/Field";
+import { InviteSection } from "./components/InviteSection";
 import { Section } from "./components/Section";
 import { SeoSection } from "./components/SeoSection";
 import { TemplatePicker } from "./components/TemplatePicker";
@@ -50,7 +51,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
     const fpx = (name: string, focusKey: string) => ({ name, onFocus: () => focus(focusKey), onBlur: () => touch(name), error: vis(name), loading });
     return { loading, fpx, fp: (name: string) => fpx(name, name) };
   };
-  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), seo = fx("seo"), events = fx("events"), client = fx("client");
+  const tpl = fx("template"), fam = fx("family"), groom = fx("groom"), bride = fx("bride"), venue = fx("venue"), seo = fx("seo"), events = fx("events"), message = fx("message"), client = fx("client");
   const normalizedCurrent = data.clientEmail.trim().toLowerCase();
   const normalizedOriginal = originalClientEmail.trim().toLowerCase();
   const clientEmailChanged = normalizedOriginal !== "" && normalizedCurrent !== normalizedOriginal;
@@ -96,6 +97,10 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="brideMotherEn" teField="brideMotherTe" data={data} set={set} fp={bride.fp} />
         <Field label="Mother Phone" type="tel" inputMode="tel" {...bride.fp("brideMotherPhone")} value={data.brideMotherPhone} onChange={(v) => set("brideMotherPhone", v)} />
         <Contacts loading={bride.loading} field="brideContacts" items={data.brideContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
+      </Section>
+
+      <Section id="message" icon={FileText} title="Invitation Text" tag={tagFor("message")} loading={message.loading}>
+        <InviteSection data={data} set={set} fp={message.fp} loading={message.loading} />
       </Section>
 
       <Section id="venue" icon={MapPin} title="Reception & Venue" tag={tagFor("venue")} loading={venue.loading}>

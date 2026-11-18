@@ -34,6 +34,8 @@ export interface InvitationData {
   groomContacts: ContactItem[];
   brideContacts: ContactItem[];
   /* Link preview (WhatsApp / Instagram). Stored inside the `details` JSON column. */
+  /* Invitation paragraph: who invites (surname | groom | bride | both | custom) and the message. Empty message = the standard text. */
+  inviterMode: string; inviterEn: string; inviterTe: string; inviteMessageTe: string;
   seoTitle: string;        // max 60 chars
   seoDescription: string;  // max 160 chars
   seoImage: string;        // public https URL from Supabase Storage (NOT a base64 data URL)
@@ -62,7 +64,7 @@ export interface SectionDef {
   hint: "required" | "recommended" | "optional";
 }
 
-export type SectionId = "template" | "family" | "groom" | "bride" | "venue" | "seo" | "events" | "client";
+export type SectionId = "template" | "family" | "groom" | "bride" | "message" | "venue" | "seo" | "events" | "client";
 
 export interface FieldError { section: SectionId; msg: string }
 export type ErrorMap = Record<string, FieldError>;
