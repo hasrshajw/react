@@ -218,9 +218,11 @@
     .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     /* Preview = the form is swapped out and the invitation fills the screen under the navbar; the bottom bar stays (Preview becomes Edit). */
     .create.previewing > header, .create.previewing > .msg, .create.previewing > [role="status"], .create.previewing > section, .create.previewing .create-builder-layout { display: none !important; }
-    .create-live-preview-panel { --pv-top: calc(var(--chrome-top, 44px) + 80px); position: fixed !important; top: var(--pv-top); left: 5px; right: 5px; bottom: auto; z-index: 3000; box-sizing: border-box; width: auto; min-width: 0; max-width: none; flex: none; height: calc(100vh - var(--pv-top) - 5px); height: calc(100dvh - var(--pv-top) - 5px); border-radius: 0 0 20px 20px !important; display: none; box-shadow: none; padding-bottom: 88px; background: #fff; }
+    /* In normal page flow (not fixed): fills the screen between the navbar and the bottom bar. */
+    .create-live-preview-panel { position: relative !important; box-sizing: border-box; width: 100%; min-width: 0; max-width: none; flex: none; align-self: stretch; height: calc(100vh - 224px); height: calc(100dvh - 224px); min-height: 360px; border-radius: 20px !important; display: none; box-shadow: 0 1px 0 var(--gray-border); background: #fff; }
     .create-live-preview-panel.mobile-open { display: flex; }
     .create-live-preview-head { display: none; }
+    .create.previewing { padding-bottom: 0; }
     /* The iframe fills the body by position, not by a % height (a % of a flex item with no fixed height collapsed it to ~250px). */
     .create-live-preview-body { flex: 1 1 auto; min-height: 0; position: relative; }
     .create-live-preview-body iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -228,7 +230,6 @@
   @media(max-width: 768px) {
     /* phones: the 72px mobile header replaces the desktop navbar and main-content padding is 88px */
     .create { --sec-top: -4px; --sec-scroll-mt: 146px; }
-    .create-live-preview-panel { --pv-top: calc(var(--chrome-top, 44px) + 72px); }
   }
   @media(max-width: 768px) {
     /* popups (share, leave, submit) become bottom sheets on phones, like the template sheet */

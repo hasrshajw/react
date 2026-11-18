@@ -25,11 +25,11 @@ interface Props {
 /* React.memo: typing in the form changes `compiled`, but nothing else here, and
    unrelated renders of the page (toasts, save state, nav) skip this panel entirely.
    The iframe is patched in place (morphdom runs inside the frame, driven by postMessage; L-9: the frame holds the compiled document without its scripts) instead of being reloaded. */
-/* Phones (<= 900px): the panel is drawn inside the page frame (#main), not in the side slot, so the mobile menu and its scrim stack above it exactly as they do above the form.
-   On desktop it stays in the side slot. */
-function usePhoneHost(slot: HTMLElement): HTMLElement {
+/* Phones (<= 900px): the preview is ordinary page content (rendered where the form was, inside the page), not a fixed layer, so the mobile menu,
+   its scrim and the bottom Edit/Save bar stack above it exactly as they do above the form. On desktop it is portalled into the side slot. */
+function useIsPhoneWidth(): boolean {
   const query = "(max-width: 900px)";
-  const [phone, setPhone] = useState(() => typeof window !== "undefined" && window.matchMedia?.(query).matches);
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(query).matches);
   useEffect(() => {
     if (!window.matchMedia) return;
     const mq = window.matchMedia(query);
@@ -38,11 +38,11 @@ function usePhoneHost(slot: HTMLElement): HTMLElement {
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
-  return (phone && document.getElementById("main")) || slot;
+  return phone;
 }
 
 export const LivePreview = memo(function LivePreview({ slot, compiled, selected, open, loading = false, focusRequest, onClose, onChoose, emptyTitle = "Pick a template to start", emptyHint = "Your invitation appears here and updates as you type." }: Props) {
-  const host = usePhoneHost(slot);
+  const phone = useIsPhoneWidth();
   const frameRef = useRef<HTMLIFrameElement>(null);
   /* C-2: the frame has an opaque origin (no allow-same-origin), so everything goes through postMessage.
      `targetOrigin` must be "*" for an opaque origin; the content sent is only this user's own compiled preview. */
@@ -65,7 +65,7 @@ export const LivePreview = memo(function LivePreview({ slot, compiled, selected,
   useEffect(() => {
     if (!compiled || !loadedRef.current) return;
     send({ schedy: "patch", html: compiled });
-  }, [compiled, host]);
+  }, [compiled, slot, phone]);
 
   /* scroll the preview to the field being edited */
   useEffect(() => {
@@ -75,7 +75,7 @@ export const LivePreview = memo(function LivePreview({ slot, compiled, selected,
     if (loadedRef.current) send({ schedy: "focus", target });
   }, [focusRequest, selected]);
 
-  return createPortal(
+  const panel = (
     <aside className={`create-live-preview-panel ${open ? "mobile-open" : ""}`}>
       <div className="create-live-preview-head">
         <div>
@@ -109,7 +109,7 @@ export const LivePreview = memo(function LivePreview({ slot, compiled, selected,
           </div>
         )}
       </div>
-    </aside>,
-    host
+    </aside>
   );
+  return phone ? panel : createPortal(panel, slot);
 });
