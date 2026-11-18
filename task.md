@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T4 done, next task is T5** (T5, T6 and T7 are independent and can go in any order; T8 needs T1 and T4, both done)
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T5 done, next task is T6** (T6 and T7 are independent and can go in any order; T8 needs T1 and T4, both done)
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -104,7 +104,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | T2 | Closing title, who-appears selector, custom names | T1 | yes | DONE |
 | T3 | Separate house names, gotram, honorific | T0 | yes | DONE |
 | T4 | Birth order and the "son / daughter of" line | T3 | yes | DONE |
-| T5 | Separate reception venue | T0 | yes | TODO |
+| T5 | Separate reception venue | T0 | yes | DONE |
 | T6 | More events, event types, end time, description | T0 | yes | TODO |
 | T7 | More contacts per side, contact role | T0 | yes | TODO |
 | T8 | Family members list (siblings, grandparents, uncle) | T1, T4 | yes | TODO |
@@ -553,7 +553,48 @@ to `text_keys`; add `receptionVenueMaps` to `url_keys`; add all five to `allowed
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 19 Nov 2026 by Claude   Commit(s): 5fa292e (code, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/types/invitation.ts: receptionSameVenue (boolean) and four text keys: receptionVenueEn, receptionVenueTe, receptionVenueAddress, receptionVenueMaps.
+  - src/features/create/constants.ts: defaults (receptionSameVenue true, others ""); EN_TO_TE receptionVenueEn -> receptionVenueTe; TARGETS point all four at "reception-venue-te".
+  - src/lib/compileInvitation.ts valuesFor(): reception-venue-te / -en / -address / -maps equal the wedding venue when receptionSameVenue is not false
+      (a record without the key counts as same venue), else the new fields. New placeholders: reception-own-venue ("1" only when reception is on, the venue is
+      separate and at least one field is filled), reception-venue-target ("venue-te" or "reception-venue-te", used as the preview scroll target).
+      same-venue is kept: "1" when reception is on, the venue is shared and the wedding venue name is filled.
+  - docs/templates/telugu-traditional.html: the reception venue pill's data-scroll-target is now {{reception-venue-target}} (renders "venue-te" as before for old
+      records); inside {{#if reception-own-venue}} an address pill (చిరునామా) and a map link button (same markup as extra events) follow the venue pill.
+  - src/features/create/CreateForm.tsx: after the wedding venue fields, when reception is on: checkbox "Same venue as the wedding"; when unticked the four fields.
+      Ticking the box clears receptionVenueMaps if it is not a valid URL, so a hidden bad link cannot block saving.
+  - src/lib/validate.ts: receptionVenueMaps must be a valid URL when filled (error in the "venue" section). Checked even when "same venue" is ticked, because the database checks every link field.
+  - src/features/reviews/fieldLabels.ts: labels for the five keys.
+  - supabase/01_schema.sql: details_problem(): four text keys, receptionVenueMaps added to url_keys, receptionSameVenue has its own boolean branch beside receptionEnabled;
+      details_value(): a missing receptionSameVenue counts as true; submit_change_request(): all five keys in `allowed`.
+  - supabase/updates/05_T5_reception_venue.sql (new): the three changed functions, taken from 01_schema.sql (contains T1 to T4 too).
+  - tools/db-test/tests.sql: 9 new checks (bad boolean, non-text name, javascript: and tab-hidden links, over-long name, good records, three client submits proving the keys are on the
+      allowed list) and the "only the real changes are listed" check now also sends receptionSameVenue true, which proves the missing-key default.
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings) · unit 839 passed (was 813, +26) · build ok · db tests 273 passed (was 264, +9; PostgreSQL 16 was installed in the sandbox for this).
+  The update file was also checked: the OLD schema (git HEAD before this task) + supabase/updates/05_T5_reception_venue.sql passes the same 273 checks, and the old schema alone fails the new tests.
+  Mutation check: removing the details_value default makes "only the real changes are listed" fail.
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser or in the client area (/my).
+  - Old record: compiled template is byte-identical to one with the five keys at their defaults.
+  - Same venue (with reception fields typed but hidden), separate venue with all fields, name only, nothing typed, and a javascript: map link never reaching the page.
+Pending / not done:
+  - A separate venue with nothing typed shows no venue row (it does not borrow the wedding venue). A warning for this belongs in T9 (cross-field validation).
+  - No -en venue pill in the template (the Telugu template only uses Telugu text, like the wedding venue); reception-venue-en exists for other templates.
+  - Not tried in a real browser or in /my; same CreateForm, and the db tests prove a client may submit the keys.
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/05_T5_reception_venue.sql (after 01 to 04 if they were not run; safe to re-run; no table or data changes).
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (needed for the address and map link; without it everything still works,
+      but only the venue name of the reception shows).
+  3. Deploy `preview` and try: tick "Include reception", untick "Same venue as the wedding", fill the four fields, check the preview and the public page; open an invitation saved
+      before this task and confirm it looks the same; in /my, edit an old invitation and confirm the review screen shows no "Reception at the wedding venue" change you did not make.
+Notes for the next person (T6 and later):
+  - Existing behaviour, NOT changed: the reception card shows whenever receptionDate is filled, even if "Include reception" is off (the checkbox only hides the date inputs). T9 could fix this.
+  - Possible T2 bug, NOT changed: details_value() does not list 'inviterNames' among the keys that default to '[]', so a missing inviterNames (old invitation) differs from the [] the form
+      sends and may show a false "Custom names" change in the review screen. Confirmed with a db probe. Fix: add 'inviterNames' to the '[]' list in details_value() (01_schema.sql and a new update file).
+  - A key that defaults to true needs a branch in details_value(), otherwise old records show a false change. Remember this for any future default-true key.
+  - The compiler wraps every placeholder in <span data-schedy-field>; in tests compare textContent, not the raw string.
 ```
 
 ---
@@ -654,6 +695,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-19  T5 done (separate reception venue). 839 unit tests, 273 db tests, build ok. Owner: run supabase/updates/05_T5_reception_venue.sql (after 01 to 04) and re-paste the template. Also see the two notes in T5 (possible inviterNames diff bug, reception card ignores the checkbox). Next: T6 (or T7 / T8).
 2026-11-19  T4 done (birth order, parentage line). 813 unit tests, 264 db tests, build ok. Owner: run supabase/updates/04_T4_birth_order.sql (after 01 to 03) and re-paste the template. Next: T5 (or T6 / T7 / T8).
 2026-11-18  T3 done (house names, gotram, honorific). 790 unit tests, 259 db tests, build ok. Owner: run supabase/updates/03_T3_house_names.sql (after 01, 02) and re-paste the template. Next: T4 (or T5 / T6 / T7).
 2026-11-18  T2 done (closing title, who appears, custom names). 774 unit tests, 252 db tests, build ok. Owner: run supabase/updates/02_T2_closing_names.sql (after 01) and re-paste the template. Next: T3 (or T5 / T6 / T7, which are independent).
