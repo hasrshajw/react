@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Link, Navigate, Route, Routes, useBlocker, useParams } from "react-router-dom";
 import { RoleGate } from "./components/RoleGate";
 import { Loading, SkText } from "./components/Skeleton";
-import { Clock, AlertCircle, CheckCircle2, Eye, Loader2, Lock, Save } from "./components/Icons";
+import { Clock, AlertCircle, CheckCircle2, Eye, Loader2, Lock, Pencil, Save } from "./components/Icons";
 import { invitationToForm } from "./features/client/invitationToForm";
 import { CreateForm } from "./features/create/CreateForm";
 import { LivePreview, type FocusRequest } from "./features/create/components/LivePreview";
@@ -169,6 +169,17 @@ function ClientEditor() {
   const [draftOffer, setDraftOffer] = useState<ClientDraft | null>(null);
   const [tplLoading, setTplLoading] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
+  /* Phones: Preview swaps the form for the full-screen preview (navbar stays); Edit brings the form back at the same scroll position. */
+  const scrollPos = useRef(0);
+  const openPreview = useCallback(() => {
+    scrollPos.current = document.getElementById("main")?.scrollTop ?? 0;
+    setPreviewOpen(true);
+    document.getElementById("main")?.scrollTo({ top: 0 });
+  }, []);
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false);
+    requestAnimationFrame(() => document.getElementById("main")?.scrollTo({ top: scrollPos.current }));
+  }, []);
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null);
   const headBtnRef = useRef<HTMLButtonElement>(null);
   const schedule = useTransliteration();
@@ -418,7 +429,7 @@ function ClientEditor() {
 
   return (
     <>
-            <div className="create client-create" aria-busy={!ready}>
+            <div className={`create client-create${previewOpen ? " previewing" : ""}`} aria-busy={!ready}>
               <header>
                 <div>
                   <div className="title-row">
@@ -551,7 +562,9 @@ function ClientEditor() {
 
               {/* mobile action bar */}
               <div className="mbar">
-                <button className="secondary" type="button" onClick={() => setPreviewOpen(true)}><Eye size={17} /> Preview</button>
+                {previewOpen
+                  ? <button className="secondary" type="button" onClick={closePreview}><Pencil size={17} /> Edit</button>
+                  : <button className="secondary" type="button" onClick={openPreview}><Eye size={17} /> Preview</button>}
                 <button className="primary" type="submit" form="create-form" disabled={submitDisabled}>
                   {busy ? <Loader2 className="spin" size={17} /> : <Save size={17} />} {busy ? "Submitting…" : "Submit"}
                 </button>
@@ -562,7 +575,7 @@ function ClientEditor() {
               {slot && (
                 <LivePreview
                   slot={slot} compiled={compiled} selected={selectedInfo} loading={!ready || tplLoading} open={previewOpen}
-                  focusRequest={focusRequest} onClose={() => setPreviewOpen(false)}
+                  focusRequest={focusRequest} onClose={closePreview}
                   emptyTitle="No preview available" emptyHint="This invitation has no template yet."
                 />
               )}

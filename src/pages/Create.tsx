@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useBlocker, useSearchParams } from "react-router-dom";
-import { AlertCircle, Check, Eye, Loader2, Save } from "../components/Icons";
+import { AlertCircle, Check, Eye, Loader2, Pencil, Save } from "../components/Icons";
 import { ApiError, fetchInvitation, saveInvitation } from "../lib/api";
 import { useTemplates } from "../hooks/useTemplates";
 import { compile } from "../lib/compileInvitation";
@@ -142,7 +142,17 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   const selectedInfo = useMemo(() => (selected ? { id: String(selected.id), name: selected.name } : undefined), [selected]);
   /* The preview only needs a skeleton when a template is expected (editing, or /create?template=…). */
   const previewLoading = expectTemplate && (tplLoading || recordLoading);
-  const closePreview = useCallback(() => setPreviewOpen(false), []);
+  /* Phones: Preview swaps the form for the full-screen preview (navbar stays); Edit brings the form back at the same scroll position. */
+  const scrollPos = useRef(0);
+  const openPreview = useCallback(() => {
+    scrollPos.current = document.getElementById("main")?.scrollTop ?? 0;
+    setPreviewOpen(true);
+    document.getElementById("main")?.scrollTo({ top: 0 });
+  }, []);
+  const closePreview = useCallback(() => {
+    setPreviewOpen(false);
+    requestAnimationFrame(() => document.getElementById("main")?.scrollTo({ top: scrollPos.current }));
+  }, []);
   const chooseTemplate = useCallback(() => { setPreviewOpen(false); scrollToSection("template"); }, []);
 
   /* ---------- form actions (stable, so memoised children are not re-rendered by them) ---------- */
@@ -301,7 +311,7 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
   const draftTime = draftOffer?.at ? new Date(draftOffer.at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
 
   return (
-    <div className="create" aria-busy={recordLoading || tplLoading}>
+    <div className={`create${previewOpen ? " previewing" : ""}`} aria-busy={recordLoading || tplLoading}>
       <header>
         <div>
           <div className="title-row">
@@ -355,7 +365,9 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
 
       {/* mobile action bar */}
       <div className="mbar">
-        <button className="secondary" type="button" onClick={() => setPreviewOpen(true)}><Eye size={17} /> Preview</button>
+        {previewOpen
+          ? <button className="secondary" type="button" onClick={closePreview}><Pencil size={17} /> Edit</button>
+          : <button className="secondary" type="button" onClick={openPreview}><Eye size={17} /> Preview</button>}
         <button className="primary" type="submit" form="create-form" disabled={saveDisabled}>
           {saving ? <Loader2 className="spin" size={17} /> : <Save size={17} />} {saveLabel}
         </button>
