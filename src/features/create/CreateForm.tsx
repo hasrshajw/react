@@ -7,7 +7,7 @@ import { Contacts } from "./components/Contacts";
 import { Field } from "./components/Field";
 import { InviteSection } from "./components/InviteSection";
 import { ParentStatus } from "./components/ParentStatus";
-import { parentStatus } from "../../lib/inviteText";
+import { BIRTH_ORDERS, birthOrder, parentStatus } from "../../lib/inviteText";
 import { Section } from "./components/Section";
 import { SeoSection } from "./components/SeoSection";
 import { TemplatePicker } from "./components/TemplatePicker";
@@ -77,6 +77,9 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <label className="check">
           <input type="checkbox" disabled={fam.loading} checked={data.coupleHonorific === "chiranjeevi"} onChange={(e) => set("coupleHonorific", e.target.checked ? "chiranjeevi" : "")} /> Show చి|| / చి.ల.సౌ|| before the names
         </label>
+        <label className="check">
+          <input type="checkbox" disabled={fam.loading} checked={data.showParentage === "1"} onChange={(e) => set("showParentage", e.target.checked ? "1" : "")} /> Show "son of / daughter of" line (replaces the plain parent lines on the groom and bride cards)
+        </label>
         <div className="grid two">
           <Field label="Wedding Date" type="date" required {...fam.fp("weddingDate")} value={data.weddingDate} onChange={(v) => set("weddingDate", v)} />
           <Field label="Muhurtham Time" type="time" {...fam.fp("muhurthamTime")} value={data.muhurthamTime} onChange={(v) => set("muhurthamTime", v)} />
@@ -87,6 +90,12 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <Bilingual enLabel="Groom Name EN" teLabel="Groom Name తెలుగు" enField="groomEn" teField="groomTe" data={data} set={set} fp={groom.fp} required />
         <Bilingual enLabel="House name EN" teLabel="ఇంటి పేరు" enField="groomSurnameEn" teField="groomSurnameTe" data={data} set={set} fp={groom.fp} />
         <Bilingual enLabel="Gotram EN" teLabel="గోత్రం" enField="groomGotramEn" teField="groomGotramTe" data={data} set={set} fp={groom.fp} />
+        <div className="f">
+          <label htmlFor="f-groomOrder">Position among children</label>
+          <select id="f-groomOrder" disabled={groom.loading} className={groom.loading ? "sk-bg" : undefined} value={birthOrder(data.groomOrder)} onChange={(e) => { set("groomOrder", e.target.value); groom.fp("groomOrder").onFocus(); }}>
+            {BIRTH_ORDERS.map((o) => <option key={o.id || "none"} value={o.id}>{o.label}</option>)}
+          </select>
+        </div>
         <div className="sub">Father's Details</div>
         <ParentStatus label="Groom's father" value={data.groomFatherStatus} onChange={(v) => set("groomFatherStatus", v)} onFocus={groom.fp("groomFatherStatus").onFocus} loading={groom.loading} />
         <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="groomFatherEn" teField="groomFatherTe" data={data} set={set} fp={groom.fp} disabled={parentStatus(data.groomFatherStatus) === "hidden"} />
@@ -102,6 +111,12 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <Bilingual enLabel="Bride Name EN" teLabel="Bride Name తెలుగు" enField="brideEn" teField="brideTe" data={data} set={set} fp={bride.fp} required />
         <Bilingual enLabel="House name EN" teLabel="ఇంటి పేరు" enField="brideSurnameEn" teField="brideSurnameTe" data={data} set={set} fp={bride.fp} />
         <Bilingual enLabel="Gotram EN" teLabel="గోత్రం" enField="brideGotramEn" teField="brideGotramTe" data={data} set={set} fp={bride.fp} />
+        <div className="f">
+          <label htmlFor="f-brideOrder">Position among children</label>
+          <select id="f-brideOrder" disabled={bride.loading} className={bride.loading ? "sk-bg" : undefined} value={birthOrder(data.brideOrder)} onChange={(e) => { set("brideOrder", e.target.value); bride.fp("brideOrder").onFocus(); }}>
+            {BIRTH_ORDERS.map((o) => <option key={o.id || "none"} value={o.id}>{o.label}</option>)}
+          </select>
+        </div>
         <div className="sub">Father's Details</div>
         <ParentStatus label="Bride's father" value={data.brideFatherStatus} onChange={(v) => set("brideFatherStatus", v)} onFocus={bride.fp("brideFatherStatus").onFocus} loading={bride.loading} />
         <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="brideFatherEn" teField="brideFatherTe" data={data} set={set} fp={bride.fp} disabled={parentStatus(data.brideFatherStatus) === "hidden"} />

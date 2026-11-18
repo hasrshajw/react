@@ -1,5 +1,5 @@
 import type { InvitationData, EventItem, ContactItem } from "../types/invitation";
-import { HONORIFIC_BRIDE_TE, HONORIFIC_GROOM_TE, honorificOn, closingTitleEn, closingTitleMode, closingTitleTe, inviteMessageTe, inviterLinesTe, parentPrefixTe, parentStatus } from "./inviteText";
+import { HONORIFIC_BRIDE_TE, HONORIFIC_GROOM_TE, honorificOn, parentageLineTe, closingTitleEn, closingTitleMode, closingTitleTe, inviteMessageTe, inviterLinesTe, parentPrefixTe, parentStatus } from "./inviteText";
 // Shared by the Create page and the Dashboard preview.
 /** Invitation fields the template compiler reads. Every field is optional so partial records (e.g. dashboard rows) can be previewed. */
 export type CompileData = Partial<InvitationData>;
@@ -35,6 +35,8 @@ function valuesFor(data:CompileData):Record<string,string|undefined>{
   v[`${k}-gotram-te`]=own("GotramTe");v[`${k}-gotram-en`]=own("GotramEn");
  });
  const hon=honorificOn(data.coupleHonorific);v["couple-honorific"]=hon?"1":"";v["groom-honorific-te"]=hon?HONORIFIC_GROOM_TE:"";v["bride-honorific-te"]=hon?HONORIFIC_BRIDE_TE:"";
+ /* Birth order and parentage line (T4). `-parentage-te` is empty unless the line is on and a parent name is left; `-plain-lines` is "1" while the old "ఆత్మీయ కుమారుడు" lines stay. */
+ (["groom","bride"] as const).forEach(k=>{const line=parentageLineTe(k,data);v[`${k}-parentage-te`]=line;v[`${k}-plain-lines`]=line?"":"1";});
  return v;
 }
 

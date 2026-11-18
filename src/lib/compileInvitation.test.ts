@@ -97,3 +97,21 @@ describe("compile: house names, gotram, honorific placeholders (T3)", () => {
     expect(out({ coupleHonorific: "x" }, tpl)).not.toContain("చి");
   });
 });
+
+describe("birth order and parentage placeholders (T4)", () => {
+  const out2 = (data: object, tpl: string) => new DOMParser().parseFromString(compile(tpl, data as never), "text/html").body.textContent ?? "";
+  const tpl = "{{groom-parentage-te}}|{{bride-parentage-te}}|{{#if groom-plain-lines}}plain{{/if}}";
+  const parents = { groomFatherTe: "రామారావు", groomMotherTe: "సీత", brideFatherTe: "కృష్ణ" };
+  it("an old record (no new keys) has empty lines and keeps the plain lines", () => {
+    expect(out2(parents, tpl)).toBe("||plain");
+  });
+  it("the switch gives the line and removes the plain lines flag", () => {
+    const r = out2({ ...parents, showParentage: "1", groomOrder: "second" }, tpl);
+    expect(r).toContain("శ్రీ రామారావు, శ్రీమతి సీత ల రెండవ కుమారుడు");
+    expect(r).toContain("శ్రీ కృష్ణ గారి కుమార్తె");
+    expect(r).not.toContain("plain");
+  });
+  it("the switch on with no parent left keeps the plain lines flag", () => {
+    expect(out2({ showParentage: "1" }, tpl)).toBe("||plain");
+  });
+});

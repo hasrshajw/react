@@ -386,7 +386,8 @@ declare
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
     'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources',
-    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
+    'groomOrder','brideOrder','showParentage'];
   url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
@@ -413,6 +414,11 @@ begin
         -- T3: the honorific before the couple's names is off ('') or 'chiranjeevi'
         if k = 'coupleHonorific' and s not in ('', 'chiranjeevi') then
           return 'coupleHonorific must be empty or chiranjeevi'; end if;
+        -- T4: birth order (same list as BIRTH_ORDERS in src/lib/inviteText.ts) and the parentage-line switch
+        if k in ('groomOrder', 'brideOrder') and s not in ('', 'only', 'eldest', 'second', 'third', 'fourth', 'youngest') then
+          return k || ' is not a known position among children'; end if;
+        if k = 'showParentage' and s not in ('', '1') then
+          return 'showParentage must be empty or 1'; end if;
         -- T2: closing title preset and the list of people who appear (same rules as src/lib/inviteText.ts)
         if k = 'closingTitleMode' and s not in ('', 'itlu', 'aahvaninchuvaaru', 'compliments', 'invitedBy', 'regards', 'custom', 'none') then
           return 'closingTitleMode is not a known title'; end if;
@@ -665,7 +671,8 @@ declare
     'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
     'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames',
-    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
+    'groomOrder','brideOrder','showParentage'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

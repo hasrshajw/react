@@ -39,3 +39,11 @@ describe("fieldLabel: house names (T3)", () => {
     expect(fieldLabel("coupleHonorific")).toBe("Honorific before names");
   });
 });
+
+describe("fieldLabel: birth order (T4)", () => {
+  it("has a label for each new key", () => {
+    expect(fieldLabel("groomOrder")).toBe("Groom's position among children");
+    expect(fieldLabel("brideOrder")).toBe("Bride's position among children");
+    expect(fieldLabel("showParentage")).toBe("Show 'son / daughter of' line");
+  });
+});

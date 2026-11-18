@@ -49,6 +49,37 @@ export const HONORIFIC_BRIDE_TE = "చి.ల.సౌ||";
 export const honorificOn = (v: unknown): boolean => v === "chiranjeevi";
 export const okHonorific = (v: unknown): boolean => v === undefined || v === null || v === "" || v === "chiranjeevi";
 
+/* ---------- Birth order and the "son / daughter of" line (T4) ---------- */
+export type BirthOrder = "" | "only" | "eldest" | "second" | "third" | "fourth" | "youngest";
+export const BIRTH_ORDERS: { id: BirthOrder; label: string; te: string }[] = [
+  { id: "", label: "Not shown", te: "" },
+  { id: "only", label: "Only child", te: "ఏకైక" },
+  { id: "eldest", label: "Eldest", te: "పెద్ద" },
+  { id: "second", label: "Second", te: "రెండవ" },
+  { id: "third", label: "Third", te: "మూడవ" },
+  { id: "fourth", label: "Fourth", te: "నాల్గవ" },
+  { id: "youngest", label: "Youngest", te: "చిన్న" },
+];
+export const okBirthOrder = (v: unknown): boolean => v === undefined || v === null || BIRTH_ORDERS.some((o) => o.id === v);
+export const birthOrder = (v: unknown): BirthOrder => (BIRTH_ORDERS.some((o) => o.id === v) ? (v as BirthOrder) : "");
+export const parentageOn = (v: unknown): boolean => v === "1";
+
+/** "శ్రీ X, శ్రీమతి Y ల రెండవ కుమారుడు" (daughter: కుమార్తె). One parent alone: "శ్రీ X గారి ...". Late parents print with "కీ.శే.".
+ *  Returns "" when the line is switched off or no parent name is left to show. */
+export function parentageLineTe(side: "groom" | "bride", data: object): string {
+  const d = data as Record<string, unknown>;
+  if (!parentageOn(d.showParentage)) return "";
+  const s = (k: string) => (typeof d[k] === "string" ? (d[k] as string).trim() : "");
+  const fs = parentStatus(d[`${side}FatherStatus`]), ms = parentStatus(d[`${side}MotherStatus`]);
+  const f = fs === "hidden" ? "" : s(`${side}FatherTe`), m = ms === "hidden" ? "" : s(`${side}MotherTe`);
+  if (!f && !m) return "";
+  const child = side === "groom" ? "కుమారుడు" : "కుమార్తె";
+  const word = BIRTH_ORDERS.find((o) => o.id === birthOrder(d[`${side}Order`]))?.te ?? "";
+  const tail = [word, child].filter(Boolean).join(" ");
+  const fl = f && `${parentPrefixTe("father", fs)} ${f}`, ml = m && `${parentPrefixTe("mother", ms)} ${m}`;
+  return fl && ml ? `${fl}, ${ml} ల ${tail}` : `${fl || ml} గారి ${tail}`;
+}
+
 /* ---------- Closing block (T2): title, who appears, custom names ---------- */
 
 export type ClosingTitleMode = "" | "itlu" | "aahvaninchuvaaru" | "compliments" | "invitedBy" | "regards" | "custom" | "none";

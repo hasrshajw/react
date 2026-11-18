@@ -251,8 +251,9 @@ body{font-family:'Noto Serif Telugu',Georgia,serif;background:var(--ink);color:v
         <h2>{{#if groom-honorific-te}}{{groom-honorific-te}} {{/if}}{{groom-te}}</h2>
         {{#if groom-surname-set}}<div class="list-item" data-scroll-target="groom-te"><div class="icon-dot"></div><div>ఇంటి పేరు: {{groom-surname-te}}</div></div>{{/if}}
         {{#if groom-gotram-te}}<div class="list-item" data-scroll-target="groom-te"><div class="icon-dot"></div><div>గోత్రం: {{groom-gotram-te}}</div></div>{{/if}}
-        {{#if groom-mother-te}}<div class="list-item" data-scroll-target="groom-mother-te"><div class="icon-dot"></div><div>{{groom-mother-prefix-te}} {{groom-mother-te}} గారి ఆత్మీయ కుమారుడు</div></div>{{/if}}
-        {{#if groom-father-te}}<div class="list-item" data-scroll-target="groom-father-te"><div class="icon-dot"></div><div>{{groom-father-prefix-te}} {{groom-father-te}} గారి ఆత్మీయ కుమారుడు</div></div>{{/if}}
+        {{#if groom-parentage-te}}<div class="list-item" data-scroll-target="groom-father-te"><div class="icon-dot"></div><div>{{groom-parentage-te}}</div></div>{{/if}}
+        {{#if groom-plain-lines}}{{#if groom-mother-te}}<div class="list-item" data-scroll-target="groom-mother-te"><div class="icon-dot"></div><div>{{groom-mother-prefix-te}} {{groom-mother-te}} గారి ఆత్మీయ కుమారుడు</div></div>{{/if}}{{/if}}
+        {{#if groom-plain-lines}}{{#if groom-father-te}}<div class="list-item" data-scroll-target="groom-father-te"><div class="icon-dot"></div><div>{{groom-father-prefix-te}} {{groom-father-te}} గారి ఆత్మీయ కుమారుడు</div></div>{{/if}}{{/if}}
       </div>
     </div>
 
@@ -263,8 +264,9 @@ body{font-family:'Noto Serif Telugu',Georgia,serif;background:var(--ink);color:v
         <h2>{{#if bride-honorific-te}}{{bride-honorific-te}} {{/if}}{{bride-te}}</h2>
         {{#if bride-surname-set}}<div class="list-item" data-scroll-target="bride-te"><div class="icon-dot"></div><div>ఇంటి పేరు: {{bride-surname-te}}</div></div>{{/if}}
         {{#if bride-gotram-te}}<div class="list-item" data-scroll-target="bride-te"><div class="icon-dot"></div><div>గోత్రం: {{bride-gotram-te}}</div></div>{{/if}}
-        {{#if bride-mother-te}}<div class="list-item" data-scroll-target="bride-mother-te"><div class="icon-dot"></div><div>{{bride-mother-prefix-te}} {{bride-mother-te}} గారి ఆత్మీయ కుమార్తె</div></div>{{/if}}
-        {{#if bride-father-te}}<div class="list-item" data-scroll-target="bride-father-te"><div class="icon-dot"></div><div>{{bride-father-prefix-te}} {{bride-father-te}} గారి ఆత్మీయ కుమార్తె</div></div>{{/if}}
+        {{#if bride-parentage-te}}<div class="list-item" data-scroll-target="bride-father-te"><div class="icon-dot"></div><div>{{bride-parentage-te}}</div></div>{{/if}}
+        {{#if bride-plain-lines}}{{#if bride-mother-te}}<div class="list-item" data-scroll-target="bride-mother-te"><div class="icon-dot"></div><div>{{bride-mother-prefix-te}} {{bride-mother-te}} గారి ఆత్మీయ కుమార్తె</div></div>{{/if}}{{/if}}
+        {{#if bride-plain-lines}}{{#if bride-father-te}}<div class="list-item" data-scroll-target="bride-father-te"><div class="icon-dot"></div><div>{{bride-father-prefix-te}} {{bride-father-te}} గారి ఆత్మీయ కుమార్తె</div></div>{{/if}}{{/if}}
       </div>
     </div>
   </div>

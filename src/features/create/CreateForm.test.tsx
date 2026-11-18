@@ -544,6 +544,29 @@ describe("CreateForm: house names, gotram, honorific (T3)", () => {
     click(on);
     expect(props.set).toHaveBeenCalledWith("coupleHonorific", "");
   });
+  it("the parentage checkbox is off by default and writes 1 or empty", () => {
+    show();
+    const find = (root: ParentNode) => [...root.querySelectorAll<HTMLInputElement>("label.check input")].find((i) => i.parentElement?.textContent?.includes("son of / daughter of"))!;
+    expect(find(host).checked).toBe(false);
+    click(find(host));
+    expect(props.set).toHaveBeenCalledWith("showParentage", "1");
+    show({ data: { ...initial, showParentage: "1" } });
+    expect(find(host).checked).toBe(true);
+    click(find(host));
+    expect(props.set).toHaveBeenCalledWith("showParentage", "");
+  });
+  it("each side has a Position among children dropdown with all seven choices; choosing one sets the key", () => {
+    show();
+    for (const [side, key] of [["groom", "groomOrder"], ["bride", "brideOrder"]] as const) {
+      const sel = host.querySelector<HTMLSelectElement>(`#f-${key}`)!;
+      expect(sel).toBeTruthy();
+      expect(sel.value).toBe("");
+      expect([...sel.options].map((o) => o.value)).toEqual(["", "only", "eldest", "second", "third", "fourth", "youngest"]);
+      act(() => { sel.value = "second"; sel.dispatchEvent(new Event("change", { bubbles: true })); });
+      expect(props.set).toHaveBeenCalledWith(key, "second");
+      expect(side).toBeTruthy();
+    }
+  });
   it("focusing a house name or gotram box points the preview at that person's card", () => {
     show();
     focusEl(input("brideGotramTe"));

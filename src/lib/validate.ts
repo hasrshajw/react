@@ -2,7 +2,7 @@ import type { ErrorMap, InvitationData } from "../types/invitation";
 import { isEmail } from "./auth";
 import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
-import { INVITER_PREFIX_IDS, okHonorific, MAX_INVITER_NAMES, okSources, parentStatus } from "./inviteText";
+import { INVITER_PREFIX_IDS, okBirthOrder, okHonorific, MAX_INVITER_NAMES, okSources, parentStatus } from "./inviteText";
 
 export const has = (v: unknown): boolean => String(v ?? "").trim() !== "";
 
@@ -47,6 +47,8 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   if (data.receptionEnabled && !has(data.receptionDate)) add("receptionDate", "venue", "Add the reception date");
   if (has(data.venueMaps) && !okUrl(data.venueMaps)) add("venueMaps", "venue", URL_MSG);
   if (!okHonorific(data.coupleHonorific)) add("coupleHonorific", "family", "Choose whether to show చి|| / చి.ల.సౌ||");
+  if (!okBirthOrder(data.groomOrder)) add("groomOrder", "groom", "Choose the groom's position among children from the list");
+  if (!okBirthOrder(data.brideOrder)) add("brideOrder", "bride", "Choose the bride's position among children from the list");
   /* Closing block (T2). The form cannot produce these problems; they can only come from pasted or damaged data. */
   if (!okSources(data.inviterSources || "")) add("inviterSources", "message", "Choose who is inviting from the list");
   if ((data.inviterNames || []).length > MAX_INVITER_NAMES) add("inviterNames", "message", `Use at most ${MAX_INVITER_NAMES} custom names`);

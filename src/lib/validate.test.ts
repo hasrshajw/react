@@ -121,3 +121,11 @@ describe("validateInvitation: honorific (T3)", () => {
     expect(validateInvitation(valid({ coupleHonorific: "king" })).coupleHonorific?.section).toBe("family");
   });
 });
+
+describe("birth order (T4)", () => {
+  it("accepts the list and empty; an unknown value is an error in the groom or bride section", () => {
+    expect(validateInvitation(valid({ groomOrder: "second", brideOrder: "" })).groomOrder).toBeUndefined();
+    expect(validateInvitation(valid({ groomOrder: "fifth" })).groomOrder?.section).toBe("groom");
+    expect(validateInvitation(valid({ brideOrder: "fifth" })).brideOrder?.section).toBe("bride");
+  });
+});

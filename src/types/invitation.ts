@@ -50,6 +50,8 @@ export interface InvitationData {
   groomSurnameEn: string; groomSurnameTe: string; brideSurnameEn: string; brideSurnameTe: string;
   groomGotramEn: string; groomGotramTe: string; brideGotramEn: string; brideGotramTe: string;
   coupleHonorific: string;
+  /* Birth order and parentage line (T4). groomOrder / brideOrder: "" | only | eldest | second | third | fourth | youngest. showParentage: "" | "1". */
+  groomOrder: string; brideOrder: string; showParentage: string;
   /* Parent status: "" = alive (default), "late" = deceased ("కీ.శే." prefix, no phone), "hidden" = not shown at all. */
   groomFatherStatus: ParentStatus; groomMotherStatus: ParentStatus; brideFatherStatus: ParentStatus; brideMotherStatus: ParentStatus;
   receptionEnabled: boolean; receptionDate: string; receptionTime: string;

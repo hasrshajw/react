@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { initial } from "../features/create/constants";
 import {
   CLOSING_TITLES, DEFAULT_INVITE_MESSAGE_TE, INVITER_PREFIXES, INVITER_SOURCES, MAX_CLOSING_LINES, SOURCES_NONE, closingTitleEn, closingTitleMode, closingTitleTe,
-  effectiveSources, inviteMessageTe, inviterLinesTe, okSources, parentPrefixTe, parentStatus, serializeSources,
+  effectiveSources, inviteMessageTe, inviterLinesTe, okBirthOrder, okSources, parentageLineTe, parentPrefixTe, parentStatus, serializeSources,
 } from "./inviteText";
 import type { InvitationData } from "../types/invitation";
 
@@ -204,5 +204,37 @@ describe("custom names (T2)", () => {
     const many = Array.from({ length: 12 }, (_, i) => ({ nameTe: `పేరు${i}` }));
     expect(lines(many)).toHaveLength(MAX_CLOSING_LINES);
     expect(lines([{ nameTe: "రావు" }, { nameTe: "రావు" }])).toEqual(["రావు"]);
+  });
+});
+
+describe("parentageLineTe (T4)", () => {
+  const base = { ...initial, showParentage: "1", groomFatherTe: "రామారావు", groomMotherTe: "సీత", brideFatherTe: "కృష్ణ", brideMotherTe: "లక్ష్మి" } as InvitationData;
+  it("is empty while the switch is off, even when parents and order are filled", () => {
+    expect(parentageLineTe("groom", { ...base, showParentage: "", groomOrder: "second" })).toBe("");
+  });
+  it.each([["only", "ఏకైక"], ["eldest", "పెద్ద"], ["second", "రెండవ"], ["third", "మూడవ"], ["fourth", "నాల్గవ"], ["youngest", "చిన్న"]])(
+    "order %s prints %s, son for the groom and daughter for the bride", (id, word) => {
+      expect(parentageLineTe("groom", { ...base, groomOrder: id })).toBe(`శ్రీ రామారావు, శ్రీమతి సీత ల ${word} కుమారుడు`);
+      expect(parentageLineTe("bride", { ...base, brideOrder: id })).toBe(`శ్రీ కృష్ణ, శ్రీమతి లక్ష్మి ల ${word} కుమార్తె`);
+    },
+  );
+  it("no order, or an unknown one, prints just son / daughter", () => {
+    expect(parentageLineTe("groom", base)).toBe("శ్రీ రామారావు, శ్రీమతి సీత ల కుమారుడు");
+    expect(parentageLineTe("bride", { ...base, brideOrder: "fifth" })).toBe("శ్రీ కృష్ణ, శ్రీమతి లక్ష్మి ల కుమార్తె");
+  });
+  it("a late parent prints with కీ.శే.", () => {
+    expect(parentageLineTe("groom", { ...base, groomOrder: "second", groomFatherStatus: "late" })).toBe("కీ.శే. రామారావు, శ్రీమతి సీత ల రెండవ కుమారుడు");
+  });
+  it("a hidden parent is dropped and the other one prints alone", () => {
+    expect(parentageLineTe("groom", { ...base, groomOrder: "eldest", groomFatherStatus: "hidden" })).toBe("శ్రీమతి సీత గారి పెద్ద కుమారుడు");
+    expect(parentageLineTe("bride", { ...base, brideMotherStatus: "hidden" })).toBe("శ్రీ కృష్ణ గారి కుమార్తె");
+  });
+  it("both parents hidden or both names empty: the line is omitted", () => {
+    expect(parentageLineTe("groom", { ...base, groomFatherStatus: "hidden", groomMotherStatus: "hidden" })).toBe("");
+    expect(parentageLineTe("bride", { ...base, brideFatherTe: "", brideMotherTe: "" })).toBe("");
+  });
+  it("okBirthOrder accepts the list and empty, refuses anything else", () => {
+    expect(okBirthOrder(undefined) && okBirthOrder("") && okBirthOrder("youngest")).toBe(true);
+    expect(okBirthOrder("fifth")).toBe(false);
   });
 });

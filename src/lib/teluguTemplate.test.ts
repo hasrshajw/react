@@ -183,3 +183,29 @@ describe("telugu-traditional template: house names, gotram, honorific (T3)", () 
     expect(text(doc({ ...full, groomSurnameTe: "కొమ్మినేని" }), ".hero-sub")).toBe("కొమ్మినేని వారి");
   });
 });
+
+describe("telugu-traditional template: parentage line (T4)", () => {
+  const lines = (d: Document, sel: string) => [...d.querySelectorAll(`${sel} .list-item`)].map((e) => e.textContent?.replace(/\s+/g, " ").trim() ?? "");
+  it("an old record compiles exactly as one with the new keys at their defaults, with the old lines", () => {
+    const old = compile(src, { ...initial, ...full });
+    const { groomOrder: _a, brideOrder: _b, showParentage: _c, ...oldRecord } = { ...initial, ...full } as InvitationData;
+    expect(compile(src, oldRecord as unknown as InvitationData)).toBe(old);
+    expect(lines(doc(full), ".groom-card").join("|")).toContain("శ్రీమతి సీత గారి ఆత్మీయ కుమారుడు");
+    expect(lines(doc(full), ".bride-card").join("|")).toContain("గారి ఆత్మీయ కుమార్తె");
+  });
+  it("with the switch on, one parentage line replaces the two plain lines on each card", () => {
+    const d = doc({ ...full, showParentage: "1", groomOrder: "second", brideOrder: "eldest" });
+    expect(lines(d, ".groom-card")).toEqual(["శ్రీ రామారావు, శ్రీమతి సీత ల రెండవ కుమారుడు"]);
+    expect(lines(d, ".bride-card")).toEqual(["శ్రీ కృష్ణ, శ్రీమతి లక్ష్మి ల పెద్ద కుమార్తె"]);
+    expect(compile(src, { ...initial, ...full, showParentage: "1" })).not.toMatch(/\{\{/);
+  });
+  it("a late father and a hidden mother", () => {
+    const d = doc({ ...full, showParentage: "1", groomFatherStatus: "late", brideMotherStatus: "hidden", brideOrder: "youngest" });
+    expect(lines(d, ".groom-card")[0]).toBe("కీ.శే. రామారావు, శ్రీమతి సీత ల కుమారుడు");
+    expect(lines(d, ".bride-card")[0]).toBe("శ్రీ కృష్ణ గారి చిన్న కుమార్తె");
+  });
+  it("both parents hidden: no parentage line and no plain lines", () => {
+    const d = doc({ ...full, showParentage: "1", brideFatherStatus: "hidden", brideMotherStatus: "hidden" });
+    expect(lines(d, ".bride-card").join("|")).not.toContain("కుమార్తె");
+  });
+});

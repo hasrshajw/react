@@ -293,6 +293,12 @@ select t.ok('house names, gotram and the honorific are accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d27', 'details-twentyseven', '{"groomSurnameEn":"Kommineni","groomSurnameTe":"కొమ్మినేని","brideSurnameEn":"","brideSurnameTe":"","groomGotramEn":"Bharadwaja","groomGotramTe":"భరద్వాజ","brideGotramEn":"","brideGotramTe":"","coupleHonorific":"chiranjeevi"}')$$) = 1);
 select t.ok('an empty honorific (the default) is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d28', 'details-twentyeight', '{"coupleHonorific":""}')$$) = 1);
+-- T4: birth order and the parentage line
+select t.throws('an unknown birth order is refused', $$insert into public.invitations (id, slug, details) values ('d29', 'details-twentynine', '{"groomOrder":"fifth"}')$$, '23514');
+select t.throws('showParentage other than empty or 1 is refused', $$insert into public.invitations (id, slug, details) values ('d30', 'details-thirty', '{"showParentage":"yes"}')$$, '23514');
+select t.ok('every birth order and the parentage switch are accepted',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d31', 'details-thirtyone', '{"groomOrder":"second","brideOrder":"youngest","showParentage":"1"}')$$) = 1
+  and t.affected($$insert into public.invitations (id, slug, details) values ('d32', 'details-thirtytwo', '{"groomOrder":"only","brideOrder":"","showParentage":""}')$$) = 1);
 select t.ok('a preview image from this app''s own bucket is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d8', 'details-eight', '{"seoImage":"https://abc.supabase.co/storage/v1/object/public/invitation-previews/aaaaaaaa-0000-0000-0000-000000000001/d8.jpg?v=1"}')$$) = 1);
 select t.ok('other columns of an old row stay editable (the check runs only when details change)',
@@ -431,6 +437,10 @@ select t.throws('a client cannot send a custom name with an unknown prefix (chec
   format($$select public.submit_change_request('c1', '{"inviterNames":[{"id":"n1","prefix":"king"}]}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send an unknown honorific (the key is on the allowed list, so it is checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"coupleHonorific":"king"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send an unknown birth order (the key is on the allowed list, so it is checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"brideOrder":"fifth"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send showParentage with a bad value (checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"showParentage":"yes"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send a gotram that is not text (checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"brideGotramEn":5}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a 2000-character name is refused',
