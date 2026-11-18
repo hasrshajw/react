@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T6 done, next task is T7** (T7 is independent; T8 needs T1 and T4, both done)
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T7 done, next task is T8** (T8 needs T1 and T4, both done; T9 is the final pass)
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -106,7 +106,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | T4 | Birth order and the "son / daughter of" line | T3 | yes | DONE |
 | T5 | Separate reception venue | T0 | yes | DONE |
 | T6 | More events, event types, end time, description | T0 | yes | DONE |
-| T7 | More contacts per side, contact role | T0 | yes | TODO |
+| T7 | More contacts per side, contact role | T0 | yes | DONE |
 | T8 | Family members list (siblings, grandparents, uncle) | T1, T4 | yes | TODO |
 | T9 | Cross-field validation, progress tags, docs, final pass | T1 to T8 | maybe | TODO |
 
@@ -679,7 +679,46 @@ Notes for the next person (T7 and later):
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 19 Nov 2026 by Claude   Commit(s): 828bd4d (code, template, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/lib/contactLimits.ts (new): MAX_CONTACTS = 3, CONTACT_ROLE_MAX = 60, DEFAULT_CONTACT_LABEL_TE ("బంధువులు / మిత్రులు", the label every old record shows).
+  - src/types/invitation.ts: ContactItem gets roleEn, roleTe. OPTIONAL (?) so a contact saved before T7 is still valid.
+  - src/features/create/constants.ts: newContact() sets roleEn / roleTe to ""; MAX_CONTACTS re-exported.
+  - src/features/create/components/Contacts.tsx: Add contact shows while items.length < MAX_CONTACTS; each contact has Role EN / Role తెలుగు inputs (max 60).
+      Focus: the first contact still calls focus(field) (list name, mapped by TARGETS to slot 1, so the old behaviour and test are unchanged); contact 2 and 3 call focus("groom-extra-N-phone") / focus("bride-extra-N-phone")
+      so the live preview scrolls to the right card.
+  - src/lib/compileInvitation.ts valuesFor(): the [0] reads became a loop over both sides to MAX_CONTACTS. Per side and slot N = 1..3: {side}-extra-N-te, -en, -phone, -wa, -role-te, -role-en, and -label-te
+      (= the Telugu role, or the standard label when there is none). The existing groom-extra-1-* / bride-extra-1-* names keep their meaning.
+  - docs/templates/telugu-traditional.html: three contact cards per side (slots 2 and 3 are copies of slot 1), each wrapped in {{#if {side}-extra-N-phone}}. The small label above the name is now {{{side}-extra-N-label-te}}
+      (renders the standard text when no role is set, so old records look the same).
+  - src/lib/validate.ts: the phone rule already ran for every contact id; added at most 3 contacts per side ("groom" / "bride" section) and role length <= 60 (key contact-<id>-role).
+      The form cannot produce these problems; they only guard pasted or damaged data.
+  - src/features/reviews/fieldLabels.ts: NOT changed on purpose (groomContacts / brideContacts are whole-list keys that already have labels).
+  - supabase/01_schema.sql details_problem(): sub_text gets roleEn, roleTe; groomContacts and brideContacts may have at most 3 items (the general 20-item limit still applies to other lists).
+      submit_change_request() and details_value() need NO change: both list keys were already on `allowed` and in the '[]' default list.
+  - supabase/updates/07_T7_contacts.sql (new): the changed function only (details_problem, which contains T1 to T6 too).
+  - tools/db-test/tests.sql: 6 new checks (4 contacts on either side refused, non-text role, over-long role, bad phone on the third contact refused; three contacts with roles plus an old one-contact record accepted).
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings) · unit 859 passed (was 853, +6) · build ok · db tests 285 passed (was 279, +6; PostgreSQL 16 in the sandbox).
+  The update file was also checked: the previous schema (T6) + supabase/updates/07_T7_contacts.sql passes the same 285 checks, and the previous schema alone fails the new tests (stops after 153).
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser or in the client area (/my).
+  - Old record (one contact, no role keys): compiled template is byte-identical to one with the role keys at their defaults; both sides still show "బంధువులు / మిత్రులు".
+  - Three contacts per side show in order with their own tel: and wa.me links; a Telugu role replaces the label for that contact only; a contact with no phone shows no card; a fourth contact is ignored.
+  - Form: Add contact until three, per-side separation, role fields patch the right contact, focus keys by position.
+Pending / not done:
+  - roleEn and the -en placeholders exist for other templates; the Telugu template only prints Telugu text (name and role).
+  - No check that two contacts do not share the same phone number, and no limit on total contacts across both sides. That belongs to T9 if wanted.
+  - Not tried in a real browser or in /my.
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/07_T7_contacts.sql (after 01 to 06 if they were not run; safe to re-run; no table or data changes).
+     Check first that no live invitation has more than 3 contacts on a side (the form only allowed 1, so none should): select id from public.invitations where jsonb_array_length(coalesce(details->'groomContacts','[]')) > 3 or jsonb_array_length(coalesce(details->'brideContacts','[]')) > 3;
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (needed for contacts 2 and 3 and for the role label; without it contact 1 still shows as before).
+  3. Deploy `preview` and try: add three contacts on each side, give one a role, check the preview scrolls to each card, check the public page and the call / WhatsApp buttons; open an invitation saved before this task and confirm it looks the same.
+Notes for the next person (T8 and later):
+  - Same lesson as T6: templates are not data driven. Other live templates with a single contact slot per side will silently drop contacts 2 and 3.
+  - A computed "label with fallback" placeholder (-label-te) is the way to get an else-branch, because the template language has {{#if}} but no else.
+  - sub_text in details_problem() is shared by every list, so T8's familyMembers keys (relation, side, prefix, late, spouseEn, spouseTe, show) need adding there; `prefix` is already in the list.
+  - ListPatch is Partial<EventItem & ContactItem & InviterName>: T7's optional keys are already part of it, no change was needed.
 ```
 
 ---
@@ -734,6 +773,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-19  T7 done (up to three contacts per side, contact role). 859 unit tests, 285 db tests, build ok. Owner: run supabase/updates/07_T7_contacts.sql (after 01 to 06) and re-paste the template. Next: T8 (then T9).
 2026-11-19  T6 done (up to six events, type, end time, description, dress code). 853 unit tests, 279 db tests, build ok. Owner: run supabase/updates/06_T6_events.sql (after 01 to 05) and re-paste the template. Next: T7 (or T8).
 2026-11-19  T5 done (separate reception venue). 839 unit tests, 273 db tests, build ok. Owner: run supabase/updates/05_T5_reception_venue.sql (after 01 to 04) and re-paste the template. Also see the two notes in T5 (possible inviterNames diff bug, reception card ignores the checkbox). Next: T6 (or T7 / T8).
 2026-11-19  T4 done (birth order, parentage line). 813 unit tests, 264 db tests, build ok. Owner: run supabase/updates/04_T4_birth_order.sql (after 01 to 03) and re-paste the template. Next: T5 (or T6 / T7 / T8).
