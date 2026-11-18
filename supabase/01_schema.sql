@@ -383,9 +383,11 @@ declare
   text_keys  text[] := array['customId','templateId','surnameEn','surnameTe','weddingDate','muhurthamTime','groomEn','groomTe',
     'groomFatherEn','groomFatherTe','groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe',
     'brideFatherEn','brideFatherTe','brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionDate',
-    'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe'];
+    'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
+    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];
   url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
+  status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
   list_keys  text[] := array['events','groomContacts','brideContacts'];
   sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone'];
 begin
@@ -404,7 +406,11 @@ begin
         -- M-4: the preview image must be a file from this app's own preview bucket (same shape as src/lib/previewUrl.ts).
         if k = 'seoImage' and btrim(s) <> '' and s !~ '^https://[^/?#[:space:]@]+/storage/v1/object/public/invitation-previews/[^/?#[:space:]]+/[^/?#[:space:]]+\.jpg(\?v=[0-9]+)?$' then
           return 'seoImage must be a preview image uploaded in this app'; end if;
-        if k = any (phone_keys) and btrim(s) <> '' and not (
+        if k = any (status_keys) and s not in ('', 'late', 'hidden') then
+          return k || ' must be empty, late or hidden'; end if;
+        -- T1: the phone of a late or hidden parent is never shown, so its format is not checked (same rule as src/lib/validate.ts)
+        if k = any (phone_keys) and btrim(s) <> ''
+           and coalesce(d ->> replace(k, 'Phone', 'Status'), '') = '' and not (
              s ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(s, '\D', '', 'g')) between 10 and 13) then
           return k || ' is not a valid phone number'; end if;
       end if;
@@ -643,7 +649,8 @@ declare
   allowed text[] := array['surnameEn','surnameTe','weddingDate','muhurthamTime','groomEn','groomTe','groomFatherEn','groomFatherTe',
     'groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe','brideFatherEn','brideFatherTe',
     'brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionEnabled','receptionDate','receptionTime',
-    'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe'];
+    'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
+    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

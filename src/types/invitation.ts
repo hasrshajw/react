@@ -1,4 +1,7 @@
 import type { IconComponent } from "../components/Icons";
+/** "" alive (default) · "late" deceased · "hidden" not shown on the invitation. */
+export type ParentStatus = "" | "late" | "hidden";
+
 export interface EventItem {
   id: string;
   name: string;
@@ -28,6 +31,8 @@ export interface InvitationData {
   brideEn: string; brideTe: string;
   brideFatherEn: string; brideFatherTe: string; brideFatherPhone: string;
   brideMotherEn: string; brideMotherTe: string; brideMotherPhone: string;
+  /* Parent status: "" = alive (default), "late" = deceased ("కీ.శే." prefix, no phone), "hidden" = not shown at all. */
+  groomFatherStatus: ParentStatus; groomMotherStatus: ParentStatus; brideFatherStatus: ParentStatus; brideMotherStatus: ParentStatus;
   receptionEnabled: boolean; receptionDate: string; receptionTime: string;
   venueEn: string; venueTe: string; venueAddress: string; venueMaps: string;
   events: EventItem[];

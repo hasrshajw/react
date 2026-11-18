@@ -5,6 +5,8 @@ describe("fieldLabel", () => {
   it("maps known keys and falls back to the key", () => {
     expect(fieldLabel("groomEn")).toBe("Groom (EN)");
     expect(fieldLabel("unknownField")).toBe("unknownField");
+    expect(fieldLabel("groomFatherStatus")).toBe("Groom's father status");
+    expect(fieldLabel("brideMotherStatus")).toBe("Bride's mother status");
   });
 });
 

@@ -1,5 +1,5 @@
 import type { InvitationData, EventItem, ContactItem } from "../types/invitation";
-import { inviteMessageTe, inviterLinesTe } from "./inviteText";
+import { inviteMessageTe, inviterLinesTe, parentPrefixTe, parentStatus } from "./inviteText";
 // Shared by the Create page and the Dashboard preview.
 /** Invitation fields the template compiler reads. Every field is optional so partial records (e.g. dashboard rows) can be previewed. */
 export type CompileData = Partial<InvitationData>;
@@ -15,7 +15,15 @@ function valuesFor(data:CompileData):Record<string,string|undefined>{
  const v:Record<string,string|undefined>=Object.assign(Object.create(null),{"surname-en":data.surnameEn,"surname-te":data.surnameTe,"bride-en":data.brideEn,"bride-te":data.brideTe,"groom-en":data.groomEn,"groom-te":data.groomTe,"invite-text-te":inviteMessageTe(data),"invite-message-te":inviteMessageTe(data),"inviter-line-1-te":inviterLinesTe(data)[0]||"","inviter-line-2-te":inviterLinesTe(data)[1]||"","inviter-line-3-te":inviterLinesTe(data)[2]||"","inviter-line-4-te":inviterLinesTe(data)[3]||"","inviter-te":inviterLinesTe(data).join(" & "),"groom-father-en":data.groomFatherEn,"groom-father-te":data.groomFatherTe,"groom-father-phone":data.groomFatherPhone,"groom-mother-en":data.groomMotherEn,"groom-mother-te":data.groomMotherTe,"groom-mother-phone":data.groomMotherPhone,"bride-father-en":data.brideFatherEn,"bride-father-te":data.brideFatherTe,"bride-father-phone":data.brideFatherPhone,"bride-mother-en":data.brideMotherEn,"bride-mother-te":data.brideMotherTe,"bride-mother-phone":data.brideMotherPhone,"event-wedding-date":dateText(data.weddingDate),"event-wedding-day":dayText(data.weddingDate),"event-wedding-time":timeText(data.muhurthamTime),"wedding-date":data.weddingDate,"event-reception-date":dateText(data.receptionDate),"event-reception-day":dayText(data.receptionDate),"event-reception-time":timeText(data.receptionTime),"venue-en":data.venueEn,"venue-te":data.venueTe,"venue-address":data.venueAddress,"venue-maps":data.venueMaps,"reception-date":dateText(data.receptionDate),"reception-time":timeText(data.receptionTime),"reception-venue-te":data.venueTe,"same-venue":data.receptionEnabled&&data.venueTe?"1":""});
  [0,1].forEach(i=>{const e:Partial<EventItem>=(data.events||[])[i]||{},n=i+1;v[`event-${n}-name-te`]=e.nameTe||"";v[`event-${n}-date`]=dateText(e.date);v[`event-${n}-day`]=dayText(e.date);v[`event-${n}-time`]=timeText(e.time);v[`event-${n}-venue-te`]=e.venueTe||"";v[`event-${n}-maps`]=e.maps||"";v[`event-${n}-name-en`]=e.name||"";v[`event-${n}-venue-en`]=e.venue||""});
  const gc:Partial<ContactItem>=(data.groomContacts||[])[0]||{},bc:Partial<ContactItem>=(data.brideContacts||[])[0]||{};v["groom-extra-1-te"]=gc.nameTe||"";v["groom-extra-1-phone"]=gc.phone||"";v["groom-extra-1-wa"]=waNumber(gc.phone);v["bride-extra-1-te"]=bc.nameTe||"";v["bride-extra-1-phone"]=bc.phone||"";v["bride-extra-1-wa"]=waNumber(bc.phone);
- (["groom-father","groom-mother","bride-father","bride-mother"] as const).forEach(k=>{v[`${k}-wa`]=waNumber(v[`${k}-phone`])});
+ /* Parent status (T1): hidden = no name, no phone; late = name with "కీ.శే." and no phone. `-late` is "1" for a late parent; `-prefix-te` is the Telugu prefix. */
+ (["groom-father","groom-mother","bride-father","bride-mother"] as const).forEach(k=>{
+  const st=parentStatus((data as Record<string,unknown>)[`${k.replace(/-(\w)/g,(_,c:string)=>c.toUpperCase())}Status`]);
+  if(st==="hidden"){v[`${k}-en`]="";v[`${k}-te`]="";}
+  if(st!==""){v[`${k}-phone`]="";}
+  v[`${k}-late`]=st==="late"?"1":"";
+  v[`${k}-prefix-te`]=parentPrefixTe(k.endsWith("father")?"father":"mother",st);
+  v[`${k}-wa`]=waNumber(v[`${k}-phone`]);
+ });
  return v;
 }
 

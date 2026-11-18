@@ -6,6 +6,8 @@ import { Bilingual } from "./components/Bilingual";
 import { Contacts } from "./components/Contacts";
 import { Field } from "./components/Field";
 import { InviteSection } from "./components/InviteSection";
+import { ParentStatus } from "./components/ParentStatus";
+import { parentStatus } from "../../lib/inviteText";
 import { Section } from "./components/Section";
 import { SeoSection } from "./components/SeoSection";
 import { TemplatePicker } from "./components/TemplatePicker";
@@ -80,22 +82,26 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
       <Section id="groom" icon={User} title="Groom's Details" tag={tagFor("groom")} loading={groom.loading}>
         <Bilingual enLabel="Groom Name EN" teLabel="Groom Name తెలుగు" enField="groomEn" teField="groomTe" data={data} set={set} fp={groom.fp} required />
         <div className="sub">Father's Details</div>
-        <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="groomFatherEn" teField="groomFatherTe" data={data} set={set} fp={groom.fp} />
-        <Field label="Father Phone" type="tel" inputMode="tel" {...groom.fp("groomFatherPhone")} value={data.groomFatherPhone} onChange={(v) => set("groomFatherPhone", v)} />
+        <ParentStatus label="Groom's father" value={data.groomFatherStatus} onChange={(v) => set("groomFatherStatus", v)} onFocus={groom.fp("groomFatherStatus").onFocus} loading={groom.loading} />
+        <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="groomFatherEn" teField="groomFatherTe" data={data} set={set} fp={groom.fp} disabled={parentStatus(data.groomFatherStatus) === "hidden"} />
+        <Field label="Father Phone" type="tel" inputMode="tel" {...groom.fp("groomFatherPhone")} disabled={parentStatus(data.groomFatherStatus) !== ""} value={data.groomFatherPhone} onChange={(v) => set("groomFatherPhone", v)} />
         <div className="sub">Mother's Details</div>
-        <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="groomMotherEn" teField="groomMotherTe" data={data} set={set} fp={groom.fp} />
-        <Field label="Mother Phone" type="tel" inputMode="tel" {...groom.fp("groomMotherPhone")} value={data.groomMotherPhone} onChange={(v) => set("groomMotherPhone", v)} />
+        <ParentStatus label="Groom's mother" value={data.groomMotherStatus} onChange={(v) => set("groomMotherStatus", v)} onFocus={groom.fp("groomMotherStatus").onFocus} loading={groom.loading} />
+        <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="groomMotherEn" teField="groomMotherTe" data={data} set={set} fp={groom.fp} disabled={parentStatus(data.groomMotherStatus) === "hidden"} />
+        <Field label="Mother Phone" type="tel" inputMode="tel" {...groom.fp("groomMotherPhone")} disabled={parentStatus(data.groomMotherStatus) !== ""} value={data.groomMotherPhone} onChange={(v) => set("groomMotherPhone", v)} />
         <Contacts loading={groom.loading} field="groomContacts" items={data.groomContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
       </Section>
 
       <Section id="bride" icon={Heart} title="Bride's Details" tag={tagFor("bride")} loading={bride.loading}>
         <Bilingual enLabel="Bride Name EN" teLabel="Bride Name తెలుగు" enField="brideEn" teField="brideTe" data={data} set={set} fp={bride.fp} required />
         <div className="sub">Father's Details</div>
-        <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="brideFatherEn" teField="brideFatherTe" data={data} set={set} fp={bride.fp} />
-        <Field label="Father Phone" type="tel" inputMode="tel" {...bride.fp("brideFatherPhone")} value={data.brideFatherPhone} onChange={(v) => set("brideFatherPhone", v)} />
+        <ParentStatus label="Bride's father" value={data.brideFatherStatus} onChange={(v) => set("brideFatherStatus", v)} onFocus={bride.fp("brideFatherStatus").onFocus} loading={bride.loading} />
+        <Bilingual enLabel="Father EN" teLabel="Father తెలుగు" enField="brideFatherEn" teField="brideFatherTe" data={data} set={set} fp={bride.fp} disabled={parentStatus(data.brideFatherStatus) === "hidden"} />
+        <Field label="Father Phone" type="tel" inputMode="tel" {...bride.fp("brideFatherPhone")} disabled={parentStatus(data.brideFatherStatus) !== ""} value={data.brideFatherPhone} onChange={(v) => set("brideFatherPhone", v)} />
         <div className="sub">Mother's Details</div>
-        <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="brideMotherEn" teField="brideMotherTe" data={data} set={set} fp={bride.fp} />
-        <Field label="Mother Phone" type="tel" inputMode="tel" {...bride.fp("brideMotherPhone")} value={data.brideMotherPhone} onChange={(v) => set("brideMotherPhone", v)} />
+        <ParentStatus label="Bride's mother" value={data.brideMotherStatus} onChange={(v) => set("brideMotherStatus", v)} onFocus={bride.fp("brideMotherStatus").onFocus} loading={bride.loading} />
+        <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="brideMotherEn" teField="brideMotherTe" data={data} set={set} fp={bride.fp} disabled={parentStatus(data.brideMotherStatus) === "hidden"} />
+        <Field label="Mother Phone" type="tel" inputMode="tel" {...bride.fp("brideMotherPhone")} disabled={parentStatus(data.brideMotherStatus) !== ""} value={data.brideMotherPhone} onChange={(v) => set("brideMotherPhone", v)} />
         <Contacts loading={bride.loading} field="brideContacts" items={data.brideContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
       </Section>
 

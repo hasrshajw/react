@@ -10,13 +10,15 @@ interface Props {
   set: (key: keyof InvitationData, value: string) => void;
   fp: FieldProps;
   required?: boolean;
+  /** Greyed out but keeps its values (a hidden parent). */
+  disabled?: boolean;
 }
 
-export function Bilingual({ enLabel, teLabel, enField, teField, data, set, fp, required }: Props) {
+export function Bilingual({ enLabel, teLabel, enField, teField, data, set, fp, required, disabled }: Props) {
   return (
     <div className="grid two">
-      <Field label={enLabel} required={required} {...fp(enField)} value={data[enField] as string} onChange={(v) => set(enField, v)} />
-      <Field label={teLabel} lang="te" {...fp(teField)} value={data[teField] as string} onChange={(v) => set(teField, v)} />
+      <Field label={enLabel} required={required} disabled={disabled} {...fp(enField)} value={data[enField] as string} onChange={(v) => set(enField, v)} />
+      <Field label={teLabel} lang="te" disabled={disabled} {...fp(teField)} value={data[teField] as string} onChange={(v) => set(teField, v)} />
     </div>
   );
 }

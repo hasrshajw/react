@@ -76,4 +76,31 @@ describe("telugu-traditional template", () => {
     const html = compile(src, { ...initial, ...full });
     expect(html).not.toMatch(/class="[^"]*\bis-hidden\b[^"]*"/);
   });
+  it("parent status (T1): an old record shows శ్రీ / శ్రీమతి and the phone cards as before", () => {
+    const d = doc(full);
+    expect(text(d, '.list-item[data-scroll-target="groom-father-te"]')).toBe("శ్రీ రామారావు గారి ఆత్మీయ కుమారుడు");
+    expect(text(d, '.list-item[data-scroll-target="groom-mother-te"]')).toBe("శ్రీమతి సీత గారి ఆత్మీయ కుమారుడు");
+    expect(d.querySelector('.contact-card[data-scroll-target="groom-father-phone"]')).not.toBeNull();
+  });
+
+  it("parent status (T1): a late parent has కీ.శే., keeps the name line and loses the phone card", () => {
+    const d = doc({ ...full, groomFatherStatus: "late" });
+    expect(text(d, '.list-item[data-scroll-target="groom-father-te"]')).toBe("కీ.శే. రామారావు గారి ఆత్మీయ కుమారుడు");
+    expect(d.querySelector('.contact-card[data-scroll-target="groom-father-phone"]')).toBeNull();
+    expect(d.querySelector('.contact-card[data-scroll-target="groom-mother-phone"]')).not.toBeNull();
+    expect(compile(src, { ...initial, ...full, groomFatherStatus: "late" })).not.toContain("98765 43210");
+  });
+
+  it("parent status (T1): a hidden parent has no line and no phone card, and the other parent stays", () => {
+    const d = doc({ ...full, brideFatherStatus: "hidden" });
+    expect(d.querySelector('.list-item[data-scroll-target="bride-father-te"]')).toBeNull();
+    expect(d.querySelector('.contact-card[data-scroll-target="bride-father-phone"]')).toBeNull();
+    expect(text(d, '.list-item[data-scroll-target="bride-mother-te"]')).toBe("శ్రీమతి లక్ష్మి గారి ఆత్మీయ కుమార్తె");
+    expect(compile(src, { ...initial, ...full, brideFatherStatus: "hidden" })).not.toContain("కృష్ణ");
+  });
+
+  it("parent status (T1): the closing lines follow the status too", () => {
+    const d = doc({ ...full, inviterMode: "both", groomFatherStatus: "late", brideMotherStatus: "hidden" });
+    expect([...d.querySelectorAll(".inv-line")].map((e) => e.textContent).filter(Boolean)).toEqual(["కీ.శే. రామారావు", "శ్రీమతి సీత", "శ్రీ కృష్ణ"]);
+  });
 });

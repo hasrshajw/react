@@ -21,9 +21,11 @@ export interface FieldProps {
   maxLength?: number;
   /** Show a "used / max" counter (needs maxLength). */
   counter?: boolean;
+  /** Greyed out but keeps its value (unlike `loading`, which shows a ghost). */
+  disabled?: boolean;
 }
 
-export function Field({ label, name, type = "text", value, onChange, onFocus, onBlur, error, required, help, lang, inputMode, loading = false, placeholder, maxLength, counter = false }: FieldProps) {
+export function Field({ label, name, type = "text", value, onChange, onFocus, onBlur, error, required, help, lang, inputMode, loading = false, placeholder, maxLength, counter = false, disabled = false }: FieldProps) {
   const id = `f-${name}`;
   const describedBy = error ? `${id}-err` : help ? `${id}-help` : undefined;
   return (
@@ -31,7 +33,7 @@ export function Field({ label, name, type = "text", value, onChange, onFocus, on
       <label htmlFor={id}>{label}{required && <b className="req" aria-hidden="true"> *</b>}</label>
       <input
         id={id} type={type} lang={lang} inputMode={inputMode} autoComplete="off" value={loading ? "" : value ?? ""}
-        className={loading ? "sk-bg" : undefined} disabled={loading} placeholder={loading ? "" : placeholder} maxLength={maxLength}
+        className={loading ? "sk-bg" : undefined} disabled={loading || disabled} placeholder={loading ? "" : placeholder} maxLength={maxLength}
         aria-required={required || undefined} aria-invalid={!!error} aria-describedby={describedBy}
         onFocus={onFocus} onBlur={onBlur} onChange={(e) => onChange(e.target.value)}
       />

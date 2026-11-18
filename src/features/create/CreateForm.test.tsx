@@ -335,3 +335,57 @@ describe("CreateForm: children", () => {
     });
   });
 });
+
+describe("CreateForm: parent status (T1)", () => {
+  const group = (label: string) => host.querySelector(`[role="radiogroup"][aria-label="${label}"]`) as HTMLElement;
+  const radio = (label: string, text: string) => [...group(label).querySelectorAll("button")].find((b) => b.textContent === text) as HTMLButtonElement;
+
+  it("each of the four parents has Alive / Late / Hide, with Alive selected by default", () => {
+    show();
+    for (const who of ["Groom's father", "Groom's mother", "Bride's father", "Bride's mother"]) {
+      const labels = [...group(`${who} status`).querySelectorAll("button")].map((b) => b.textContent);
+      expect(labels).toEqual(["Alive", "Late", "Hide"]);
+      expect(radio(`${who} status`, "Alive").getAttribute("aria-checked")).toBe("true");
+    }
+  });
+
+  it("choosing Late or Hide calls set with the right key and value, and focuses that parent in the preview", () => {
+    show();
+    click(radio("Groom's father status", "Late"));
+    expect(props.set).toHaveBeenCalledWith("groomFatherStatus", "late");
+    click(radio("Bride's mother status", "Hide"));
+    expect(props.set).toHaveBeenCalledWith("brideMotherStatus", "hidden");
+    click(radio("Bride's mother status", "Alive"));
+    expect(props.set).toHaveBeenCalledWith("brideMotherStatus", "");
+    expect(props.focus).toHaveBeenCalledWith("groomFatherStatus");
+  });
+
+  it("a late parent: phone is disabled (value kept) and the hint is shown; names stay editable", () => {
+    show({ data: { ...initial, groomFatherStatus: "late", groomFatherPhone: "9876543210", groomFatherEn: "Rao" } });
+    expect(input("groomFatherPhone").disabled).toBe(true);
+    expect(input("groomFatherPhone").value).toBe("9876543210");
+    expect(input("groomFatherEn").disabled).toBe(false);
+    expect(host.textContent).toContain("The phone number is not shown.");
+    expect(input("groomMotherPhone").disabled).toBe(false);
+  });
+
+  it("a hidden parent: name and phone are disabled, values are kept, the other parent is untouched", () => {
+    show({ data: { ...initial, brideFatherStatus: "hidden", brideFatherEn: "Krishna", brideFatherPhone: "9000000001" } });
+    for (const n of ["brideFatherEn", "brideFatherTe", "brideFatherPhone"]) expect(input(n).disabled).toBe(true);
+    expect(input("brideFatherEn").value).toBe("Krishna");
+    expect(input("brideMotherEn").disabled).toBe(false);
+    expect(host.textContent).toContain("Not shown on the invitation.");
+  });
+
+  it("alive parents have everything enabled, and an unknown stored value counts as alive", () => {
+    show({ data: { ...initial, groomFatherStatus: "dead" as never } });
+    expect(input("groomFatherPhone").disabled).toBe(false);
+    expect(radio("Groom's father status", "Alive").getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("while the section loads the buttons are disabled", () => {
+    show({ sectionLoading: allLoading(true) });
+    expect(radio("Groom's father status", "Late").disabled).toBe(true);
+  });
+});
+

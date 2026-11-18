@@ -263,6 +263,16 @@ select t.throws('details that are not an object are refused', $$insert into publ
 select t.throws('an edit that makes the details unsafe is refused', $$update public.invitations set details = '{"venueMaps":"javascript:1"}' where id = 'a1'$$, '23514');
 select t.ok('ordinary details are accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d7', 'details-seven', '{"groomEn":"A","venueMaps":"https://maps.example/x","groomFatherPhone":"+91 98765 43210","events":[{"name":"Sangeet","maps":"tel:100"}]}')$$) = 1);
+-- T1: parent status (alive "", late, hidden)
+select t.throws('a parent status other than late or hidden is refused', $$insert into public.invitations (id, slug, details) values ('d9', 'details-nine', '{"groomFatherStatus":"dead"}')$$, '23514');
+select t.throws('a parent status that is not text is refused', $$insert into public.invitations (id, slug, details) values ('d10', 'details-ten', '{"brideMotherStatus":1}')$$, '23514');
+select t.ok('late, hidden and alive parents are accepted',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d11', 'details-eleven', '{"groomFatherStatus":"late","groomMotherStatus":"","brideFatherStatus":"hidden","brideMotherStatus":"late","groomMotherPhone":"+91 98765 43210"}')$$) = 1);
+select t.ok('the phone of a late parent is not format-checked',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d12', 'details-twelve', '{"groomFatherStatus":"late","groomFatherPhone":"abc"}')$$) = 1);
+select t.ok('the phone of a hidden parent is not format-checked',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d13', 'details-thirteen', '{"brideFatherStatus":"hidden","brideFatherPhone":"123"}')$$) = 1);
+select t.throws('the phone of a living parent is still checked when only the other parent is late', $$insert into public.invitations (id, slug, details) values ('d14', 'details-fourteen', '{"groomFatherStatus":"late","groomMotherPhone":"abc"}')$$, '23514');
 select t.ok('a preview image from this app''s own bucket is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d8', 'details-eight', '{"seoImage":"https://abc.supabase.co/storage/v1/object/public/invitation-previews/aaaaaaaa-0000-0000-0000-000000000001/d8.jpg?v=1"}')$$) = 1);
 select t.ok('other columns of an old row stay editable (the check runs only when details change)',
@@ -391,6 +401,8 @@ select t.throws('a javascript: link is refused',
   format($$select public.submit_change_request('c1', '{"venueMaps":"javascript:alert(1)"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a bad phone number is refused',
   format($$select public.submit_change_request('c1', '{"groomFatherPhone":"123"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send an unknown parent status (the key is on the allowed list, so it is checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"groomFatherStatus":"dead"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a 2000-character name is refused',
   format($$select public.submit_change_request('c1', jsonb_build_object('groomEn', repeat('x', 2000)), %L)$$, current_setting('t.base')), '23514');
 select t.throws('a request with no change is refused',

@@ -16,6 +16,7 @@ export const initial: InvitationData = {
   surnameEn: "", surnameTe: "", weddingDate: "", muhurthamTime: "",
   groomEn: "", groomTe: "", groomFatherEn: "", groomFatherTe: "", groomFatherPhone: "", groomMotherEn: "", groomMotherTe: "", groomMotherPhone: "",
   brideEn: "", brideTe: "", brideFatherEn: "", brideFatherTe: "", brideFatherPhone: "", brideMotherEn: "", brideMotherTe: "", brideMotherPhone: "",
+  groomFatherStatus: "", groomMotherStatus: "", brideFatherStatus: "", brideMotherStatus: "",
   receptionEnabled: false, receptionDate: "", receptionTime: "",
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
   events: [], groomContacts: [], brideContacts: [],
@@ -39,6 +40,7 @@ export const TARGETS: Record<string, string> = {
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
   inviteMessageTe: "invite-text", inviterMode: "invite-text", inviterEn: "invite-text", inviterTe: "invite-text",
+  groomFatherStatus: "groom-father-te", groomMotherStatus: "groom-mother-te", brideFatherStatus: "bride-father-te", brideMotherStatus: "bride-mother-te",
   groomFatherPhone: "groom-father-phone", groomMotherPhone: "groom-mother-phone", brideFatherPhone: "bride-father-phone", brideMotherPhone: "bride-mother-phone",
   groomContacts: "groom-extra-1-phone", brideContacts: "bride-extra-1-phone",
 };

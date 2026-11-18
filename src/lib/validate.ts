@@ -2,6 +2,7 @@ import type { ErrorMap, InvitationData } from "../types/invitation";
 import { isEmail } from "./auth";
 import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
+import { parentStatus } from "./inviteText";
 
 export const has = (v: unknown): boolean => String(v ?? "").trim() !== "";
 
@@ -37,10 +38,11 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   }
   if (!has(data.weddingDate)) add("weddingDate", "family", "Wedding date is required");
   if (!has(data.groomEn)) add("groomEn", "groom", "Groom's name is required");
-  (["groomFatherPhone", "groomMotherPhone"] as const).forEach((k) => { if (has(data[k]) && !okPhone(data[k])) add(k, "groom", PHONE_MSG); });
+  /* A late or hidden parent's phone is not shown, so a typo in it must not block saving (the database rule matches). */
+  (["groomFatherPhone", "groomMotherPhone"] as const).forEach((k) => { if (!parentStatus(data[k.replace("Phone", "Status") as "groomFatherStatus"]) && has(data[k]) && !okPhone(data[k])) add(k, "groom", PHONE_MSG); });
   data.groomContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "groom", PHONE_MSG); });
   if (!has(data.brideEn)) add("brideEn", "bride", "Bride's name is required");
-  (["brideFatherPhone", "brideMotherPhone"] as const).forEach((k) => { if (has(data[k]) && !okPhone(data[k])) add(k, "bride", PHONE_MSG); });
+  (["brideFatherPhone", "brideMotherPhone"] as const).forEach((k) => { if (!parentStatus(data[k.replace("Phone", "Status") as "brideFatherStatus"]) && has(data[k]) && !okPhone(data[k])) add(k, "bride", PHONE_MSG); });
   data.brideContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "bride", PHONE_MSG); });
   if (data.receptionEnabled && !has(data.receptionDate)) add("receptionDate", "venue", "Add the reception date");
   if (has(data.venueMaps) && !okUrl(data.venueMaps)) add("venueMaps", "venue", URL_MSG);

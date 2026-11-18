@@ -77,3 +77,20 @@ describe("validateInvitation", () => {
     expect(bad.clientEmail?.msg).toMatch(/valid email/i);
   });
 });
+
+describe("validateInvitation: parent status (T1)", () => {
+  it("still checks the phone of a living parent", () => {
+    expect(validateInvitation(valid({ groomFatherPhone: "123" })).groomFatherPhone?.section).toBe("groom");
+    expect(validateInvitation(valid({ brideMotherPhone: "abc" })).brideMotherPhone?.section).toBe("bride");
+  });
+  it("does not check the phone of a late or hidden parent (it is not shown)", () => {
+    expect(validateInvitation(valid({ groomFatherPhone: "123", groomFatherStatus: "late" })).groomFatherPhone).toBeUndefined();
+    expect(validateInvitation(valid({ groomMotherPhone: "123", groomMotherStatus: "hidden" })).groomMotherPhone).toBeUndefined();
+    expect(validateInvitation(valid({ brideFatherPhone: "123", brideFatherStatus: "late" })).brideFatherPhone).toBeUndefined();
+    expect(validateInvitation(valid({ brideMotherPhone: "123", brideMotherStatus: "hidden" })).brideMotherPhone).toBeUndefined();
+  });
+  it("a late father does not excuse the mother's bad phone", () => {
+    expect(validateInvitation(valid({ groomFatherStatus: "late", groomMotherPhone: "123" })).groomMotherPhone).toBeDefined();
+  });
+});
+
