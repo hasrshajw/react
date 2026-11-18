@@ -57,6 +57,19 @@ describe("validateInvitation", () => {
     expect(e["event-e1-date"]).toBeDefined();
     expect(e["event-e1-maps"]).toBeDefined();
   });
+  it("T7: checks the phone of every contact, role length and the number of contacts per side", () => {
+    const c = (id: string, phone = "9876543210", extra = {}) => ({ id, nameEn: "A", nameTe: "", phone, ...extra });
+    const ok = validateInvitation(valid({ groomContacts: [c("g1"), c("g2"), c("g3")], brideContacts: [c("b1", "9876543210", { roleEn: "Coordinator", roleTe: "x" })] }));
+    expect(Object.keys(ok).filter((k) => k.startsWith("contact-") || k.endsWith("Contacts"))).toEqual([]);
+    const bad = validateInvitation(valid({ groomContacts: [c("g1", "12"), c("g2", "9876543210"), c("g3", "abc")], brideContacts: [c("b1", "9876543210", { roleEn: "x".repeat(61) })] }));
+    expect(bad["contact-g1-phone"]?.section).toBe("groom");
+    expect(bad["contact-g2-phone"]).toBeUndefined();
+    expect(bad["contact-g3-phone"]?.section).toBe("groom");
+    expect(bad["contact-b1-role"]?.section).toBe("bride");
+    const many = (p: string) => [1, 2, 3, 4].map((n) => c(`${p}${n}`));
+    expect(validateInvitation(valid({ groomContacts: many("g") })).groomContacts?.section).toBe("groom");
+    expect(validateInvitation(valid({ brideContacts: many("b") })).brideContacts?.section).toBe("bride");
+  });
   it("T6: checks event type, end time, description length and the number of events", () => {
     const base = { id: "e1", name: "Sangeet", nameTe: "", date: "2027-02-01", time: "", venue: "", venueTe: "", maps: "" };
     expect(validateInvitation(valid({ events: [{ ...base, type: "sangeet", endTime: "21:30", descEn: "ok", descTe: "ok", dress: "x" }] }))["event-e1-type"]).toBeUndefined();

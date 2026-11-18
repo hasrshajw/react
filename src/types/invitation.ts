@@ -24,6 +24,9 @@ export interface ContactItem {
   nameEn: string;
   nameTe: string;
   phone: string;
+  /* T7 (optional: a contact saved before T7 has none). Role such as "Coordinator"; empty = the standard label. */
+  roleEn?: string;
+  roleTe?: string;
 }
 
 /** One extra name in the closing block (after the title). `prefix` is "" | "sri" | "smt" | "chi" | "late" | "dr". */

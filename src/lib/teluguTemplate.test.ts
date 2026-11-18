@@ -345,3 +345,46 @@ describe("telugu-traditional template: more events (T6)", () => {
     for (let n = 1; n <= 6; n++) ["name-te", "date", "time", "venue-te", "desc-te", "dress"].forEach((k) => expect(html).toContain(`data-scroll-target="event-${n}-${k}"`));
   });
 });
+
+describe("telugu-traditional template: more contacts (T7)", () => {
+  const c = (n: number, over: Record<string, unknown> = {}) => ({ id: `c${n}`, nameEn: `P${n}`, nameTe: `వ్యక్తి ${n}`, phone: `90000000${n}0`, ...over });
+  const cards = (d: Document, side: "groom" | "bride") => [...d.querySelectorAll(".contact-card")].filter((k) => (k.getAttribute("data-scroll-target") || "").startsWith(`${side}-extra-`));
+  const txt = (k: Element) => (k.textContent || "").replace(/\s+/g, " ").trim();
+
+  it("an old record (one contact, no role) compiles exactly as one with the role keys at their defaults, and keeps the standard label", () => {
+    const old = { ...full, brideContacts: [{ id: "b1", nameEn: "B", nameTe: "బంధువు", phone: "9222222222" }] };
+    const withDefaults = { ...full, brideContacts: [{ id: "b1", nameEn: "B", nameTe: "బంధువు", phone: "9222222222", roleEn: "", roleTe: "" }] };
+    expect(compile(src, { ...initial, ...old })).toBe(compile(src, { ...initial, ...withDefaults }));
+    const d = doc(old);
+    expect(txt(cards(d, "bride")[0])).toContain("బంధువులు / మిత్రులు");
+    expect(txt(cards(d, "groom")[0])).toContain("బంధువులు / మిత్రులు");
+    expect(compile(src, { ...initial, ...old })).not.toMatch(/\{\{/);
+  });
+
+  it("three contacts per side show in order, each with its own call and WhatsApp link", () => {
+    const d = doc({ ...full, groomContacts: [1, 2, 3].map((n) => c(n)), brideContacts: [4, 5, 6].map((n) => c(n)) });
+    for (const side of ["groom", "bride"] as const) {
+      const k = cards(d, side);
+      expect(k.length).toBe(3);
+      k.forEach((card) => expect(card.querySelector("a[href^='tel:']")).not.toBeNull());
+    }
+    const g = cards(d, "groom");
+    expect(txt(g[0])).toContain("వ్యక్తి 1");
+    expect(txt(g[2])).toContain("వ్యక్తి 3");
+    expect(g[1].querySelector("a[href^='https://wa.me/91']")?.getAttribute("href")).toContain("919000000020");
+  });
+
+  it("a Telugu role replaces the standard label, per contact", () => {
+    const d = doc({ ...full, groomContacts: [c(1, { roleTe: "సమన్వయకర్త" }), c(2)] });
+    const g = cards(d, "groom");
+    expect(txt(g[0])).toContain("సమన్వయకర్త");
+    expect(txt(g[0])).not.toContain("బంధువులు / మిత్రులు");
+    expect(txt(g[1])).toContain("బంధువులు / మిత్రులు");
+  });
+
+  it("a contact with no phone shows no card; a fourth contact is ignored", () => {
+    const d = doc({ ...full, groomContacts: [c(1, { phone: "" }), c(2), c(3), c(4)] });
+    expect(cards(d, "groom").length).toBe(2);
+    expect(compile(src, { ...initial, ...full, groomContacts: [c(1), c(2), c(3), c(4)] })).not.toContain("వ్యక్తి 4");
+  });
+});

@@ -12,7 +12,8 @@ export const newEvent = (): EventItem => ({ id: uid(), name: "", nameTe: "", dat
 export { MAX_EVENTS } from "../../lib/eventTypes";
 export { MAX_INVITER_NAMES } from "../../lib/inviteText";
 export const newInviterName = (): InviterName => ({ id: uid(), prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "" });
-export const newContact = (): ContactItem => ({ id: uid(), nameEn: "", nameTe: "", phone: "" });
+export const newContact = (): ContactItem => ({ id: uid(), nameEn: "", nameTe: "", phone: "", roleEn: "", roleTe: "" });
+export { MAX_CONTACTS } from "../../lib/contactLimits";
 
 export const initial: InvitationData = {
   customId: "", templateId: "",

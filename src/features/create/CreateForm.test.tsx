@@ -253,13 +253,36 @@ describe("CreateForm: contacts", () => {
     expect(made.id.length).toBeGreaterThan(0);
   });
 
-  it("lists a contact, hides Add contact once there is one, and keeps the sides apart", () => {
+  it("lists a contact, keeps offering Add contact until there are three, and keeps the sides apart", () => {
     show({ data: { ...initial, groomContacts: [contact({ id: "g1", nameEn: "Groom uncle" })] } });
     expect(host.querySelector("#sec-groom input[aria-label='Contact name in English']")).not.toBeNull();
     expect((host.querySelector("#sec-groom input[aria-label='Contact name in English']") as HTMLInputElement).value).toBe("Groom uncle");
-    expect([...host.querySelectorAll("#sec-groom button")].some((b) => (b.textContent || "").includes("Add contact"))).toBe(false);
+    const addIn = (sec: string) => [...host.querySelectorAll(`#sec-${sec} button`)].some((b) => (b.textContent || "").includes("Add contact"));
+    expect(addIn("groom")).toBe(true);
     expect(host.querySelector("#sec-bride input[aria-label='Contact name in English']")).toBeNull();
-    expect([...host.querySelectorAll("#sec-bride button")].some((b) => (b.textContent || "").includes("Add contact"))).toBe(true);
+    expect(addIn("bride")).toBe(true);
+    const three = [1, 2, 3].map((n) => contact({ id: `g${n}` }));
+    act(() => { root.render(<CreateForm {...props} data={{ ...initial, groomContacts: three.slice(0, 2) }} />); });
+    expect(addIn("groom")).toBe(true);
+    act(() => { root.render(<CreateForm {...props} data={{ ...initial, groomContacts: three }} />); });
+    expect(addIn("groom")).toBe(false);
+    expect(host.querySelectorAll("#sec-groom .repeat").length).toBe(3);
+    expect(addIn("bride")).toBe(true);
+  });
+
+  it("T7: role fields patch the contact, and focus follows the contact's position", () => {
+    show({ data: { ...initial, brideContacts: [contact({ id: "b1" }), contact({ id: "b2" })] } });
+    const roles = [...host.querySelectorAll("#sec-bride input[aria-label='Contact role in English']")] as HTMLInputElement[];
+    const rolesTe = [...host.querySelectorAll("#sec-bride input[aria-label='Contact role in Telugu']")] as HTMLInputElement[];
+    expect(roles.length).toBe(2);
+    typeInto(roles[1], "Coordinator");
+    expect(props.patch).toHaveBeenCalledWith("brideContacts", "b2", { roleEn: "Coordinator" });
+    typeInto(rolesTe[0], "సమన్వయకర్త");
+    expect(props.patch).toHaveBeenCalledWith("brideContacts", "b1", { roleTe: "సమన్వయకర్త" });
+    focusEl(roles[0]);
+    expect(props.focus).toHaveBeenLastCalledWith("brideContacts");
+    focusEl(roles[1]);
+    expect(props.focus).toHaveBeenLastCalledWith("bride-extra-2-phone");
   });
 
   it("patches the right contact and list when typing, and removes it with the trash button", () => {

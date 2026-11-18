@@ -2,6 +2,7 @@ import type { ErrorMap, InvitationData } from "../types/invitation";
 import { isEmail } from "./auth";
 import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
+import { CONTACT_ROLE_MAX, MAX_CONTACTS } from "./contactLimits";
 import { MAX_EVENTS, okEventType } from "./eventTypes";
 import { INVITER_PREFIX_IDS, okBirthOrder, okHonorific, MAX_INVITER_NAMES, okSources, parentStatus } from "./inviteText";
 
@@ -43,6 +44,12 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   /* A late or hidden parent's phone is not shown, so a typo in it must not block saving (the database rule matches). */
   (["groomFatherPhone", "groomMotherPhone"] as const).forEach((k) => { if (!parentStatus(data[k.replace("Phone", "Status") as "groomFatherStatus"]) && has(data[k]) && !okPhone(data[k])) add(k, "groom", PHONE_MSG); });
   data.groomContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "groom", PHONE_MSG); });
+  /* T7: the form cannot produce these problems; they can only come from pasted or damaged data. */
+  if (data.groomContacts.length > MAX_CONTACTS) add("groomContacts", "groom", `Use at most ${MAX_CONTACTS} contacts`);
+  if (data.brideContacts.length > MAX_CONTACTS) add("brideContacts", "bride", `Use at most ${MAX_CONTACTS} contacts`);
+  [...data.groomContacts, ...data.brideContacts].forEach((c) => {
+    if (String(c.roleEn || "").length > CONTACT_ROLE_MAX || String(c.roleTe || "").length > CONTACT_ROLE_MAX) add(`contact-${c.id}-role`, data.groomContacts.includes(c) ? "groom" : "bride", `Keep the role under ${CONTACT_ROLE_MAX} characters`);
+  });
   if (!has(data.brideEn)) add("brideEn", "bride", "Bride's name is required");
   (["brideFatherPhone", "brideMotherPhone"] as const).forEach((k) => { if (!parentStatus(data[k.replace("Phone", "Status") as "brideFatherStatus"]) && has(data[k]) && !okPhone(data[k])) add(k, "bride", PHONE_MSG); });
   data.brideContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "bride", PHONE_MSG); });

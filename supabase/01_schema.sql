@@ -394,7 +394,8 @@ declare
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
   list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
   sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe',
-    'type','endTime','descEn','descTe','dress'];   -- T6: the last five belong to events
+    'type','endTime','descEn','descTe','dress',   -- T6: these five belong to events
+    'roleEn','roleTe'];                            -- T7: contact role
 begin
   if d is null or jsonb_typeof(d) <> 'object' then return 'details must be a JSON object'; end if;
   if octet_length(d::text) > 65536 then return 'details is larger than 64 KB'; end if;
@@ -438,6 +439,7 @@ begin
       if jsonb_typeof(v) <> 'array' then return k || ' must be a list'; end if;
       if jsonb_array_length(v) > 20 then return k || ' has more than 20 items'; end if;
       if k = 'inviterNames' and jsonb_array_length(v) > 8 then return 'inviterNames has more than 8 names'; end if;
+      if k in ('groomContacts', 'brideContacts') and jsonb_array_length(v) > 3 then return k || ' has more than 3 contacts'; end if;   -- T7 (MAX_CONTACTS)
       for item in select * from jsonb_array_elements(v) loop
         if jsonb_typeof(item) <> 'object' then return k || ' items must be objects'; end if;
         declare ik text; iv jsonb; is_ text; begin
