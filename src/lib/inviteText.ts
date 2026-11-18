@@ -1,7 +1,7 @@
 import type { InvitationData } from "../types/invitation";
 
-/* The invitation paragraph of a template ("<family> కుటుంబము వారి శుభ వివాహ కార్యక్రమమునకు ..."), in two editable parts:
-   WHO invites (family surname, groom's family, bride's family, both, or a custom name) and the message itself. */
+/* The invitation of a template, in two editable parts: the message paragraph, and WHO invites, shown at the bottom after "ఇట్లు"
+   (family surname, groom's family, bride's family, both, or a custom name). */
 
 export type InviterMode = "surname" | "groom" | "bride" | "both" | "custom";
 
@@ -16,30 +16,30 @@ export const INVITER_OPTIONS: { id: InviterMode; label: string }[] = [
 export const INVITE_MESSAGE_MAX = 600;
 export const DEFAULT_INVITE_MESSAGE_TE =
   "శుభ వివాహ కార్యక్రమమునకు మీరు సకుటుంబ సపరివార సమేతంగా విచ్చేసి, నూతన వధూవరులను ఆశీర్వదించి మా ఆనందాన్ని రెట్టింపు చేయవలసినదిగా సవినయంగా ప్రార్థిస్తున్నాము.";
-const SUFFIX = "కుటుంబము వారి";
-const SUFFIX_BOTH = "కుటుంబముల వారి";
-
 type Src = Partial<InvitationData>;
 const t = (v?: string) => (v || "").trim();
 
 export const inviterMode = (d: Src): InviterMode => (INVITER_OPTIONS.some((o) => o.id === d.inviterMode) ? (d.inviterMode as InviterMode) : "surname");
 
-/** The name that comes before "కుటుంబము వారి". Groom's / bride's family use the father's name, or the person's own name when there is none. */
-export function inviterTe(d: Src): { name: string; plural: boolean } {
-  const groom = t(d.groomFatherTe) || t(d.groomTe), bride = t(d.brideFatherTe) || t(d.brideTe);
+/** "శ్రీ <father> & శ్రీమతి <mother>"; the person's own name when both parents are empty. */
+const parents = (father: string, mother: string, own: string) => {
+  const f = t(father), m = t(mother);
+  if (!f && !m) return t(own);
+  return [f && `శ్రీ ${f}`, m && `శ్రీమతి ${m}`].filter(Boolean).join(" & ");
+};
+
+/** The lines printed after "ఇట్లు" (at most two). */
+export function inviterLinesTe(d: Src): string[] {
+  const groom = parents(d.groomFatherTe || "", d.groomMotherTe || "", d.groomTe || "");
+  const bride = parents(d.brideFatherTe || "", d.brideMotherTe || "", d.brideTe || "");
   switch (inviterMode(d)) {
-    case "groom": return { name: groom, plural: false };
-    case "bride": return { name: bride, plural: false };
-    case "both": return { name: [groom, bride].filter(Boolean).join(" & "), plural: !!groom && !!bride };
-    case "custom": return { name: t(d.inviterTe) || t(d.inviterEn), plural: false };
-    default: return { name: t(d.surnameTe), plural: false };
+    case "groom": return [groom].filter(Boolean);
+    case "bride": return [bride].filter(Boolean);
+    case "both": return [groom, bride].filter(Boolean);
+    case "custom": return [t(d.inviterTe) || t(d.inviterEn)].filter(Boolean);
+    default: return t(d.surnameTe) ? [`${t(d.surnameTe)} కుటుంబము`] : [];
   }
 }
 
+/** The message paragraph (the standard text when none was written). */
 export const inviteMessageTe = (d: Src) => t(d.inviteMessageTe) || DEFAULT_INVITE_MESSAGE_TE;
-
-/** The whole paragraph: "<name> కుటుంబము వారి <message>", or just the message when there is no name. */
-export function inviteTextTe(d: Src): string {
-  const { name, plural } = inviterTe(d);
-  return `${name ? `${name} ${plural ? SUFFIX_BOTH : SUFFIX} ` : ""}${inviteMessageTe(d)}`;
-}

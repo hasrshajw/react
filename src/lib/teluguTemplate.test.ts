@@ -35,13 +35,17 @@ describe("telugu-traditional template", () => {
     expect(text(d, ".venue-name")).toBe("శుభం కళ్యాణ మండపం");
     expect(d.querySelector(".venue-btn")?.getAttribute("href")).toBe("https://maps.google.com/?q=hall");
     expect(d.querySelectorAll(".event-card").length).toBe(3); // wedding + reception + 1 extra event
-    expect(d.getElementById("typeText")?.textContent).toContain("కొమ్మినేని");
+    expect(text(d, ".invite-names")).toContain("కొమ్మినేని");
   });
 
-  it("the invitation paragraph follows the chosen inviter and the edited message", () => {
-    expect(text(doc(full), "#typeText")).toContain("కొమ్మినేని కుటుంబము వారి శుభ వివాహ");
-    const d = doc({ ...full, inviterMode: "both", inviteMessageTe: "మా పెళ్ళికి రండి." });
-    expect(text(d, "#typeText")).toBe("రామారావు & కృష్ణ కుటుంబముల వారి మా పెళ్ళికి రండి.");
+  it("the paragraph is the message, and the chosen inviter comes after ఇట్లు at the bottom", () => {
+    const d1 = doc(full);
+    expect(text(d1, "#typeText")).toMatch(/^శుభ వివాహ కార్యక్రమమునకు/);
+    expect(text(d1, ".invite-from")).toBe("ఇట్లు");
+    expect(text(d1, ".invite-names")).toBe("ఇట్లు కొమ్మినేని కుటుంబము");
+    const d2 = doc({ ...full, inviterMode: "both", inviteMessageTe: "మా పెళ్ళికి రండి." });
+    expect(text(d2, "#typeText")).toBe("మా పెళ్ళికి రండి.");
+    expect([...d2.querySelectorAll(".inv-line")].map((e) => e.textContent)).toEqual(["శ్రీ రామారావు & శ్రీమతి సీత", "శ్రీ కృష్ణ & శ్రీమతి లక్ష్మి"]);
   });
 
   it("builds clean call and WhatsApp links from messy phone numbers", () => {
