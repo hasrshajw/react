@@ -389,3 +389,133 @@ describe("CreateForm: parent status (T1)", () => {
   });
 });
 
+describe("CreateForm: closing title, who appears, custom names (T2)", () => {
+  const row = (o: object = {}) => ({ id: "n1", prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "", ...o });
+  const select = (id: string) => host.querySelector(`#${id}`) as HTMLSelectElement;
+  const choose = (el: HTMLSelectElement, value: string) => act(() => {
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(el, value);
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  const box = (label: string) => [...host.querySelectorAll<HTMLInputElement>('[aria-label="People who appear"] input')].find((i) => i.parentElement?.textContent?.trim() === label) as HTMLInputElement;
+  const quick = (label: string) => [...host.querySelectorAll('[aria-label="Quick choices"] button')].find((b) => b.textContent === label) as HTMLButtonElement;
+
+  it("the title list has the presets, a custom title and Hide; ఇట్లు is selected by default", () => {
+    show();
+    const sel = select("f-closingTitleMode");
+    expect([...sel.options].map((o) => o.value)).toEqual(["itlu", "aahvaninchuvaaru", "compliments", "invitedBy", "regards", "custom", "none"]);
+    expect(sel.value).toBe("itlu");
+  });
+  it("choosing a title writes the mode and focuses the invitation text; Custom shows the two title boxes", () => {
+    show();
+    choose(select("f-closingTitleMode"), "compliments");
+    expect(props.set).toHaveBeenCalledWith("closingTitleMode", "compliments");
+    expect(props.focus).toHaveBeenCalledWith("closingTitleMode");
+    expect(input("closingTitleEn")).toBeNull();
+    show({ data: { ...initial, closingTitleMode: "custom" } });
+    typeInto(input("closingTitleTe"), "మీ ఆత్మీయులు");
+    expect(props.set).toHaveBeenCalledWith("closingTitleTe", "మీ ఆత్మీయులు");
+    expect(input("closingTitleEn")).toBeTruthy();
+  });
+
+  it("an untouched old record shows the boxes of its old choice ticked and writes nothing", () => {
+    show({ data: { ...initial, inviterMode: "both" } });
+    expect(box("Groom’s family (parents)").checked).toBe(true);
+    expect(box("Bride’s family (parents)").checked).toBe(true);
+    expect(box("Groom").checked).toBe(false);
+    expect(box("Family surname").checked).toBe(false);
+    expect(props.set).not.toHaveBeenCalled();
+    show();
+    expect(box("Family surname").checked).toBe(true);
+  });
+  it("ticking and unticking a box writes the list in a fixed order; unticking the last one writes none", () => {
+    show({ data: { ...initial, inviterSources: "brideMother" } });
+    click(box("Groom"));
+    expect(props.set).toHaveBeenCalledWith("inviterSources", "groom,brideMother");
+    click(box("Bride’s mother"));
+    expect(props.set).toHaveBeenCalledWith("inviterSources", "none");
+  });
+  it("the quick buttons set exactly those people", () => {
+    show();
+    click(quick("Groom side"));
+    expect(props.set).toHaveBeenCalledWith("inviterSources", "groom,groomFather,groomMother");
+    click(quick("Bride side"));
+    expect(props.set).toHaveBeenCalledWith("inviterSources", "bride,brideFather,brideMother");
+    click(quick("All"));
+    expect(props.set).toHaveBeenCalledWith("inviterSources", "groom,groomFather,groomMother,bride,brideFather,brideMother");
+    click(quick("Nobody"));
+    expect(props.set).toHaveBeenCalledWith("inviterSources", "none");
+    show({ data: { ...initial, inviterSources: "groom,groomFather,groomMother" } });
+    expect(quick("Groom side").className).toBe("on");
+    expect(quick("All").className).toBe("");
+  });
+  it("the five old buttons still work, and clearing the new list hands control back to them", () => {
+    show({ data: { ...initial, inviterSources: "groom" } });
+    const radios = [...host.querySelectorAll('[aria-label="Who is inviting"] [role="radio"]')] as HTMLButtonElement[];
+    expect(radios.every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
+    click(radios.find((r) => r.textContent === "Bride’s family")!);
+    expect(props.set).toHaveBeenCalledWith("inviterMode", "bride");
+    expect(props.set).toHaveBeenCalledWith("inviterSources", "");
+  });
+
+  it("Add name calls add for the inviter list with a blank row", () => {
+    show();
+    click(button("Add name"));
+    expect(props.add).toHaveBeenCalledTimes(1);
+    const [field, make] = (props.add as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(field).toBe("inviterNames");
+    expect(make()).toMatchObject({ prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "" });
+    expect(make().id).toBeTruthy();
+  });
+  it("a row has a prefix list and name and relation boxes that patch that row only", () => {
+    show({ data: { ...initial, inviterNames: [row({ id: "n1" }), row({ id: "n2" })] } });
+    expect([...select("f-inviter-n1-prefix").options].map((o) => o.textContent)).toEqual(["No prefix", "శ్రీ", "శ్రీమతి", "చి||", "కీ.శే.", "డాక్టర్"]);
+    choose(select("f-inviter-n2-prefix"), "dr");
+    expect(props.patch).toHaveBeenCalledWith("inviterNames", "n2", { prefix: "dr" });
+    typeInto(input("inviter-n1-nameEn"), "Rao");
+    expect(props.patch).toHaveBeenCalledWith("inviterNames", "n1", { nameEn: "Rao" });
+    typeInto(input("inviter-n1-nameTe"), "రావు");
+    expect(props.patch).toHaveBeenCalledWith("inviterNames", "n1", { nameTe: "రావు" });
+    typeInto(input("inviter-n2-relationEn"), "Uncle");
+    expect(props.patch).toHaveBeenCalledWith("inviterNames", "n2", { relationEn: "Uncle" });
+    typeInto(input("inviter-n2-relationTe"), "మామ");
+    expect(props.patch).toHaveBeenCalledWith("inviterNames", "n2", { relationTe: "మామ" });
+  });
+  it("a row's boxes focus the invitation text in the preview", () => {
+    show({ data: { ...initial, inviterNames: [row()] } });
+    focusEl(input("inviter-n1-nameEn"));
+    expect(props.focus).toHaveBeenCalledWith("inviterNames");
+  });
+  it("Remove deletes that row; Up and Down reorder through set, and the ends are disabled", () => {
+    show({ data: { ...initial, inviterNames: [row({ id: "a" }), row({ id: "b" }), row({ id: "c" })] } });
+    click(button("Remove name"));
+    expect(props.remove).toHaveBeenCalledWith("inviterNames", "a");
+    const ups = [...host.querySelectorAll<HTMLButtonElement>('button[aria-label="Move name up"]')];
+    const downs = [...host.querySelectorAll<HTMLButtonElement>('button[aria-label="Move name down"]')];
+    expect(ups.map((b) => b.disabled)).toEqual([true, false, false]);
+    expect(downs.map((b) => b.disabled)).toEqual([false, false, true]);
+    click(ups[1]);
+    expect((props.set as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]).toBe("inviterNames");
+    expect(((props.set as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1] as { id: string }[]).map((n) => n.id)).toEqual(["b", "a", "c"]);
+    click(downs[0]);
+    expect(((props.set as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1] as { id: string }[]).map((n) => n.id)).toEqual(["b", "a", "c"]);
+  });
+  it("after 8 names the Add button is replaced by a hint", () => {
+    show({ data: { ...initial, inviterNames: Array.from({ length: 8 }, (_, i) => row({ id: `n${i}` })) } });
+    expect(button("Add name")).toBeUndefined();
+    expect(host.textContent).toContain("up to 8 custom names");
+  });
+  it("shows a one-line preview of the title and the lines", () => {
+    show({ data: { ...initial, closingTitleMode: "compliments", inviterSources: "groom", groomTe: "రవి", inviterNames: [row({ prefix: "sri", nameTe: "రావు", relationTe: "మామ" })] } });
+    expect(host.textContent).toContain("Preview: శుభాకాంక్షలతో — రవి · శ్రీ రావు (మామ)");
+    show({ data: { ...initial, closingTitleMode: "none", inviterSources: "none" } });
+    expect(host.textContent).toContain("Preview: (no title) — (no names)");
+  });
+  it("while the section loads the controls are disabled and no rows are drawn", () => {
+    show({ sectionLoading: allLoading(true), data: { ...initial, inviterNames: [row()] } });
+    expect(select("f-closingTitleMode").disabled).toBe(true);
+    expect(quick("All").disabled).toBe(true);
+    expect(box("Groom").disabled).toBe(true);
+    expect(input("inviter-n1-nameEn")).toBeNull();
+    expect(host.textContent).not.toContain("Preview:");
+  });
+});

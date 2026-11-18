@@ -273,6 +273,18 @@ select t.ok('the phone of a late parent is not format-checked',
 select t.ok('the phone of a hidden parent is not format-checked',
   t.affected($$insert into public.invitations (id, slug, details) values ('d13', 'details-thirteen', '{"brideFatherStatus":"hidden","brideFatherPhone":"123"}')$$) = 1);
 select t.throws('the phone of a living parent is still checked when only the other parent is late', $$insert into public.invitations (id, slug, details) values ('d14', 'details-fourteen', '{"groomFatherStatus":"late","groomMotherPhone":"abc"}')$$, '23514');
+-- T2: closing title, who appears, custom names
+select t.throws('an unknown closing title is refused', $$insert into public.invitations (id, slug, details) values ('d15', 'details-fifteen', '{"closingTitleMode":"loud"}')$$, '23514');
+select t.throws('a person that does not exist in inviterSources is refused', $$insert into public.invitations (id, slug, details) values ('d16', 'details-sixteen', '{"inviterSources":"groom,uncle"}')$$, '23514');
+select t.throws('inviterSources with a stray separator is refused', $$insert into public.invitations (id, slug, details) values ('d17', 'details-seventeen', '{"inviterSources":"groom,"}')$$, '23514');
+select t.throws('a custom name with an unknown prefix is refused', $$insert into public.invitations (id, slug, details) values ('d18', 'details-eighteen', '{"inviterNames":[{"id":"n1","prefix":"king","nameTe":"రాజు"}]}')$$, '23514');
+select t.throws('more than 8 custom names are refused', format('insert into public.invitations (id, slug, details) values (%L, %L, %L)', 'd19', 'details-nineteen', jsonb_build_object('inviterNames', (select jsonb_agg('{"prefix":"sri"}'::jsonb) from generate_series(1, 9)))::text), '23514');
+select t.throws('a list of 21 custom names is refused', format('insert into public.invitations (id, slug, details) values (%L, %L, %L)', 'd20', 'details-twenty', jsonb_build_object('inviterNames', (select jsonb_agg('{}'::jsonb) from generate_series(1, 21)))::text), '23514');
+select t.throws('a custom name that is not text is refused', $$insert into public.invitations (id, slug, details) values ('d21', 'details-twentyone', '{"inviterNames":[{"id":"n1","nameTe":5}]}')$$, '23514');
+select t.ok('a closing title, a list of people and custom names are accepted',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d22', 'details-twentytwo', '{"closingTitleMode":"compliments","closingTitleEn":"","closingTitleTe":"","inviterSources":"groom,groomFather,groomMother","inviterNames":[{"id":"n1","prefix":"sri","nameEn":"Rao","nameTe":"రావు","relationEn":"Uncle","relationTe":"మేనమామ"},{"id":"n2","prefix":"","nameEn":"","nameTe":"","relationEn":"","relationTe":""}]}')$$) = 1);
+select t.ok('inviterSources can be "none" and an old record without any of the new keys is still accepted',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d23', 'details-twentythree', '{"inviterSources":"none","closingTitleMode":"none","inviterMode":"both"}')$$) = 1);
 select t.ok('a preview image from this app''s own bucket is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d8', 'details-eight', '{"seoImage":"https://abc.supabase.co/storage/v1/object/public/invitation-previews/aaaaaaaa-0000-0000-0000-000000000001/d8.jpg?v=1"}')$$) = 1);
 select t.ok('other columns of an old row stay editable (the check runs only when details change)',
@@ -403,6 +415,12 @@ select t.throws('a bad phone number is refused',
   format($$select public.submit_change_request('c1', '{"groomFatherPhone":"123"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send an unknown parent status (the key is on the allowed list, so it is checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"groomFatherStatus":"dead"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send an unknown closing title (the key is on the allowed list, so it is checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"closingTitleMode":"loud"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send an unknown person in inviterSources (checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"inviterSources":"nobody"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send a custom name with an unknown prefix (checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"inviterNames":[{"id":"n1","prefix":"king"}]}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a 2000-character name is refused',
   format($$select public.submit_change_request('c1', jsonb_build_object('groomEn', repeat('x', 2000)), %L)$$, current_setting('t.base')), '23514');
 select t.throws('a request with no change is refused',

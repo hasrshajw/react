@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarPlus, FileText, Heart, LayoutTemplate, Mail, MapPin, Plus, Search, Trash2, User, Users } from "../../components/Icons";
-import type { Category, ContactItem, EventItem, InvitationData, ListField, SectionId, Template } from "../../types/invitation";
+import type { Category, InvitationData, ListField, ListItem, ListPatch, SectionId, Template } from "../../types/invitation";
 import { newEvent } from "./constants";
 import { Bilingual } from "./components/Bilingual";
 import { Contacts } from "./components/Contacts";
@@ -26,8 +26,8 @@ export interface CreateFormProps {
   /** A template will be selected once data arrives (editing, or /create?template=…). */
   expectTemplate: boolean;
   set: <K extends keyof InvitationData>(key: K, value: InvitationData[K]) => void;
-  add: (field: ListField, make: () => EventItem | ContactItem) => void;
-  patch: (field: ListField, id: string, patch: Partial<EventItem & ContactItem>) => void;
+  add: (field: ListField, make: () => ListItem) => void;
+  patch: (field: ListField, id: string, patch: ListPatch) => void;
   remove: (field: ListField, id: string) => void;
   focus: (field: string) => void;
   vis: (key: string) => string | undefined;
@@ -106,7 +106,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
       </Section>
 
       <Section id="message" icon={FileText} title="Invitation Text" tag={tagFor("message")} loading={message.loading}>
-        <InviteSection data={data} set={set} fp={message.fp} loading={message.loading} />
+        <InviteSection data={data} set={set} add={add} patch={patch} remove={remove} fp={message.fp} fpx={message.fpx} loading={message.loading} />
       </Section>
 
       <Section id="venue" icon={MapPin} title="Reception & Venue" tag={tagFor("venue")} loading={venue.loading}>

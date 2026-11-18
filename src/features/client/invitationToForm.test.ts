@@ -52,3 +52,15 @@ describe("invitationToForm", () => {
     expect(data.venueEn).toBe("New Hall");
   });
 });
+
+describe("invitationToForm: closing block (T2)", () => {
+  it("a record saved before T2 loads with the defaults (ఇట్లు, old control, no custom names)", () => {
+    const f = invitationToForm(base({ details: { inviterMode: "both" } }));
+    expect(f).toMatchObject({ closingTitleMode: "", closingTitleEn: "", closingTitleTe: "", inviterSources: "", inviterNames: [], inviterMode: "both" });
+  });
+  it("keeps saved names, and a damaged list becomes empty", () => {
+    const names = [{ id: "n1", prefix: "sri", nameEn: "Rao", nameTe: "రావు", relationEn: "", relationTe: "" }];
+    expect(invitationToForm(base({ details: { inviterNames: names, inviterSources: "groom", closingTitleMode: "none" } }))).toMatchObject({ inviterNames: names, inviterSources: "groom", closingTitleMode: "none" });
+    expect(invitationToForm(base({ details: { inviterNames: "oops" as never } })).inviterNames).toEqual([]);
+  });
+});

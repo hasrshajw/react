@@ -21,3 +21,13 @@ describe("formatDiffValue", () => {
     expect(formatDiffValue({ a: 1 })).toBe('{"a":1}');
   });
 });
+
+describe("fieldLabel: closing block (T2)", () => {
+  it("has a label for each new key", () => {
+    expect(fieldLabel("closingTitleMode")).toBe("Closing title");
+    expect(fieldLabel("closingTitleEn")).toBe("Closing title (EN)");
+    expect(fieldLabel("closingTitleTe")).toBe("Closing title (TE)");
+    expect(fieldLabel("inviterSources")).toBe("Who is inviting");
+    expect(fieldLabel("inviterNames")).toBe("Custom inviter names");
+  });
+});

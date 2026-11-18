@@ -384,12 +384,13 @@ declare
     'groomFatherEn','groomFatherTe','groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe',
     'brideFatherEn','brideFatherTe','brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionDate',
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
-    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];
+    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources'];
   url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
-  list_keys  text[] := array['events','groomContacts','brideContacts'];
-  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone'];
+  list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
+  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe'];
 begin
   if d is null or jsonb_typeof(d) <> 'object' then return 'details must be a JSON object'; end if;
   if octet_length(d::text) > 65536 then return 'details is larger than 64 KB'; end if;
@@ -408,6 +409,11 @@ begin
           return 'seoImage must be a preview image uploaded in this app'; end if;
         if k = any (status_keys) and s not in ('', 'late', 'hidden') then
           return k || ' must be empty, late or hidden'; end if;
+        -- T2: closing title preset and the list of people who appear (same rules as src/lib/inviteText.ts)
+        if k = 'closingTitleMode' and s not in ('', 'itlu', 'aahvaninchuvaaru', 'compliments', 'invitedBy', 'regards', 'custom', 'none') then
+          return 'closingTitleMode is not a known title'; end if;
+        if k = 'inviterSources' and s !~ '^(none)?$|^(groom|groomFather|groomMother|bride|brideFather|brideMother|groomFamily|brideFamily|surname)(,(groom|groomFather|groomMother|bride|brideFather|brideMother|groomFamily|brideFamily|surname))*$' then
+          return 'inviterSources has an unknown person'; end if;
         -- T1: the phone of a late or hidden parent is never shown, so its format is not checked (same rule as src/lib/validate.ts)
         if k = any (phone_keys) and btrim(s) <> ''
            and coalesce(d ->> replace(k, 'Phone', 'Status'), '') = '' and not (
@@ -419,6 +425,7 @@ begin
     elsif k = any (list_keys) then
       if jsonb_typeof(v) <> 'array' then return k || ' must be a list'; end if;
       if jsonb_array_length(v) > 20 then return k || ' has more than 20 items'; end if;
+      if k = 'inviterNames' and jsonb_array_length(v) > 8 then return 'inviterNames has more than 8 names'; end if;
       for item in select * from jsonb_array_elements(v) loop
         if jsonb_typeof(item) <> 'object' then return k || ' items must be objects'; end if;
         declare ik text; iv jsonb; is_ text; begin
@@ -428,6 +435,8 @@ begin
               is_ := iv #>> '{}';
               if is_ is not null and char_length(is_) > 1000 then return k || '.' || ik || ' is longer than 1000 characters'; end if;
               if ik = 'maps' and not public.is_safe_url(is_) then return k || '.maps has a link type that is not allowed'; end if;
+              if k = 'inviterNames' and ik = 'prefix' and coalesce(is_, '') not in ('', 'sri', 'smt', 'chi', 'late', 'dr') then
+                return 'inviterNames.prefix is not a known prefix'; end if;
               if ik = 'phone' and btrim(coalesce(is_, '')) <> '' and not (
                    is_ ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(is_, '\D', '', 'g')) between 10 and 13) then
                 return k || '.phone is not a valid phone number'; end if;
@@ -650,7 +659,8 @@ declare
     'groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe','brideFatherEn','brideFatherTe',
     'brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionEnabled','receptionDate','receptionTime',
     'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
-    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];
+    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

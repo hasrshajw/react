@@ -56,3 +56,24 @@ describe("compile (H-2, M-10)", () => {
     expect(d.getElementById("a")?.textContent).toBe("x");
   });
 });
+
+describe("compile: closing block placeholders (T2)", () => {
+  const out = (data: object, tpl: string) => compile(tpl, data as never);
+  const names = [{ id: "a", prefix: "sri", nameEn: "", nameTe: "రావు", relationEn: "", relationTe: "మామ" }];
+  it("title, visibility flag and lines 1 to 10 are filled", () => {
+    const html = out({ inviterSources: "none", inviterNames: names, closingTitleMode: "compliments", closingTitleEn: "" },
+      "<b>{{inviter-title-te}}</b><i>{{inviter-title-en}}</i>{{#if inviter-title-visible}}<u>shown</u>{{/if}}<p>{{inviter-line-1-te}}</p><p>{{inviter-line-10-te}}</p>");
+    expect(html).toContain("శుభాకాంక్షలతో");
+    expect(html).toContain("With Best Compliments");
+    expect(html).toContain("shown");
+    expect(html).toContain("శ్రీ రావు (మామ)");
+  });
+  it("Hide makes the visibility flag empty, and default records print ఇట్లు", () => {
+    expect(out({ closingTitleMode: "none" }, "{{#if inviter-title-visible}}<u>shown</u>{{/if}}")).not.toContain("shown");
+    expect(out({}, "{{#if inviter-title-visible}}<u>shown</u>{{/if}}<b>{{inviter-title-te}}</b>")).toContain("shown");
+    expect(out({}, "<b>{{inviter-title-te}}</b>")).toContain("ఇట్లు");
+  });
+  it("{{inviter-te}} joins every line", () => {
+    expect(out({ inviterSources: "none", inviterNames: [{ ...names[0], relationTe: "" }, { ...names[0], id: "b", nameTe: "కృష్ణ", prefix: "" }] }, "{{inviter-te}}")).toContain("శ్రీ రావు &amp; కృష్ణ");
+  });
+});

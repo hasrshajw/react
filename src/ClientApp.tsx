@@ -33,7 +33,7 @@ import { readJSON, removeKey, writeJSON } from "./lib/storage";
 import { LS_CLIENT_DRAFT } from "./lib/storageKeys";
 import { fmtDateTime } from "./lib/dashboardData";
 import { has, validateInvitation } from "./lib/validate";
-import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "./types/invitation";
+import type { InvitationData, ListField, ListItem, ListPatch, SectionId } from "./types/invitation";
 import createCss from "./features/create/create.css?inline";
 
 /* Track B (B4 shell + B6 client editor). Separate chunk so clients never download admin code. */
@@ -266,16 +266,20 @@ function ClientEditor() {
     const target = EN_TO_TE[key as keyof typeof EN_TO_TE];
     if (target && typeof value === "string") schedule(`${key}:${target}`, value, (te) => dispatch({ type: "field", key: target, value: te }));
   }, [schedule]);
-  const add = useCallback((field: ListField, make: () => EventItem | ContactItem) => {
+  const add = useCallback((field: ListField, make: () => ListItem) => {
     if (lockedRef.current) return;
     dispatch({ type: "addItem", field, item: make() });
   }, []);
-  const patch = useCallback((field: ListField, id: string, p: Partial<EventItem & ContactItem>) => {
+  const patch = useCallback((field: ListField, id: string, p: ListPatch) => {
     if (lockedRef.current) return;
     dispatch({ type: "patchItem", field, id, patch: p });
     if (field === "events") {
       if (p.name !== undefined) schedule(`event-${id}-name`, p.name, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
       if (p.venue !== undefined) schedule(`event-${id}-venue`, p.venue, (te) => dispatch({ type: "patchItem", field, id, patch: { venueTe: te } }));
+    }
+    if (field === "inviterNames") {
+      if (p.nameEn !== undefined) schedule(`inviter-${id}-name`, p.nameEn, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
+      if (p.relationEn !== undefined) schedule(`inviter-${id}-relation`, p.relationEn, (te) => dispatch({ type: "patchItem", field, id, patch: { relationTe: te } }));
     }
   }, [schedule]);
   const remove = useCallback((field: ListField, id: string) => {

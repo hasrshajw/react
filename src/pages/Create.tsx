@@ -8,7 +8,7 @@ import { compile } from "../lib/compileInvitation";
 import { invitationUrl } from "../lib/links";
 import { readJSON, removeKey, writeJSON } from "../lib/storage";
 import { has, validateInvitation } from "../lib/validate";
-import type { ContactItem, EventItem, InvitationData, ListField, SectionId } from "../types/invitation";
+import type { InvitationData, ListField, ListItem, ListPatch, SectionId } from "../types/invitation";
 import createCss from "../features/create/create.css?inline";
 import { EN_TO_TE, LS_DRAFT, PROGRESS_IDS, SECTIONS, initial, uid } from "../features/create/constants";
 import { CreateForm } from "../features/create/CreateForm";
@@ -162,12 +162,16 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     if (target && typeof value === "string") schedule(`${key}:${target}`, value, (te) => dispatch({ type: "field", key: target, value: te }));
   }, [schedule]);
   const focus = useCallback((field: string) => setFocusRequest({ field, id: uid() }), []);
-  const add = useCallback((field: ListField, make: () => EventItem | ContactItem) => dispatch({ type: "addItem", field, item: make() }), []);
-  const patch = useCallback((field: ListField, id: string, p: Partial<EventItem & ContactItem>) => {
+  const add = useCallback((field: ListField, make: () => ListItem) => dispatch({ type: "addItem", field, item: make() }), []);
+  const patch = useCallback((field: ListField, id: string, p: ListPatch) => {
     dispatch({ type: "patchItem", field, id, patch: p });
     if (field === "events") {
       if (p.name !== undefined) schedule(`event-${id}-name`, p.name, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
       if (p.venue !== undefined) schedule(`event-${id}-venue`, p.venue, (te) => dispatch({ type: "patchItem", field, id, patch: { venueTe: te } }));
+    }
+    if (field === "inviterNames") {
+      if (p.nameEn !== undefined) schedule(`inviter-${id}-name`, p.nameEn, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
+      if (p.relationEn !== undefined) schedule(`inviter-${id}-relation`, p.relationEn, (te) => dispatch({ type: "patchItem", field, id, patch: { relationTe: te } }));
     }
   }, [schedule]);
   const remove = useCallback((field: ListField, id: string) => dispatch({ type: "removeItem", field, id }), []);

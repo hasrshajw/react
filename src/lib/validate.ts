@@ -2,7 +2,7 @@ import type { ErrorMap, InvitationData } from "../types/invitation";
 import { isEmail } from "./auth";
 import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
-import { parentStatus } from "./inviteText";
+import { INVITER_PREFIX_IDS, MAX_INVITER_NAMES, okSources, parentStatus } from "./inviteText";
 
 export const has = (v: unknown): boolean => String(v ?? "").trim() !== "";
 
@@ -46,6 +46,10 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   data.brideContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "bride", PHONE_MSG); });
   if (data.receptionEnabled && !has(data.receptionDate)) add("receptionDate", "venue", "Add the reception date");
   if (has(data.venueMaps) && !okUrl(data.venueMaps)) add("venueMaps", "venue", URL_MSG);
+  /* Closing block (T2). The form cannot produce these problems; they can only come from pasted or damaged data. */
+  if (!okSources(data.inviterSources || "")) add("inviterSources", "message", "Choose who is inviting from the list");
+  if ((data.inviterNames || []).length > MAX_INVITER_NAMES) add("inviterNames", "message", `Use at most ${MAX_INVITER_NAMES} custom names`);
+  (data.inviterNames || []).forEach((n) => { if (!INVITER_PREFIX_IDS.includes(n.prefix)) add(`inviter-${n.id}-prefix`, "message", "Choose a prefix from the list"); });
   data.events.forEach((ev) => {
     if (has(ev.name) && !has(ev.date)) add(`event-${ev.id}-date`, "events", "Add a date for this event");
     if (has(ev.maps) && !okUrl(ev.maps)) add(`event-${ev.id}-maps`, "events", URL_MSG);

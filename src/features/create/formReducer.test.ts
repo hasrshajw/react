@@ -153,3 +153,21 @@ describe("touch / submit / category / reset", () => {
     expect(s).toEqual(initialFormState(null));
   });
 });
+
+describe("formReducer: custom inviter names (T2)", () => {
+  const mk = (id: string) => ({ id, prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "" });
+  it("adds, patches and removes rows by id, leaving the other lists alone", () => {
+    let s = formReducer(initialFormState(null), { type: "addItem", field: "inviterNames", item: mk("a") });
+    s = formReducer(s, { type: "addItem", field: "inviterNames", item: mk("b") });
+    s = formReducer(s, { type: "patchItem", field: "inviterNames", id: "a", patch: { nameTe: "రావు", prefix: "sri" } });
+    expect(s.data.inviterNames.map((n) => [n.id, n.nameTe, n.prefix])).toEqual([["a", "రావు", "sri"], ["b", "", ""]]);
+    s = formReducer(s, { type: "removeItem", field: "inviterNames", id: "a" });
+    expect(s.data.inviterNames.map((n) => n.id)).toEqual(["b"]);
+    expect(s.data.events).toEqual([]);
+  });
+  it("a reorder through the `field` action replaces the list", () => {
+    let s = formReducer(initialFormState(null), { type: "field", key: "inviterNames", value: [mk("a"), mk("b")] });
+    s = formReducer(s, { type: "field", key: "inviterNames", value: [mk("b"), mk("a")] });
+    expect(s.data.inviterNames.map((n) => n.id)).toEqual(["b", "a"]);
+  });
+});

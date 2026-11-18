@@ -20,6 +20,21 @@ export interface ContactItem {
   phone: string;
 }
 
+/** One extra name in the closing block (after the title). `prefix` is "" | "sri" | "smt" | "chi" | "late" | "dr". */
+export interface InviterName {
+  id: string;
+  prefix: string;
+  nameEn: string;
+  nameTe: string;
+  relationEn: string;
+  relationTe: string;
+}
+
+/** Anything that can sit in one of the form's repeatable lists. */
+export type ListItem = EventItem | ContactItem | InviterName;
+/** A partial change to a list item (the union of all item keys, so one patch signature serves every list). */
+export type ListPatch = Partial<EventItem & ContactItem & InviterName>;
+
 export interface InvitationData {
   customId: string;
   templateId: string;
@@ -41,6 +56,10 @@ export interface InvitationData {
   /* Link preview (WhatsApp / Instagram). Stored inside the `details` JSON column. */
   /* Invitation paragraph: who invites (surname | groom | bride | both | custom) and the message. Empty message = the standard text. */
   inviterMode: string; inviterEn: string; inviterTe: string; inviteMessageTe: string;
+  /* Closing block (T2). Title: "" = "ఇట్లు" (today). Sources: comma-separated ids ("" = use inviterMode, "none" = nobody). Names: any number of extra names. */
+  closingTitleMode: string; closingTitleEn: string; closingTitleTe: string;
+  inviterSources: string;
+  inviterNames: InviterName[];
   seoTitle: string;        // max 60 chars
   seoDescription: string;  // max 160 chars
   seoImage: string;        // public https URL from Supabase Storage (NOT a base64 data URL)
@@ -48,7 +67,7 @@ export interface InvitationData {
   clientEmail: string;
 }
 
-export type ListField = "events" | "groomContacts" | "brideContacts";
+export type ListField = "events" | "groomContacts" | "brideContacts" | "inviterNames";
 
 export interface Template {
   id: string;

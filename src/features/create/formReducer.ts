@@ -1,4 +1,4 @@
-import type { ContactItem, EventItem, InvitationData, ListField } from "../../types/invitation";
+import type { InvitationData, ListField, ListItem } from "../../types/invitation";
 import { initial } from "./constants";
 
 /* All form state lives in one reducer, so every change is a named action and
@@ -13,8 +13,6 @@ export interface FormState {
   categoryId: string;
   lastSaved: number | null;
 }
-
-type ListItem = EventItem | ContactItem;
 
 export type FormAction =
   | { type: "field"; key: keyof InvitationData; value: InvitationData[keyof InvitationData] }

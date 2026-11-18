@@ -1,5 +1,5 @@
 import { CalendarPlus, FileText, Heart, LayoutTemplate, Mail, MapPin, Search, User, Users } from "../../components/Icons";
-import type { ContactItem, EventItem, InvitationData, SectionDef } from "../../types/invitation";
+import type { ContactItem, EventItem, InvitationData, InviterName, SectionDef } from "../../types/invitation";
 import { uid } from "../../lib/uid";
 
 
@@ -9,6 +9,8 @@ export { LS_DRAFT } from "../../lib/storageKeys";
 
 export { uid };
 export const newEvent = (): EventItem => ({ id: uid(), name: "", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "" });
+export { MAX_INVITER_NAMES } from "../../lib/inviteText";
+export const newInviterName = (): InviterName => ({ id: uid(), prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "" });
 export const newContact = (): ContactItem => ({ id: uid(), nameEn: "", nameTe: "", phone: "" });
 
 export const initial: InvitationData = {
@@ -21,6 +23,7 @@ export const initial: InvitationData = {
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
   events: [], groomContacts: [], brideContacts: [],
   inviterMode: "surname", inviterEn: "", inviterTe: "", inviteMessageTe: "",
+  closingTitleMode: "", closingTitleEn: "", closingTitleTe: "", inviterSources: "", inviterNames: [],
   seoTitle: "", seoDescription: "", seoImage: "",
   clientEmail: "",
 };
@@ -28,7 +31,7 @@ export const initial: InvitationData = {
 /** English field -> the Telugu field that is filled in automatically. */
 export const EN_TO_TE = {
   surnameEn: "surnameTe", groomEn: "groomTe", groomFatherEn: "groomFatherTe", groomMotherEn: "groomMotherTe",
-  brideEn: "brideTe", brideFatherEn: "brideFatherTe", brideMotherEn: "brideMotherTe", venueEn: "venueTe", inviterEn: "inviterTe",
+  brideEn: "brideTe", brideFatherEn: "brideFatherTe", brideMotherEn: "brideMotherTe", venueEn: "venueTe", inviterEn: "inviterTe", closingTitleEn: "closingTitleTe",
 } as const satisfies Partial<Record<keyof InvitationData, keyof InvitationData>>;
 
 /** Field -> element inside the live preview that should scroll into view. */
@@ -40,6 +43,7 @@ export const TARGETS: Record<string, string> = {
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
   inviteMessageTe: "invite-text", inviterMode: "invite-text", inviterEn: "invite-text", inviterTe: "invite-text",
+  closingTitleMode: "invite-text", closingTitleEn: "invite-text", closingTitleTe: "invite-text", inviterSources: "invite-text", inviterNames: "invite-text",
   groomFatherStatus: "groom-father-te", groomMotherStatus: "groom-mother-te", brideFatherStatus: "bride-father-te", brideMotherStatus: "bride-mother-te",
   groomFatherPhone: "groom-father-phone", groomMotherPhone: "groom-mother-phone", brideFatherPhone: "bride-father-phone", brideMotherPhone: "bride-mother-phone",
   groomContacts: "groom-extra-1-phone", brideContacts: "bride-extra-1-phone",

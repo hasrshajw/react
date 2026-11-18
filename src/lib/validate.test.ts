@@ -94,3 +94,22 @@ describe("validateInvitation: parent status (T1)", () => {
   });
 });
 
+describe("validateInvitation: closing block (T2)", () => {
+  const row = (o: object) => ({ id: "n1", prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "", ...o });
+  it("accepts the defaults, a list of known people, \"none\" and rows with every known prefix", () => {
+    expect(validateInvitation(valid()).inviterSources).toBeUndefined();
+    for (const s of ["", "none", "groom", "groomFather,groomMother,bride"]) expect(validateInvitation(valid({ inviterSources: s })).inviterSources).toBeUndefined();
+    for (const p of ["", "sri", "smt", "chi", "late", "dr"]) expect(validateInvitation(valid({ inviterNames: [row({ prefix: p })] }))["inviter-n1-prefix"]).toBeUndefined();
+  });
+  it("rejects an unknown person in the list, in the message section", () => {
+    const e = validateInvitation(valid({ inviterSources: "groom,uncle" }));
+    expect(e.inviterSources).toEqual({ section: "message", msg: "Choose who is inviting from the list" });
+    expect(validateInvitation(valid({ inviterSources: "groom," })).inviterSources).toBeDefined();
+  });
+  it("rejects an unknown prefix and more than 8 custom names", () => {
+    expect(validateInvitation(valid({ inviterNames: [row({ prefix: "king" })] }))["inviter-n1-prefix"]?.section).toBe("message");
+    const nine = Array.from({ length: 9 }, (_, i) => row({ id: `n${i}` }));
+    expect(validateInvitation(valid({ inviterNames: nine })).inviterNames?.msg).toBe("Use at most 8 custom names");
+    expect(validateInvitation(valid({ inviterNames: nine.slice(0, 8) })).inviterNames).toBeUndefined();
+  });
+});

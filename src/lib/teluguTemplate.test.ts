@@ -104,3 +104,47 @@ describe("telugu-traditional template", () => {
     expect([...d.querySelectorAll(".inv-line")].map((e) => e.textContent).filter(Boolean)).toEqual(["కీ.శే. రామారావు", "శ్రీమతి సీత", "శ్రీ కృష్ణ"]);
   });
 });
+
+describe("telugu-traditional template: closing block (T2)", () => {
+  const lines = (d: Document) => [...d.querySelectorAll(".inv-line")].map((e) => e.textContent).filter(Boolean);
+  it("a record saved before T2 looks the same: ఇట్లు and the same lines", () => {
+    const d1 = doc(full);
+    expect(text(d1, ".invite-from")).toBe("ఇట్లు");
+    expect(lines(d1)).toEqual(["కొమ్మినేని కుటుంబము"]);
+    const d2 = doc({ ...full, inviterMode: "both" });
+    expect(text(d2, ".invite-from")).toBe("ఇట్లు");
+    expect(lines(d2)).toEqual(["శ్రీ రామారావు", "శ్రీమతి సీత", "శ్రీ కృష్ణ", "శ్రీమతి లక్ష్మి"]);
+    expect(d2.querySelectorAll(".inv-line").length).toBe(4);
+  });
+  it("prints the chosen title, the chosen people and the custom names with their relations", () => {
+    const d = doc({
+      ...full, closingTitleMode: "compliments", inviterSources: "groom,groomFather,groomMother",
+      inviterNames: [
+        { id: "a", prefix: "sri", nameEn: "", nameTe: "వెంకట్", relationEn: "", relationTe: "మేనమామ" },
+        { id: "b", prefix: "", nameEn: "", nameTe: "మిత్రులు", relationEn: "", relationTe: "" },
+      ],
+    });
+    expect(text(d, ".invite-from")).toBe("శుభాకాంక్షలతో");
+    expect(lines(d)).toEqual(["శ్రీ రామారావు", "శ్రీమతి సీత", "రవి", "శ్రీ వెంకట్ (మేనమామ)", "మిత్రులు"]);
+  });
+  it("a custom title is used, and Hide removes the title but keeps the names", () => {
+    expect(text(doc({ ...full, closingTitleMode: "custom", closingTitleTe: "మీ ఆత్మీయులు" }), ".invite-from")).toBe("మీ ఆత్మీయులు");
+    const d = doc({ ...full, closingTitleMode: "none", inviterMode: "groom" });
+    expect(d.querySelector(".invite-from")).toBeNull();
+    expect(lines(d)).toEqual(["శ్రీ రామారావు", "శ్రీమతి సీత"]);
+  });
+  it("lines 5 to 10 appear only when there are that many names, and nothing is left unfilled", () => {
+    const names = Array.from({ length: 8 }, (_, i) => ({ id: `n${i}`, prefix: "", nameEn: "", nameTe: `పేరు${i + 1}`, relationEn: "", relationTe: "" }));
+    const d = doc({ ...full, inviterSources: "none", inviterNames: names });
+    expect(d.querySelectorAll(".inv-line").length).toBe(8);
+    expect(lines(d)[7]).toBe("పేరు8");
+    expect(doc({ ...full, inviterSources: "none", inviterNames: names }).documentElement.outerHTML).not.toMatch(/\{\{/);
+    expect(doc(full).querySelectorAll(".inv-line").length).toBe(4);
+  });
+  it("the old template (fixed ఇట్లు and four lines) still works with the new keys", () => {
+    const oldBlock = '<div class="invite-from">ఇట్లు</div><div class="inv-line">{{inviter-line-1-te}}</div><div class="inv-line">{{inviter-line-4-te}}</div>';
+    const html = compile(oldBlock, { ...initial, ...full, closingTitleMode: "none", inviterSources: "groom,bride", inviterNames: [] });
+    expect(html).toContain("ఇట్లు");
+    expect(html).toContain("రవి");
+  });
+});
