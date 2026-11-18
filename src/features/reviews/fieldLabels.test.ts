@@ -47,3 +47,14 @@ describe("fieldLabel: birth order (T4)", () => {
     expect(fieldLabel("showParentage")).toBe("Show 'son / daughter of' line");
   });
 });
+
+describe("fieldLabel: reception venue (T5)", () => {
+  it("has a label for each new key", () => {
+    expect(fieldLabel("receptionSameVenue")).toBe("Reception at the wedding venue");
+    expect(fieldLabel("receptionVenueEn")).toBe("Reception venue (EN)");
+    expect(fieldLabel("receptionVenueTe")).toBe("Reception venue (TE)");
+    expect(fieldLabel("receptionVenueAddress")).toBe("Reception venue address");
+    expect(fieldLabel("receptionVenueMaps")).toBe("Reception maps link");
+  });
+});
+

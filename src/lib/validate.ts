@@ -46,6 +46,8 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   data.brideContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "bride", PHONE_MSG); });
   if (data.receptionEnabled && !has(data.receptionDate)) add("receptionDate", "venue", "Add the reception date");
   if (has(data.venueMaps) && !okUrl(data.venueMaps)) add("venueMaps", "venue", URL_MSG);
+  /* T5: checked even while "same venue" is ticked, because the database checks every link field (the form clears an invalid one when that box is ticked). */
+  if (has(data.receptionVenueMaps) && !okUrl(data.receptionVenueMaps)) add("receptionVenueMaps", "venue", URL_MSG);
   if (!okHonorific(data.coupleHonorific)) add("coupleHonorific", "family", "Choose whether to show చి|| / చి.ల.సౌ||");
   if (!okBirthOrder(data.groomOrder)) add("groomOrder", "groom", "Choose the groom's position among children from the list");
   if (!okBirthOrder(data.brideOrder)) add("brideOrder", "bride", "Choose the bride's position among children from the list");

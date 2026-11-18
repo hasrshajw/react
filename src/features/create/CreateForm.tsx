@@ -8,6 +8,7 @@ import { Field } from "./components/Field";
 import { InviteSection } from "./components/InviteSection";
 import { ParentStatus } from "./components/ParentStatus";
 import { BIRTH_ORDERS, birthOrder, parentStatus } from "../../lib/inviteText";
+import { has, okUrl } from "../../lib/validate";
 import { Section } from "./components/Section";
 import { SeoSection } from "./components/SeoSection";
 import { TemplatePicker } from "./components/TemplatePicker";
@@ -145,6 +146,20 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <Bilingual enLabel="Venue EN" teLabel="Venue తెలుగు" enField="venueEn" teField="venueTe" data={data} set={set} fp={venue.fp} />
         <Field label="Venue Address" {...venue.fp("venueAddress")} value={data.venueAddress} onChange={(v) => set("venueAddress", v)} />
         <Field label="Google Maps Link" inputMode="url" {...venue.fp("venueMaps")} value={data.venueMaps} onChange={(v) => set("venueMaps", v)} />
+        {data.receptionEnabled && (
+          <>
+            <label className="check">
+              <input type="checkbox" disabled={venue.loading} checked={data.receptionSameVenue} onChange={(e) => { set("receptionSameVenue", e.target.checked); if (e.target.checked && has(data.receptionVenueMaps) && !okUrl(data.receptionVenueMaps)) set("receptionVenueMaps", ""); }} /> Same venue as the wedding
+            </label>
+            {!data.receptionSameVenue && (
+              <>
+                <Bilingual enLabel="Reception Venue EN" teLabel="Reception Venue తెలుగు" enField="receptionVenueEn" teField="receptionVenueTe" data={data} set={set} fp={venue.fp} />
+                <Field label="Reception Venue Address" {...venue.fp("receptionVenueAddress")} value={data.receptionVenueAddress} onChange={(v) => set("receptionVenueAddress", v)} />
+                <Field label="Reception Google Maps Link" inputMode="url" {...venue.fp("receptionVenueMaps")} value={data.receptionVenueMaps} onChange={(v) => set("receptionVenueMaps", v)} />
+              </>
+            )}
+          </>
+        )}
       </Section>
 
       <Section id="events" icon={CalendarPlus} title="Additional Events" tag={tagFor("events")} loading={events.loading}>

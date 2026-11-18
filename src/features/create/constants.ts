@@ -23,6 +23,7 @@ export const initial: InvitationData = {
   groomFatherStatus: "", groomMotherStatus: "", brideFatherStatus: "", brideMotherStatus: "",
   receptionEnabled: false, receptionDate: "", receptionTime: "",
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
+  receptionSameVenue: true, receptionVenueEn: "", receptionVenueTe: "", receptionVenueAddress: "", receptionVenueMaps: "",
   events: [], groomContacts: [], brideContacts: [],
   inviterMode: "surname", inviterEn: "", inviterTe: "", inviteMessageTe: "",
   closingTitleMode: "", closingTitleEn: "", closingTitleTe: "", inviterSources: "", inviterNames: [],
@@ -33,7 +34,7 @@ export const initial: InvitationData = {
 /** English field -> the Telugu field that is filled in automatically. */
 export const EN_TO_TE = {
   surnameEn: "surnameTe", groomEn: "groomTe", groomFatherEn: "groomFatherTe", groomMotherEn: "groomMotherTe",
-  brideEn: "brideTe", brideFatherEn: "brideFatherTe", brideMotherEn: "brideMotherTe", venueEn: "venueTe", inviterEn: "inviterTe", closingTitleEn: "closingTitleTe",
+  brideEn: "brideTe", brideFatherEn: "brideFatherTe", brideMotherEn: "brideMotherTe", venueEn: "venueTe", receptionVenueEn: "receptionVenueTe", inviterEn: "inviterTe", closingTitleEn: "closingTitleTe",
   groomSurnameEn: "groomSurnameTe", brideSurnameEn: "brideSurnameTe", groomGotramEn: "groomGotramTe", brideGotramEn: "brideGotramTe",
 } as const satisfies Partial<Record<keyof InvitationData, keyof InvitationData>>;
 
@@ -45,6 +46,7 @@ export const TARGETS: Record<string, string> = {
   brideMotherEn: "bride-mother-te", brideMotherTe: "bride-mother-te",
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
+  receptionVenueEn: "reception-venue-te", receptionVenueTe: "reception-venue-te", receptionVenueAddress: "reception-venue-te", receptionVenueMaps: "reception-venue-te",
   inviteMessageTe: "invite-text", inviterMode: "invite-text", inviterEn: "invite-text", inviterTe: "invite-text",
   groomSurnameEn: "groom-te", groomSurnameTe: "groom-te", groomGotramEn: "groom-te", groomGotramTe: "groom-te",
   brideSurnameEn: "bride-te", brideSurnameTe: "bride-te", brideGotramEn: "bride-te", brideGotramTe: "bride-te", coupleHonorific: "groom-te", groomOrder: "groom-te", brideOrder: "bride-te", showParentage: "groom-te",

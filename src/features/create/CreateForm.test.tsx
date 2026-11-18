@@ -182,6 +182,61 @@ describe("CreateForm: reception", () => {
   });
 });
 
+describe("CreateForm: reception venue (T5)", () => {
+  const boxes = () => [...host.querySelectorAll("#sec-venue input[type=checkbox]")] as HTMLInputElement[];
+  it("offers 'Same venue as the wedding' only when the reception is on, ticked by default", () => {
+    show({ data: { ...initial, receptionEnabled: false } });
+    expect(boxes().length).toBe(1);
+    act(() => { root.render(<CreateForm {...props} data={{ ...initial, receptionEnabled: true }} />); });
+    expect(boxes().length).toBe(2);
+    expect(boxes()[1].checked).toBe(true);
+  });
+  it("shows no reception venue fields while the venue is shared", () => {
+    show({ data: { ...initial, receptionEnabled: true } });
+    expect(input("receptionVenueEn")).toBeNull();
+    expect(input("receptionVenueTe")).toBeNull();
+    expect(input("receptionVenueAddress")).toBeNull();
+    expect(input("receptionVenueMaps")).toBeNull();
+  });
+  it("unticking reports false, and the four fields appear when the data says so", () => {
+    show({ data: { ...initial, receptionEnabled: true } });
+    click(boxes()[1]);
+    expect(props.set).toHaveBeenCalledWith("receptionSameVenue", false);
+    act(() => { root.render(<CreateForm {...props} data={{ ...initial, receptionEnabled: true, receptionSameVenue: false }} />); });
+    expect(input("receptionVenueEn")).not.toBeNull();
+    expect(input("receptionVenueTe")).not.toBeNull();
+    expect(input("receptionVenueAddress")).not.toBeNull();
+    expect(input("receptionVenueMaps")).not.toBeNull();
+  });
+  it("typing in a reception venue field calls set with that key", () => {
+    show({ data: { ...initial, receptionEnabled: true, receptionSameVenue: false } });
+    typeInto(input("receptionVenueEn"), "Hall B");
+    expect(props.set).toHaveBeenCalledWith("receptionVenueEn", "Hall B");
+    typeInto(input("receptionVenueMaps"), "https://maps.google.com/?q=b");
+    expect(props.set).toHaveBeenCalledWith("receptionVenueMaps", "https://maps.google.com/?q=b");
+  });
+  it("hides the fields again when the reception is turned off, even with 'same venue' unticked", () => {
+    show({ data: { ...initial, receptionEnabled: false, receptionSameVenue: false } });
+    expect(input("receptionVenueEn")).toBeNull();
+    expect(boxes().length).toBe(1);
+  });
+  it("ticking 'same venue' clears an invalid hidden link, but keeps a valid one", () => {
+    show({ data: { ...initial, receptionEnabled: true, receptionSameVenue: false, receptionVenueMaps: "javascript:alert(1)" } });
+    click(boxes()[1]); // ticks the box
+    expect(props.set).toHaveBeenCalledWith("receptionSameVenue", true);
+    expect(props.set).toHaveBeenCalledWith("receptionVenueMaps", "");
+    (props.set as ReturnType<typeof vi.fn>).mockClear();
+    show({ data: { ...initial, receptionEnabled: true, receptionSameVenue: false, receptionVenueMaps: "https://maps.google.com/?q=b" } });
+    click(boxes()[1]);
+    expect(props.set).toHaveBeenCalledWith("receptionSameVenue", true);
+    expect(props.set).not.toHaveBeenCalledWith("receptionVenueMaps", "");
+  });
+  it("disables the new checkbox while the venue section loads", () => {
+    show({ data: { ...initial, receptionEnabled: true }, sectionLoading: { ...allLoading(false), venue: true } });
+    expect(boxes().every((b) => b.disabled)).toBe(true);
+  });
+});
+
 describe("CreateForm: contacts", () => {
   it("offers Add contact when there is none, once for the groom and once for the bride, and builds an empty contact", () => {
     show();

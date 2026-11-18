@@ -129,3 +129,20 @@ describe("birth order (T4)", () => {
     expect(validateInvitation(valid({ brideOrder: "fifth" })).brideOrder?.section).toBe("bride");
   });
 });
+
+describe("reception venue link (T5)", () => {
+  it("an empty or https link is fine; a javascript: link is an error in the venue section", () => {
+    expect(validateInvitation(valid({ receptionVenueMaps: "" })).receptionVenueMaps).toBeUndefined();
+    expect(validateInvitation(valid({ receptionVenueMaps: "https://maps.google.com/?q=x" })).receptionVenueMaps).toBeUndefined();
+    expect(validateInvitation(valid({ receptionVenueMaps: "javascript:alert(1)" })).receptionVenueMaps?.section).toBe("venue");
+  });
+  it("is checked even while 'same venue' is ticked, because the database checks every link field", () => {
+    const e = validateInvitation(valid({ receptionEnabled: true, receptionDate: "2027-02-02", receptionSameVenue: true, receptionVenueMaps: "javascript:alert(1)" }));
+    expect(e.receptionVenueMaps).toBeDefined();
+  });
+  it("an old record without the T5 keys has no new errors", () => {
+    const { receptionSameVenue: _a, receptionVenueMaps: _b, ...old } = valid();
+    expect(validateInvitation(old as unknown as InvitationData)).toEqual(validateInvitation(valid()));
+  });
+});
+

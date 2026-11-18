@@ -299,6 +299,15 @@ select t.throws('showParentage other than empty or 1 is refused', $$insert into 
 select t.ok('every birth order and the parentage switch are accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d31', 'details-thirtyone', '{"groomOrder":"second","brideOrder":"youngest","showParentage":"1"}')$$) = 1
   and t.affected($$insert into public.invitations (id, slug, details) values ('d32', 'details-thirtytwo', '{"groomOrder":"only","brideOrder":"","showParentage":""}')$$) = 1);
+-- T5: separate reception venue
+select t.throws('receptionSameVenue that is not true or false is refused', $$insert into public.invitations (id, slug, details) values ('d33', 'details-thirtythree', '{"receptionSameVenue":"yes"}')$$, '23514');
+select t.throws('a reception venue name that is not text is refused', $$insert into public.invitations (id, slug, details) values ('d34', 'details-thirtyfour', '{"receptionVenueEn":5}')$$, '23514');
+select t.throws('a javascript: reception map link is refused', $$insert into public.invitations (id, slug, details) values ('d35', 'details-thirtyfive', '{"receptionVenueMaps":"javascript:alert(1)"}')$$, '23514');
+select t.throws('a reception map link hidden with a tab is refused', $$insert into public.invitations (id, slug, details) values ('d36', 'details-thirtysix', '{"receptionVenueMaps":"java\tscript:alert(1)"}')$$, '23514');
+select t.throws('a reception venue name longer than 1000 characters is refused', format($$insert into public.invitations (id, slug, details) values ('d37', 'details-thirtyseven', %L)$$, jsonb_build_object('receptionVenueTe', repeat('x', 1001))::text), '23514');
+select t.ok('a separate reception venue and the same-venue switch are accepted',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d38', 'details-thirtyeight', '{"receptionEnabled":true,"receptionSameVenue":false,"receptionVenueEn":"Hall B","receptionVenueTe":"హాల్ బి","receptionVenueAddress":"Vijayawada","receptionVenueMaps":"https://maps.google.com/?q=hallb"}')$$) = 1
+  and t.affected($$insert into public.invitations (id, slug, details) values ('d39', 'details-thirtynine', '{"receptionSameVenue":true,"receptionVenueMaps":""}')$$) = 1);
 select t.ok('a preview image from this app''s own bucket is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d8', 'details-eight', '{"seoImage":"https://abc.supabase.co/storage/v1/object/public/invitation-previews/aaaaaaaa-0000-0000-0000-000000000001/d8.jpg?v=1"}')$$) = 1);
 select t.ok('other columns of an old row stay editable (the check runs only when details change)',
@@ -441,6 +450,12 @@ select t.throws('a client cannot send an unknown birth order (the key is on the 
   format($$select public.submit_change_request('c1', '{"brideOrder":"fifth"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send showParentage with a bad value (checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"showParentage":"yes"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send receptionSameVenue with a bad value (the key is on the allowed list, so it is checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"receptionSameVenue":"no"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send a javascript: reception map link (checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"receptionVenueMaps":"javascript:alert(1)"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send a reception venue that is not text (checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"receptionVenueTe":5}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send a gotram that is not text (checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"brideGotramEn":5}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a 2000-character name is refused',
@@ -461,10 +476,10 @@ select t.as_user('eeeeeeee-0000-0000-0000-000000000005');
 select t.throws('an unverified email cannot submit for its own linked invitation',
   format($$select public.submit_change_request('c2', '{"groomEn":"Z"}'::jsonb, %L)$$, current_setting('t.base')), '42501');
 
--- a list change counts, an absent key and an empty value do not
+-- a list change counts, an absent key and an empty value do not (T5: a missing receptionSameVenue means true, so sending true is no change)
 select t.as_user('dddddddd-0000-0000-0000-000000000004');
 select set_config('t.req3', public.submit_change_request('c1',
-  '{"events":[{"id":"e1","name":"Haldi","date":"2026-12-01"}],"receptionEnabled":false,"muhurthamTime":""}'::jsonb,
+  '{"events":[{"id":"e1","name":"Haldi","date":"2026-12-01"}],"receptionEnabled":false,"muhurthamTime":"","receptionSameVenue":true,"receptionVenueTe":""}'::jsonb,
   current_setting('t.base')::timestamptz)::text, true);
 select t.ok('only the real changes are listed',
   (select changed_keys = array['events'] from public.change_requests where id = current_setting('t.req3')::uuid));

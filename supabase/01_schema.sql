@@ -387,8 +387,9 @@ declare
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
     'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources',
     'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
-    'groomOrder','brideOrder','showParentage'];
-  url_keys   text[] := array['venueMaps','seoImage'];
+    'groomOrder','brideOrder','showParentage',
+    'receptionVenueEn','receptionVenueTe','receptionVenueAddress','receptionVenueMaps'];
+  url_keys   text[] := array['venueMaps','seoImage','receptionVenueMaps'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
   list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
@@ -430,8 +431,8 @@ begin
              s ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(s, '\D', '', 'g')) between 10 and 13) then
           return k || ' is not a valid phone number'; end if;
       end if;
-    elsif k = 'receptionEnabled' then
-      if jsonb_typeof(v) <> 'boolean' then return 'receptionEnabled must be true or false'; end if;
+    elsif k in ('receptionEnabled', 'receptionSameVenue') then   -- T5: receptionSameVenue is the "same venue as the wedding" switch
+      if jsonb_typeof(v) <> 'boolean' then return k || ' must be true or false'; end if;
     elsif k = any (list_keys) then
       if jsonb_typeof(v) <> 'array' then return k || ' must be a list'; end if;
       if jsonb_array_length(v) > 20 then return k || ' has more than 20 items'; end if;
@@ -638,7 +639,9 @@ create trigger invitations_supersede_requests after update on public.invitations
 create or replace function public.details_value(d jsonb, k text) returns jsonb language sql immutable as $$
   select coalesce(nullif(d -> k, 'null'::jsonb),
     case when k in ('events','groomContacts','brideContacts') then '[]'::jsonb
-         when k = 'receptionEnabled' then 'false'::jsonb else '""'::jsonb end);
+         when k = 'receptionEnabled' then 'false'::jsonb
+         when k = 'receptionSameVenue' then 'true'::jsonb   -- T5: a record saved before T5 has no such key and means "same venue"
+         else '""'::jsonb end);
 $$;
 revoke all on function public.details_value(jsonb, text) from public, anon, authenticated;
 
@@ -672,7 +675,8 @@ declare
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
     'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames',
     'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
-    'groomOrder','brideOrder','showParentage'];
+    'groomOrder','brideOrder','showParentage',
+    'receptionSameVenue','receptionVenueEn','receptionVenueTe','receptionVenueAddress','receptionVenueMaps'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

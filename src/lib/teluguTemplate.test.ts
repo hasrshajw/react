@@ -209,3 +209,74 @@ describe("telugu-traditional template: parentage line (T4)", () => {
     expect(lines(d, ".bride-card").join("|")).not.toContain("కుమార్తె");
   });
 });
+
+describe("telugu-traditional template: reception venue (T5)", () => {
+  const recCard = (d: Document) => [...d.querySelectorAll(".event-card")].find((c) => (c.textContent || "").includes("విందు సమారంభం"));
+  const recText = (d: Document) => recCard(d)?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+  const own = { receptionSameVenue: false, receptionVenueEn: "Hall B", receptionVenueTe: "రాజ్ మహల్", receptionVenueAddress: "విజయవాడ", receptionVenueMaps: "https://maps.google.com/?q=hallb" } as const;
+
+  it("an old record (no T5 keys) compiles exactly as one with the keys at their defaults", () => {
+    const withDefaults = compile(src, { ...initial, ...full });
+    const { receptionSameVenue: _a, receptionVenueEn: _b, receptionVenueTe: _c, receptionVenueAddress: _d, receptionVenueMaps: _e, ...oldRecord } = { ...initial, ...full } as InvitationData;
+    expect(compile(src, oldRecord as unknown as InvitationData)).toBe(withDefaults);
+    expect(withDefaults).not.toMatch(/\{\{/);
+  });
+
+  it("same venue (the default): the reception card shows the wedding venue name, with no address or map link of its own", () => {
+    const d = doc(full);
+    expect(recText(d)).toContain("శుభం కళ్యాణ మండపం");
+    expect(recText(d)).not.toContain("చిరునామా");
+    expect(recCard(d)?.querySelector(".map-link-wrap")).toBeNull();
+    expect(d.querySelectorAll(".venue-btn").length).toBe(1);
+  });
+
+  it("same venue ticked: typed reception venue fields are kept in the data but not shown", () => {
+    const d = doc({ ...full, ...own, receptionSameVenue: true });
+    expect(recText(d)).toContain("శుభం కళ్యాణ మండపం");
+    expect(recText(d)).not.toContain("రాజ్ మహల్");
+    expect(recText(d)).not.toContain("విజయవాడ");
+  });
+
+  it("a separate venue: its own name, address and map link on the reception card; the wedding venue block is unchanged", () => {
+    const d = doc({ ...full, ...own });
+    expect(recText(d)).toContain("రాజ్ మహల్");
+    expect(recText(d)).not.toContain("శుభం కళ్యాణ మండపం");
+    expect(recText(d)).toContain("చిరునామా");
+    expect(recText(d)).toContain("విజయవాడ");
+    expect(recCard(d)?.querySelector(".map-link-wrap a")?.getAttribute("href")).toBe("https://maps.google.com/?q=hallb");
+    expect(text(d, ".venue-name")).toBe("శుభం కళ్యాణ మండపం");
+    expect(d.querySelector(".venue-btn")?.getAttribute("href")).toBe("https://maps.google.com/?q=hall");
+    expect(compile(src, { ...initial, ...full, ...own })).not.toMatch(/\{\{/);
+  });
+
+  it("a separate venue with only a name shows no address row and no map button", () => {
+    const d = doc({ ...full, receptionSameVenue: false, receptionVenueTe: "రాజ్ మహల్" });
+    expect(recText(d)).toContain("రాజ్ మహల్");
+    expect(recText(d)).not.toContain("చిరునామా");
+    expect(recCard(d)?.querySelector(".map-link-wrap")).toBeNull();
+  });
+
+  it("a separate venue that is still empty shows no venue pill, and the wedding venue is not borrowed", () => {
+    const d = doc({ ...full, receptionSameVenue: false });
+    expect(recText(d)).not.toContain("శుభం కళ్యాణ మండపం");
+    expect(recText(d)).not.toContain("వేదిక");
+  });
+
+  it("the preview scroll target follows the venue that is shown", () => {
+    expect(recCard(doc(full))?.querySelector('[data-scroll-target="venue-te"]')).not.toBeNull();
+    const d = doc({ ...full, ...own });
+    expect(recCard(d)?.querySelector('[data-scroll-target="reception-venue-te"]')).not.toBeNull();
+    expect(recCard(d)?.querySelector('[data-scroll-target="venue-te"]')).toBeNull();
+  });
+
+  it("with no reception date there is no reception card, so none of its venue is shown", () => {
+    const data = { ...full, ...own, receptionDate: "" };
+    expect(recCard(doc(data))).toBeUndefined();
+    expect(compile(src, { ...initial, ...data })).not.toContain("రాజ్ మహల్");
+  });
+
+  it("a javascript: reception map link never reaches the page", () => {
+    const html = compile(src, { ...initial, ...full, ...own, receptionVenueMaps: "javascript:alert(1)" });
+    expect(html).not.toMatch(/javascript:/i);
+  });
+});

@@ -56,6 +56,8 @@ export interface InvitationData {
   groomFatherStatus: ParentStatus; groomMotherStatus: ParentStatus; brideFatherStatus: ParentStatus; brideMotherStatus: ParentStatus;
   receptionEnabled: boolean; receptionDate: string; receptionTime: string;
   venueEn: string; venueTe: string; venueAddress: string; venueMaps: string;
+  /* Reception venue (T5). receptionSameVenue (default true) reuses the wedding venue above; when false the four receptionVenue* fields are used. */
+  receptionSameVenue: boolean; receptionVenueEn: string; receptionVenueTe: string; receptionVenueAddress: string; receptionVenueMaps: string;
   events: EventItem[];
   groomContacts: ContactItem[];
   brideContacts: ContactItem[];

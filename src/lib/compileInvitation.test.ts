@@ -115,3 +115,29 @@ describe("birth order and parentage placeholders (T4)", () => {
     expect(out2({ showParentage: "1" }, tpl)).toBe("||plain");
   });
 });
+
+describe("reception venue placeholders (T5)", () => {
+  const tpl = "{{reception-venue-te}}|{{reception-venue-en}}|{{reception-venue-address}}|{{reception-venue-maps}}|{{reception-venue-target}}|{{#if reception-own-venue}}own{{/if}}|{{#if same-venue}}same{{/if}}";
+  const wedding = { receptionEnabled: true, venueTe: "హాల్ ఎ", venueEn: "Hall A", venueAddress: "Guntur", venueMaps: "https://maps.example/a" };
+  const sep = { receptionSameVenue: false, receptionVenueTe: "హాల్ బి", receptionVenueEn: "Hall B", receptionVenueAddress: "Vijayawada", receptionVenueMaps: "https://maps.example/b" };
+  const run = (d: Record<string, unknown>) => new DOMParser().parseFromString(compile(tpl, d as never), "text/html").body.textContent ?? "";
+
+  it("an old record (no T5 keys) uses the wedding venue and the old scroll target", () => {
+    expect(run(wedding)).toBe("హాల్ ఎ|Hall A|Guntur|https://maps.example/a|venue-te||same");
+  });
+  it("receptionSameVenue true is the same as the old record, even with reception fields typed", () => {
+    expect(run({ ...wedding, ...sep, receptionSameVenue: true })).toBe(run(wedding));
+  });
+  it("a separate venue uses its own fields, turns on the own-venue flag and turns off same-venue", () => {
+    expect(run({ ...wedding, ...sep })).toBe("హాల్ బి|Hall B|Vijayawada|https://maps.example/b|reception-venue-te|own|");
+  });
+  it("a separate venue with nothing typed is empty (the wedding venue is not borrowed) and has no own-venue flag", () => {
+    expect(run({ ...wedding, receptionSameVenue: false })).toBe("||||reception-venue-te||");
+  });
+  it("a separate venue with the reception off has no own-venue flag", () => {
+    expect(run({ ...wedding, ...sep, receptionEnabled: false })).toBe("హాల్ బి|Hall B|Vijayawada|https://maps.example/b|reception-venue-te||");
+  });
+  it("same-venue stays \"\" when there is no wedding venue name", () => {
+    expect(run({ receptionEnabled: true })).toBe("||||venue-te||");
+  });
+});
