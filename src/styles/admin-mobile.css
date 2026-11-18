@@ -29,7 +29,8 @@
   /* Dashboard: toast clears the home bar and fits the screen; side panel and modals use the dynamic viewport */
   .dx-toast { bottom: max(20px, env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
   .dash-side-panel { inset: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
-  .dx-modal { max-height: calc(100dvh - 24px); }
+  .dx-overlay { padding: 0; place-items: end center; }
+  .dx-modal { width: 100% !important; max-height: calc(100dvh - 24px); border-radius: 24px 24px 0 0; padding-bottom: env(safe-area-inset-bottom); }
 
   /* Reviews: change table scrolls inside the panel, action buttons are full width */
   .review-detail { margin: 12px 0 0; padding: 14px; }

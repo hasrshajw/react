@@ -218,15 +218,26 @@
     .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     /* Preview = the form is swapped out and the invitation fills the screen under the navbar; the bottom bar stays (Preview becomes Edit). */
     .create.previewing > header, .create.previewing > .msg, .create.previewing > [role="status"], .create.previewing > section, .create.previewing .create-builder-layout { display: none !important; }
-    .create-live-preview-panel { position: fixed !important; top: calc(var(--chrome-top, 44px) + 80px); left: 5px; right: 5px; bottom: 5px; z-index: 3000; width: auto; min-width: 0; height: auto; max-width: none; flex: none; border-radius: 0 0 20px 20px !important; display: none; box-shadow: none; padding-bottom: 88px; background: #fff; }
+    .create-live-preview-panel { --pv-top: calc(var(--chrome-top, 44px) + 80px); position: fixed !important; top: var(--pv-top); left: 5px; right: 5px; bottom: auto; z-index: 3000; box-sizing: border-box; width: auto; min-width: 0; max-width: none; flex: none; height: calc(100vh - var(--pv-top) - 5px); height: calc(100dvh - var(--pv-top) - 5px); border-radius: 0 0 20px 20px !important; display: none; box-shadow: none; padding-bottom: 88px; background: #fff; }
     .create-live-preview-panel.mobile-open { display: flex; }
     .create-live-preview-head { display: none; }
+    /* The iframe fills the body by position, not by a % height (a % of a flex item with no fixed height collapsed it to ~250px). */
+    .create-live-preview-body { flex: 1 1 auto; min-height: 0; position: relative; }
+    .create-live-preview-body iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
   }
   @media(max-width: 768px) {
     /* phones: the 72px mobile header replaces the desktop navbar and main-content padding is 88px */
     .create { --sec-top: -4px; --sec-scroll-mt: 146px; }
-    .create-live-preview-panel { top: calc(var(--chrome-top, 44px) + 72px); }
+    .create-live-preview-panel { --pv-top: calc(var(--chrome-top, 44px) + 72px); }
   }
+  @media(max-width: 768px) {
+    /* popups (share, leave, submit) become bottom sheets on phones, like the template sheet */
+    .cx-overlay { padding: 0; place-items: end center; }
+    .cx-modal { width: 100%; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); border-radius: 24px 24px 0 0; padding: 24px 18px max(20px, env(safe-area-inset-bottom)); animation: cx-sheet .28s cubic-bezier(.22, 1, .36, 1); }
+    .cx-modal.lv { padding-top: 30px; }
+    .cx-foot .primary, .cx-foot .secondary, .cx-modal .secondary { min-height: 46px; }
+  }
+  @keyframes cx-sheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
   @media(max-width: 600px) {
     .create header { flex-direction: column; align-items: stretch; }
     .grid.two, .grid.three { grid-template-columns: 1fr; }
