@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 done, next task is T1**
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 and T1 done, next task is T2**
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -100,7 +100,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | ID | Task | Depends on | Touches DB? | Status |
 |---|---|---|---|---|
 | T0 | Baseline check (no code) | none | no | DONE |
-| T1 | Parent status: alive / late / hidden | T0 | yes | TODO |
+| T1 | Parent status: alive / late / hidden | T0 | yes | DONE |
 | T2 | Closing title, who-appears selector, custom names | T1 | yes | TODO |
 | T3 | Separate house names, gotram, honorific | T0 | yes | TODO |
 | T4 | Birth order and the "son / daughter of" line | T3 | yes | TODO |
@@ -205,7 +205,61 @@ prefix, and hides the phone number of a late or hidden parent.
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 18 Nov 2026 by Claude   Commit(s): 4816c19 (code, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/types/invitation.ts: new type `ParentStatus` ("" | "late" | "hidden"); four new keys groomFatherStatus, groomMotherStatus,
+      brideFatherStatus, brideMotherStatus on InvitationData.
+  - src/features/create/constants.ts: defaults "" in `initial` (so old invitations load as alive); TARGETS map each status key to that
+      parent's name element so the live preview scrolls to it. EN_TO_TE not needed (no text twin).
+  - src/lib/inviteText.ts: new exports PREFIX_FATHER_TE / PREFIX_MOTHER_TE / PREFIX_LATE_TE ("కీ.శే."), parentStatus() (unknown value ->
+      alive) and parentPrefixTe(role, status). parents() now takes the two statuses: late -> "కీ.శే. <name>" for father AND mother
+      (no శ్రీ / శ్రీమతి added), hidden -> skipped, and when no parent line is left the person's own name is used (unchanged rule).
+  - src/lib/compileInvitation.ts valuesFor(): for each of groom-father, groom-mother, bride-father, bride-mother:
+      hidden -> `-en` and `-te` are empty; late or hidden -> `-phone` and `-wa` are empty; new `-late` ("1" or "") and `-prefix-te`
+      ("శ్రీ" / "శ్రీమతి" / "కీ.శే."). Because the existing template wraps the name lines and phone cards in {{#if ...-te}} and
+      {{#if ...-phone}}, they disappear by themselves.
+  - docs/templates/telugu-traditional.html: the four "గారి ఆత్మీయ కుమారుడు / కుమార్తె" lines (252, 253, 262, 263) use
+      {{...-prefix-te}} instead of the fixed శ్రీ / శ్రీమతి. Nothing else in the template changed.
+  - src/features/create/components/ParentStatus.tsx (new): Alive / Late / Hide radio buttons (same `seg wrap` look as the
+      "Who is inviting" control), with a hint line for Late and Hide; buttons are disabled while the section is loading.
+  - src/features/create/components/Field.tsx and Bilingual.tsx: new optional `disabled` prop (greyed, value kept; different from
+      `loading`, which shows a ghost).
+  - src/features/create/CreateForm.tsx: a ParentStatus control above each of the four parents; Late disables that parent's phone;
+      Hide disables that parent's names and phone.
+  - src/lib/validate.ts: the phone format check is skipped for a late or hidden parent (it is not shown, and the database rule matches).
+  - src/features/reviews/fieldLabels.ts: labels for the four keys.
+  - supabase/01_schema.sql: details_problem() has the four keys in text_keys, a `status_keys` check (only '', 'late', 'hidden'), and the
+      phone check is skipped when that parent's status is not empty; submit_change_request() has the four keys in `allowed`.
+  - supabase/updates/01_T1_parent_status.sql (new folder and file): only those two functions, for the live project.
+  - tools/db-test/tests.sql: 7 new checks (bad status text, non-text status, late/hidden/alive accepted, phone of late and hidden
+      parent not checked, phone of a living parent still checked, client submit of a bad status is refused with 23514, which proves
+      the key is on the allowed list).
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings) · unit 709 passed (was 690, +19: inviteText 6, validate 3,
+  teluguTemplate 4, CreateForm 6) · build ok · db tests 240 passed (was 233, +7). The update file was also checked: the OLD schema
+  (from git before this task) + supabase/updates/01_T1_parent_status.sql passes the same 240 checks.
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser.
+Pending / not done:
+  - Review screen (admin diff of a client's change request): a status that goes from alive to late shows "—" -> "late", because
+      formatDiffValue() has no per-key wording ("" is shown as "—"). Cosmetic; could map "" to "Alive" for the four status keys.
+  - No separate "(Late)" text in the template. The prefix "కీ.శే." already marks it; the `-late` placeholders exist if a template
+      wants more.
+  - The custom closing name and other templates (the two seed templates in 02_seed_templates.sql) do not print parents, so they
+      were not changed.
+  - Client area (/my) uses the same CreateForm in client mode, so the control is there; it was not tried in a browser.
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/01_T1_parent_status.sql (safe to re-run; no table or data changes).
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (needed for the "కీ.శే." prefix in
+      the parentage lines). Without this step everything still works, but a late parent would print with శ్రీ / శ్రీమతి there.
+  3. Deploy `preview` and try: set a father to Late, a mother to Hide, check the preview and the public page.
+Notes for the next person (T2 and later):
+  - Reuse parentStatus() and parentPrefixTe() from inviteText.ts; do not repeat the "కీ.శే." text anywhere else.
+  - T2 must keep using parents()-style logic for the "groom side / bride side" sources so late and hidden parents stay correct there.
+  - Hidden parents have blank `-en` / `-te` placeholders in valuesFor(), so any new template line that uses them needs no extra if.
+  - The status keys are plain text on purpose: details_problem() has no array branch, and text keys are already covered by the
+      1000-character and 64 KB rules.
+  - `set` in CreateForm is generic over the InvitationData key, so `set("groomFatherStatus", "late")` is type checked.
+  - Push credentials: the tooling here has no stored login; do not paste tokens into chat.
 ```
 
 ---
@@ -447,6 +501,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-18  T1 done (parent status). 709 unit tests, 240 db tests, build ok. Owner: run supabase/updates/01_T1_parent_status.sql and re-paste the template. Next: T2.
 2026-11-18  T0 baseline done and recorded (690 unit tests, 233 db tests, build ok). No app code changed. Next: T1.
 2026-11-18  Plan written. No code changed.
 ```
