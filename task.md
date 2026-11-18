@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T5 done, next task is T6** (T6 and T7 are independent and can go in any order; T8 needs T1 and T4, both done)
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T6 done, next task is T7** (T7 is independent; T8 needs T1 and T4, both done)
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -105,7 +105,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | T3 | Separate house names, gotram, honorific | T0 | yes | DONE |
 | T4 | Birth order and the "son / daughter of" line | T3 | yes | DONE |
 | T5 | Separate reception venue | T0 | yes | DONE |
-| T6 | More events, event types, end time, description | T0 | yes | TODO |
+| T6 | More events, event types, end time, description | T0 | yes | DONE |
 | T7 | More contacts per side, contact role | T0 | yes | TODO |
 | T8 | Family members list (siblings, grandparents, uncle) | T1, T4 | yes | TODO |
 | T9 | Cross-field validation, progress tags, docs, final pass | T1 to T8 | maybe | TODO |
@@ -621,7 +621,46 @@ dress code. Keep the existing layout classes (`repeat`, `grid two`, `grid three`
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 19 Nov 2026 by Claude   Commit(s): 54ce3dd (code, template, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/lib/eventTypes.ts (new): MAX_EVENTS = 6; EVENT_TYPES (11 presets with English and Telugu names; "custom" has none); okEventType(); applyEventType() (fills a name only while it is empty or blank).
+  - src/types/invitation.ts: EventItem gets type, endTime, descEn, descTe, dress. They are OPTIONAL (?) so an event saved before T6 is still a valid EventItem.
+  - src/features/create/constants.ts: newEvent() sets the five new keys to ""; MAX_EVENTS re-exported.
+  - src/features/create/CreateForm.tsx: the hard-coded `< 2` and the "two slots" hint now use MAX_EVENTS ("This template supports up to 6 additional events."); each event has an Event type
+      dropdown (choosing a type calls patch with {type, and name / nameTe only if empty}), Start time + End time, Description EN / TE (max 300), Dress code (max 120). Same repeat / grid classes.
+  - src/lib/compileInvitation.ts valuesFor(): `[0,1].forEach` is now a loop to MAX_EVENTS. New placeholders per slot N = 1..6: event-N-type, event-N-end-time, event-N-desc-te, event-N-desc-en, event-N-dress
+      (the existing name / date / day / time / venue / maps placeholders are unchanged).
+  - docs/templates/telugu-traditional.html: slots event-1 to event-6 (slots 3 to 6 are copies of slot 1 with their own --delay), each wrapped in {{#if event-N-name-te}}. The time pill shows
+      "start – end" when an end time is set; new dress-code pill (వస్త్రధారణ) and description paragraph (.event-desc, new CSS next to .map-link-wrap), both only when filled.
+  - src/lib/validate.ts: event type must be a known id; end time must be HH:MM; descriptions <= 300 characters (EVENT_DESC_MAX); at most 6 events. All in the "events" section.
+      The form cannot produce these problems; they only guard pasted or damaged data.
+  - src/features/reviews/fieldLabels.ts: NOT changed on purpose. `events` is one key ("Events") and the new keys live inside its items, so the review screen already covers them.
+  - supabase/01_schema.sql details_problem(): sub_text gets type, endTime, descEn, descTe, dress (1000 chars each, must be text); events.type must be '' or one of the 11 ids; events.endTime must be '' or HH:MM.
+      submit_change_request() and details_value() need NO change: `events` was already on `allowed`, and the list limit (20) already allows 6.
+  - supabase/updates/06_T6_events.sql (new): the changed function only (details_problem, which contains T1 to T5 too).
+  - tools/db-test/tests.sql: 6 new checks (unknown type, non-text type, bad end time, over-long description, non-text dress code refused; six full events and an old-shaped event accepted).
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings) · unit 853 passed (was 839, +14) · build ok · db tests 279 passed (was 273, +6; PostgreSQL 16 was installed in the sandbox for this).
+  The update file was also checked: the OLD schema (git HEAD before this task) + supabase/updates/06_T6_events.sql passes the same 279 checks, and the old schema alone fails the new tests (stops after 147).
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser or in the client area (/my).
+  - Old two-event record (no T6 keys): compiled template is byte-identical to one with the keys at their defaults, and shows no description, no dress pill and no end time.
+  - Six events render in order with their own venue and map link; a seventh is ignored; a javascript: map link in slot 4 never reaches the page; every slot has its scroll targets.
+  - Type dropdown: fills both names when empty, keeps a typed English name, "custom" and "" fill nothing.
+  - End time with no start time shows nothing (the pill is tied to the start time).
+Pending / not done:
+  - `type` is only used by the form (and exposed as event-N-type for other templates); the Telugu template does not print it. The name fields are what is shown.
+  - No check that end time is after start time, or that an event date is before the wedding. That belongs to T9 (cross-field validation).
+  - Not tried in a real browser or in /my; same CreateForm, and the db tests prove the details are accepted by the same function the client submit calls.
+  - The template has 6 slots as plain copies (no loop is possible in this template language). If MAX_EVENTS is ever raised, add slots to every template.
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/06_T6_events.sql (after 01 to 05 if they were not run; safe to re-run; no table or data changes).
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (needed for event slots 3 to 6, end time, description and dress code; without it events 1 and 2 still show as before).
+  3. Deploy `preview` and try: add six events, choose a type on one with an empty name, set an end time, description and dress code, check the preview and the public page; open an invitation saved before this task and confirm it looks the same; in /my edit an old invitation and add an event.
+Notes for the next person (T7 and later):
+  - The compile loop makes the event slots data-driven, but templates are not: every template needs the slots that MAX_EVENTS promises. Other templates in the live project that only have two slots will silently drop events 3 to 6.
+  - Fields added to a list item (not to InvitationData) need: the optional key on the item type, a default in the new*() factory, the key in `sub_text` in details_problem(), and NO change to `allowed` (the list key is already there).
+  - The type dropdown calls `focus("event-N-name-te")` on purpose: the type has no placeholder of its own, so the preview scrolls to the event name.
+  - Same-name `type` in other lists: sub_text is shared by all lists, so a `type` key on contacts would be accepted as text too, but the enum check applies only to `events`.
 ```
 
 ---
@@ -695,6 +734,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-19  T6 done (up to six events, type, end time, description, dress code). 853 unit tests, 279 db tests, build ok. Owner: run supabase/updates/06_T6_events.sql (after 01 to 05) and re-paste the template. Next: T7 (or T8).
 2026-11-19  T5 done (separate reception venue). 839 unit tests, 273 db tests, build ok. Owner: run supabase/updates/05_T5_reception_venue.sql (after 01 to 04) and re-paste the template. Also see the two notes in T5 (possible inviterNames diff bug, reception card ignores the checkbox). Next: T6 (or T7 / T8).
 2026-11-19  T4 done (birth order, parentage line). 813 unit tests, 264 db tests, build ok. Owner: run supabase/updates/04_T4_birth_order.sql (after 01 to 03) and re-paste the template. Next: T5 (or T6 / T7 / T8).
 2026-11-18  T3 done (house names, gotram, honorific). 790 unit tests, 259 db tests, build ok. Owner: run supabase/updates/03_T3_house_names.sql (after 01, 02) and re-paste the template. Next: T4 (or T5 / T6 / T7).
