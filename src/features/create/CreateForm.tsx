@@ -8,6 +8,7 @@ import { Field } from "./components/Field";
 import { Section } from "./components/Section";
 import { SeoSection } from "./components/SeoSection";
 import { TemplatePicker } from "./components/TemplatePicker";
+import { TitlePicker } from "./components/TitlePicker";
 
 export interface CreateFormProps {
   data: InvitationData;
@@ -74,6 +75,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
           <Field label="Wedding Date" type="date" required {...fam.fp("weddingDate")} value={data.weddingDate} onChange={(v) => set("weddingDate", v)} />
           <Field label="Muhurtham Time" type="time" {...fam.fp("muhurthamTime")} value={data.muhurthamTime} onChange={(v) => set("muhurthamTime", v)} />
         </div>
+        <TitlePicker data={data} set={set} fp={fam.fp} loading={fam.loading} />
       </Section>
 
       <Section id="groom" icon={User} title="Groom's Details" tag={tagFor("groom")} loading={groom.loading}>

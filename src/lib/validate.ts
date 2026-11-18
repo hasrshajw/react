@@ -2,6 +2,7 @@ import type { ErrorMap, InvitationData } from "../types/invitation";
 import { isEmail } from "./auth";
 import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
+import { TITLE_MAX } from "../features/create/titles";
 
 export const has = (v: unknown): boolean => String(v ?? "").trim() !== "";
 
@@ -40,6 +41,9 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   (["groomFatherPhone", "groomMotherPhone"] as const).forEach((k) => { if (has(data[k]) && !okPhone(data[k])) add(k, "groom", PHONE_MSG); });
   data.groomContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "groom", PHONE_MSG); });
   if (!has(data.brideEn)) add("brideEn", "bride", "Bride's name is required");
+  ([["groomTitleEn", "groom"], ["groomTitleTe", "groom"], ["brideTitleEn", "bride"], ["brideTitleTe", "bride"]] as const).forEach(([k, sec]) => {
+    if ((data[k] || "").length > TITLE_MAX) add(k, sec, `Keep the title under ${TITLE_MAX} characters`);
+  });
   (["brideFatherPhone", "brideMotherPhone"] as const).forEach((k) => { if (has(data[k]) && !okPhone(data[k])) add(k, "bride", PHONE_MSG); });
   data.brideContacts.forEach((c) => { if (has(c.phone) && !okPhone(c.phone)) add(`contact-${c.id}-phone`, "bride", PHONE_MSG); });
   if (data.receptionEnabled && !has(data.receptionDate)) add("receptionDate", "venue", "Add the reception date");

@@ -38,6 +38,13 @@ describe("telugu-traditional template", () => {
     expect(d.getElementById("typeText")?.textContent).toContain("కొమ్మినేని");
   });
 
+  it("shows the compliment titles before the couple's names", () => {
+    const d = doc({ ...full, groomTitleTe: "చి.", brideTitleTe: "చి.సౌ." });
+    expect(text(d, ".groom-card h2")).toBe("చి. రవి");
+    expect(text(d, ".bride-card h2")).toBe("చి.సౌ. ప్రియ");
+    expect(text(d, ".subtitle")).toBe("చి. రవి & చి.సౌ. ప్రియ");
+  });
+
   it("builds clean call and WhatsApp links from messy phone numbers", () => {
     const d = doc(full);
     const wa = [...d.querySelectorAll<HTMLAnchorElement>("a[href^='https://wa.me/']")].map((a) => a.getAttribute("href"));

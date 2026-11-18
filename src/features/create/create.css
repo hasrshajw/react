@@ -282,6 +282,17 @@
   .seo-text span { font-size: 12.5px; color: var(--gray-dark); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .ph-count { font-size: 12px; color: var(--gray); }
 
+  /* compliment title picker */
+  .title-picker { display: flex; flex-direction: column; gap: 12px; }
+  .title-picker .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border: 1px solid var(--gray-border); border-radius: 14px; background: var(--ghost-white); }
+  .title-picker .seg button { height: 38px; border: 0; border-radius: 10px; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--gray-dark); cursor: pointer; transition: background .2s, color .2s, box-shadow .2s; }
+  .title-picker .seg button:hover:not(:disabled) { color: var(--dark); }
+  .title-picker .seg button.on { background: var(--white); color: var(--primary); box-shadow: 0 1px 4px rgba(31, 34, 51, .12); }
+  .title-picker .seg button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--primary-lightest); }
+  .title-picker .seg button:disabled { cursor: progress; }
+  .f select:hover { border-color: var(--periwinkle); }
+  .f select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-lightest); }
+
   /* a section fades in when its data has arrived (a little later for each section further down) */
   .create-builder-form section.sec-reveal { animation: sec-reveal .38s ease both; animation-delay: var(--rv, 0ms); }
   @keyframes sec-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

@@ -56,3 +56,23 @@ describe("compile (H-2, M-10)", () => {
     expect(d.getElementById("a")?.textContent).toBe("x");
   });
 });
+
+describe("compliment titles in templates", () => {
+  const html = (d: Record<string, string>) => new DOMParser().parseFromString(compile("<p id=g>{{groom-full-en}}</p><p id=b>{{bride-full-te}}</p><p id=t>{{#if groom-title-en}}T{{/if}}</p>", d), "text/html");
+  it("puts the title before the name", () => {
+    const d = html({ groomEn: "Ravi", groomTitleEn: "Chi.", brideTe: "ప్రియ", brideTitleTe: "చి.సౌ." });
+    expect(d.getElementById("g")?.textContent).toBe("Chi. Ravi");
+    expect(d.getElementById("b")?.textContent).toBe("చి.సౌ. ప్రియ");
+    expect(d.getElementById("t")?.textContent).toBe("T");
+  });
+  it("shows just the name when there is no title, and nothing when there is no name", () => {
+    const d = html({ groomEn: "Ravi", brideTitleTe: "చి.సౌ." });
+    expect(d.getElementById("g")?.textContent).toBe("Ravi");
+    expect(d.getElementById("b")?.textContent).toBe("");
+    expect(d.getElementById("t")?.textContent).toBe("");
+  });
+  it("the Telugu title falls back to the English one", () => {
+    const d = html({ brideTe: "ప్రియ", brideTitleEn: "Dr." });
+    expect(d.getElementById("b")?.textContent).toBe("Dr. ప్రియ");
+  });
+});

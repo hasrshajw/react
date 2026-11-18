@@ -23,9 +23,12 @@ export interface InvitationData {
   surnameEn: string; surnameTe: string;
   weddingDate: string; muhurthamTime: string;
   groomEn: string; groomTe: string;
+  /* Compliment titles shown before the names (for example "Chi." / "Chi. Sow."). Empty = no title. */
+  groomTitleEn: string; groomTitleTe: string;
   groomFatherEn: string; groomFatherTe: string; groomFatherPhone: string;
   groomMotherEn: string; groomMotherTe: string; groomMotherPhone: string;
   brideEn: string; brideTe: string;
+  brideTitleEn: string; brideTitleTe: string;
   brideFatherEn: string; brideFatherTe: string; brideFatherPhone: string;
   brideMotherEn: string; brideMotherTe: string; brideMotherPhone: string;
   receptionEnabled: boolean; receptionDate: string; receptionTime: string;

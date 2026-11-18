@@ -311,4 +311,36 @@ describe("CreateForm: children", () => {
     show({ invitationId: "inv-77" });
     expect(h.seo).toMatchObject({ loading: false });
   });
+
+  describe("compliment title picker", () => {
+    const select = () => host.querySelector("#f-titlePreset") as HTMLSelectElement;
+    const choose = (v: string) => act(() => { select().value = v; select().dispatchEvent(new Event("change", { bubbles: true })); });
+    const radio = (label: string) => [...host.querySelectorAll('[role="radio"]')].find((b) => b.textContent === label) as HTMLButtonElement;
+
+    it("the traditional preset sets Chi. for the groom and Chi. Sow. for the bride when both names are chosen", () => {
+      show();
+      choose("chi");
+      const calls = (props.set as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls).toContainEqual(["groomTitleEn", "Chi."]);
+      expect(calls).toContainEqual(["brideTitleEn", "Chi. Sow."]);
+    });
+
+    it("choosing Bride only changes the bride", () => {
+      show();
+      click(radio("Bride"));
+      choose("dr");
+      const keys = (props.set as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
+      expect(keys).toEqual(expect.arrayContaining(["brideTitleEn", "brideTitleTe"]));
+      expect(keys).not.toContain("groomTitleEn");
+    });
+
+    it("Custom shows two boxes and writes what is typed", () => {
+      show();
+      choose("custom");
+      typeInto(input("groomTitleEn"), "Er.");
+      const calls = (props.set as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls).toContainEqual(["groomTitleEn", "Er."]);
+      expect(calls).toContainEqual(["brideTitleEn", "Er."]);
+    });
+  });
 });
