@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0, T1 and T2 done, next task is T3**
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T3 done, next task is T4** (T5, T6 and T7 are independent and can go in any order)
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -102,7 +102,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | T0 | Baseline check (no code) | none | no | DONE |
 | T1 | Parent status: alive / late / hidden | T0 | yes | DONE |
 | T2 | Closing title, who-appears selector, custom names | T1 | yes | DONE |
-| T3 | Separate house names, gotram, honorific | T0 | yes | TODO |
+| T3 | Separate house names, gotram, honorific | T0 | yes | DONE |
 | T4 | Birth order and the "son / daughter of" line | T3 | yes | TODO |
 | T5 | Separate reception venue | T0 | yes | TODO |
 | T6 | More events, event types, end time, description | T0 | yes | TODO |
@@ -416,7 +416,49 @@ honorific as a checkbox "Show చి|| / చి.ల.సౌ|| before names" in th
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 18 Nov 2026 by Claude   Commit(s): cbdd2d0 (code, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/types/invitation.ts: nine new text keys: groomSurnameEn/Te, brideSurnameEn/Te, groomGotramEn/Te, brideGotramEn/Te, coupleHonorific.
+  - src/features/create/constants.ts: defaults "" in `initial`; EN_TO_TE for the four English keys (house name and gotram fill their Telugu twin
+      while typing); TARGETS point every new key at that person's card in the live preview (the honorific at the groom card).
+  - src/lib/inviteText.ts: HONORIFIC_GROOM_TE ("చి||"), HONORIFIC_BRIDE_TE ("చి.ల.సౌ||"), honorificOn(), okHonorific().
+  - src/lib/compileInvitation.ts valuesFor(): groom-/bride- surname-te, surname-en (the person's own, else the shared surname), surname-set ("1" only
+      when the person's OWN house name was typed), gotram-te, gotram-en (no fallback), couple-honorific, groom-honorific-te, bride-honorific-te.
+  - docs/templates/telugu-traditional.html: each couple card h2 prints the honorific first when on; two new list lines per card, "ఇంటి పేరు: ..."
+      (only when `-surname-set`) and "గోత్రం: ..." (only when set). {{surname-te}} in the hero is untouched.
+  - src/features/create/CreateForm.tsx: "House name EN / ఇంటి పేరు" and "Gotram EN / గోత్రం" pairs in the groom and bride sections; checkbox
+      "Show చి|| / చి.ల.సౌ|| before the names" and a one-line hint under the shared surname in the Family section.
+  - src/lib/validate.ts: an unknown coupleHonorific is an error in the "family" section (cannot happen from the form).
+  - src/features/reviews/fieldLabels.ts: labels for the nine keys.
+  - supabase/01_schema.sql: details_problem() has the eight text keys and coupleHonorific in text_keys, and coupleHonorific must be '' or 'chiranjeevi';
+      submit_change_request() has all nine in `allowed`.
+  - supabase/updates/03_T3_house_names.sql (new): the two changed functions, generated from 01_schema.sql.
+  - tools/db-test/tests.sql: 7 new checks (unknown honorific, non-text gotram, 1001-character house name, good record, empty honorific, two client
+      submits that prove the keys are on the allowed list).
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings) · unit 790 passed (was 774, +16) · build ok · db tests 259 passed (was 252, +7).
+  The update file was also checked: the OLD schema (git HEAD before this task) + supabase/updates/03_T3_house_names.sql passes the same 259 checks.
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser.
+  - Old record: the compiled template has no "ఇంటి పేరు" and no "గోత్రం" text even when a shared surname is set, the names are plain, and no {{ is left.
+Pending / not done:
+  - The honorific is printed on the couple cards only. The hero line, the "groom & bride" subtitle and the closing block (T2 `groom` / `bride`
+      sources) still show the plain names. T2 custom names can use the "చి||" prefix by hand.
+  - The house name is not added to the closing-block "family" lines or to the parentage line (T4 will build that line; it may want to use the
+      `-surname-te` placeholders).
+  - Review screen shows the raw value "chiranjeevi" for the honorific. Cosmetic.
+  - Not tried in a real browser or in the client area (/my); same CreateForm, and the db test proves a client may submit the keys.
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/03_T3_house_names.sql (after 01 and 02 if they were not run; safe to re-run; no table or data changes).
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (needed for the honorific, house-name and gotram
+      lines). Without it everything still works, but those three do not appear.
+  3. Deploy `preview` and try: type a house name and gotram for each side, tick the honorific, check the preview and the public page; open an
+      invitation saved before this task and confirm it looks the same.
+Notes for the next person (T4 and later):
+  - `groom-surname-te` / `bride-surname-te` FALL BACK to the shared surname, so a template must test `groom-surname-set` (not `groom-surname-te`)
+      if it wants a line that appears only when the person's own house name was typed.
+  - The honorific is one switch for both people (chiranjeevi); wording lives in inviteText.ts.
+  - A new section field on the groom / bride cards needs the matching TARGETS entry (done) so the preview scrolls to the card.
+  - Commits from here on end with the Co-Authored-By / Claude-Session lines from the session's attribution reminder.
 ```
 
 ---
@@ -571,6 +613,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-18  T3 done (house names, gotram, honorific). 790 unit tests, 259 db tests, build ok. Owner: run supabase/updates/03_T3_house_names.sql (after 01, 02) and re-paste the template. Next: T4 (or T5 / T6 / T7).
 2026-11-18  T2 done (closing title, who appears, custom names). 774 unit tests, 252 db tests, build ok. Owner: run supabase/updates/02_T2_closing_names.sql (after 01) and re-paste the template. Next: T3 (or T5 / T6 / T7, which are independent).
 2026-11-18  T1 done (parent status). 709 unit tests, 240 db tests, build ok. Owner: run supabase/updates/01_T1_parent_status.sql and re-paste the template. Next: T2.
 2026-11-18  T0 baseline done and recorded (690 unit tests, 233 db tests, build ok). No app code changed. Next: T1.
