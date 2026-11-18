@@ -15,11 +15,11 @@ describe("invitation text", () => {
     expect(inviterLinesTe(d({ surnameTe: "" }))).toEqual([]);
   });
   it("groom's / bride's family show the parents, or the person's name when there are none", () => {
-    expect(inviterLinesTe(d({ inviterMode: "groom" }))).toEqual(["శ్రీ రామారావు & శ్రీమతి సీత"]);
+    expect(inviterLinesTe(d({ inviterMode: "groom" }))).toEqual(["శ్రీ రామారావు", "శ్రీమతి సీత"]);
     expect(inviterLinesTe(d({ inviterMode: "bride", brideFatherTe: "", brideMotherTe: "" }))).toEqual(["ప్రియ"]);
   });
-  it("both families give two lines, groom's first", () => {
-    expect(inviterLinesTe(d({ inviterMode: "both" }))).toEqual(["శ్రీ రామారావు & శ్రీమతి సీత", "శ్రీ కృష్ణ & శ్రీమతి లక్ష్మి"]);
+  it("both families give four lines, groom's parents first", () => {
+    expect(inviterLinesTe(d({ inviterMode: "both" }))).toEqual(["శ్రీ రామారావు", "శ్రీమతి సీత", "శ్రీ కృష్ణ", "శ్రీమతి లక్ష్మి"]);
   });
   it("a custom name is used as typed (Telugu first, English as a fallback)", () => {
     expect(inviterLinesTe(d({ inviterMode: "custom", inviterTe: "మిత్రులు" }))).toEqual(["మిత్రులు"]);

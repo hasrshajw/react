@@ -21,21 +21,21 @@ const t = (v?: string) => (v || "").trim();
 
 export const inviterMode = (d: Src): InviterMode => (INVITER_OPTIONS.some((o) => o.id === d.inviterMode) ? (d.inviterMode as InviterMode) : "surname");
 
-/** "శ్రీ <father> & శ్రీమతి <mother>"; the person's own name when both parents are empty. */
-const parents = (father: string, mother: string, own: string) => {
+/** Father and mother on their own lines ("శ్రీ <father>", "శ్రీమతి <mother>"); the person's own name when both parents are empty. */
+const parents = (father: string, mother: string, own: string): string[] => {
   const f = t(father), m = t(mother);
-  if (!f && !m) return t(own);
-  return [f && `శ్రీ ${f}`, m && `శ్రీమతి ${m}`].filter(Boolean).join(" & ");
+  if (!f && !m) return t(own) ? [t(own)] : [];
+  return [f && `శ్రీ ${f}`, m && `శ్రీమతి ${m}`].filter(Boolean) as string[];
 };
 
-/** The lines printed after "ఇట్లు" (at most two). */
+/** The lines printed after "ఇట్లు" (at most four: groom's father, mother, then bride's father, mother). */
 export function inviterLinesTe(d: Src): string[] {
   const groom = parents(d.groomFatherTe || "", d.groomMotherTe || "", d.groomTe || "");
   const bride = parents(d.brideFatherTe || "", d.brideMotherTe || "", d.brideTe || "");
   switch (inviterMode(d)) {
-    case "groom": return [groom].filter(Boolean);
-    case "bride": return [bride].filter(Boolean);
-    case "both": return [groom, bride].filter(Boolean);
+    case "groom": return groom;
+    case "bride": return bride;
+    case "both": return [...groom, ...bride];
     case "custom": return [t(d.inviterTe) || t(d.inviterEn)].filter(Boolean);
     default: return t(d.surnameTe) ? [`${t(d.surnameTe)} కుటుంబము`] : [];
   }

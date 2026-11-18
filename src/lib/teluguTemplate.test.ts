@@ -45,7 +45,7 @@ describe("telugu-traditional template", () => {
     expect(text(d1, ".invite-names")).toBe("ఇట్లు కొమ్మినేని కుటుంబము");
     const d2 = doc({ ...full, inviterMode: "both", inviteMessageTe: "మా పెళ్ళికి రండి." });
     expect(text(d2, "#typeText")).toBe("మా పెళ్ళికి రండి.");
-    expect([...d2.querySelectorAll(".inv-line")].map((e) => e.textContent)).toEqual(["శ్రీ రామారావు & శ్రీమతి సీత", "శ్రీ కృష్ణ & శ్రీమతి లక్ష్మి"]);
+    expect([...d2.querySelectorAll(".inv-line")].map((e) => e.textContent)).toEqual(["శ్రీ రామారావు", "శ్రీమతి సీత", "శ్రీ కృష్ణ", "శ్రీమతి లక్ష్మి"]);
   });
 
   it("builds clean call and WhatsApp links from messy phone numbers", () => {
