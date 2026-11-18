@@ -37,6 +37,7 @@ export const TARGETS: Record<string, string> = {
   brideMotherEn: "bride-mother-te", brideMotherTe: "bride-mother-te",
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
+  groomFatherPhone: "groom-father-phone", groomMotherPhone: "groom-mother-phone", brideFatherPhone: "bride-father-phone", brideMotherPhone: "bride-mother-phone",
   groomContacts: "groom-extra-1-phone", brideContacts: "bride-extra-1-phone",
 };
 
