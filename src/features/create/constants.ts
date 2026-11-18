@@ -14,8 +14,8 @@ export const newContact = (): ContactItem => ({ id: uid(), nameEn: "", nameTe: "
 export const initial: InvitationData = {
   customId: "", templateId: "",
   surnameEn: "", surnameTe: "", weddingDate: "", muhurthamTime: "",
-  groomEn: "", groomTe: "", groomTitleEn: "", groomTitleTe: "", groomFatherEn: "", groomFatherTe: "", groomFatherPhone: "", groomMotherEn: "", groomMotherTe: "", groomMotherPhone: "",
-  brideEn: "", brideTe: "", brideTitleEn: "", brideTitleTe: "", brideFatherEn: "", brideFatherTe: "", brideFatherPhone: "", brideMotherEn: "", brideMotherTe: "", brideMotherPhone: "",
+  groomEn: "", groomTe: "", groomFatherEn: "", groomFatherTe: "", groomFatherPhone: "", groomMotherEn: "", groomMotherTe: "", groomMotherPhone: "",
+  brideEn: "", brideTe: "", brideFatherEn: "", brideFatherTe: "", brideFatherPhone: "", brideMotherEn: "", brideMotherTe: "", brideMotherPhone: "",
   receptionEnabled: false, receptionDate: "", receptionTime: "",
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
   events: [], groomContacts: [], brideContacts: [],
@@ -37,7 +37,6 @@ export const TARGETS: Record<string, string> = {
   brideMotherEn: "bride-mother-te", brideMotherTe: "bride-mother-te",
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
-  groomTitleEn: "groom-te", groomTitleTe: "groom-te", brideTitleEn: "bride-te", brideTitleTe: "bride-te",
   groomFatherPhone: "groom-father-phone", groomMotherPhone: "groom-mother-phone", brideFatherPhone: "bride-father-phone", brideMotherPhone: "bride-mother-phone",
   groomContacts: "groom-extra-1-phone", brideContacts: "bride-extra-1-phone",
 };

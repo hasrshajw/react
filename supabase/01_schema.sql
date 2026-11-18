@@ -380,7 +380,7 @@ create or replace function public.details_problem(d jsonb) returns text
 language plpgsql immutable as $$
 declare
   k text; v jsonb; item jsonb; s text;
-  text_keys  text[] := array['customId','templateId','surnameEn','surnameTe','weddingDate','muhurthamTime','groomEn','groomTe','groomTitleEn','groomTitleTe','brideTitleEn','brideTitleTe',
+  text_keys  text[] := array['customId','templateId','surnameEn','surnameTe','weddingDate','muhurthamTime','groomEn','groomTe',
     'groomFatherEn','groomFatherTe','groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe',
     'brideFatherEn','brideFatherTe','brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionDate',
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage'];
@@ -640,7 +640,7 @@ grant execute on function public.my_invitations() to authenticated;
 create or replace function public.submit_change_request(p_invitation_id text, p_details jsonb, p_base_updated_at timestamptz)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare
-  allowed text[] := array['surnameEn','surnameTe','weddingDate','muhurthamTime','groomEn','groomTe','groomTitleEn','groomTitleTe','brideTitleEn','brideTitleTe','groomFatherEn','groomFatherTe',
+  allowed text[] := array['surnameEn','surnameTe','weddingDate','muhurthamTime','groomEn','groomTe','groomFatherEn','groomFatherTe',
     'groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe','brideFatherEn','brideFatherTe',
     'brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionEnabled','receptionDate','receptionTime',
     'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription'];
