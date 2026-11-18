@@ -46,6 +46,10 @@ export interface InvitationData {
   brideEn: string; brideTe: string;
   brideFatherEn: string; brideFatherTe: string; brideFatherPhone: string;
   brideMotherEn: string; brideMotherTe: string; brideMotherPhone: string;
+  /* House names and gotram (T3). Empty house name = the shared surname above. coupleHonorific: "" | "chiranjeevi" (చి|| / చి.ల.సౌ||). */
+  groomSurnameEn: string; groomSurnameTe: string; brideSurnameEn: string; brideSurnameTe: string;
+  groomGotramEn: string; groomGotramTe: string; brideGotramEn: string; brideGotramTe: string;
+  coupleHonorific: string;
   /* Parent status: "" = alive (default), "late" = deceased ("కీ.శే." prefix, no phone), "hidden" = not shown at all. */
   groomFatherStatus: ParentStatus; groomMotherStatus: ParentStatus; brideFatherStatus: ParentStatus; brideMotherStatus: ParentStatus;
   receptionEnabled: boolean; receptionDate: string; receptionTime: string;

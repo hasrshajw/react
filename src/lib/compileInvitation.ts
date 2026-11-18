@@ -1,5 +1,5 @@
 import type { InvitationData, EventItem, ContactItem } from "../types/invitation";
-import { closingTitleEn, closingTitleMode, closingTitleTe, inviteMessageTe, inviterLinesTe, parentPrefixTe, parentStatus } from "./inviteText";
+import { HONORIFIC_BRIDE_TE, HONORIFIC_GROOM_TE, honorificOn, closingTitleEn, closingTitleMode, closingTitleTe, inviteMessageTe, inviterLinesTe, parentPrefixTe, parentStatus } from "./inviteText";
 // Shared by the Create page and the Dashboard preview.
 /** Invitation fields the template compiler reads. Every field is optional so partial records (e.g. dashboard rows) can be previewed. */
 export type CompileData = Partial<InvitationData>;
@@ -26,6 +26,15 @@ function valuesFor(data:CompileData):Record<string,string|undefined>{
   v[`${k}-prefix-te`]=parentPrefixTe(k.endsWith("father")?"father":"mother",st);
   v[`${k}-wa`]=waNumber(v[`${k}-phone`]);
  });
+ /* House names, gotram and honorific (T3). The house name falls back to the shared surname; `-surname-set` is "1" only when the person's OWN house name was typed,
+    so a template can print a house-name line without adding one to old invitations. */
+ (["groom","bride"] as const).forEach(k=>{
+  const D=data as Record<string,string|undefined>,own=(f:string)=>(D[`${k}${f}`]||"").trim();
+  v[`${k}-surname-te`]=own("SurnameTe")||(data.surnameTe||"");v[`${k}-surname-en`]=own("SurnameEn")||(data.surnameEn||"");
+  v[`${k}-surname-set`]=own("SurnameTe")||own("SurnameEn")?"1":"";
+  v[`${k}-gotram-te`]=own("GotramTe");v[`${k}-gotram-en`]=own("GotramEn");
+ });
+ const hon=honorificOn(data.coupleHonorific);v["couple-honorific"]=hon?"1":"";v["groom-honorific-te"]=hon?HONORIFIC_GROOM_TE:"";v["bride-honorific-te"]=hon?HONORIFIC_BRIDE_TE:"";
  return v;
 }
 

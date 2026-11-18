@@ -31,3 +31,11 @@ describe("fieldLabel: closing block (T2)", () => {
     expect(fieldLabel("inviterNames")).toBe("Custom inviter names");
   });
 });
+
+describe("fieldLabel: house names (T3)", () => {
+  it("has a label for each new key", () => {
+    for (const k of ["groomSurnameEn", "groomSurnameTe", "brideSurnameEn", "brideSurnameTe", "groomGotramEn", "groomGotramTe", "brideGotramEn", "brideGotramTe", "coupleHonorific"]) expect(fieldLabel(k)).not.toBe(k);
+    expect(fieldLabel("groomGotramTe")).toBe("Groom's gotram (TE)");
+    expect(fieldLabel("coupleHonorific")).toBe("Honorific before names");
+  });
+});

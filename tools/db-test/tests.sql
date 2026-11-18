@@ -285,6 +285,14 @@ select t.ok('a closing title, a list of people and custom names are accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d22', 'details-twentytwo', '{"closingTitleMode":"compliments","closingTitleEn":"","closingTitleTe":"","inviterSources":"groom,groomFather,groomMother","inviterNames":[{"id":"n1","prefix":"sri","nameEn":"Rao","nameTe":"రావు","relationEn":"Uncle","relationTe":"మేనమామ"},{"id":"n2","prefix":"","nameEn":"","nameTe":"","relationEn":"","relationTe":""}]}')$$) = 1);
 select t.ok('inviterSources can be "none" and an old record without any of the new keys is still accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d23', 'details-twentythree', '{"inviterSources":"none","closingTitleMode":"none","inviterMode":"both"}')$$) = 1);
+-- T3: house names, gotram, honorific
+select t.throws('an unknown honorific is refused', $$insert into public.invitations (id, slug, details) values ('d24', 'details-twentyfour', '{"coupleHonorific":"king"}')$$, '23514');
+select t.throws('a gotram that is not text is refused', $$insert into public.invitations (id, slug, details) values ('d25', 'details-twentyfive', '{"groomGotramTe":5}')$$, '23514');
+select t.throws('a house name longer than 1000 characters is refused', format('insert into public.invitations (id, slug, details) values (%L, %L, %L)', 'd26', 'details-twentysix', jsonb_build_object('brideSurnameEn', repeat('x', 1001))::text), '23514');
+select t.ok('house names, gotram and the honorific are accepted',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d27', 'details-twentyseven', '{"groomSurnameEn":"Kommineni","groomSurnameTe":"కొమ్మినేని","brideSurnameEn":"","brideSurnameTe":"","groomGotramEn":"Bharadwaja","groomGotramTe":"భరద్వాజ","brideGotramEn":"","brideGotramTe":"","coupleHonorific":"chiranjeevi"}')$$) = 1);
+select t.ok('an empty honorific (the default) is accepted',
+  t.affected($$insert into public.invitations (id, slug, details) values ('d28', 'details-twentyeight', '{"coupleHonorific":""}')$$) = 1);
 select t.ok('a preview image from this app''s own bucket is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d8', 'details-eight', '{"seoImage":"https://abc.supabase.co/storage/v1/object/public/invitation-previews/aaaaaaaa-0000-0000-0000-000000000001/d8.jpg?v=1"}')$$) = 1);
 select t.ok('other columns of an old row stay editable (the check runs only when details change)',
@@ -421,6 +429,10 @@ select t.throws('a client cannot send an unknown person in inviterSources (check
   format($$select public.submit_change_request('c1', '{"inviterSources":"nobody"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send a custom name with an unknown prefix (checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"inviterNames":[{"id":"n1","prefix":"king"}]}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send an unknown honorific (the key is on the allowed list, so it is checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"coupleHonorific":"king"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send a gotram that is not text (checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"brideGotramEn":5}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a 2000-character name is refused',
   format($$select public.submit_change_request('c1', jsonb_build_object('groomEn', repeat('x', 2000)), %L)$$, current_setting('t.base')), '23514');
 select t.throws('a request with no change is refused',

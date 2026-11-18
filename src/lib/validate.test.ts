@@ -113,3 +113,11 @@ describe("validateInvitation: closing block (T2)", () => {
     expect(validateInvitation(valid({ inviterNames: nine.slice(0, 8) })).inviterNames).toBeUndefined();
   });
 });
+
+describe("validateInvitation: honorific (T3)", () => {
+  it("accepts empty and chiranjeevi, rejects anything else in the family section", () => {
+    expect(validateInvitation(valid()).coupleHonorific).toBeUndefined();
+    expect(validateInvitation(valid({ coupleHonorific: "chiranjeevi" })).coupleHonorific).toBeUndefined();
+    expect(validateInvitation(valid({ coupleHonorific: "king" })).coupleHonorific?.section).toBe("family");
+  });
+});

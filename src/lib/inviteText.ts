@@ -42,6 +42,13 @@ const parents = (father: string, mother: string, own: string, fatherStatus: unkn
   return [f && `${parentPrefixTe("father", fs)} ${f}`, m && `${parentPrefixTe("mother", ms)} ${m}`].filter(Boolean) as string[];
 };
 
+/* ---------- Honorific before the couple's names (T3) ---------- */
+export const HONORIFIC_GROOM_TE = "చి||";
+export const HONORIFIC_BRIDE_TE = "చి.ల.సౌ||";
+/** "" (none) or "chiranjeevi". Anything else counts as none. */
+export const honorificOn = (v: unknown): boolean => v === "chiranjeevi";
+export const okHonorific = (v: unknown): boolean => v === undefined || v === null || v === "" || v === "chiranjeevi";
+
 /* ---------- Closing block (T2): title, who appears, custom names ---------- */
 
 export type ClosingTitleMode = "" | "itlu" | "aahvaninchuvaaru" | "compliments" | "invitedBy" | "regards" | "custom" | "none";

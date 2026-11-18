@@ -77,3 +77,23 @@ describe("compile: closing block placeholders (T2)", () => {
     expect(out({ inviterSources: "none", inviterNames: [{ ...names[0], relationTe: "" }, { ...names[0], id: "b", nameTe: "కృష్ణ", prefix: "" }] }, "{{inviter-te}}")).toContain("శ్రీ రావు &amp; కృష్ణ");
   });
 });
+
+describe("compile: house names, gotram, honorific placeholders (T3)", () => {
+  const out = (data: object, tpl: string) => new DOMParser().parseFromString(compile(tpl, data as never), "text/html").body.textContent ?? "";
+  it("the house name falls back to the shared surname; -surname-set says whether the person's own was typed", () => {
+    const tpl = "{{groom-surname-te}}|{{groom-surname-en}}|{{#if groom-surname-set}}own{{/if}}|{{bride-surname-te}}";
+    expect(out({ surnameTe: "కుటుంబ", surnameEn: "Fam" }, tpl)).toContain("కుటుంబ|Fam||కుటుంబ");
+    const own = out({ surnameTe: "కుటుంబ", surnameEn: "Fam", groomSurnameTe: "వరుడు", groomSurnameEn: "Groomhouse" }, tpl);
+    expect(own).toContain("వరుడు|Groomhouse|own|కుటుంబ");
+  });
+  it("gotram has no fallback and is empty by default", () => {
+    expect(out({ groomGotramTe: "భరద్వాజ", groomGotramEn: "Bharadwaja" }, "{{groom-gotram-te}}|{{groom-gotram-en}}|{{bride-gotram-te}}|")).toContain("భరద్వాజ|Bharadwaja||");
+  });
+  it("the honorific placeholders", () => {
+    const tpl = "{{groom-honorific-te}}|{{bride-honorific-te}}|{{#if couple-honorific}}on{{/if}}";
+    expect(out({ coupleHonorific: "chiranjeevi" }, tpl)).toContain("చి|||చి.ల.సౌ||");
+    expect(out({ coupleHonorific: "chiranjeevi" }, tpl)).toContain("on");
+    expect(out({}, tpl)).not.toContain("on");
+    expect(out({ coupleHonorific: "x" }, tpl)).not.toContain("చి");
+  });
+});

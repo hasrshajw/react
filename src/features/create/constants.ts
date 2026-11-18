@@ -18,6 +18,8 @@ export const initial: InvitationData = {
   surnameEn: "", surnameTe: "", weddingDate: "", muhurthamTime: "",
   groomEn: "", groomTe: "", groomFatherEn: "", groomFatherTe: "", groomFatherPhone: "", groomMotherEn: "", groomMotherTe: "", groomMotherPhone: "",
   brideEn: "", brideTe: "", brideFatherEn: "", brideFatherTe: "", brideFatherPhone: "", brideMotherEn: "", brideMotherTe: "", brideMotherPhone: "",
+  groomSurnameEn: "", groomSurnameTe: "", brideSurnameEn: "", brideSurnameTe: "",
+  groomGotramEn: "", groomGotramTe: "", brideGotramEn: "", brideGotramTe: "", coupleHonorific: "",
   groomFatherStatus: "", groomMotherStatus: "", brideFatherStatus: "", brideMotherStatus: "",
   receptionEnabled: false, receptionDate: "", receptionTime: "",
   venueEn: "", venueTe: "", venueAddress: "", venueMaps: "",
@@ -32,6 +34,7 @@ export const initial: InvitationData = {
 export const EN_TO_TE = {
   surnameEn: "surnameTe", groomEn: "groomTe", groomFatherEn: "groomFatherTe", groomMotherEn: "groomMotherTe",
   brideEn: "brideTe", brideFatherEn: "brideFatherTe", brideMotherEn: "brideMotherTe", venueEn: "venueTe", inviterEn: "inviterTe", closingTitleEn: "closingTitleTe",
+  groomSurnameEn: "groomSurnameTe", brideSurnameEn: "brideSurnameTe", groomGotramEn: "groomGotramTe", brideGotramEn: "brideGotramTe",
 } as const satisfies Partial<Record<keyof InvitationData, keyof InvitationData>>;
 
 /** Field -> element inside the live preview that should scroll into view. */
@@ -43,6 +46,8 @@ export const TARGETS: Record<string, string> = {
   weddingDate: "event-wedding-date", muhurthamTime: "event-wedding-time", receptionDate: "event-reception-date", receptionTime: "event-reception-time",
   venueEn: "venue-te", venueTe: "venue-te", venueAddress: "venue-te", venueMaps: "venue-te",
   inviteMessageTe: "invite-text", inviterMode: "invite-text", inviterEn: "invite-text", inviterTe: "invite-text",
+  groomSurnameEn: "groom-te", groomSurnameTe: "groom-te", groomGotramEn: "groom-te", groomGotramTe: "groom-te",
+  brideSurnameEn: "bride-te", brideSurnameTe: "bride-te", brideGotramEn: "bride-te", brideGotramTe: "bride-te", coupleHonorific: "groom-te",
   closingTitleMode: "invite-text", closingTitleEn: "invite-text", closingTitleTe: "invite-text", inviterSources: "invite-text", inviterNames: "invite-text",
   groomFatherStatus: "groom-father-te", groomMotherStatus: "groom-mother-te", brideFatherStatus: "bride-father-te", brideMotherStatus: "bride-mother-te",
   groomFatherPhone: "groom-father-phone", groomMotherPhone: "groom-mother-phone", brideFatherPhone: "bride-father-phone", brideMotherPhone: "bride-mother-phone",

@@ -519,3 +519,39 @@ describe("CreateForm: closing title, who appears, custom names (T2)", () => {
     expect(host.textContent).not.toContain("Preview:");
   });
 });
+
+describe("CreateForm: house names, gotram, honorific (T3)", () => {
+  it("the groom and the bride each have house name and gotram boxes that write their own keys", () => {
+    show();
+    const cases: [string, string][] = [["groomSurnameEn", "Kommineni"], ["groomSurnameTe", "కొమ్మినేని"], ["groomGotramEn", "Bharadwaja"], ["groomGotramTe", "భరద్వాజ"],
+      ["brideSurnameEn", "Patibandla"], ["brideSurnameTe", "పాటిబండ్ల"], ["brideGotramEn", "Kashyapa"], ["brideGotramTe", "కశ్యప"]];
+    for (const [k, v] of cases) { typeInto(input(k), v); expect(props.set).toHaveBeenCalledWith(k, v); }
+  });
+  it("the shared family surname is still there", () => {
+    show();
+    expect(input("surnameEn")).toBeTruthy();
+    expect(input("surnameTe")).toBeTruthy();
+  });
+  it("the honorific checkbox is off by default, and writes chiranjeevi or empty", () => {
+    show();
+    const cb = [...host.querySelectorAll<HTMLInputElement>("label.check input")].find((i) => i.parentElement?.textContent?.includes("చి||"))!;
+    expect(cb.checked).toBe(false);
+    click(cb);
+    expect(props.set).toHaveBeenCalledWith("coupleHonorific", "chiranjeevi");
+    show({ data: { ...initial, coupleHonorific: "chiranjeevi" } });
+    const on = [...host.querySelectorAll<HTMLInputElement>("label.check input")].find((i) => i.parentElement?.textContent?.includes("చి||"))!;
+    expect(on.checked).toBe(true);
+    click(on);
+    expect(props.set).toHaveBeenCalledWith("coupleHonorific", "");
+  });
+  it("focusing a house name or gotram box points the preview at that person's card", () => {
+    show();
+    focusEl(input("brideGotramTe"));
+    expect(props.focus).toHaveBeenCalledWith("brideGotramTe");
+  });
+  it("the new boxes are ghosts while their section loads", () => {
+    show({ sectionLoading: allLoading(true) });
+    expect(input("groomSurnameEn").disabled).toBe(true);
+    expect(input("brideGotramTe").disabled).toBe(true);
+  });
+});

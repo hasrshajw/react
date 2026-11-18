@@ -385,7 +385,8 @@ declare
     'brideFatherEn','brideFatherTe','brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionDate',
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
-    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources'];
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources',
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
   url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
@@ -409,6 +410,9 @@ begin
           return 'seoImage must be a preview image uploaded in this app'; end if;
         if k = any (status_keys) and s not in ('', 'late', 'hidden') then
           return k || ' must be empty, late or hidden'; end if;
+        -- T3: the honorific before the couple's names is off ('') or 'chiranjeevi'
+        if k = 'coupleHonorific' and s not in ('', 'chiranjeevi') then
+          return 'coupleHonorific must be empty or chiranjeevi'; end if;
         -- T2: closing title preset and the list of people who appear (same rules as src/lib/inviteText.ts)
         if k = 'closingTitleMode' and s not in ('', 'itlu', 'aahvaninchuvaaru', 'compliments', 'invitedBy', 'regards', 'custom', 'none') then
           return 'closingTitleMode is not a known title'; end if;
@@ -660,7 +664,8 @@ declare
     'brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionEnabled','receptionDate','receptionTime',
     'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
-    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames'];
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames',
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

@@ -64,3 +64,10 @@ describe("invitationToForm: closing block (T2)", () => {
     expect(invitationToForm(base({ details: { inviterNames: "oops" as never } })).inviterNames).toEqual([]);
   });
 });
+
+describe("invitationToForm: house names (T3)", () => {
+  it("a record saved before T3 loads with empty defaults, and saved values are kept", () => {
+    expect(invitationToForm(base())).toMatchObject({ groomSurnameTe: "", brideGotramEn: "", coupleHonorific: "" });
+    expect(invitationToForm(base({ details: { groomGotramTe: "భరద్వాజ", coupleHonorific: "chiranjeevi" } }))).toMatchObject({ groomGotramTe: "భరద్వాజ", coupleHonorific: "chiranjeevi" });
+  });
+});

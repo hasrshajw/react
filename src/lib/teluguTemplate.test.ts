@@ -148,3 +148,38 @@ describe("telugu-traditional template: closing block (T2)", () => {
     expect(html).toContain("రవి");
   });
 });
+
+describe("telugu-traditional template: house names, gotram, honorific (T3)", () => {
+  const items = (d: Document, sel: string) => [...d.querySelectorAll(`${sel} .list-item`)].map((e) => e.textContent?.replace(/\s+/g, " ").trim());
+  it("a record saved before T3 is unchanged: plain names, no house-name or gotram line (even with a shared surname)", () => {
+    const d = doc(full);
+    expect(text(d, ".groom-card h2")).toBe("రవి");
+    expect(text(d, ".bride-card h2")).toBe("ప్రియ");
+    expect(compile(src, { ...initial, ...full })).not.toContain("ఇంటి పేరు");
+    expect(compile(src, { ...initial, ...full })).not.toContain("గోత్రం");
+    expect(compile(src, { ...initial, ...full })).not.toMatch(/\{\{/);
+  });
+  it("prints each person's own house name and gotram on their own card", () => {
+    const d = doc({ ...full, groomSurnameTe: "కొమ్మినేని", brideSurnameTe: "పాటిబండ్ల", groomGotramTe: "భరద్వాజ", brideGotramTe: "కశ్యప" });
+    expect(items(d, ".groom-card")).toContain("ఇంటి పేరు: కొమ్మినేని");
+    expect(items(d, ".groom-card")).toContain("గోత్రం: భరద్వాజ");
+    expect(items(d, ".bride-card")).toContain("ఇంటి పేరు: పాటిబండ్ల");
+    expect(items(d, ".bride-card")).toContain("గోత్రం: కశ్యప");
+    expect(items(d, ".groom-card").join()).not.toContain("పాటిబండ్ల");
+  });
+  it("gotram renders only when set, per side", () => {
+    const d = doc({ ...full, groomGotramTe: "భరద్వాజ" });
+    expect(items(d, ".groom-card").join()).toContain("గోత్రం");
+    expect(items(d, ".bride-card").join()).not.toContain("గోత్రం");
+  });
+  it("the honorific is printed before the names when on, with the right form for each", () => {
+    const d = doc({ ...full, coupleHonorific: "chiranjeevi" });
+    expect(text(d, ".groom-card h2")).toBe("చి|| రవి");
+    expect(text(d, ".bride-card h2")).toBe("చి.ల.సౌ|| ప్రియ");
+    expect(text(doc({ ...full, coupleHonorific: "" }), ".groom-card h2")).toBe("రవి");
+    expect(text(doc({ ...full, coupleHonorific: "other" }), ".groom-card h2")).toBe("రవి");
+  });
+  it("the existing {{surname-te}} placeholder keeps working", () => {
+    expect(text(doc({ ...full, groomSurnameTe: "కొమ్మినేని" }), ".hero-sub")).toBe("కొమ్మినేని వారి");
+  });
+});
