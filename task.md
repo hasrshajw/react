@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 and T1 done, next task is T2**
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0, T1 and T2 done, next task is T3**
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -101,7 +101,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 |---|---|---|---|---|
 | T0 | Baseline check (no code) | none | no | DONE |
 | T1 | Parent status: alive / late / hidden | T0 | yes | DONE |
-| T2 | Closing title, who-appears selector, custom names | T1 | yes | TODO |
+| T2 | Closing title, who-appears selector, custom names | T1 | yes | DONE |
 | T3 | Separate house names, gotram, honorific | T0 | yes | TODO |
 | T4 | Birth order and the "son / daughter of" line | T3 | yes | TODO |
 | T5 | Separate reception venue | T0 | yes | TODO |
@@ -317,7 +317,77 @@ and the preview shows exactly that; an invitation saved before this task looks u
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 18 Nov 2026 by Claude   Commit(s): 7600db5 (code, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/types/invitation.ts: new `InviterName` ({ id, prefix, nameEn, nameTe, relationEn, relationTe }); shared `ListItem` and `ListPatch`
+      types (so one add / patch signature serves every list); `ListField` gets "inviterNames"; five new keys on InvitationData:
+      closingTitleMode, closingTitleEn, closingTitleTe, inviterSources, inviterNames.
+  - src/lib/inviteText.ts: CLOSING_TITLES (the five presets, Telugu and English wording in ONE place), closingTitleMode/Te/En();
+      INVITER_SOURCES + labels, effectiveSources() (new list, else the old inviterMode), parse / serialize / okSources(), SOURCES_NONE ("none"),
+      INVITER_PREFIXES (sri, smt, chi, late, dr), MAX_CLOSING_LINES (10), MAX_INVITER_NAMES (8). inviterLinesTe() was rewritten: surname line,
+      then groom's side, then bride's side, then the old custom line, then the custom names; it uses the T1 helpers (parents(), parentPrefixTe,
+      parentStatus), drops repeated lines and caps at 10.
+  - src/lib/compileInvitation.ts: valuesFor() computes the lines once and adds inviter-title-te, inviter-title-en, inviter-title-visible ("1"
+      unless the title is hidden) and inviter-line-1-te to inviter-line-10-te (1 to 4 and inviter-te are kept).
+  - docs/templates/telugu-traditional.html: the fixed "ఇట్లు" is now {{inviter-title-te}} inside {{#if inviter-title-visible}}; lines 1 to 4 are
+      unchanged (empty ones are hidden by the template CSS as before); lines 5 to 10 are new, each inside {{#if inviter-line-N-te}}.
+  - src/features/create/components/InviteSection.tsx (rewritten): closing-title dropdown (+ custom EN / TE boxes, + Hide), the old five buttons
+      (kept), quick buttons Groom side / Bride side / All / Nobody, a checklist of the nine people, repeatable custom-name rows (prefix list,
+      name EN / తెలుగు, relation EN / తెలుగు, delete, Up / Down, max 8) and a one-line preview.
+  - src/features/create/constants.ts: defaults in `initial`, newInviterName(), MAX_INVITER_NAMES re-export, TARGETS for the five keys,
+      EN_TO_TE closingTitleEn -> closingTitleTe.
+  - src/features/create/CreateForm.tsx, src/pages/Create.tsx, src/ClientApp.tsx, src/features/create/formReducer.ts: list types widened to
+      ListItem / ListPatch; InviteSection gets add / patch / remove / fpx; patch() in Create.tsx and ClientApp.tsx now also auto-fills the Telugu
+      name and relation of a custom name while typing English (same schedule() mechanism as events).
+  - src/features/client/invitationToForm.ts: inviterNames is read through list() so a damaged value becomes [].
+  - src/lib/validate.ts: unknown id in inviterSources, an unknown prefix and more than 8 names give an error in the "message" section.
+  - src/features/reviews/fieldLabels.ts: labels for the five keys.
+  - supabase/01_schema.sql: details_problem() has the four text keys in text_keys, a closingTitleMode check (known presets only), an
+      inviterSources regex ('', 'none', or known ids separated by commas), inviterNames in list_keys (at most 8 items, prefix must be known) and
+      prefix / relationEn / relationTe in sub_text; submit_change_request() has all five keys in `allowed`.
+  - supabase/updates/02_T2_closing_names.sql (new): the two changed functions (generated from 01_schema.sql, so they cannot drift).
+  - tools/db-test/tests.sql: 12 new checks (unknown title, unknown person, stray comma, bad prefix, 9 and 21 names, non-text name, good records
+      accepted, "none" accepted, and three client submits that prove the keys are on the allowed list).
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings) · unit 774 passed (was 709, +65; new tests are in inviteText, teluguTemplate,
+  validate, compileInvitation, invitationToForm, formReducer, fieldLabels and CreateForm) · build ok ·
+  db tests 252 passed (was 240, +12). The update file was also checked: the OLD schema (git HEAD before this task) + supabase/updates/02_T2_closing_names.sql
+  passes the same 252 checks.
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser.
+  - Backward compatibility is proven in inviteText.test.ts: a copy of the pre-T2 line builder is kept as a reference and the old-style records
+    (every inviterMode, with late / hidden parents, empty names, unknown mode) must give identical lines. The template test checks that an old
+    record still shows "ఇట్లు" and the same four line slots, and that the previous template block (fixed ఇట్లు, lines 1 to 4) still compiles.
+Pending / not done:
+  - The Telugu wording of the presets "సాదర ఆహ్వానంతో" (invitedBy) and "శుభాభినందనలతో" (regards) and the English twins is my choice, as the plan only
+      named the ids. All wording is in CLOSING_TITLES in src/lib/inviteText.ts; please have a Telugu speaker confirm or change it.
+  - Review screen: a change of inviterSources shows the raw text (for example "groom,groomFather") and inviterNames shows JSON. Cosmetic.
+  - No up / down keyboard shortcut other than the two buttons; rows are not drag-and-drop.
+  - The two seed templates in 02_seed_templates.sql do not print the closing block, so they were not changed.
+  - Not tried in a real browser or with the client area (/my); it uses the same CreateForm and the same patch(), and the db test proves a client
+      may submit the new keys.
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/01_T1_parent_status.sql if it was not run yet, then supabase/updates/02_T2_closing_names.sql
+      (safe to re-run; no table or data changes). Without this step a client edit of the new keys from /my is refused or dropped.
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (needed for the title, the Hide option and lines
+      5 to 10). Without it everything still works, but the title stays "ఇట్లు" and only four lines print.
+  3. Deploy `preview` and try: title "With Best Compliments", tick Groom side only, add two custom names with relations; check the preview and
+      the public page; also open an invitation saved before this task and confirm it looks the same.
+Notes for the next person (T3 and later):
+  - Decision: the old five buttons stay and are shown as selected only while `inviterSources` is empty. Picking one of them clears inviterSources,
+      so the old behaviour (including the "use the person's own name when both parents are hidden" rule) is exactly as before. The checklist then
+      shows the matching boxes (old "Groom's family" -> the box "Groom's family (parents)") WITHOUT writing anything until the person changes a box.
+      The plan text said the old "Groom's family" would tick groomFather + groomMother; I mapped it to the `groomFamily` source instead, because
+      only that source keeps the own-name fallback and so reproduces the old output byte for byte.
+  - New value "none" for inviterSources means "nobody from the list" (empty means "use inviterMode"). It is accepted by TS and SQL. Quick button
+      "Nobody" and unticking the last box write it.
+  - Order of lines: family surname, groom's side (family, father, mother, then the person), bride's side, the old custom line, then custom names.
+      Quick button "Groom side" = groom + his parents (so lines read parents first, then the groom).
+  - A custom name line is "<prefix> <name> (<relation>)"; the name and relation use Telugu first, English as a fallback. Rows without a name are skipped.
+  - The reducer was not changed except for types: reorder is done by `set("inviterNames", newArray)`, add / patch / remove use the generic list actions.
+  - `ListPatch` is Partial<EventItem & ContactItem & InviterName>; when T6 / T7 / T8 add fields to those items, add them to the same union.
+  - Reuse: INVITER_PREFIXES in inviteText.ts holds the Telugu prefixes for people (use it for T8 relatives too).
+  - Security: a GitHub token was pasted into the chat that requested this task. It was only used for the clone and push of this task and is not
+      stored in the repo, the remote URL or this file. The owner should revoke it in GitHub settings.
 ```
 
 ---
@@ -501,6 +571,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-18  T2 done (closing title, who appears, custom names). 774 unit tests, 252 db tests, build ok. Owner: run supabase/updates/02_T2_closing_names.sql (after 01) and re-paste the template. Next: T3 (or T5 / T6 / T7, which are independent).
 2026-11-18  T1 done (parent status). 709 unit tests, 240 db tests, build ok. Owner: run supabase/updates/01_T1_parent_status.sql and re-paste the template. Next: T2.
 2026-11-18  T0 baseline done and recorded (690 unit tests, 233 db tests, build ok). No app code changed. Next: T1.
 2026-11-18  Plan written. No code changed.
