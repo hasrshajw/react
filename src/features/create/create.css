@@ -290,7 +290,6 @@
   .seg button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--primary-lightest); }
   .seg button:disabled { cursor: progress; }
   @media (max-width: 520px) { .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  .te-preview { padding: 10px 12px; border-radius: 12px; background: var(--ghost-white); line-height: 1.7; font-family: "Noto Sans Telugu", "Nirmala UI", sans-serif; }
   .f.te textarea { font-family: "Noto Sans Telugu", "Nirmala UI", sans-serif; line-height: 1.7; }
 
   /* a section fades in when its data has arrived (a little later for each section further down) */

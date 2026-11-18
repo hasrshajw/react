@@ -1,6 +1,6 @@
 import React from "react";
 import type { InvitationData } from "../../../types/invitation";
-import { DEFAULT_INVITE_MESSAGE_TE, INVITER_OPTIONS, INVITE_MESSAGE_MAX, inviterLinesTe, inviterMode } from "../../../lib/inviteText";
+import { DEFAULT_INVITE_MESSAGE_TE, INVITER_OPTIONS, INVITE_MESSAGE_MAX, inviterMode } from "../../../lib/inviteText";
 import { Bilingual } from "./Bilingual";
 
 type FieldProps = (name: string) => { name: string; onFocus: () => void; onBlur: () => void; error?: string; loading?: boolean };
@@ -42,19 +42,6 @@ export function InviteSection({ data, set, fp, loading = false }: Props) {
       </div>
       {mode === "custom" && (
         <Bilingual enLabel="Name EN" teLabel="Name తెలుగు" enField="inviterEn" teField="inviterTe" data={data} set={set as never} fp={fp} />
-      )}
-      <div className="hint">
-        {mode === "surname" && "Shows the family surname after ఇట్లు."}
-        {mode === "groom" && "Shows the groom’s parents (or the groom’s name if there are none) after ఇట్లు."}
-        {mode === "bride" && "Shows the bride’s parents (or the bride’s name if there are none) after ఇట్లు."}
-        {mode === "both" && "Shows the groom’s parents, then the bride’s, after ఇట్లు."}
-        {mode === "custom" && "Shows this name after ఇట్లు."}
-      </div>
-      {!loading && (
-        <div className="hint te-preview" lang="te">
-          <b>Reads:</b> {data.inviteMessageTe.trim() || DEFAULT_INVITE_MESSAGE_TE}
-          {inviterLinesTe(data).length > 0 && <><br />ఇట్లు<br />{inviterLinesTe(data).map((l, i) => <span key={i}>{l}<br /></span>)}</>}
-        </div>
       )}
     </>
   );
