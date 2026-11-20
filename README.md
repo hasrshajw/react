@@ -67,7 +67,12 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
    - **Public sign-ups are allowed.** Anyone can create an account (email + password or Google). New accounts are ordinary **clients**: they never receive admin rights.
    - Admin access is controlled **only** by a row in the `admins` table (task C-1). Nobody can add or remove admin rows through the API; only the SQL Editor can. The UI role check (`RoleGate` / `is_admin()`) is for screen selection only — real permissions come from row-level security.
    - After a new user signs up they land in the **client area** (`/my`). If no invitations have been linked to their email they see “No invitations to show”. When an admin later sets `client_email` on an invitation to that address, the invitation appears for them and they can submit change requests.
-   - Create the first admin user by hand: **Authentication → Users → Add user → Create new user** (email + password, tick “Auto Confirm User”), then put the same email into `supabase/03_make_admin.sql` and run it in the **SQL Editor**. Without that row the admin dashboard shows no templates, categories or enquiries.
+   - **First admin (required):**
+     1. Supabase → Authentication → Users → Add user → Create new user (email + password, tick “Auto Confirm User”).
+     2. Open `supabase/03_make_admin.sql`, replace `you@example.com` with that exact email, and run the whole file in the SQL Editor.
+     3. The script inserts a row into `public.admins` and **raises an error (and changes nothing)** if no matching user exists. It is the only supported way to grant admin rights.
+     Without that row the admin dashboard shows no templates, categories or enquiries. Admin rights never come from the browser, from `VITE_ADMIN_EMAIL`, or from signing up.
+   - `VITE_ADMIN_EMAIL` is **display-only** (e.g. a “Contact the admin” mailto link on the client area). It ships in the browser bundle and must never be used for authorization.
    - Turn the **Google** provider on when you are ready and add `https://YOUR-DOMAIN/login` as a redirect URL. A Google login that is not in `admins` can sign in but is treated as a client (no templates, categories or enquiries, only the client area).
    - Profiles: a user can change only their own display `name`; `role`, `plan_name`, `plan_status` and `trial_ends_at` are display/plan fields (billing is not enforced yet).
 4. Put the three variables above in `.env.local` for local work, and in **Vercel → Project Settings → Environment Variables** for the live site, then redeploy.

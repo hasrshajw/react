@@ -2,7 +2,7 @@
 
 Branch: `preview`  
 Plan written: 20 Nov 2026  
-Status: **A1 done, A0 still open** (docs aligned; token revocation is owner action)
+Status: **A2 done, A0 still open** (admin bootstrap documented; token revocation is owner action)
 
 This file replaces the previous Create-form plan (T0–T9, completed). It is written so that **any person or AI can pick up the work at any point**. Read sections 1–3 first, then do the next task whose status is `TODO`.
 
@@ -96,7 +96,7 @@ Update the living documents so a new contributor or AI sees the current state:
 ---
 
 ### A2 – Confirm and document admin bootstrap
-**Status: TODO**
+**Status: DONE** (20 Nov 2026)
 
 - Verify that `supabase/03_make_admin.sql` is the only supported way to create the first admin and that it fails safely when the email does not exist.
 - Add a short “First admin” section to `README.md` or the release checklist if it is missing or unclear.
@@ -234,5 +234,9 @@ Only after A0–A7 (and any Critical/High items from A8) are acceptable:
 2026-11-20  A1 done: task.md rewritten with detailed findings + small tasks;
             docs/RELEASE_CHECKLIST.md refreshed; README.md updated (current-work
             section + fixed outdated CI path). A0 remains owner action.
-            Next: A0 (owner must revoke the exposed token), then A2.
+2026-11-20  A2 done: Verified 03_make_admin.sql fails safely when email missing;
+            confirmed VITE_ADMIN_EMAIL is display-only (mailto in ClientDashboard);
+            role comes only from is_admin() RPC. Documented clear First-admin
+            steps in README and RELEASE_CHECKLIST.
+            Next: A0 (owner must revoke the exposed token), then A3.
 ```

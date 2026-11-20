@@ -11,10 +11,14 @@ Aligned with the production-readiness plan in `task.md` (A0–A9) written 20 Nov
 - [ ] Confirm Supabase Auth: email confirmations on; disable public sign-up if only invitees should join (or keep open if intentional).
 - [ ] Vercel env: `VITE_*` publishable only; `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `WEBHOOK_SECRET`, `ADMIN_EMAIL` (and any CRON secrets) server-only. Never put service-role or webhook secrets in `VITE_*`.
 
-## 2. Apply schema (A4)
+## 2. Apply schema & first admin (A2 / A4)
 
 - [ ] Run `supabase/01_schema.sql`, then optionally `02_seed_templates.sql`, on a clean project.
-- [ ] Run `supabase/03_make_admin.sql` (with your email) to make your user an administrator. The script fails safely if the email does not exist.
+- [ ] **First admin (only supported method):**
+  1. Authentication → Users → Add user (email + password, Auto Confirm).
+  2. Edit `supabase/03_make_admin.sql`: set `admin_email` to that exact address.
+  3. Run the file in the SQL Editor. It raises an error and changes nothing if the user does not exist.
+- [ ] Confirm `VITE_ADMIN_EMAIL` (if set) is used only for display links; real admin rights come only from the `admins` table + `is_admin()` RLS.
 - [ ] **Existing live project** (set up before T1–T8 Create-form work): run `supabase/updates/01_T1_parent_status.sql` through `08_T8_relatives.sql` in order (safe to re-run). Then **Admin → Templates**: re-paste `docs/templates/telugu-traditional.html` into the Telugu traditional template.
 - [ ] Smoke: login, create invitation, publish, open public slug, client `/my` flow.
 
