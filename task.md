@@ -2,7 +2,7 @@
 
 Branch: `preview`  
 Plan written: 20 Nov 2026  
-Status: **A3 done, A0 still open** (CSP enforcing; token revocation is owner action)
+Status: **A8 done, A0 still open** (hardening verified; token revocation is owner action)
 
 This file replaces the previous Create-form plan (T0–T9, completed). It is written so that **any person or AI can pick up the work at any point**. Read sections 1–3 first, then do the next task whose status is `TODO`.
 
@@ -178,15 +178,33 @@ Using a real Supabase project and at least two accounts (one admin, one non-admi
 ---
 
 ### A8 – Rate limiting & hardening follow-ups
-**Status: TODO**
+**Status: DONE** (20 Nov 2026)
 
-- Decide whether invitation creation and the public enquiry form need additional rate limiting (Supabase, Vercel, or application-level).
-- Confirm server-side validation of uploaded preview images (or document that storage policies are considered sufficient).
-- Review whether the unique constraint / index on `invitations.slug` is present and enforced.
+**Findings & decisions:**
 
-**Done when:** Decisions are documented and any required code or SQL is merged.  
-**Before:** A5 preferred.  
-**After:** Update this file.
+1. **`invitations.slug` uniqueness** — Verified present and enforced:
+   - `create unique index invitations_slug_key on public.invitations (lower(slug))`
+   - Format check `invitations_slug_format` and reserved-word check `invitations_slug_reserved`
+   - No further action.
+
+2. **Preview image upload** — Server-side limits are sufficient:
+   - Storage bucket `invitation-previews`: `file_size_limit = 307200` (300 KB), `allowed_mime_types = ['image/jpeg']`
+   - Owner-only write policies; public read
+   - Client compresses to JPEG ≤ 300 KB before upload (`src/lib/image.ts`)
+   - `details.seoImage` validated by `details_problem()` to same-bucket JPEG URLs only
+   - Decision: no extra application-layer re-validation required.
+
+3. **Public enquiry rate limit** — Tightened and aligned:
+   - Intended limit: **3 per phone or email per hour** (README + `updates/09_enquiry_rate_limit.sql`)
+   - Bug fixed: `01_schema.sql` still had `>= 5`; now `>= 3` so new projects match
+   - `tools/db-test/tests.sql` updated (accept 3, refuse 4th)
+   - Explicitly **not** done: captcha / per-IP limit (DB cannot see visitor IP; needs Edge Function — deferred)
+
+4. **Invitation creation rate limit** — None beyond RLS (owner-only rows). Accepted for now: authenticated users are not anonymous attackers; abuse can be handled operationally. Revisit only if abuse appears.
+
+**Done when:** Decisions documented and schema/test aligned — yes.  
+**Before:** A5 preferred (not blocking for this static verification).  
+**After:** Owner should run `updates/09` on any live project still on the old 5/hour limit (or re-run current `01_schema.sql` functions).
 
 ---
 
@@ -243,5 +261,9 @@ Only after A0–A7 (and any Critical/High items from A8) are acceptable:
             invitation pages use srcDoc iframes with inline bridge/template scripts
             (nonces impractical with static headers + dynamic shells).
             Stricter Report-Only (script-src 'self' only) kept for monitoring.
-            Next: A0 (owner must revoke the exposed token), then A4/A5 (owner).
+2026-11-20  A8 done: Verified slug unique index + format/reserved checks;
+            preview bucket 300KB JPEG-only + policies sufficient;
+            fixed 01_schema enquiry limit 5→3 to match updates/09 + README;
+            updated db-test accordingly. No invite-create rate limit (accepted).
+            IP/captcha for enquiries deferred. Next: A0 (owner), then A4/A5.
 ```

@@ -156,10 +156,10 @@ select t.throws('a phone number with too few digits is refused', $$insert into p
 select t.throws('an email without a domain is refused', $$insert into public.enquiries (name, email) values ('X', 'nobody@')$$, '23514');
 select t.throws('a name over 100 characters is refused', format('insert into public.enquiries (name) values (%L)', repeat('n', 101)), '23514');
 select t.throws('a message over 2000 characters is refused', format('insert into public.enquiries (name, message) values (%L, %L)', 'X', repeat('m', 2001)), '23514');
-select t.ok('five enquiries from one phone number in an hour are accepted',
-  (select count(*) from (select t.affected(format('insert into public.enquiries (name, phone) values (%L, %L)', 'R' || i, '9000000001')) from generate_series(1, 5) i) q) = 5);
-select t.throws('the sixth enquiry from the same phone number in an hour is refused',
-  $$insert into public.enquiries (name, phone) values ('R6', '9000000001')$$, '23514');
+select t.ok('three enquiries from one phone number in an hour are accepted',
+  (select count(*) from (select t.affected(format('insert into public.enquiries (name, phone) values (%L, %L)', 'R' || i, '9000000001')) from generate_series(1, 3) i) q) = 3);
+select t.throws('the fourth enquiry from the same phone number in an hour is refused',
+  $$insert into public.enquiries (name, phone) values ('R4', '9000000001')$$, '23514');
 select t.ok('a visitor cannot change enquiries', t.affected($$update public.enquiries set status = 'called'$$) = 0);
 select t.as_user('aaaaaaaa-0000-0000-0000-000000000001');
 select t.ok('an ordinary user cannot read enquiries', t.rows('select 1 from public.enquiries') = 0);

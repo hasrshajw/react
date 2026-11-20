@@ -508,7 +508,7 @@ create trigger invitations_check_details before insert or update on public.invit
 --   1. Column grants: anon and signed-in users may set only name, phone, email and message. note, status,
 --      follow_up_date, history, id and created_at always take their defaults (admins change them with UPDATE).
 --   2. The insert policy also requires those default values, as a second lock.
---   3. A trigger checks lengths and formats (message <= 2000 characters, name <= 100, phone, email) and refuses a 6th
+--   3. A trigger checks lengths and formats (message <= 2000 characters, name <= 100, phone, email) and refuses a 4th
 --      enquiry from the same phone number or email within one hour. It is a trigger, not a CHECK, so old rows stay
 --      updatable. The count runs as the table owner (security definer) because anon cannot read the table.
 -- Not done here: captcha and a per-IP rate limit. The database does not see the visitor's IP; that needs an Edge
@@ -551,7 +551,7 @@ begin
     select count(*) into recent from public.enquiries e
      where e.created_at > now() - interval '1 hour'
        and ((new.phone is not null and e.phone = new.phone) or (new.email is not null and lower(e.email) = new.email));
-    if recent >= 5 then
+    if recent >= 3 then
       raise exception 'Too many enquiries from this contact. Please try again later.' using errcode = '23514';
     end if;
   end if;
