@@ -189,3 +189,53 @@ describe("reception venue link (T5)", () => {
   });
 });
 
+
+describe("validateInvitation: cross-field (T9)", () => {
+  it("warns when reception date is before the wedding date", () => {
+    const e = validateInvitation(valid({ weddingDate: "2027-02-10", receptionDate: "2027-02-01" }));
+    expect(e.receptionDate?.severity).toBe("warning");
+    expect(e.receptionDate?.section).toBe("venue");
+    expect(e.receptionDate?.msg).toMatch(/before the wedding/i);
+  });
+  it("does not warn when reception is on or after the wedding", () => {
+    expect(validateInvitation(valid({ weddingDate: "2027-02-10", receptionDate: "2027-02-10" })).receptionDate).toBeUndefined();
+    expect(validateInvitation(valid({ weddingDate: "2027-02-10", receptionDate: "2027-02-11" })).receptionDate).toBeUndefined();
+  });
+  it("warns when a separate reception venue is empty", () => {
+    const e = validateInvitation(valid({
+      receptionEnabled: true,
+      receptionDate: "2027-02-11",
+      receptionSameVenue: false,
+      receptionVenueEn: "",
+      receptionVenueTe: "",
+      receptionVenueAddress: "",
+    }));
+    expect(e.receptionVenueEn?.severity).toBe("warning");
+    expect(e.receptionVenueEn?.section).toBe("venue");
+  });
+  it("does not warn about reception venue when same-venue is ticked or reception is off", () => {
+    expect(validateInvitation(valid({ receptionEnabled: true, receptionDate: "2027-02-11", receptionSameVenue: true })).receptionVenueEn).toBeUndefined();
+    expect(validateInvitation(valid({ receptionEnabled: false, receptionSameVenue: false })).receptionVenueEn).toBeUndefined();
+  });
+  it("warns when an event end time is before its start time", () => {
+    const e = validateInvitation(valid({
+      events: [{ id: "e1", name: "Mehendi", nameTe: "", date: "2027-02-09", time: "18:00", venue: "", venueTe: "", maps: "", type: "", endTime: "16:00", descEn: "", descTe: "", dress: "" }],
+    }));
+    expect(e["event-e1-endTime"]?.severity).toBe("warning");
+    expect(e["event-e1-endTime"]?.section).toBe("events");
+  });
+  it("warns when an event date is after the wedding date", () => {
+    const e = validateInvitation(valid({
+      weddingDate: "2027-02-10",
+      events: [{ id: "e1", name: "Party", nameTe: "", date: "2027-02-12", time: "", venue: "", venueTe: "", maps: "", type: "", endTime: "", descEn: "", descTe: "", dress: "" }],
+    }));
+    expect(e["event-e1-date"]?.severity).toBe("warning");
+    expect(e["event-e1-date"]?.section).toBe("events");
+  });
+  it("still blocks save on hard errors; warnings alone leave the map non-empty but severity is warning", () => {
+    const onlyWarn = validateInvitation(valid({ weddingDate: "2027-02-10", receptionDate: "2027-02-01" }));
+    expect(Object.values(onlyWarn).every((v) => v.severity === "warning")).toBe(true);
+    const hard = validateInvitation(valid({ groomEn: "" }));
+    expect(hard.groomEn?.severity).toBeUndefined();
+  });
+});

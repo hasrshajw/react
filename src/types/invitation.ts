@@ -124,5 +124,5 @@ export interface SectionDef {
 
 export type SectionId = "template" | "family" | "groom" | "bride" | "message" | "venue" | "seo" | "events" | "client";
 
-export interface FieldError { section: SectionId; msg: string }
+export interface FieldError { section: SectionId; msg: string; severity?: "error" | "warning" }
 export type ErrorMap = Record<string, FieldError>;

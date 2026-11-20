@@ -12,6 +12,7 @@ Owner steps that cannot be finished from code alone. Run these on a real Supabas
 
 - [ ] Run `supabase/01_schema.sql`, then optionally `02_seed_templates.sql`, on a clean project.
 - [ ] Run `supabase/03_make_admin.sql` (with your email) to make your user an admin.
+- [ ] **Existing live project** (set up before T1–T8): run `supabase/updates/01_T1_parent_status.sql` through `08_T8_relatives.sql` in order (safe to re-run). Then **Admin → Templates**: re-paste `docs/templates/telugu-traditional.html` into the Telugu template.
 - [ ] Smoke: login, create invitation, publish, open public slug, client `/my` flow.
 
 ## 3. CI

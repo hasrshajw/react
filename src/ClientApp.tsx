@@ -301,7 +301,10 @@ function ClientEditor() {
   );
   const issues = useMemo(() => {
     const n: Record<string, number> = {};
-    Object.entries(errors).forEach(([k, v]) => { if (submitted || touched[k]) n[v.section] = (n[v.section] || 0) + 1; });
+    Object.entries(errors).forEach(([k, v]) => {
+      if (v.severity === "warning") return;
+      if (submitted || touched[k]) n[v.section] = (n[v.section] || 0) + 1;
+    });
     return n;
   }, [errors, touched, submitted]);
   const done = useMemo<Record<string, boolean>>(() => ({
@@ -338,10 +341,11 @@ function ClientEditor() {
   const requestSubmit = () => {
     if (!inv || pending || busy) return;
     dispatch({ type: "submit" });
-    const keys = Object.keys(errors);
-    if (keys.length) {
-      notify(`Fix ${keys.length} ${keys.length === 1 ? "field" : "fields"} before submitting`, "error");
-      const [key, { section }] = Object.entries(errors)[0];
+    /* Warnings (severity: "warning") still show on the field but do not block submit. */
+    const hard = Object.entries(errors).filter(([, v]) => v.severity !== "warning");
+    if (hard.length) {
+      notify(`Fix ${hard.length} ${hard.length === 1 ? "field" : "fields"} before submitting`, "error");
+      const [key, { section }] = hard[0];
       scrollToSection(section);
       window.setTimeout(() => document.getElementById(`f-${key}`)?.focus({ preventScroll: true }), 450);
       return;
@@ -353,7 +357,7 @@ function ClientEditor() {
   const doSubmit = async () => {
     if (!inv || pending || busy) return;
     dispatch({ type: "submit" });
-    if (Object.keys(errors).length) {
+    if (Object.entries(errors).some(([, v]) => v.severity !== "warning")) {
       notify("Fix the highlighted fields before submitting", "error");
       return;
     }

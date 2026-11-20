@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T8 done, next task is T9** (the final pass)
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T9 done** (Create form plan complete)
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -108,7 +108,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | T6 | More events, event types, end time, description | T0 | yes | DONE |
 | T7 | More contacts per side, contact role | T0 | yes | DONE |
 | T8 | Family members list (siblings, grandparents, uncle) | T1, T4 | yes | DONE |
-| T9 | Cross-field validation, progress tags, docs, final pass | T1 to T8 | maybe | TODO |
+| T9 | Cross-field validation, progress tags, docs, final pass | T1 to T8 | maybe | DONE |
 
 T3, T5, T6 and T7 are independent of each other and can be done in any order after T0. T1 -> T2 is the user's first
 priority (closing names). Backlog (do NOT start) is in section 7.
@@ -807,7 +807,23 @@ Notes for the next person (T9):
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+How it was updated:
+  - FieldError gained optional severity ("error" | "warning"). Hard errors still block save/submit; warnings show on the field but do not block.
+  - validate.ts: reception date before wedding (warning), empty separate reception venue (warning), event end time before start (warning), event date after wedding (warning). Max custom names / relatives and closing-name source ids were already checked.
+  - Create.tsx and ClientApp.tsx: save/submit only block on severity !== "warning"; section "to fix" badges ignore warnings so progress is not lowered by optional warnings.
+  - PROGRESS_IDS / SECTIONS / tagFor / done: unchanged; new fields remain optional and do not lower progress. fieldLabels already cover T1–T8 keys for the review diff.
+  - README.md and docs/RELEASE_CHECKLIST.md: document supabase/updates/01..08 and the re-paste template step for live projects.
+  - No new SQL file (T9 is validation + docs only). Schema already contains T1–T8.
+Tests: see handoff log (unit + build).
+Pending / not done:
+  - "Event dates not before today for new invitations" skipped: validateInvitation has no isNew context; past dates on edits of old invitations would false-positive.
+  - Reception card still shows when receptionDate is filled even if "Include reception" is off (T5 behaviour, left as-is).
+  - Owner still needs to run updates 01–08 and re-paste the Telugu template on the live project if not already done.
+Owner steps (live project):
+  1. If not already done after T8: run supabase/updates/01_T1_parent_status.sql through 08_T8_relatives.sql, then re-paste docs/templates/telugu-traditional.html.
+  2. Deploy preview; create an invitation with reception before wedding and confirm the warning shows but save still works; confirm hard errors (missing groom name) still block.
+  3. In /my, edit an invitation and confirm new fields (relatives, contacts, events, etc.) appear in the form and in the admin review diff labels.
 ```
 
 ---
@@ -815,6 +831,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-20  T9 done (cross-field validation as warnings, progress tags confirmed, README + RELEASE_CHECKLIST updated). Unit tests for T9 checks added; build ok. Next: none (Create form plan complete). Owner: run updates 01–08 and re-paste template if not already done after T8; deploy preview and smoke-test a reception-before-wedding warning.
 2026-11-20  T8 done (relatives list: siblings, grandparents, uncles; up to eight per side). 890 unit tests, 297 db tests, build ok. Owner: run supabase/updates/08_T8_relatives.sql (after 01 to 07), re-paste the template, and check the Telugu relation words (see T8 owner steps). Next: T9 (final pass).
 2026-11-19  T7 done (up to three contacts per side, contact role). 859 unit tests, 285 db tests, build ok. Owner: run supabase/updates/07_T7_contacts.sql (after 01 to 06) and re-paste the template. Next: T8 (then T9).
 2026-11-19  T6 done (up to six events, type, end time, description, dress code). 853 unit tests, 279 db tests, build ok. Owner: run supabase/updates/06_T6_events.sql (after 01 to 05) and re-paste the template. Next: T7 (or T8).

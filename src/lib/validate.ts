@@ -32,7 +32,9 @@ export const okSlug = (v: string): boolean => new RegExp(`^[a-z0-9_-]{${SLUG_MIN
 
 export function validateInvitation(data: InvitationData): ErrorMap {
   const e: ErrorMap = {};
-  const add = (key: string, section: ErrorMap[string]["section"], msg: string) => { e[key] = { section, msg }; };
+  const add = (key: string, section: ErrorMap[string]["section"], msg: string, severity?: "error" | "warning") => {
+    e[key] = severity ? { section, msg, severity } : { section, msg };
+  };
   if (!data.templateId) add("templateId", "template", "Choose a template to continue");
   if (has(data.customId)) {
     const slug = data.customId.trim();
@@ -83,6 +85,21 @@ export function validateInvitation(data: InvitationData): ErrorMap {
     if (String(ev.descTe || "").length > EVENT_DESC_MAX) add(`event-${ev.id}-descTe`, "events", `Keep the description under ${EVENT_DESC_MAX} characters`);
   });
   if (data.events.length > MAX_EVENTS) add("events", "events", `Use at most ${MAX_EVENTS} additional events`);
+  /* T9 cross-field checks (warnings do not block save; errors still do). */
+  if (has(data.weddingDate) && has(data.receptionDate) && data.receptionDate < data.weddingDate && !e.receptionDate) {
+    add("receptionDate", "venue", "Reception date is before the wedding date", "warning");
+  }
+  if (data.receptionEnabled && !data.receptionSameVenue && !has(data.receptionVenueEn) && !has(data.receptionVenueTe) && !has(data.receptionVenueAddress)) {
+    add("receptionVenueEn", "venue", "Add the reception venue, or tick same venue as the wedding", "warning");
+  }
+  data.events.forEach((ev) => {
+    if (has(ev.time) && has(ev.endTime) && String(ev.endTime) < String(ev.time) && !e[`event-${ev.id}-endTime`]) {
+      add(`event-${ev.id}-endTime`, "events", "End time is before the start time", "warning");
+    }
+    if (has(ev.date) && has(data.weddingDate) && ev.date > data.weddingDate && !e[`event-${ev.id}-date`]) {
+      add(`event-${ev.id}-date`, "events", "This event is after the wedding date", "warning");
+    }
+  });
   /* Soft warnings: the inputs also have maxLength, so these only appear for pasted or old data. */
   if (data.seoTitle.length > SEO_TITLE_MAX) add("seoTitle", "seo", `Keep the title under ${SEO_TITLE_MAX} characters`);
   if (data.seoDescription.length > SEO_DESC_MAX) add("seoDescription", "seo", `Keep the description under ${SEO_DESC_MAX} characters`);

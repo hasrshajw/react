@@ -189,7 +189,10 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
 
   const issues = useMemo(() => {
     const n: Record<string, number> = {};
-    Object.entries(errors).forEach(([k, v]) => { if (submitted || touched[k]) n[v.section] = (n[v.section] || 0) + 1; });
+    Object.entries(errors).forEach(([k, v]) => {
+      if (v.severity === "warning") return;
+      if (submitted || touched[k]) n[v.section] = (n[v.section] || 0) + 1;
+    });
     return n;
   }, [errors, touched, submitted]);
 
@@ -233,7 +236,8 @@ export default function Create({ onPanelChange }: { onPanelChange?: (open: boole
     if (saving || recordLoading || loadError) return false;
     if (editId && !dirty) return true;
     dispatch({ type: "submit" });
-    const entries = Object.entries(errors);
+    /* Warnings (severity: "warning") still show on the field but do not block save. */
+    const entries = Object.entries(errors).filter(([, v]) => v.severity !== "warning");
     if (entries.length) {
       const [key, { section }] = entries[0];
       scrollToSection(section);
