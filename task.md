@@ -1,6 +1,6 @@
 # Task plan: complete the Create form (family, closing names, venues, events)
 
-Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T7 done, next task is T8** (T8 needs T1 and T4, both done; T9 is the final pass)
+Branch: `preview` · Plan written: 18 Nov 2026 · Status: **T0 to T8 done, next task is T9** (the final pass)
 
 This file replaces the old status page (it is still in git history). It is written so that **any person or AI can pick up
 the work at any point**. Read sections 1 to 4 first, then do the next task whose status is `TODO`.
@@ -107,7 +107,7 @@ Notes for the next person: <gotchas, decisions, things that surprised you>
 | T5 | Separate reception venue | T0 | yes | DONE |
 | T6 | More events, event types, end time, description | T0 | yes | DONE |
 | T7 | More contacts per side, contact role | T0 | yes | DONE |
-| T8 | Family members list (siblings, grandparents, uncle) | T1, T4 | yes | TODO |
+| T8 | Family members list (siblings, grandparents, uncle) | T1, T4 | yes | DONE |
 | T9 | Cross-field validation, progress tags, docs, final pass | T1 to T8 | maybe | TODO |
 
 T3, T5, T6 and T7 are independent of each other and can be done in any order after T0. T1 -> T2 is the user's first
@@ -743,7 +743,49 @@ so the template needs no loops.
 
 **Completion record**
 ```
-Status: TODO
+Status: DONE
+Finished: 20 Nov 2026 by Claude   Commit(s): a5cf6eb (code, template, SQL, tests); this record is in the commit after it
+How it was updated:
+  - src/types/invitation.ts: new interface FamilyMember { id, side, relation, prefix, nameEn, nameTe, late, spouseEn, spouseTe, show }; added to ListItem, ListPatch and ListField ("familyMembers");
+      InvitationData gets `familyMembers: FamilyMember[]`.
+  - src/lib/inviteText.ts: MAX_FAMILY_PER_SIDE = 8, FAMILY_RELATIONS (id, English label, Telugu word, in PRINTING order), okRelation / okSide / okFamilyPrefix,
+      relativeLineTe(), relativesLinesTe(side, data), relativesTe(side, data). The Telugu relation words live only in FAMILY_RELATIONS. Title ids are the SAME as InviterName.prefix (INVITER_PREFIXES); a late relative prints PREFIX_LATE_TE.
+  - src/features/create/constants.ts: initial.familyMembers = []; newFamilyMember(side) (relation "brother", show "1"); MAX_FAMILY_PER_SIDE re-exported; TARGETS.familyMembers.
+  - src/features/create/components/Relatives.tsx (new): "Relatives (optional)" sub-block with Add relative (hidden at 8 per side), per relative: relation select, title select, name EN / TE, spouse EN / TE, "Late" and "Show on the invitation" boxes, trash button.
+      Ghost add button while the section loads (same pattern as Contacts). Focus key is "groom-relatives-te" / "bride-relatives-te", so the live preview scrolls to the right card.
+  - src/features/create/CreateForm.tsx: a <Relatives> block in the groom section and one in the bride section, before the contacts; both read the one shared list `data.familyMembers` and filter by side.
+  - src/pages/Create.tsx and src/ClientApp.tsx: patch() fills nameTe from nameEn and spouseTe from spouseEn automatically (same debounce as events and custom names). Client mode gets it because ClientApp uses the same CreateForm.
+  - src/lib/compileInvitation.ts valuesFor(): groom-relatives-te and bride-relatives-te (one line per person, joined with a line break).
+  - docs/templates/telugu-traditional.html: one list-item per card (after the parent lines), wrapped in {{#if side-relatives-te}} and shown with white-space:pre-line so each person is on its own line.
+  - src/lib/validate.ts: at most 8 per side (keys groomRelatives / brideRelatives), known side, relation and prefix (keys relative-<id>-side / -relation / -prefix). The form cannot produce these; they guard pasted or damaged data.
+  - src/features/reviews/fieldLabels.ts: familyMembers = "Relatives (siblings, grandparents, uncles)". src/features/client/invitationToForm.ts: familyMembers is merged with the default like the other lists.
+  - supabase/01_schema.sql: details_problem() (familyMembers in list_keys; at most 8 per side; side / relation / prefix / late / show checked; side, relation, late, spouseEn, spouseTe, show added to sub_text),
+      details_value() (a missing familyMembers is []), submit_change_request() (familyMembers on `allowed`).
+  - supabase/updates/08_T8_relatives.sql (new): the three changed functions (this contains T1 to T7 too).
+  - tools/db-test/tests.sql: 12 new checks (9 bad values refused, 8 per side accepted, an old record accepted, a client cannot send a bad relation, a client can change the list, a missing list equals []).
+Tests: typecheck ok · lint ok (0 errors, the same 2 old warnings) · unit 890 passed (was 859, +31) · build ok · db tests 297 passed (was 285, +12; PostgreSQL 16 in the sandbox).
+  The update file was also checked: the previous schema (T7) + supabase/updates/08_T8_relatives.sql passes the same 297 checks, and the previous schema alone fails the new tests (stops after 159).
+  The new unit tests were mutation checked: breaking the late marker, the hidden rule or the 8-per-side limit makes 6 of them fail.
+Behaviour check done: by tests only (jsdom form, compiled template, SQL). Not clicked in a real browser or in the client area (/my).
+  - Old record (no familyMembers key) compiles byte-identical to one with an empty list, and shows no relatives line.
+  - Relatives show on their own side's card only, in a fixed order, one line each; late shows "కీ.శే."; hidden and nameless ones are skipped; the 9th and later on a side are not printed; typed markup stays text.
+  - Form: Add relative per side, per-side filtering, limit of 8 per side, every control patches the right relative, remove, focus keys per side.
+Pending / not done:
+  - Printing order is by relation (grandfather, grandmother, maternal uncle, uncle, aunt, brother, sister, other), then the order added. The form has no up / down buttons; if the owner wants a free order, that is a new task.
+  - A spouse is printed after "&" with no title of its own (there is no spouse prefix key in the data model the task defined). Only the relative has a title.
+  - Not tried in a real browser or in /my. Only the Telugu template prints relatives; the -en versions of the text were not asked for (T8 asked for -te placeholders only).
+Owner steps (live project):
+  1. Supabase SQL editor: run supabase/updates/08_T8_relatives.sql (after 01 to 07 if they were not run; safe to re-run; no table or data changes). Nothing to check first: no live invitation has a familyMembers key yet.
+  2. Admin > Templates: re-paste docs/templates/telugu-traditional.html into the Telugu template (without it the relatives are saved but not shown).
+  3. Please READ the Telugu relation words in FAMILY_RELATIONS (src/lib/inviteText.ts) and tell me if any should change. I chose: తాతగారు (grandfather), అవ్వగారు (grandmother), మేనమామ (maternal uncle), పెదనాన్న / బాబాయి (uncle),
+     అత్త / పిన్ని / పెద్దమ్మ (aunt), సోదరుడు (brother), సోదరి (sister). "grandmother" and "uncle" / "aunt" have several correct words depending on which side of the family; one generic word is a guess. One place to change.
+  4. Deploy `preview` and try: add relatives on both sides (one late, one hidden, one with a spouse), check the preview scrolls to the right card, check the public page; open an invitation saved before this task and confirm it looks the same.
+Notes for the next person (T9):
+  - `show` must be exactly "1" to print. A new relative is created with show "1"; a pasted record without `show` is hidden. This is the meaning of the `show ("" | "1")` key in the task text.
+  - There is ONE list for both sides (each item has `side`), so the limits are per side in code and SQL (8 each, 16 in all, inside the general 20-item limit).
+  - details_value() in the SQL had no `[]` default for inviterNames (see the T5 note). I did not change that here; familyMembers was added correctly. T9 can add 'inviterNames' to that list if the possible false diff is real.
+  - T9 checklist items that relate to this task: the closing-name source ids and the "max number of relatives" check (the relatives limit is already in validate.ts, with a test); add 08_T8_relatives.sql to README and docs/RELEASE_CHECKLIST.md (neither mentions T1 to T8 files yet).
+  - The patch() code for the automatic Telugu twin is duplicated in Create.tsx and ClientApp.tsx (as before for events and custom names). A shared helper would be a tidy-up.
 ```
 
 ---
@@ -773,6 +815,7 @@ Status: TODO
 ## 6. Handoff log (newest first; add one line per work session, even if no task finished)
 
 ```
+2026-11-20  T8 done (relatives list: siblings, grandparents, uncles; up to eight per side). 890 unit tests, 297 db tests, build ok. Owner: run supabase/updates/08_T8_relatives.sql (after 01 to 07), re-paste the template, and check the Telugu relation words (see T8 owner steps). Next: T9 (final pass).
 2026-11-19  T7 done (up to three contacts per side, contact role). 859 unit tests, 285 db tests, build ok. Owner: run supabase/updates/07_T7_contacts.sql (after 01 to 06) and re-paste the template. Next: T8 (then T9).
 2026-11-19  T6 done (up to six events, type, end time, description, dress code). 853 unit tests, 279 db tests, build ok. Owner: run supabase/updates/06_T6_events.sql (after 01 to 05) and re-paste the template. Next: T7 (or T8).
 2026-11-19  T5 done (separate reception venue). 839 unit tests, 273 db tests, build ok. Owner: run supabase/updates/05_T5_reception_venue.sql (after 01 to 04) and re-paste the template. Also see the two notes in T5 (possible inviterNames diff bug, reception card ignores the checkbox). Next: T6 (or T7 / T8).
