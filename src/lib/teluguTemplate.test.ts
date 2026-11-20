@@ -388,3 +388,52 @@ describe("telugu-traditional template: more contacts (T7)", () => {
     expect(compile(src, { ...initial, ...full, groomContacts: [c(1), c(2), c(3), c(4)] })).not.toContain("వ్యక్తి 4");
   });
 });
+
+describe("telugu-traditional template: relatives (T8)", () => {
+  const rel = (id: string, over: Record<string, unknown> = {}) => ({ id, side: "groom", relation: "brother", prefix: "", nameEn: "", nameTe: "రాజు", late: "", spouseEn: "", spouseTe: "", show: "1", ...over });
+  const card = (d: Document, side: "groom" | "bride") => d.querySelector(`.${side}-card`)!;
+  const lineOf = (d: Document, side: "groom" | "bride") => card(d, side).querySelector(`[data-scroll-target="${side}-relatives-te"]`);
+
+  it("an old record (no familyMembers key) compiles exactly as one with an empty list, and shows no relatives line", () => {
+    const { familyMembers: _unused, ...old } = { ...initial, ...full } as InvitationData;
+    void _unused;
+    expect(compile(src, old)).toBe(compile(src, { ...old, familyMembers: [] }));
+    const d = doc(full);
+    expect(lineOf(d, "groom")).toBeNull();
+    expect(lineOf(d, "bride")).toBeNull();
+    expect(compile(src, old)).not.toMatch(/\{\{/);
+  });
+
+  it("relatives appear on their own side's card, one line each, in the fixed order", () => {
+    const d = doc({ ...full, familyMembers: [
+      rel("1", { nameTe: "అన్న" }),
+      rel("2", { relation: "grandfather", late: "1", nameTe: "తాత" }),
+      rel("3", { side: "bride", relation: "sister", prefix: "smt", nameTe: "సునీత", spouseTe: "మహేష్" }),
+    ] as InvitationData["familyMembers"] });
+    const g = lineOf(d, "groom")!, b = lineOf(d, "bride")!;
+    expect(g.querySelector("[style*='pre-line']")?.textContent).toBe("తాతగారు: కీ.శే. తాత\nసోదరుడు: అన్న");
+    expect(b.querySelector("[style*='pre-line']")?.textContent).toBe("సోదరి: శ్రీమతి సునీత & మహేష్");
+    expect(card(d, "groom").textContent).not.toContain("సునీత");
+    expect(card(d, "bride").textContent).not.toContain("తాత");
+  });
+
+  it("a hidden relative is not printed, and a side with only hidden relatives shows no line", () => {
+    const d = doc({ ...full, familyMembers: [rel("1", { show: "" }), rel("2", { side: "bride", show: "" })] as InvitationData["familyMembers"] });
+    expect(lineOf(d, "groom")).toBeNull();
+    expect(lineOf(d, "bride")).toBeNull();
+    expect(compile(src, { ...initial, ...full, familyMembers: [rel("1", { show: "", nameTe: "దాచిన" })] as InvitationData["familyMembers"] })).not.toContain("దాచిన");
+  });
+
+  it("at most 8 relatives per side reach the page", () => {
+    const many = Array.from({ length: 10 }, (_, i) => rel(`g${i}`, { nameTe: `బంధువు${i}` }));
+    const html = compile(src, { ...initial, ...full, familyMembers: many as InvitationData["familyMembers"] });
+    expect(html).toContain("బంధువు7");
+    expect(html).not.toContain("బంధువు8");
+  });
+
+  it("text a person typed is shown as text, never as markup", () => {
+    const d = doc({ ...full, familyMembers: [rel("1", { nameTe: "<b onclick=x>బోల్డ్</b>" })] as InvitationData["familyMembers"] });
+    expect(lineOf(d, "groom")!.querySelector("b")).toBeNull();
+    expect(lineOf(d, "groom")!.textContent).toContain("<b onclick=x>బోల్డ్</b>");
+  });
+});

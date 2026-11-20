@@ -4,7 +4,7 @@ import { isReserved } from "./reserved";
 import { isOwnPreviewImage } from "./previewUrl";
 import { CONTACT_ROLE_MAX, MAX_CONTACTS } from "./contactLimits";
 import { MAX_EVENTS, okEventType } from "./eventTypes";
-import { INVITER_PREFIX_IDS, okBirthOrder, okHonorific, MAX_INVITER_NAMES, okSources, parentStatus } from "./inviteText";
+import { INVITER_PREFIX_IDS, MAX_FAMILY_PER_SIDE, okBirthOrder, okHonorific, MAX_INVITER_NAMES, okRelation, okSide, okSources, parentStatus } from "./inviteText";
 
 export const has = (v: unknown): boolean => String(v ?? "").trim() !== "";
 
@@ -64,6 +64,15 @@ export function validateInvitation(data: InvitationData): ErrorMap {
   if (!okSources(data.inviterSources || "")) add("inviterSources", "message", "Choose who is inviting from the list");
   if ((data.inviterNames || []).length > MAX_INVITER_NAMES) add("inviterNames", "message", `Use at most ${MAX_INVITER_NAMES} custom names`);
   (data.inviterNames || []).forEach((n) => { if (!INVITER_PREFIX_IDS.includes(n.prefix)) add(`inviter-${n.id}-prefix`, "message", "Choose a prefix from the list"); });
+  /* Relatives (T8). The form cannot produce these problems; they can only come from pasted or damaged data. */
+  const relatives = data.familyMembers || [];
+  (["groom", "bride"] as const).forEach((side) => { if (relatives.filter((m) => m.side === side).length > MAX_FAMILY_PER_SIDE) add(`${side}Relatives`, side, `Use at most ${MAX_FAMILY_PER_SIDE} relatives`); });
+  relatives.forEach((m) => {
+    const sec = m.side === "bride" ? "bride" : "groom";
+    if (!okSide(m.side)) add(`relative-${m.id}-side`, sec, "Choose groom or bride for this relative");
+    if (!okRelation(m.relation)) add(`relative-${m.id}-relation`, sec, "Choose a relation from the list");
+    if (m.prefix && !INVITER_PREFIX_IDS.includes(m.prefix)) add(`relative-${m.id}-prefix`, sec, "Choose a prefix from the list");
+  });
   data.events.forEach((ev) => {
     if (has(ev.name) && !has(ev.date)) add(`event-${ev.id}-date`, "events", "Add a date for this event");
     if (has(ev.maps) && !okUrl(ev.maps)) add(`event-${ev.id}-maps`, "events", URL_MSG);

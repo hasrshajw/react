@@ -277,6 +277,10 @@ function ClientEditor() {
       if (p.name !== undefined) schedule(`event-${id}-name`, p.name, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
       if (p.venue !== undefined) schedule(`event-${id}-venue`, p.venue, (te) => dispatch({ type: "patchItem", field, id, patch: { venueTe: te } }));
     }
+    if (field === "familyMembers") {
+      if (p.nameEn !== undefined) schedule(`relative-${id}-name`, p.nameEn, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
+      if (p.spouseEn !== undefined) schedule(`relative-${id}-spouse`, p.spouseEn, (te) => dispatch({ type: "patchItem", field, id, patch: { spouseTe: te } }));
+    }
     if (field === "inviterNames") {
       if (p.nameEn !== undefined) schedule(`inviter-${id}-name`, p.nameEn, (te) => dispatch({ type: "patchItem", field, id, patch: { nameTe: te } }));
       if (p.relationEn !== undefined) schedule(`inviter-${id}-relation`, p.relationEn, (te) => dispatch({ type: "patchItem", field, id, patch: { relationTe: te } }));

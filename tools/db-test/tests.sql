@@ -325,6 +325,20 @@ select t.throws('a contact role longer than 1000 characters is refused', format(
 select t.throws('a bad phone on the third contact is refused', $$insert into public.invitations (id, slug, details) values ('d51', 'details-fiftyone', '{"groomContacts":[{"id":"g1","phone":"9876543210"},{"id":"g2"},{"id":"g3","phone":"12"}]}')$$, '23514');
 select t.ok('three contacts per side with roles are accepted, and so is an old one-contact record',
   t.affected($$insert into public.invitations (id, slug, details) values ('d52', 'details-fiftytwo', '{"groomContacts":[{"id":"g1","phone":"9876543210","roleEn":"Coordinator","roleTe":"సమన్వయకర్త"},{"id":"g2","phone":"+91 98765 43210"},{"id":"g3"}],"brideContacts":[{"id":"b1","nameEn":"A","nameTe":"","phone":"9876543210"}]}')$$) = 1);
+-- T8: relatives (familyMembers): at most 8 per side, known side / relation / prefix, late and show empty or 1
+select t.throws('more than 8 groom relatives are refused', format($$insert into public.invitations (id, slug, details) values ('d53', 'details-fiftythree', %L)$$, jsonb_build_object('familyMembers', (select jsonb_agg(jsonb_build_object('id', 'f' || g, 'side', 'groom', 'relation', 'brother')) from generate_series(1, 9) g))::text), '23514');
+select t.throws('more than 8 bride relatives are refused', format($$insert into public.invitations (id, slug, details) values ('d54', 'details-fiftyfour', %L)$$, jsonb_build_object('familyMembers', (select jsonb_agg(jsonb_build_object('id', 'f' || g, 'side', 'bride', 'relation', 'sister')) from generate_series(1, 9) g))::text), '23514');
+select t.throws('a relative with an unknown relation is refused', $$insert into public.invitations (id, slug, details) values ('d55', 'details-fiftyfive', '{"familyMembers":[{"id":"f1","side":"groom","relation":"cousin"}]}')$$, '23514');
+select t.throws('a relative with an unknown side is refused', $$insert into public.invitations (id, slug, details) values ('d56', 'details-fiftysix', '{"familyMembers":[{"id":"f1","side":"both","relation":"brother"}]}')$$, '23514');
+select t.throws('a relative with an unknown prefix is refused', $$insert into public.invitations (id, slug, details) values ('d57', 'details-fiftyseven', '{"familyMembers":[{"id":"f1","side":"groom","relation":"brother","prefix":"king"}]}')$$, '23514');
+select t.throws('a relative whose late flag is not empty or 1 is refused', $$insert into public.invitations (id, slug, details) values ('d58', 'details-fiftyeight', '{"familyMembers":[{"id":"f1","side":"groom","relation":"grandfather","late":"yes"}]}')$$, '23514');
+select t.throws('a relative whose show flag is not empty or 1 is refused', $$insert into public.invitations (id, slug, details) values ('d59', 'details-fiftynine', '{"familyMembers":[{"id":"f1","side":"bride","relation":"sister","show":"true"}]}')$$, '23514');
+select t.throws('a relative name that is not text is refused', $$insert into public.invitations (id, slug, details) values ('d60', 'details-sixty', '{"familyMembers":[{"id":"f1","side":"bride","relation":"sister","nameTe":5}]}')$$, '23514');
+select t.throws('a relative spouse name longer than 1000 characters is refused', format($$insert into public.invitations (id, slug, details) values ('d61', 'details-sixtyone', %L)$$, jsonb_build_object('familyMembers', jsonb_build_array(jsonb_build_object('id', 'f1', 'side', 'bride', 'relation', 'sister', 'spouseTe', repeat('x', 1001))))::text), '23514');
+select t.ok('eight relatives per side are accepted (16 in all), and so is an old record with none',
+  t.affected(format($$insert into public.invitations (id, slug, details) values ('d62', 'details-sixtytwo', %L)$$, jsonb_build_object('familyMembers', (select jsonb_agg(jsonb_build_object('id', 'f' || g, 'side', case when g <= 8 then 'groom' else 'bride' end, 'relation', 'sister', 'prefix', 'smt', 'nameEn', 'A', 'nameTe', 'ఎ', 'late', '', 'spouseEn', 'B', 'spouseTe', 'బి', 'show', '1')) from generate_series(1, 16) g))::text)) = 1
+  and t.affected($$insert into public.invitations (id, slug, details) values ('d63', 'details-sixtythree', '{"groomEn":"Old record"}')$$) = 1
+  and t.affected($$insert into public.invitations (id, slug, details) values ('d64', 'details-sixtyfour', '{"familyMembers":[{"id":"f1","side":"groom","relation":"maternalUncle","prefix":"","late":"1","show":""}]}')$$) = 1);
 select t.ok('a preview image from this app''s own bucket is accepted',
   t.affected($$insert into public.invitations (id, slug, details) values ('d8', 'details-eight', '{"seoImage":"https://abc.supabase.co/storage/v1/object/public/invitation-previews/aaaaaaaa-0000-0000-0000-000000000001/d8.jpg?v=1"}')$$) = 1);
 select t.ok('other columns of an old row stay editable (the check runs only when details change)',
@@ -469,6 +483,8 @@ select t.throws('a client cannot send showParentage with a bad value (checked, n
   format($$select public.submit_change_request('c1', '{"showParentage":"yes"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send receptionSameVenue with a bad value (the key is on the allowed list, so it is checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"receptionSameVenue":"no"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
+select t.throws('a client cannot send a relative with an unknown relation (the key is on the allowed list, so it is checked, not dropped)',
+  format($$select public.submit_change_request('c1', '{"familyMembers":[{"id":"f1","side":"groom","relation":"cousin"}]}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send a javascript: reception map link (checked, not dropped)',
   format($$select public.submit_change_request('c1', '{"receptionVenueMaps":"javascript:alert(1)"}'::jsonb, %L)$$, current_setting('t.base')), '23514');
 select t.throws('a client cannot send a reception venue that is not text (checked, not dropped)',
@@ -496,11 +512,12 @@ select t.throws('an unverified email cannot submit for its own linked invitation
 -- a list change counts, an absent key and an empty value do not (T5: a missing receptionSameVenue means true, so sending true is no change)
 select t.as_user('dddddddd-0000-0000-0000-000000000004');
 select set_config('t.req3', public.submit_change_request('c1',
-  '{"events":[{"id":"e1","name":"Haldi","date":"2026-12-01"}],"receptionEnabled":false,"muhurthamTime":"","receptionSameVenue":true,"receptionVenueTe":""}'::jsonb,
+  '{"events":[{"id":"e1","name":"Haldi","date":"2026-12-01"}],"receptionEnabled":false,"muhurthamTime":"","receptionSameVenue":true,"receptionVenueTe":"","familyMembers":[{"id":"f1","side":"groom","relation":"sister","show":"1","nameTe":"సునీత"}]}'::jsonb,
   current_setting('t.base')::timestamptz)::text, true);
-select t.ok('only the real changes are listed',
-  (select changed_keys = array['events'] from public.change_requests where id = current_setting('t.req3')::uuid));
+select t.ok('only the real changes are listed (a client can change the relatives list)',
+  (select changed_keys = array['events','familyMembers'] from public.change_requests where id = current_setting('t.req3')::uuid));
 select t.as_owner();
+select t.ok('a missing familyMembers counts as an empty list (so sending an empty list is no change)', public.details_value('{}'::jsonb, 'familyMembers') = '[]'::jsonb and public.details_value('{"familyMembers":[]}'::jsonb, 'familyMembers') = '[]'::jsonb);
 update public.invitations set deleted_at = now() where id = 'c1';
 select t.ok('trashing the invitation cancels the pending request',
   (select status = 'superseded' from public.change_requests where id = current_setting('t.req3')::uuid));

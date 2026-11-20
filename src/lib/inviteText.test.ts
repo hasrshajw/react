@@ -3,8 +3,9 @@ import { initial } from "../features/create/constants";
 import {
   CLOSING_TITLES, DEFAULT_INVITE_MESSAGE_TE, INVITER_PREFIXES, INVITER_SOURCES, MAX_CLOSING_LINES, SOURCES_NONE, closingTitleEn, closingTitleMode, closingTitleTe,
   effectiveSources, inviteMessageTe, inviterLinesTe, okBirthOrder, okSources, parentageLineTe, parentPrefixTe, parentStatus, serializeSources,
+  FAMILY_RELATIONS, MAX_FAMILY_PER_SIDE, okRelation, okSide, relativeLineTe, relativesLinesTe, relativesTe,
 } from "./inviteText";
-import type { InvitationData } from "../types/invitation";
+import type { FamilyMember, InvitationData } from "../types/invitation";
 
 const d = (o: Partial<InvitationData>): InvitationData => ({ ...initial, surnameTe: "హర్ష వర్ధన్", groomTe: "రవి", brideTe: "ప్రియ", groomFatherTe: "రామారావు", groomMotherTe: "సీత", brideFatherTe: "కృష్ణ", brideMotherTe: "లక్ష్మి", ...o });
 
@@ -236,5 +237,92 @@ describe("parentageLineTe (T4)", () => {
   it("okBirthOrder accepts the list and empty, refuses anything else", () => {
     expect(okBirthOrder(undefined) && okBirthOrder("") && okBirthOrder("youngest")).toBe(true);
     expect(okBirthOrder("fifth")).toBe(false);
+  });
+});
+
+describe("relatives (T8)", () => {
+  const m = (o: Partial<FamilyMember> = {}): FamilyMember => ({ id: "f1", side: "groom", relation: "brother", prefix: "", nameEn: "", nameTe: "రాజు", late: "", spouseEn: "", spouseTe: "", show: "1", ...o });
+
+  it("a record saved before T8 (no list) and an empty list print nothing", () => {
+    expect(relativesTe("groom", {})).toBe("");
+    expect(relativesTe("bride", { familyMembers: [] })).toBe("");
+    expect(relativesLinesTe("groom", { ...initial })).toEqual([]);
+  });
+
+  it("one line is the relation, the title and the name; a spouse follows with &", () => {
+    expect(relativeLineTe(m())).toBe("సోదరుడు: రాజు");
+    expect(relativeLineTe(m({ relation: "sister", prefix: "smt", nameTe: "సునీత", spouseTe: "మహేష్" }))).toBe("సోదరి: శ్రీమతి సునీత & మహేష్");
+    expect(relativeLineTe(m({ relation: "maternalUncle", prefix: "sri" }))).toBe("మేనమామ: శ్రీ రాజు");
+  });
+
+  it("falls back to the English name and spouse when no Telugu text was typed, and trims spaces", () => {
+    expect(relativeLineTe(m({ nameTe: "  ", nameEn: " Raju ", spouseEn: "Sita " }))).toBe("సోదరుడు: Raju & Sita");
+  });
+
+  it("a late relative gets కీ.శే. instead of the chosen title", () => {
+    expect(relativeLineTe(m({ relation: "grandfather", prefix: "sri", late: "1" }))).toBe("తాతగారు: కీ.శే. రాజు");
+    expect(relativeLineTe(m({ relation: "grandfather", prefix: "", late: "1" }))).toBe("తాతగారు: కీ.శే. రాజు");
+    expect(relativeLineTe(m({ prefix: "sri", late: "" }))).toBe("సోదరుడు: శ్రీ రాజు");
+  });
+
+  it("\"other\" and an unknown relation print the name with no relation word", () => {
+    expect(relativeLineTe(m({ relation: "other" }))).toBe("రాజు");
+    expect(relativeLineTe(m({ relation: "cousin" }))).toBe("రాజు");
+  });
+
+  it("hidden relatives (show not 1) and relatives with no name are skipped", () => {
+    expect(relativeLineTe(m({ show: "" }))).toBe("");
+    expect(relativeLineTe(m({ nameTe: "", nameEn: "" }))).toBe("");
+    const lines = relativesLinesTe("groom", { familyMembers: [m({ id: "a", show: "" }), m({ id: "b", nameTe: "" }), m({ id: "c", nameTe: "కిరణ్" })] });
+    expect(lines).toEqual(["సోదరుడు: కిరణ్"]);
+  });
+
+  it("sides are kept apart", () => {
+    const d = { familyMembers: [m({ id: "a", side: "groom", nameTe: "గ" }), m({ id: "b", side: "bride", relation: "sister", nameTe: "బ" })] };
+    expect(relativesLinesTe("groom", d)).toEqual(["సోదరుడు: గ"]);
+    expect(relativesLinesTe("bride", d)).toEqual(["సోదరి: బ"]);
+  });
+
+  it("printed in a fixed order (grandparents, uncles and aunts, siblings, others), and in the order added within a relation", () => {
+    const d = { familyMembers: [
+      m({ id: "1", relation: "sister", nameTe: "సోదరి ఒకటి" }),
+      m({ id: "2", relation: "other", nameTe: "ఇతరులు" }),
+      m({ id: "3", relation: "brother", nameTe: "అన్న" }),
+      m({ id: "4", relation: "grandmother", nameTe: "అవ్వ" }),
+      m({ id: "5", relation: "maternalUncle", nameTe: "మామ" }),
+      m({ id: "6", relation: "grandfather", nameTe: "తాత" }),
+      m({ id: "7", relation: "brother", nameTe: "తమ్ముడు" }),
+      m({ id: "8", relation: "aunt", nameTe: "అత్త" }),
+    ] };
+    expect(relativesLinesTe("groom", d).map((l) => l.split(":")[0])).toEqual(["తాతగారు", "అవ్వగారు", "మేనమామ", "అత్త / పిన్ని / పెద్దమ్మ", "సోదరుడు", "సోదరుడు", "సోదరి", "ఇతరులు"]);
+    expect(relativesLinesTe("groom", d).filter((l) => l.startsWith("సోదరుడు"))).toEqual(["సోదరుడు: అన్న", "సోదరుడు: తమ్ముడు"]);
+  });
+
+  it("at most 8 per side are printed, the first 8 added; the other side is not affected", () => {
+    const many = Array.from({ length: 11 }, (_, i) => m({ id: `g${i}`, nameTe: `పేరు${i}` }));
+    const d = { familyMembers: [...many, m({ id: "b1", side: "bride", relation: "sister", nameTe: "వధువు సోదరి" })] };
+    expect(MAX_FAMILY_PER_SIDE).toBe(8);
+    expect(relativesLinesTe("groom", d)).toHaveLength(8);
+    expect(relativesLinesTe("groom", d)).not.toContain("సోదరుడు: పేరు8");
+    expect(relativesLinesTe("bride", d)).toEqual(["సోదరి: వధువు సోదరి"]);
+  });
+
+  it("the placeholder text is one line per person, joined with a line break", () => {
+    const d = { familyMembers: [m({ id: "1", relation: "grandfather", nameTe: "తాత" }), m({ id: "2", nameTe: "అన్న" })] };
+    expect(relativesTe("groom", d)).toBe("తాతగారు: తాత\nసోదరుడు: అన్న");
+  });
+
+  it("damaged data does not throw (a missing item, no side)", () => {
+    expect(() => relativesTe("groom", { familyMembers: [null as unknown as FamilyMember, {} as FamilyMember] })).not.toThrow();
+    expect(relativesTe("groom", { familyMembers: [{} as FamilyMember] })).toBe("");
+  });
+
+  it("the helpers that the validator uses", () => {
+    expect(FAMILY_RELATIONS.map((r) => r.id)).toEqual(["grandfather", "grandmother", "maternalUncle", "uncle", "aunt", "brother", "sister", "other"]);
+    expect(okRelation("sister")).toBe(true);
+    expect(okRelation("cousin")).toBe(false);
+    expect(okRelation(undefined)).toBe(false);
+    expect(okSide("groom")).toBe(true);
+    expect(okSide("both")).toBe(false);
   });
 });

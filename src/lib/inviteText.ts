@@ -1,4 +1,4 @@
-import type { InvitationData, InviterName, ParentStatus } from "../types/invitation";
+import type { FamilyMember, InvitationData, InviterName, ParentStatus } from "../types/invitation";
 
 /* The invitation of a template, in two editable parts: the message paragraph, and WHO invites, shown at the bottom after "ఇట్లు"
    (family surname, groom's family, bride's family, both, or a custom name). */
@@ -174,6 +174,54 @@ export function inviterLinesTe(d: Src): string[] {
   ].filter(Boolean);
   return [...new Set(lines)].slice(0, MAX_CLOSING_LINES);
 }
+
+/* ---------- Relatives: siblings, grandparents, uncles (T8) ---------- */
+
+export const MAX_FAMILY_PER_SIDE = 8;
+/** The relations a relative can have, in the order they are PRINTED (grandparents first, then uncles and aunts, then siblings, then others).
+ *  The Telugu wording lives here only. "other" prints the name with no relation word. */
+export const FAMILY_RELATIONS: { id: string; label: string; te: string }[] = [
+  { id: "grandfather", label: "Grandfather", te: "తాతగారు" },
+  { id: "grandmother", label: "Grandmother", te: "అవ్వగారు" },
+  { id: "maternalUncle", label: "Maternal uncle", te: "మేనమామ" },
+  { id: "uncle", label: "Uncle", te: "పెదనాన్న / బాబాయి" },
+  { id: "aunt", label: "Aunt", te: "అత్త / పిన్ని / పెద్దమ్మ" },
+  { id: "brother", label: "Brother", te: "సోదరుడు" },
+  { id: "sister", label: "Sister", te: "సోదరి" },
+  { id: "other", label: "Other relative", te: "" },
+];
+export const FAMILY_RELATION_IDS = FAMILY_RELATIONS.map((r) => r.id);
+export const FAMILY_SIDES = ["groom", "bride"] as const;
+export const okRelation = (v: unknown): boolean => typeof v === "string" && FAMILY_RELATION_IDS.includes(v);
+export const okSide = (v: unknown): boolean => v === "groom" || v === "bride";
+export const okFamilyPrefix = (v: unknown): boolean => v === undefined || v === null || (typeof v === "string" && INVITER_PREFIX_IDS.includes(v));
+
+/** One relative as a line: "<relation>: <prefix> <name> & <spouse>". A late relative gets "కీ.శే." instead of the prefix. Returns "" when the person
+ *  is hidden (`show` is not "1") or has no name. */
+export function relativeLineTe(m: Partial<FamilyMember>): string {
+  if (m.show !== "1") return "";
+  const name = t(m.nameTe) || t(m.nameEn);
+  if (!name) return "";
+  const spouse = t(m.spouseTe) || t(m.spouseEn);
+  const word = FAMILY_RELATIONS.find((r) => r.id === m.relation)?.te ?? "";
+  const prefix = m.late === "1" ? PREFIX_LATE_TE : INVITER_PREFIXES.find((p) => p.id === m.prefix)?.te || "";
+  const who = `${prefix ? `${prefix} ` : ""}${name}${spouse ? ` & ${spouse}` : ""}`;
+  return word ? `${word}: ${who}` : who;
+}
+
+/** The lines of one side's relatives, in printing order (by relation, then the order they were added), at most MAX_FAMILY_PER_SIDE. Hidden and nameless ones are skipped. */
+export function relativesLinesTe(side: "groom" | "bride", data: Src): string[] {
+  const rank = (r?: string) => { const i = FAMILY_RELATION_IDS.indexOf(r ?? ""); return i < 0 ? FAMILY_RELATION_IDS.length : i; };
+  return (data.familyMembers || [])
+    .filter((m) => m && m.side === side)
+    .slice(0, MAX_FAMILY_PER_SIDE)
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => rank(a.m.relation) - rank(b.m.relation) || a.i - b.i)
+    .map(({ m }) => relativeLineTe(m))
+    .filter(Boolean);
+}
+/** The same lines as ONE text (one line each, joined with a line break) for the placeholders groom-relatives-te / bride-relatives-te. */
+export const relativesTe = (side: "groom" | "bride", data: Src): string => relativesLinesTe(side, data).join("\n");
 
 /** The message paragraph (the standard text when none was written). */
 export const inviteMessageTe = (d: Src) => t(d.inviteMessageTe) || DEFAULT_INVITE_MESSAGE_TE;

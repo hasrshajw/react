@@ -20,7 +20,7 @@ vi.mock("./components/SeoSection", () => ({
 
 import { CreateForm, type CreateFormProps } from "./CreateForm";
 import { initial } from "./constants";
-import type { ContactItem, EventItem, SectionId } from "../../types/invitation";
+import type { ContactItem, EventItem, FamilyMember, SectionId } from "../../types/invitation";
 
 const IDS: SectionId[] = ["template", "family", "groom", "bride", "message", "venue", "seo", "events", "client"];
 const allLoading = (v: boolean) => Object.fromEntries(IDS.map((i) => [i, v])) as Record<SectionId, boolean>;
@@ -60,6 +60,7 @@ const focusEl = (el: HTMLElement) => act(() => { el.dispatchEvent(new FocusEvent
 const blurEl = (el: HTMLElement) => act(() => { el.focus(); el.blur(); });
 
 const contact = (over: Partial<ContactItem> = {}): ContactItem => ({ id: "c1", nameEn: "Ravi", nameTe: "", phone: "9876543210", ...over });
+const relative = (over: Partial<FamilyMember> = {}): FamilyMember => ({ id: "f1", side: "groom", relation: "brother", prefix: "", nameEn: "Raju", nameTe: "", late: "", spouseEn: "", spouseTe: "", show: "1", ...over });
 const ev = (over: Partial<EventItem> = {}): EventItem => ({ id: "e1", name: "Sangeet", nameTe: "", date: "", time: "", venue: "", venueTe: "", maps: "", ...over });
 
 beforeEach(() => { host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host); h.picker = null; h.seo = null; });
@@ -693,5 +694,80 @@ describe("CreateForm: house names, gotram, honorific (T3)", () => {
     show({ sectionLoading: allLoading(true) });
     expect(input("groomSurnameEn").disabled).toBe(true);
     expect(input("brideGotramTe").disabled).toBe(true);
+  });
+});
+
+describe("CreateForm: relatives (T8)", () => {
+  const addsIn = (sec: string) => [...host.querySelectorAll(`#sec-${sec} button`)].filter((b) => (b.textContent || "").includes("Add relative"));
+
+  it("offers Add relative once in the groom section and once in the bride section, and builds a shown relative of that side", () => {
+    show();
+    expect(addsIn("groom").length).toBe(1);
+    expect(addsIn("bride").length).toBe(1);
+    click(addsIn("groom")[0]);
+    click(addsIn("bride")[0]);
+    const calls = (props.add as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls[0][0]).toBe("familyMembers");
+    expect(calls[0][1]()).toMatchObject({ side: "groom", relation: "brother", show: "1", late: "", nameEn: "", nameTe: "" });
+    expect(calls[1][1]()).toMatchObject({ side: "bride" });
+  });
+
+  it("each side lists only its own relatives", () => {
+    show({ data: { ...initial, familyMembers: [relative({ id: "g1", nameEn: "Groom brother" }), relative({ id: "b1", side: "bride", relation: "sister", nameEn: "Bride sister" })] } });
+    const names = (sec: string) => [...host.querySelectorAll(`#sec-${sec} input[aria-label='Relative name in English']`)].map((i) => (i as HTMLInputElement).value);
+    expect(names("groom")).toEqual(["Groom brother"]);
+    expect(names("bride")).toEqual(["Bride sister"]);
+  });
+
+  it("stops offering Add relative at 8 on a side, while the other side still can", () => {
+    const eight = Array.from({ length: 8 }, (_, i) => relative({ id: `g${i}` }));
+    show({ data: { ...initial, familyMembers: eight } });
+    expect(host.querySelectorAll("#sec-groom .repeat input[aria-label='Relative name in English']").length).toBe(8);
+    expect(addsIn("groom").length).toBe(0);
+    expect(addsIn("bride").length).toBe(1);
+  });
+
+  it("every control patches the right relative in the familyMembers list", () => {
+    show({ data: { ...initial, familyMembers: [relative({ id: "g1" }), relative({ id: "g2", nameEn: "Other" })] } });
+    const sec = host.querySelector("#sec-groom")!;
+    const second = (sel: string) => [...sec.querySelectorAll(sel)][1] as HTMLInputElement;
+    typeInto(second("input[aria-label='Relative name in English']"), "Kiran");
+    expect(props.patch).toHaveBeenCalledWith("familyMembers", "g2", { nameEn: "Kiran" });
+    typeInto(second("input[aria-label='Relative name in Telugu']"), "కిరణ్");
+    expect(props.patch).toHaveBeenCalledWith("familyMembers", "g2", { nameTe: "కిరణ్" });
+    typeInto(second("input[aria-label='Spouse name in English']"), "Latha");
+    expect(props.patch).toHaveBeenCalledWith("familyMembers", "g2", { spouseEn: "Latha" });
+    typeInto(second("input[aria-label='Spouse name in Telugu']"), "లత");
+    expect(props.patch).toHaveBeenCalledWith("familyMembers", "g2", { spouseTe: "లత" });
+    const rel = second("select[aria-label='Relation']") as unknown as HTMLSelectElement;
+    act(() => { rel.value = "grandmother"; rel.dispatchEvent(new Event("change", { bubbles: true })); });
+    expect(props.patch).toHaveBeenCalledWith("familyMembers", "g2", { relation: "grandmother" });
+    const boxes = [...sec.querySelectorAll(".repeat")][1].querySelectorAll("input[type='checkbox']");
+    click(boxes[0]);
+    expect(props.patch).toHaveBeenCalledWith("familyMembers", "g2", { late: "1" });
+    click(boxes[1]);
+    expect(props.patch).toHaveBeenCalledWith("familyMembers", "g2", { show: "" });
+  });
+
+  it("a late relative's title box is locked (the invitation prints కీ.శే.)", () => {
+    show({ data: { ...initial, familyMembers: [relative({ id: "g1", late: "1", prefix: "sri" })] } });
+    const title = host.querySelector("#sec-groom select[aria-label='Title before the name']") as HTMLSelectElement;
+    expect(title.disabled).toBe(true);
+  });
+
+  it("removes a relative with the trash button, and the preview scrolls to this side's relatives on focus", () => {
+    show({ data: { ...initial, familyMembers: [relative({ id: "g1" }), relative({ id: "b1", side: "bride" })] } });
+    click(host.querySelector("#sec-bride button[aria-label='Remove relative']")!);
+    expect(props.remove).toHaveBeenCalledWith("familyMembers", "b1");
+    focusEl(host.querySelector("#sec-groom input[aria-label='Relative name in English']") as HTMLElement);
+    expect(props.focus).toHaveBeenLastCalledWith("groom-relatives-te");
+    focusEl(host.querySelector("#sec-bride input[aria-label='Relative name in English']") as HTMLElement);
+    expect(props.focus).toHaveBeenLastCalledWith("bride-relatives-te");
+  });
+
+  it("shows only a ghost add button while the section loads", () => {
+    show({ sectionLoading: allLoading(true), data: { ...initial, familyMembers: [relative({ id: "g1" })] } });
+    expect(host.querySelectorAll("#sec-groom .repeat input[aria-label='Relative name in English']").length).toBe(0);
+    expect(host.querySelector("#sec-groom .sk-bg[aria-hidden='true']")).not.toBeNull();
   });
 });

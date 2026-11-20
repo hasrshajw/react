@@ -7,6 +7,7 @@ describe("fieldLabel", () => {
     expect(fieldLabel("unknownField")).toBe("unknownField");
     expect(fieldLabel("groomFatherStatus")).toBe("Groom's father status");
     expect(fieldLabel("brideMotherStatus")).toBe("Bride's mother status");
+    expect(fieldLabel("familyMembers")).toBe("Relatives (siblings, grandparents, uncles)");
   });
 });
 

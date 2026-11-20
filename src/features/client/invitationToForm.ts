@@ -1,5 +1,5 @@
 import type { MyInvitation } from "../../lib/api";
-import type { ContactItem, EventItem, InvitationData, InviterName } from "../../types/invitation";
+import type { ContactItem, EventItem, FamilyMember, InvitationData, InviterName } from "../../types/invitation";
 import { initial } from "../create/constants";
 
 const list = <T,>(v: unknown, fallback: T[]): T[] => (Array.isArray(v) ? (v as T[]) : fallback);
@@ -25,6 +25,7 @@ export function invitationToForm(inv: MyInvitation, preferProposed = false): Inv
     groomContacts: list<ContactItem>(d.groomContacts, initial.groomContacts),
     brideContacts: list<ContactItem>(d.brideContacts, initial.brideContacts),
     inviterNames: list<InviterName>(d.inviterNames, initial.inviterNames),
+    familyMembers: list<FamilyMember>(d.familyMembers, initial.familyMembers),
     clientEmail: "",
   };
 }

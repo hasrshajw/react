@@ -392,10 +392,11 @@ declare
   url_keys   text[] := array['venueMaps','seoImage','receptionVenueMaps'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
-  list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
+  list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames','familyMembers'];   -- T8: familyMembers
   sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe',
     'type','endTime','descEn','descTe','dress',   -- T6: these five belong to events
-    'roleEn','roleTe'];                            -- T7: contact role
+    'roleEn','roleTe',                             -- T7: contact role
+    'side','relation','late','spouseEn','spouseTe','show'];   -- T8: relatives ('prefix' is shared with inviterNames)
 begin
   if d is null or jsonb_typeof(d) <> 'object' then return 'details must be a JSON object'; end if;
   if octet_length(d::text) > 65536 then return 'details is larger than 64 KB'; end if;
@@ -440,6 +441,9 @@ begin
       if jsonb_array_length(v) > 20 then return k || ' has more than 20 items'; end if;
       if k = 'inviterNames' and jsonb_array_length(v) > 8 then return 'inviterNames has more than 8 names'; end if;
       if k in ('groomContacts', 'brideContacts') and jsonb_array_length(v) > 3 then return k || ' has more than 3 contacts'; end if;   -- T7 (MAX_CONTACTS)
+      -- T8: at most 8 relatives per side (MAX_FAMILY_PER_SIDE); an unknown side is refused below, per item
+      if k = 'familyMembers' and (select count(*) from jsonb_array_elements(v) e where jsonb_typeof(e) = 'object' and e ->> 'side' = 'groom') > 8 then return 'familyMembers has more than 8 relatives for the groom'; end if;
+      if k = 'familyMembers' and (select count(*) from jsonb_array_elements(v) e where jsonb_typeof(e) = 'object' and e ->> 'side' = 'bride') > 8 then return 'familyMembers has more than 8 relatives for the bride'; end if;
       for item in select * from jsonb_array_elements(v) loop
         if jsonb_typeof(item) <> 'object' then return k || ' items must be objects'; end if;
         declare ik text; iv jsonb; is_ text; begin
@@ -456,6 +460,15 @@ begin
                 return 'events.endTime must be a time like 18:30'; end if;
               if k = 'inviterNames' and ik = 'prefix' and coalesce(is_, '') not in ('', 'sri', 'smt', 'chi', 'late', 'dr') then
                 return 'inviterNames.prefix is not a known prefix'; end if;
+              -- T8: relatives (same ids as FAMILY_RELATIONS / INVITER_PREFIXES in src/lib/inviteText.ts)
+              if k = 'familyMembers' and ik = 'side' and coalesce(is_, '') not in ('groom', 'bride') then
+                return 'familyMembers.side must be groom or bride'; end if;
+              if k = 'familyMembers' and ik = 'relation' and coalesce(is_, '') not in ('brother', 'sister', 'grandfather', 'grandmother', 'maternalUncle', 'uncle', 'aunt', 'other') then
+                return 'familyMembers.relation is not a known relation'; end if;
+              if k = 'familyMembers' and ik = 'prefix' and coalesce(is_, '') not in ('', 'sri', 'smt', 'chi', 'late', 'dr') then
+                return 'familyMembers.prefix is not a known prefix'; end if;
+              if k = 'familyMembers' and ik in ('late', 'show') and coalesce(is_, '') not in ('', '1') then
+                return 'familyMembers.' || ik || ' must be empty or 1'; end if;
               if ik = 'phone' and btrim(coalesce(is_, '')) <> '' and not (
                    is_ ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(is_, '\D', '', 'g')) between 10 and 13) then
                 return k || '.phone is not a valid phone number'; end if;
@@ -646,7 +659,7 @@ create trigger invitations_supersede_requests after update on public.invitations
 -- A missing key counts as an empty value, so a form that sends every key does not show false changes.
 create or replace function public.details_value(d jsonb, k text) returns jsonb language sql immutable as $$
   select coalesce(nullif(d -> k, 'null'::jsonb),
-    case when k in ('events','groomContacts','brideContacts') then '[]'::jsonb
+    case when k in ('events','groomContacts','brideContacts','familyMembers') then '[]'::jsonb
          when k = 'receptionEnabled' then 'false'::jsonb
          when k = 'receptionSameVenue' then 'true'::jsonb   -- T5: a record saved before T5 has no such key and means "same venue"
          else '""'::jsonb end);
@@ -684,7 +697,8 @@ declare
     'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames',
     'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
     'groomOrder','brideOrder','showParentage',
-    'receptionSameVenue','receptionVenueEn','receptionVenueTe','receptionVenueAddress','receptionVenueMaps'];
+    'receptionSameVenue','receptionVenueEn','receptionVenueTe','receptionVenueAddress','receptionVenueMaps',
+    'familyMembers'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

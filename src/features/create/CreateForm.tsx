@@ -5,6 +5,7 @@ import { newEvent, MAX_EVENTS } from "./constants";
 import { EVENT_TYPES, applyEventType, okEventType } from "../../lib/eventTypes";
 import { Bilingual } from "./components/Bilingual";
 import { Contacts } from "./components/Contacts";
+import { Relatives } from "./components/Relatives";
 import { Field } from "./components/Field";
 import { InviteSection } from "./components/InviteSection";
 import { ParentStatus } from "./components/ParentStatus";
@@ -106,6 +107,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <ParentStatus label="Groom's mother" value={data.groomMotherStatus} onChange={(v) => set("groomMotherStatus", v)} onFocus={groom.fp("groomMotherStatus").onFocus} loading={groom.loading} />
         <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="groomMotherEn" teField="groomMotherTe" data={data} set={set} fp={groom.fp} disabled={parentStatus(data.groomMotherStatus) === "hidden"} />
         <Field label="Mother Phone" type="tel" inputMode="tel" {...groom.fp("groomMotherPhone")} disabled={parentStatus(data.groomMotherStatus) !== ""} value={data.groomMotherPhone} onChange={(v) => set("groomMotherPhone", v)} />
+        <Relatives loading={groom.loading} side="groom" items={data.familyMembers} add={add} patch={patch} remove={remove} focus={focus} />
         <Contacts loading={groom.loading} field="groomContacts" items={data.groomContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
       </Section>
 
@@ -127,6 +129,7 @@ export function CreateForm({ data, categories, templates, categoryId, onCategory
         <ParentStatus label="Bride's mother" value={data.brideMotherStatus} onChange={(v) => set("brideMotherStatus", v)} onFocus={bride.fp("brideMotherStatus").onFocus} loading={bride.loading} />
         <Bilingual enLabel="Mother EN" teLabel="Mother తెలుగు" enField="brideMotherEn" teField="brideMotherTe" data={data} set={set} fp={bride.fp} disabled={parentStatus(data.brideMotherStatus) === "hidden"} />
         <Field label="Mother Phone" type="tel" inputMode="tel" {...bride.fp("brideMotherPhone")} disabled={parentStatus(data.brideMotherStatus) !== ""} value={data.brideMotherPhone} onChange={(v) => set("brideMotherPhone", v)} />
+        <Relatives loading={bride.loading} side="bride" items={data.familyMembers} add={add} patch={patch} remove={remove} focus={focus} />
         <Contacts loading={bride.loading} field="brideContacts" items={data.brideContacts} add={add} patch={patch} remove={remove} focus={focus} vis={vis} touch={touch} />
       </Section>
 

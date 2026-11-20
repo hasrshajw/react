@@ -62,6 +62,7 @@ export const FIELD_LABELS: Record<string, string> = {
   closingTitleTe: "Closing title (TE)",
   inviterSources: "Who is inviting",
   inviterNames: "Custom inviter names",
+  familyMembers: "Relatives (siblings, grandparents, uncles)",
   seoTitle: "Link preview title",
   seoDescription: "Link preview description",
   seoImage: "Link preview image",

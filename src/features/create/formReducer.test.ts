@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formReducer, initialFormState, snapshot, type FormState } from "./formReducer";
-import { initial, newContact, newEvent } from "./constants";
+import { initial, newContact, newEvent, newFamilyMember } from "./constants";
 import type { InvitationData } from "../../types/invitation";
 
 const base = (): FormState => initialFormState(null);
@@ -169,5 +169,26 @@ describe("formReducer: custom inviter names (T2)", () => {
     let s = formReducer(initialFormState(null), { type: "field", key: "inviterNames", value: [mk("a"), mk("b")] });
     s = formReducer(s, { type: "field", key: "inviterNames", value: [mk("b"), mk("a")] });
     expect(s.data.inviterNames.map((n) => n.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("relatives (T8)", () => {
+  it("a new relative is shown, belongs to its side and starts as a brother", () => {
+    const g = newFamilyMember("groom"), b = newFamilyMember("bride");
+    expect(g).toMatchObject({ side: "groom", relation: "brother", show: "1", late: "", nameEn: "", nameTe: "" });
+    expect(b.side).toBe("bride");
+    expect(g.id).not.toBe(b.id);
+  });
+  it("adds, patches and removes a relative in the one shared list", () => {
+    const f = newFamilyMember("groom"), g = newFamilyMember("bride");
+    let s = formReducer(base(), { type: "addItem", field: "familyMembers", item: f });
+    s = formReducer(s, { type: "addItem", field: "familyMembers", item: g });
+    s = formReducer(s, { type: "patchItem", field: "familyMembers", id: f.id, patch: { relation: "sister", late: "1" } });
+    expect(s.data.familyMembers.map((x) => [x.side, x.relation, x.late])).toEqual([["groom", "sister", "1"], ["bride", "brother", ""]]);
+    s = formReducer(s, { type: "removeItem", field: "familyMembers", id: f.id });
+    expect(s.data.familyMembers.map((x) => x.id)).toEqual([g.id]);
+  });
+  it("starts with no relatives", () => {
+    expect(initial.familyMembers).toEqual([]);
   });
 });

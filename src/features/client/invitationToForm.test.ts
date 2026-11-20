@@ -71,3 +71,14 @@ describe("invitationToForm: house names (T3)", () => {
     expect(invitationToForm(base({ details: { groomGotramTe: "భరద్వాజ", coupleHonorific: "chiranjeevi" } }))).toMatchObject({ groomGotramTe: "భరద్వాజ", coupleHonorific: "chiranjeevi" });
   });
 });
+
+describe("invitationToForm: relatives (T8)", () => {
+  it("an invitation saved before T8 opens with an empty list", () => {
+    expect(invitationToForm(base()).familyMembers).toEqual([]);
+  });
+  it("keeps the saved relatives, and ignores a value that is not a list", () => {
+    const one = { id: "f1", side: "bride" as const, relation: "sister", prefix: "smt", nameEn: "A", nameTe: "ఎ", late: "", spouseEn: "", spouseTe: "", show: "1" };
+    expect(invitationToForm(base({ details: { familyMembers: [one] } })).familyMembers).toEqual([one]);
+    expect(invitationToForm(base({ details: { familyMembers: "oops" } as unknown as MyInvitation["details"] })).familyMembers).toEqual([]);
+  });
+});

@@ -1,5 +1,5 @@
 import { CalendarPlus, FileText, Heart, LayoutTemplate, Mail, MapPin, Search, User, Users } from "../../components/Icons";
-import type { ContactItem, EventItem, InvitationData, InviterName, SectionDef } from "../../types/invitation";
+import type { ContactItem, EventItem, FamilyMember, InvitationData, InviterName, SectionDef } from "../../types/invitation";
 import { uid } from "../../lib/uid";
 
 
@@ -14,6 +14,9 @@ export { MAX_INVITER_NAMES } from "../../lib/inviteText";
 export const newInviterName = (): InviterName => ({ id: uid(), prefix: "", nameEn: "", nameTe: "", relationEn: "", relationTe: "" });
 export const newContact = (): ContactItem => ({ id: uid(), nameEn: "", nameTe: "", phone: "", roleEn: "", roleTe: "" });
 export { MAX_CONTACTS } from "../../lib/contactLimits";
+export { MAX_FAMILY_PER_SIDE } from "../../lib/inviteText";
+/** A new relative: a brother, shown on the invitation. `show` is "1" so that what you add is printed; untick it to keep the row but hide it. */
+export const newFamilyMember = (side: "groom" | "bride"): FamilyMember => ({ id: uid(), side, relation: "brother", prefix: "", nameEn: "", nameTe: "", late: "", spouseEn: "", spouseTe: "", show: "1" });
 
 export const initial: InvitationData = {
   customId: "", templateId: "",
@@ -28,7 +31,7 @@ export const initial: InvitationData = {
   receptionSameVenue: true, receptionVenueEn: "", receptionVenueTe: "", receptionVenueAddress: "", receptionVenueMaps: "",
   events: [], groomContacts: [], brideContacts: [],
   inviterMode: "surname", inviterEn: "", inviterTe: "", inviteMessageTe: "",
-  closingTitleMode: "", closingTitleEn: "", closingTitleTe: "", inviterSources: "", inviterNames: [],
+  closingTitleMode: "", closingTitleEn: "", closingTitleTe: "", inviterSources: "", inviterNames: [], familyMembers: [],
   seoTitle: "", seoDescription: "", seoImage: "",
   clientEmail: "",
 };
@@ -56,6 +59,7 @@ export const TARGETS: Record<string, string> = {
   groomFatherStatus: "groom-father-te", groomMotherStatus: "groom-mother-te", brideFatherStatus: "bride-father-te", brideMotherStatus: "bride-mother-te",
   groomFatherPhone: "groom-father-phone", groomMotherPhone: "groom-mother-phone", brideFatherPhone: "bride-father-phone", brideMotherPhone: "bride-mother-phone",
   groomContacts: "groom-extra-1-phone", brideContacts: "bride-extra-1-phone",
+  familyMembers: "groom-relatives-te",
 };
 
 const sampleDate = () => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); };

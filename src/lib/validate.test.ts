@@ -70,6 +70,24 @@ describe("validateInvitation", () => {
     expect(validateInvitation(valid({ groomContacts: many("g") })).groomContacts?.section).toBe("groom");
     expect(validateInvitation(valid({ brideContacts: many("b") })).brideContacts?.section).toBe("bride");
   });
+  it("T8: checks the relatives (side, relation, title, at most 8 per side)", () => {
+    const r = (id: string, over = {}) => ({ id, side: "groom" as const, relation: "brother", prefix: "", nameEn: "A", nameTe: "", late: "", spouseEn: "", spouseTe: "", show: "1", ...over });
+    const keys = (d: ReturnType<typeof valid>) => Object.keys(validateInvitation(d)).filter((k) => k.startsWith("relative-") || k.endsWith("Relatives"));
+    expect(keys(valid({ familyMembers: [] }))).toEqual([]);
+    expect(keys(valid({ familyMembers: Array.from({ length: 8 }, (_, i) => r(`g${i}`)).concat(Array.from({ length: 8 }, (_, i) => r(`b${i}`, { side: "bride" }))) }))).toEqual([]);
+    const nine = Array.from({ length: 9 }, (_, i) => r(`g${i}`));
+    expect(validateInvitation(valid({ familyMembers: nine })).groomRelatives?.section).toBe("groom");
+    expect(validateInvitation(valid({ familyMembers: nine.map((x) => ({ ...x, side: "bride" as const })) })).brideRelatives?.section).toBe("bride");
+    const bad = validateInvitation(valid({ familyMembers: [r("x1", { relation: "cousin" }), r("x2", { side: "bride", prefix: "king" }), r("x3", { side: "both" as unknown as "groom" })] }));
+    expect(bad["relative-x1-relation"]?.section).toBe("groom");
+    expect(bad["relative-x2-prefix"]?.section).toBe("bride");
+    expect(bad["relative-x3-side"]).toBeDefined();
+  });
+  it("T8: a record with no familyMembers key at all is valid", () => {
+    const d = valid({}) as unknown as Record<string, unknown>;
+    delete d.familyMembers;
+    expect(() => validateInvitation(d as never)).not.toThrow();
+  });
   it("T6: checks event type, end time, description length and the number of events", () => {
     const base = { id: "e1", name: "Sangeet", nameTe: "", date: "2027-02-01", time: "", venue: "", venueTe: "", maps: "" };
     expect(validateInvitation(valid({ events: [{ ...base, type: "sangeet", endTime: "21:30", descEn: "ok", descTe: "ok", dress: "x" }] }))["event-e1-type"]).toBeUndefined();

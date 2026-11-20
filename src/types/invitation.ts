@@ -39,10 +39,25 @@ export interface InviterName {
   relationTe: string;
 }
 
+/** One relative shown on the groom's or bride's card (T8). relation: see FAMILY_RELATIONS in src/lib/inviteText.ts; prefix: same ids as InviterName.prefix.
+ *  late "1" = deceased (prints "కీ.శే." instead of the prefix); show "1" = printed on the invitation ("" = kept in the form but hidden). */
+export interface FamilyMember {
+  id: string;
+  side: "groom" | "bride";
+  relation: string;
+  prefix: string;
+  nameEn: string;
+  nameTe: string;
+  late: string;
+  spouseEn: string;
+  spouseTe: string;
+  show: string;
+}
+
 /** Anything that can sit in one of the form's repeatable lists. */
-export type ListItem = EventItem | ContactItem | InviterName;
+export type ListItem = EventItem | ContactItem | InviterName | FamilyMember;
 /** A partial change to a list item (the union of all item keys, so one patch signature serves every list). */
-export type ListPatch = Partial<EventItem & ContactItem & InviterName>;
+export type ListPatch = Partial<EventItem & ContactItem & InviterName & FamilyMember>;
 
 export interface InvitationData {
   customId: string;
@@ -77,6 +92,8 @@ export interface InvitationData {
   closingTitleMode: string; closingTitleEn: string; closingTitleTe: string;
   inviterSources: string;
   inviterNames: InviterName[];
+  /* Relatives (T8): siblings, grandparents, uncles... for both sides in ONE list (each item has a `side`). Optional on disk: a record saved before T8 has none. */
+  familyMembers: FamilyMember[];
   seoTitle: string;        // max 60 chars
   seoDescription: string;  // max 160 chars
   seoImage: string;        // public https URL from Supabase Storage (NOT a base64 data URL)
@@ -84,7 +101,7 @@ export interface InvitationData {
   clientEmail: string;
 }
 
-export type ListField = "events" | "groomContacts" | "brideContacts" | "inviterNames";
+export type ListField = "events" | "groomContacts" | "brideContacts" | "inviterNames" | "familyMembers";
 
 export interface Template {
   id: string;
