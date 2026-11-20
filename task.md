@@ -2,7 +2,7 @@
 
 Branch: `preview`  
 Plan written: 20 Nov 2026  
-Status: **A2 done, A0 still open** (admin bootstrap documented; token revocation is owner action)
+Status: **A3 done, A0 still open** (CSP enforcing; token revocation is owner action)
 
 This file replaces the previous Create-form plan (T0–T9, completed). It is written so that **any person or AI can pick up the work at any point**. Read sections 1–3 first, then do the next task whose status is `TODO`.
 
@@ -108,7 +108,7 @@ Update the living documents so a new contributor or AI sees the current state:
 ---
 
 ### A3 – Enforce / tighten Content-Security-Policy
-**Status: TODO**
+**Status: DONE** (20 Nov 2026)
 
 - Review the current Report-Only CSP in `vercel.json`.
 - After collecting any violation reports from the preview deployment (or after a short observation period), promote the strong policy to enforcing.
@@ -238,5 +238,10 @@ Only after A0–A7 (and any Critical/High items from A8) are acceptable:
             confirmed VITE_ADMIN_EMAIL is display-only (mailto in ClientDashboard);
             role comes only from is_admin() RPC. Documented clear First-admin
             steps in README and RELEASE_CHECKLIST.
-            Next: A0 (owner must revoke the exposed token), then A3.
+2026-11-20  A3 done: Promoted strong CSP to enforcing in vercel.json.
+            script-src includes 'unsafe-inline' because live preview and public
+            invitation pages use srcDoc iframes with inline bridge/template scripts
+            (nonces impractical with static headers + dynamic shells).
+            Stricter Report-Only (script-src 'self' only) kept for monitoring.
+            Next: A0 (owner must revoke the exposed token), then A4/A5 (owner).
 ```

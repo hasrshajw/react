@@ -36,11 +36,12 @@ Workflow: `.github/workflows/ci.yml` (typecheck, lint, unit tests, build, `test:
 - [ ] Client A vs client B isolation on linked invitations (matches `npm run test:db` matrix).
 - [ ] Confirm `VITE_ADMIN_EMAIL` is display-only; real admin rights come only from the `admins` table + RLS.
 
-## 5. Content-Security-Policy (A3)
+## 5. Content-Security-Policy (A3) — done in code
 
-- [ ] Observe Report-Only CSP violations on the preview deployment (if any).
-- [ ] Promote the strong CSP from Report-Only to enforcing when ready, or document the decision to keep it report-only for a defined period.
-- [ ] Keep the minimal hard policy (`object-src 'none'; frame-ancestors 'none'`) at all times.
+- [x] Strong CSP is now **enforcing** (not only Report-Only) in `vercel.json`.
+- [x] `object-src 'none'` and `frame-ancestors 'none'` are part of the enforcing policy.
+- [ ] After the next preview deploy, open the browser console on `/`, `/login`, `/create`, a public invitation slug, and the live preview panel. Confirm there are no unexpected CSP violations that break the UI.
+- [ ] Optionally review Report-Only reports (stricter `script-src 'self'` without `'unsafe-inline'`) for future hardening with nonces/hashes.
 
 ## 6. Email / notifications (A6)
 
