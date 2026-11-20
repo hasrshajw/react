@@ -1,6 +1,6 @@
 # Change plan: short links, custom link previews and SEO
 
-> **Note:** the SQL files this document mentions (`supabase/migrations/*`, `schema.sql`, `seed.sql`) were consolidated. A new project now runs only `supabase/01_schema.sql`, `02_seed_templates.sql` and `03_make_admin.sql` (see README, "Set up Supabase"). The text below is kept as history.
+> **Note:** the SQL files this document mentions (`setup/sql/updates/ (historical) or current schema*`, `schema.sql`, `seed.sql`) were consolidated. A new project now runs only `setup/sql/01_schema.sql`, `02_seed_templates.sql` and `03_make_admin.sql` (see README, "Set up Supabase"). The text below is kept as history.
 
 Branch: `feature/supabase-connection`
 Stack found in this repo: Vite + React 18 + TypeScript, react-router-dom v7, Supabase, deployed on Vercel.
@@ -11,8 +11,8 @@ Work is done in small batches. One or two changes per commit, each pushed to thi
 
 | Batch | Scope | Status |
 |---|---|---|
-| 1 | Migration SQL (section 4) and `src/lib/reserved.ts` (2.5) | Done. **You must run `supabase/migrations/001_seo_previews.sql` in the Supabase SQL Editor.** |
-| 2 | Remove Photos section (section 1) | Done. **You must run `supabase/migrations/002_remove_photo_blocks_from_templates.sql` in the Supabase SQL Editor.** |
+| 1 | Migration SQL (section 4) and `src/lib/reserved.ts` (2.5) | Done. **You must run `setup/sql/updates/ (historical) or current schema001_seo_previews.sql` in the Supabase SQL Editor.** |
+| 2 | Remove Photos section (section 1) | Done. **You must run `setup/sql/updates/ (historical) or current schema002_remove_photo_blocks_from_templates.sql` in the Supabase SQL Editor.** |
 | 3 | Types, defaults and validation for SEO fields (2.1, 2.4) | Done. No SQL to run. |
 | 4 | SEO section UI and image upload (2.2, 2.3) | Done. Needs migration `001` (bucket `invitation-previews`) to be applied, which batch 1 already asked for. |
 | 5 | Routes and link builders (section 3) | Done. No SQL to run. After deploy, `example.com/<slug>` opens the invitation. Previews still show the generic card until batch 6. |
@@ -53,7 +53,7 @@ Notes from batch 3:
 Notes from batch 4:
 - New section "Link Preview & Custom Link" (`SeoSection.tsx`, after Venue). It holds the Custom Link ID field (moved out of the Template section), preview title (60), preview description (160), preview image and a live preview card. `customId` errors now point to section `seo`.
 - `compressToOg(file)` in `image.ts`: center-crops to 1200 x 630, JPEG, lowers quality and then size until it is under 300 KB. Fails with a clear message if it cannot get under the limit.
-- `uploadPreviewImage(blob, invitationId)` in `api.ts`: uploads to `invitation-previews/<userId>/<invitationId>.jpg` with `upsert`, returns the public URL with a `?v=<time>` stamp so a replaced image is not served from cache. If the bucket is missing, the user sees "Run supabase/migrations/001_seo_previews.sql first".
+- `uploadPreviewImage(blob, invitationId)` in `api.ts`: uploads to `invitation-previews/<userId>/<invitationId>.jpg` with `upsert`, returns the public URL with a `?v=<time>` stamp so a replaced image is not served from cache. If the bucket is missing, the user sees "Run setup/sql/updates/ (historical) or current schema001_seo_previews.sql first".
 - `Create.tsx` now creates the id of a new invitation up front (`pendingId`), so the image can be uploaded before the first save, and the save uses the same id. "Create another" gets a fresh id.
 - Empty title and description fall back to `"{Groom} & {Bride} Wedding Invitation"` and `"{date}, {venue}. Tap to view the invitation."` They show as placeholders and in the preview card. `seoFallbacks()` in `SeoSection.tsx` is the one place for this wording; `api/invite.js` (batch 6) must use the same text.
 - `Field` got optional `placeholder`, `maxLength` and `counter` props. `DropButton` in `PhotoPicker.tsx` is now exported and reused for the upload.
@@ -211,7 +211,7 @@ So the server must return per-invitation `<meta property="og:...">` tags. This n
 | Action | File |
 |---|---|
 | Add | `api/invite.js` (serverless function that injects OG tags) |
-| Add | `supabase/migrations/001_seo_previews.sql` (storage bucket, meta RPC, slug rules) |
+| Add | `setup/sql/updates/ (historical) or current schema001_seo_previews.sql` (storage bucket, meta RPC, slug rules) |
 | Add | `src/lib/reserved.ts` (words that cannot be used as a short link) |
 | Add | `src/features/create/components/SeoSection.tsx` (new SEO section + live preview card) |
 | Add | `public/og-main.jpg`, `public/robots.txt`, `public/sitemap.xml` |
@@ -351,7 +351,7 @@ Put the builder in one helper, e.g. `invitationUrl(slug)` in `src/features/invit
 
 ## 4. Database migration (new file, do not edit schema.sql)
 
-`supabase/migrations/001_seo_previews.sql`
+`setup/sql/updates/ (historical) or current schema001_seo_previews.sql`
 ```sql
 -- 4.1 public bucket for preview images
 insert into storage.buckets (id, name, public)
