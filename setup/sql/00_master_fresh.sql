@@ -2,9 +2,9 @@
 -- 01_schema.sql  -  COMPLETE database setup for a brand-new Supabase project.
 --
 -- Run order for a fresh project (Supabase dashboard > SQL Editor > New query, paste the whole file, Run):
---   1. supabase/01_schema.sql           (this file: tables, security rules, functions, triggers, storage bucket, daily trash purge)
---   2. supabase/02_seed_templates.sql   (optional: two starter invitation templates)
---   3. supabase/03_make_admin.sql       (after you create your login user: makes that user the administrator)
+--   1. setup/sql/01_schema.sql           (this file: tables, security rules, functions, triggers, storage bucket, daily trash purge)
+--   2. setup/sql/02_seed_templates.sql   (optional: two starter invitation templates)
+--   3. setup/sql/03_make_admin.sql       (after you create your login user: makes that user the administrator)
 --
 -- This one file replaces the old schema.sql and all 20 migrations (001-020); nothing else needs to be run.
 -- It creates: tables (categories, templates, invitations, enquiries, profiles, admins, change_requests, audit_log, notifications,
@@ -1027,3 +1027,11 @@ revoke all on function public.my_invitations_list() from public, anon;
 grant execute on function public.my_invitations_list() to authenticated;
 revoke all on function public.my_invitation(text) from public, anon;
 grant execute on function public.my_invitation(text) to authenticated;
+
+-- =====================================================================================================================
+-- End of master schema. Next steps (do these separately):
+-- 1. Create your first user in Authentication → Users (Auto Confirm).
+-- 2. Edit and run 03_make_admin.sql (change the email).
+-- 3. Optional: run 02_seed_templates.sql.
+-- See SETUP.md for the full guide.
+-- =====================================================================================================================

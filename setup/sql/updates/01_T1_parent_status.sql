@@ -1,10 +1,10 @@
--- supabase/updates/03_T3_house_names.sql
--- Task T3 (separate house names, gotram, honorific). Run this ONCE on a live project that was set up before T3 (Supabase > SQL editor).
--- A clean project does not need it: supabase/01_schema.sql already contains the same two functions.
+-- setup/sql/updates/01_T1_parent_status.sql
+-- Task T1 (parent status: alive / late / hidden). Run this ONCE on a live project that was set up before T1 (Supabase > SQL editor).
+-- A clean project does not need it: setup/sql/01_schema.sql already contains the same two functions.
 -- Safe to re-run (create or replace). It changes no table and no data; the grants on both functions are kept.
--- Run 01_T1_parent_status.sql and 02_T2_closing_names.sql first if they have not been run (this file contains everything from T1 and T2 too).
---   1. details_problem(): accepts the eight house-name / gotram keys (text) and coupleHonorific ('' or 'chiranjeevi').
---   2. submit_change_request(): a client may change those nine keys from /my.
+--   1. details_problem(): accepts groomFatherStatus, groomMotherStatus, brideFatherStatus, brideMotherStatus
+--      (only '', 'late' or 'hidden') and does not check the phone format of a late or hidden parent.
+--   2. submit_change_request(): the four keys may be changed by a client from /my.
 
 create or replace function public.details_problem(d jsonb) returns text
 language plpgsql immutable as $$
@@ -14,14 +14,12 @@ declare
     'groomFatherEn','groomFatherTe','groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe',
     'brideFatherEn','brideFatherTe','brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionDate',
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
-    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
-    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources',
-    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
+    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];
   url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
-  list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
-  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe'];
+  list_keys  text[] := array['events','groomContacts','brideContacts'];
+  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone'];
 begin
   if d is null or jsonb_typeof(d) <> 'object' then return 'details must be a JSON object'; end if;
   if octet_length(d::text) > 65536 then return 'details is larger than 64 KB'; end if;
@@ -40,14 +38,6 @@ begin
           return 'seoImage must be a preview image uploaded in this app'; end if;
         if k = any (status_keys) and s not in ('', 'late', 'hidden') then
           return k || ' must be empty, late or hidden'; end if;
-        -- T3: the honorific before the couple's names is off ('') or 'chiranjeevi'
-        if k = 'coupleHonorific' and s not in ('', 'chiranjeevi') then
-          return 'coupleHonorific must be empty or chiranjeevi'; end if;
-        -- T2: closing title preset and the list of people who appear (same rules as src/lib/inviteText.ts)
-        if k = 'closingTitleMode' and s not in ('', 'itlu', 'aahvaninchuvaaru', 'compliments', 'invitedBy', 'regards', 'custom', 'none') then
-          return 'closingTitleMode is not a known title'; end if;
-        if k = 'inviterSources' and s !~ '^(none)?$|^(groom|groomFather|groomMother|bride|brideFather|brideMother|groomFamily|brideFamily|surname)(,(groom|groomFather|groomMother|bride|brideFather|brideMother|groomFamily|brideFamily|surname))*$' then
-          return 'inviterSources has an unknown person'; end if;
         -- T1: the phone of a late or hidden parent is never shown, so its format is not checked (same rule as src/lib/validate.ts)
         if k = any (phone_keys) and btrim(s) <> ''
            and coalesce(d ->> replace(k, 'Phone', 'Status'), '') = '' and not (
@@ -59,7 +49,6 @@ begin
     elsif k = any (list_keys) then
       if jsonb_typeof(v) <> 'array' then return k || ' must be a list'; end if;
       if jsonb_array_length(v) > 20 then return k || ' has more than 20 items'; end if;
-      if k = 'inviterNames' and jsonb_array_length(v) > 8 then return 'inviterNames has more than 8 names'; end if;
       for item in select * from jsonb_array_elements(v) loop
         if jsonb_typeof(item) <> 'object' then return k || ' items must be objects'; end if;
         declare ik text; iv jsonb; is_ text; begin
@@ -69,8 +58,6 @@ begin
               is_ := iv #>> '{}';
               if is_ is not null and char_length(is_) > 1000 then return k || '.' || ik || ' is longer than 1000 characters'; end if;
               if ik = 'maps' and not public.is_safe_url(is_) then return k || '.maps has a link type that is not allowed'; end if;
-              if k = 'inviterNames' and ik = 'prefix' and coalesce(is_, '') not in ('', 'sri', 'smt', 'chi', 'late', 'dr') then
-                return 'inviterNames.prefix is not a known prefix'; end if;
               if ik = 'phone' and btrim(coalesce(is_, '')) <> '' and not (
                    is_ ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(is_, '\D', '', 'g')) between 10 and 13) then
                 return k || '.phone is not a valid phone number'; end if;
@@ -91,9 +78,7 @@ declare
     'groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe','brideFatherEn','brideFatherTe',
     'brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionEnabled','receptionDate','receptionTime',
     'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
-    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
-    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames',
-    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
+    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

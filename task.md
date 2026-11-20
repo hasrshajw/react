@@ -98,7 +98,7 @@ Update the living documents so a new contributor or AI sees the current state:
 ### A2 – Confirm and document admin bootstrap
 **Status: DONE** (20 Nov 2026)
 
-- Verify that `supabase/03_make_admin.sql` is the only supported way to create the first admin and that it fails safely when the email does not exist.
+- Verify that `setup/sql/03_make_admin.sql` is the only supported way to create the first admin and that it fails safely when the email does not exist.
 - Add a short “First admin” section to `README.md` or the release checklist if it is missing or unclear.
 - Confirm that `VITE_ADMIN_EMAIL` is used only for display (Contact admin link) and never for authorization.
 
@@ -125,8 +125,8 @@ Update the living documents so a new contributor or AI sees the current state:
 
 For any live Supabase project that was created before the T1–T8 Create-form work:
 
-1. Run `supabase/updates/01_T1_parent_status.sql` through `08_T8_relatives.sql` in order (safe to re-run).
-2. In Admin → Templates, re-paste the current `docs/templates/telugu-traditional.html` into the Telugu traditional template.
+1. Run `setup/sql/updates/01_T1_parent_status.sql` through `08_T8_relatives.sql` in order (safe to re-run).
+2. In Admin → Templates, re-paste the current `setup/templates/telugu-traditional.html` into the Telugu traditional template.
 3. Smoke-test: create invitation, publish, open public slug, client `/my` edit flow.
 
 **Done when:** All new fields appear correctly on new and existing invitations and the compiler still produces valid output for old records.  
@@ -236,7 +236,7 @@ Only after A0–A7 (and any Critical/High items from A8) are acceptable:
 - This plan: `task.md`
 - Release steps: `docs/RELEASE_CHECKLIST.md`
 - Short-link / SEO notes: `docs/SEO_SHORT_LINK_CHANGES.md`
-- Database: `supabase/01_schema.sql` (complete), `02_seed_templates.sql`, `03_make_admin.sql`, and `supabase/updates/*.sql` for incremental changes on older projects
+- Database / setup: everything under `setup/` (see `setup/SETUP.md`). Fresh project: `setup/sql/01_schema.sql` (or `00_master_fresh.sql`), then `02_seed_templates.sql`, then `03_make_admin.sql`. Existing projects: `setup/sql/updates/`.
 - Create form & compiler: `src/features/create/`, `src/lib/compileInvitation.ts`, `src/lib/inviteText.ts`
 - Tests: `npm test`, `npm run test:db`, `npm run test:e2e`
 - Security reminder: if any token or key was ever pasted into a chat, revoke it before releasing.
@@ -266,4 +266,8 @@ Only after A0–A7 (and any Critical/High items from A8) are acceptable:
             fixed 01_schema enquiry limit 5→3 to match updates/09 + README;
             updated db-test accordingly. No invite-create rate limit (accepted).
             IP/captcha for enquiries deferred. Next: A0 (owner), then A4/A5.
+2026-11-20  Setup reorganization: moved all SQL + Telugu template into `setup/`.
+            Added `setup/SETUP.md` (fresh-project guide) and `sql/00_master_fresh.sql`.
+            Updated README, RELEASE_CHECKLIST, task.md paths. Old `supabase/` and
+            `docs/templates/` directories are removed. A0 still open (owner).
 ```

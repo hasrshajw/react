@@ -1,11 +1,11 @@
--- supabase/updates/07_T7_contacts.sql
--- Task T7 (up to 3 extra contacts per side, contact role). Run this ONCE on a live project that was set up before T7 (Supabase > SQL editor).
--- A clean project does not need it: supabase/01_schema.sql already contains the same function.
--- Safe to re-run (create or replace). It changes no table and no data; the grants on the function are kept.
--- Run 01_T1_parent_status.sql to 06_T6_events.sql first if they have not been run (this function contains everything from T1 to T6 too).
---   1. details_problem(): every item of groomContacts / brideContacts may carry the text keys roleEn and roleTe (each up to 1000 characters),
---      and each of those two lists may have at most 3 items (the form allows 3).
---   submit_change_request() needs no change: both lists were already on its `allowed` list.
+-- setup/sql/updates/02_T2_closing_names.sql
+-- Task T2 (closing title, who appears, custom names). Run this ONCE on a live project that was set up before T2 (Supabase > SQL editor).
+-- A clean project does not need it: setup/sql/01_schema.sql already contains the same two functions.
+-- Safe to re-run (create or replace). It changes no table and no data; the grants on both functions are kept.
+-- Run setup/sql/updates/01_T1_parent_status.sql first if it has not been run (this file contains everything from T1 too).
+--   1. details_problem(): accepts closingTitleMode (a known preset), closingTitleEn, closingTitleTe, inviterSources (known ids, or
+--      "none"), and the list inviterNames (at most 8 names; each prefix must be a known one).
+--   2. submit_change_request(): a client may change those five keys from /my.
 
 create or replace function public.details_problem(d jsonb) returns text
 language plpgsql immutable as $$
@@ -16,17 +16,12 @@ declare
     'brideFatherEn','brideFatherTe','brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionDate',
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
-    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources',
-    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
-    'groomOrder','brideOrder','showParentage',
-    'receptionVenueEn','receptionVenueTe','receptionVenueAddress','receptionVenueMaps'];
-  url_keys   text[] := array['venueMaps','seoImage','receptionVenueMaps'];
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources'];
+  url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
   list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
-  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe',
-    'type','endTime','descEn','descTe','dress',   -- T6: these five belong to events
-    'roleEn','roleTe'];                            -- T7: contact role
+  sub_text   text[] := array['id','name','nameTe','nameEn','date','time','venue','venueTe','maps','phone','prefix','relationEn','relationTe'];
 begin
   if d is null or jsonb_typeof(d) <> 'object' then return 'details must be a JSON object'; end if;
   if octet_length(d::text) > 65536 then return 'details is larger than 64 KB'; end if;
@@ -45,14 +40,6 @@ begin
           return 'seoImage must be a preview image uploaded in this app'; end if;
         if k = any (status_keys) and s not in ('', 'late', 'hidden') then
           return k || ' must be empty, late or hidden'; end if;
-        -- T3: the honorific before the couple's names is off ('') or 'chiranjeevi'
-        if k = 'coupleHonorific' and s not in ('', 'chiranjeevi') then
-          return 'coupleHonorific must be empty or chiranjeevi'; end if;
-        -- T4: birth order (same list as BIRTH_ORDERS in src/lib/inviteText.ts) and the parentage-line switch
-        if k in ('groomOrder', 'brideOrder') and s not in ('', 'only', 'eldest', 'second', 'third', 'fourth', 'youngest') then
-          return k || ' is not a known position among children'; end if;
-        if k = 'showParentage' and s not in ('', '1') then
-          return 'showParentage must be empty or 1'; end if;
         -- T2: closing title preset and the list of people who appear (same rules as src/lib/inviteText.ts)
         if k = 'closingTitleMode' and s not in ('', 'itlu', 'aahvaninchuvaaru', 'compliments', 'invitedBy', 'regards', 'custom', 'none') then
           return 'closingTitleMode is not a known title'; end if;
@@ -64,13 +51,12 @@ begin
              s ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(s, '\D', '', 'g')) between 10 and 13) then
           return k || ' is not a valid phone number'; end if;
       end if;
-    elsif k in ('receptionEnabled', 'receptionSameVenue') then   -- T5: receptionSameVenue is the "same venue as the wedding" switch
-      if jsonb_typeof(v) <> 'boolean' then return k || ' must be true or false'; end if;
+    elsif k = 'receptionEnabled' then
+      if jsonb_typeof(v) <> 'boolean' then return 'receptionEnabled must be true or false'; end if;
     elsif k = any (list_keys) then
       if jsonb_typeof(v) <> 'array' then return k || ' must be a list'; end if;
       if jsonb_array_length(v) > 20 then return k || ' has more than 20 items'; end if;
       if k = 'inviterNames' and jsonb_array_length(v) > 8 then return 'inviterNames has more than 8 names'; end if;
-      if k in ('groomContacts', 'brideContacts') and jsonb_array_length(v) > 3 then return k || ' has more than 3 contacts'; end if;   -- T7 (MAX_CONTACTS)
       for item in select * from jsonb_array_elements(v) loop
         if jsonb_typeof(item) <> 'object' then return k || ' items must be objects'; end if;
         declare ik text; iv jsonb; is_ text; begin
@@ -80,11 +66,6 @@ begin
               is_ := iv #>> '{}';
               if is_ is not null and char_length(is_) > 1000 then return k || '.' || ik || ' is longer than 1000 characters'; end if;
               if ik = 'maps' and not public.is_safe_url(is_) then return k || '.maps has a link type that is not allowed'; end if;
-              -- T6: event type (same ids as EVENT_TYPES in src/lib/eventTypes.ts) and end time (HH:MM or empty)
-              if k = 'events' and ik = 'type' and coalesce(is_, '') not in ('', 'engagement', 'haldi', 'mehendi', 'sangeet', 'pellikoduku', 'pellikuthuru', 'varapuja', 'baraat', 'dinner', 'griha', 'custom') then
-                return 'events.type is not a known event type'; end if;
-              if k = 'events' and ik = 'endTime' and coalesce(is_, '') !~ '^(([01][0-9]|2[0-3]):[0-5][0-9])?$' then
-                return 'events.endTime must be a time like 18:30'; end if;
               if k = 'inviterNames' and ik = 'prefix' and coalesce(is_, '') not in ('', 'sri', 'smt', 'chi', 'late', 'dr') then
                 return 'inviterNames.prefix is not a known prefix'; end if;
               if ik = 'phone' and btrim(coalesce(is_, '')) <> '' and not (
@@ -98,4 +79,55 @@ begin
     -- other keys (templateId aliases, UI flags) are left alone; the compiler only reads the keys above.
   end loop;
   return null;
+end $$;
+
+create or replace function public.submit_change_request(p_invitation_id text, p_details jsonb, p_base_updated_at timestamptz)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  allowed text[] := array['surnameEn','surnameTe','weddingDate','muhurthamTime','groomEn','groomTe','groomFatherEn','groomFatherTe',
+    'groomFatherPhone','groomMotherEn','groomMotherTe','groomMotherPhone','brideEn','brideTe','brideFatherEn','brideFatherTe',
+    'brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionEnabled','receptionDate','receptionTime',
+    'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
+    'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames'];
+  v_email text := public.current_user_email();
+  v_inv public.invitations%rowtype;
+  v_changed text[];
+  v_changes jsonb;
+  v_proposed jsonb;
+  v_problem text;
+  v_id uuid;
+begin
+  if auth.uid() is null or v_email is null then
+    raise exception 'Sign in with a verified email to submit changes' using errcode = '42501';
+  end if;
+  -- one message for "not yours", "not found" and "in the trash": nothing about other people's invitations leaks
+  select * into v_inv from public.invitations
+    where id = p_invitation_id and client_email = v_email and deleted_at is null for update;
+  if not found then raise exception 'Invitation not found' using errcode = 'P0002'; end if;
+  if p_details is null or jsonb_typeof(p_details) <> 'object' then
+    raise exception 'details must be a JSON object' using errcode = '22023'; end if;
+  if p_base_updated_at is null or p_base_updated_at > v_inv.updated_at then
+    raise exception 'Invalid base version' using errcode = '22023'; end if;
+
+  select coalesce(array_agg(k order by k), '{}') into v_changed
+    from jsonb_object_keys(p_details) k
+    where k = any (allowed) and public.details_value(v_inv.details, k) is distinct from public.details_value(p_details, k);
+  if cardinality(v_changed) = 0 then raise exception 'No changes to submit' using errcode = '22023'; end if;
+
+  select jsonb_object_agg(k, public.details_value(p_details, k)) into v_changes from unnest(v_changed) k;
+  v_proposed := v_inv.details || v_changes;
+  v_problem := public.details_problem(v_proposed);   -- the same rules as the editor and the live table (H-2, M-4)
+  if v_problem is not null then raise exception 'Invalid invitation details: %', v_problem using errcode = '23514'; end if;
+
+  if exists (select 1 from public.change_requests where invitation_id = v_inv.id and status = 'pending') then
+    raise exception 'A change request is already waiting for review' using errcode = '23505'; end if;
+  if (select count(*) from public.change_requests where requested_by = auth.uid() and created_at > now() - interval '1 hour') >= 10 then
+    raise exception 'Too many change requests. Try again later' using errcode = '54000'; end if;
+
+  insert into public.change_requests (invitation_id, requested_by, client_email, base_updated_at, proposed_details, changed_keys)
+    values (v_inv.id, auth.uid(), v_email, p_base_updated_at, v_proposed, v_changed) returning id into v_id;
+  insert into public.notifications (audience, type, invitation_id, request_id, payload)
+    values ('admin', 'change_submitted', v_inv.id, v_id, jsonb_build_object('client_email', v_email, 'changed_keys', v_changed));
+  return v_id;
 end $$;

@@ -13,13 +13,13 @@ Aligned with the production-readiness plan in `task.md` (A0–A9) written 20 Nov
 
 ## 2. Apply schema & first admin (A2 / A4)
 
-- [ ] Run `supabase/01_schema.sql`, then optionally `02_seed_templates.sql`, on a clean project.
+- [ ] Run `setup/sql/01_schema.sql`, then optionally `02_seed_templates.sql`, on a clean project.
 - [ ] **First admin (only supported method):**
   1. Authentication → Users → Add user (email + password, Auto Confirm).
-  2. Edit `supabase/03_make_admin.sql`: set `admin_email` to that exact address.
+  2. Edit `setup/sql/03_make_admin.sql`: set `admin_email` to that exact address.
   3. Run the file in the SQL Editor. It raises an error and changes nothing if the user does not exist.
 - [ ] Confirm `VITE_ADMIN_EMAIL` (if set) is used only for display links; real admin rights come only from the `admins` table + `is_admin()` RLS.
-- [ ] **Existing live project** (set up before T1–T8 Create-form work): run `supabase/updates/01_T1_parent_status.sql` through `08_T8_relatives.sql` in order (safe to re-run). Then **Admin → Templates**: re-paste `docs/templates/telugu-traditional.html` into the Telugu traditional template.
+- [ ] **Existing live project** (set up before T1–T8 Create-form work): run `setup/sql/updates/01_T1_parent_status.sql` through `08_T8_relatives.sql` in order (safe to re-run). Then **Admin → Templates**: re-paste `setup/templates/telugu-traditional.html` into the Telugu traditional template.
 - [ ] Smoke: login, create invitation, publish, open public slug, client `/my` flow.
 
 ## 3. CI

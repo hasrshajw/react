@@ -1,11 +1,10 @@
--- supabase/updates/02_T2_closing_names.sql
--- Task T2 (closing title, who appears, custom names). Run this ONCE on a live project that was set up before T2 (Supabase > SQL editor).
--- A clean project does not need it: supabase/01_schema.sql already contains the same two functions.
+-- setup/sql/updates/04_T4_birth_order.sql
+-- Task T4 (birth order and the "son / daughter of" line). Run this ONCE on a live project that was set up before T4 (Supabase > SQL editor).
+-- A clean project does not need it: setup/sql/01_schema.sql already contains the same two functions.
 -- Safe to re-run (create or replace). It changes no table and no data; the grants on both functions are kept.
--- Run supabase/updates/01_T1_parent_status.sql first if it has not been run (this file contains everything from T1 too).
---   1. details_problem(): accepts closingTitleMode (a known preset), closingTitleEn, closingTitleTe, inviterSources (known ids, or
---      "none"), and the list inviterNames (at most 8 names; each prefix must be a known one).
---   2. submit_change_request(): a client may change those five keys from /my.
+-- Run 01_T1_parent_status.sql, 02_T2_closing_names.sql and 03_T3_house_names.sql first if they have not been run (this file contains everything from T1 to T3 too).
+--   1. details_problem(): accepts groomOrder / brideOrder ('' | only | eldest | second | third | fourth | youngest) and showParentage ('' or '1').
+--   2. submit_change_request(): a client may change those three keys from /my.
 
 create or replace function public.details_problem(d jsonb) returns text
 language plpgsql immutable as $$
@@ -16,7 +15,9 @@ declare
     'brideFatherEn','brideFatherTe','brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionDate',
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
-    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources'];
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources',
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
+    'groomOrder','brideOrder','showParentage'];
   url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
@@ -40,6 +41,14 @@ begin
           return 'seoImage must be a preview image uploaded in this app'; end if;
         if k = any (status_keys) and s not in ('', 'late', 'hidden') then
           return k || ' must be empty, late or hidden'; end if;
+        -- T3: the honorific before the couple's names is off ('') or 'chiranjeevi'
+        if k = 'coupleHonorific' and s not in ('', 'chiranjeevi') then
+          return 'coupleHonorific must be empty or chiranjeevi'; end if;
+        -- T4: birth order (same list as BIRTH_ORDERS in src/lib/inviteText.ts) and the parentage-line switch
+        if k in ('groomOrder', 'brideOrder') and s not in ('', 'only', 'eldest', 'second', 'third', 'fourth', 'youngest') then
+          return k || ' is not a known position among children'; end if;
+        if k = 'showParentage' and s not in ('', '1') then
+          return 'showParentage must be empty or 1'; end if;
         -- T2: closing title preset and the list of people who appear (same rules as src/lib/inviteText.ts)
         if k = 'closingTitleMode' and s not in ('', 'itlu', 'aahvaninchuvaaru', 'compliments', 'invitedBy', 'regards', 'custom', 'none') then
           return 'closingTitleMode is not a known title'; end if;
@@ -89,7 +98,9 @@ declare
     'brideFatherPhone','brideMotherEn','brideMotherTe','brideMotherPhone','receptionEnabled','receptionDate','receptionTime',
     'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
-    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames'];
+    'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames',
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
+    'groomOrder','brideOrder','showParentage'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

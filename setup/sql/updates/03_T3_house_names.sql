@@ -1,13 +1,10 @@
--- supabase/updates/05_T5_reception_venue.sql
--- Task T5 (separate reception venue). Run this ONCE on a live project that was set up before T5 (Supabase > SQL editor).
--- A clean project does not need it: supabase/01_schema.sql already contains the same three functions.
--- Safe to re-run (create or replace). It changes no table and no data; the grants on all three functions are kept.
--- Run 01_T1_parent_status.sql to 04_T4_birth_order.sql first if they have not been run (this file contains everything from T1 to T4 too).
---   1. details_problem(): accepts receptionSameVenue (true / false) and the text keys receptionVenueEn, receptionVenueTe,
---      receptionVenueAddress and receptionVenueMaps; receptionVenueMaps goes through the same link allow-list as venueMaps.
---   2. details_value(): a missing receptionSameVenue counts as true (an old invitation means "same venue"), so a client
---      who sends the default does not show a false change in the review screen.
---   3. submit_change_request(): a client may change those five keys from /my.
+-- setup/sql/updates/03_T3_house_names.sql
+-- Task T3 (separate house names, gotram, honorific). Run this ONCE on a live project that was set up before T3 (Supabase > SQL editor).
+-- A clean project does not need it: setup/sql/01_schema.sql already contains the same two functions.
+-- Safe to re-run (create or replace). It changes no table and no data; the grants on both functions are kept.
+-- Run 01_T1_parent_status.sql and 02_T2_closing_names.sql first if they have not been run (this file contains everything from T1 and T2 too).
+--   1. details_problem(): accepts the eight house-name / gotram keys (text) and coupleHonorific ('' or 'chiranjeevi').
+--   2. submit_change_request(): a client may change those nine keys from /my.
 
 create or replace function public.details_problem(d jsonb) returns text
 language plpgsql immutable as $$
@@ -19,10 +16,8 @@ declare
     'receptionTime','venueEn','venueTe','venueAddress','venueMaps','seoTitle','seoDescription','seoImage','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
     'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources',
-    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
-    'groomOrder','brideOrder','showParentage',
-    'receptionVenueEn','receptionVenueTe','receptionVenueAddress','receptionVenueMaps'];
-  url_keys   text[] := array['venueMaps','seoImage','receptionVenueMaps'];
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
+  url_keys   text[] := array['venueMaps','seoImage'];
   phone_keys text[] := array['groomFatherPhone','groomMotherPhone','brideFatherPhone','brideMotherPhone'];
   status_keys text[] := array['groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus'];  -- T1: '' alive, 'late', 'hidden'
   list_keys  text[] := array['events','groomContacts','brideContacts','inviterNames'];
@@ -48,11 +43,6 @@ begin
         -- T3: the honorific before the couple's names is off ('') or 'chiranjeevi'
         if k = 'coupleHonorific' and s not in ('', 'chiranjeevi') then
           return 'coupleHonorific must be empty or chiranjeevi'; end if;
-        -- T4: birth order (same list as BIRTH_ORDERS in src/lib/inviteText.ts) and the parentage-line switch
-        if k in ('groomOrder', 'brideOrder') and s not in ('', 'only', 'eldest', 'second', 'third', 'fourth', 'youngest') then
-          return k || ' is not a known position among children'; end if;
-        if k = 'showParentage' and s not in ('', '1') then
-          return 'showParentage must be empty or 1'; end if;
         -- T2: closing title preset and the list of people who appear (same rules as src/lib/inviteText.ts)
         if k = 'closingTitleMode' and s not in ('', 'itlu', 'aahvaninchuvaaru', 'compliments', 'invitedBy', 'regards', 'custom', 'none') then
           return 'closingTitleMode is not a known title'; end if;
@@ -64,8 +54,8 @@ begin
              s ~ '^[+0-9 ()-]+$' and char_length(regexp_replace(s, '\D', '', 'g')) between 10 and 13) then
           return k || ' is not a valid phone number'; end if;
       end if;
-    elsif k in ('receptionEnabled', 'receptionSameVenue') then   -- T5: receptionSameVenue is the "same venue as the wedding" switch
-      if jsonb_typeof(v) <> 'boolean' then return k || ' must be true or false'; end if;
+    elsif k = 'receptionEnabled' then
+      if jsonb_typeof(v) <> 'boolean' then return 'receptionEnabled must be true or false'; end if;
     elsif k = any (list_keys) then
       if jsonb_typeof(v) <> 'array' then return k || ' must be a list'; end if;
       if jsonb_array_length(v) > 20 then return k || ' has more than 20 items'; end if;
@@ -94,14 +84,6 @@ begin
   return null;
 end $$;
 
-create or replace function public.details_value(d jsonb, k text) returns jsonb language sql immutable as $$
-  select coalesce(nullif(d -> k, 'null'::jsonb),
-    case when k in ('events','groomContacts','brideContacts') then '[]'::jsonb
-         when k = 'receptionEnabled' then 'false'::jsonb
-         when k = 'receptionSameVenue' then 'true'::jsonb   -- T5: a record saved before T5 has no such key and means "same venue"
-         else '""'::jsonb end);
-$$;
-
 create or replace function public.submit_change_request(p_invitation_id text, p_details jsonb, p_base_updated_at timestamptz)
 returns uuid language plpgsql security definer set search_path = public as $$
 declare
@@ -111,9 +93,7 @@ declare
     'venueEn','venueTe','venueAddress','venueMaps','events','groomContacts','brideContacts','seoTitle','seoDescription','inviterMode','inviterEn','inviterTe','inviteMessageTe',
     'groomFatherStatus','groomMotherStatus','brideFatherStatus','brideMotherStatus',
     'closingTitleMode','closingTitleEn','closingTitleTe','inviterSources','inviterNames',
-    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific',
-    'groomOrder','brideOrder','showParentage',
-    'receptionSameVenue','receptionVenueEn','receptionVenueTe','receptionVenueAddress','receptionVenueMaps'];
+    'groomSurnameEn','groomSurnameTe','brideSurnameEn','brideSurnameTe','groomGotramEn','groomGotramTe','brideGotramEn','brideGotramTe','coupleHonorific'];
   v_email text := public.current_user_email();
   v_inv public.invitations%rowtype;
   v_changed text[];

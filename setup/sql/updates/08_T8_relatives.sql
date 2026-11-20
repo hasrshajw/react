@@ -1,6 +1,6 @@
--- supabase/updates/08_T8_relatives.sql
+-- setup/sql/updates/08_T8_relatives.sql
 -- Task T8 (relatives: siblings, grandparents, uncles... on the groom's and bride's cards). Run this ONCE on a live project that was set up before T8 (Supabase > SQL editor).
--- A clean project does not need it: supabase/01_schema.sql already contains the same three functions.
+-- A clean project does not need it: setup/sql/01_schema.sql already contains the same three functions.
 -- Safe to re-run (create or replace). It changes no table and no data; the grants on all three functions are kept.
 -- Run 01_T1_parent_status.sql to 07_T7_contacts.sql first if they have not been run (this file contains everything from T1 to T7 too).
 --   1. details_problem(): accepts the list `familyMembers` (at most 8 relatives with side "groom" and at most 8 with side "bride"; 20 items overall as for every list).
