@@ -56,7 +56,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_YOUR-KEY
    2. `02_seed_templates.sql` - optional: two starter wedding templates. Skip it if you will add your own.
    3. `03_make_admin.sql` - run it after step 3 below (once your login user exists).
    - The daily trash purge needs the `pg_cron` extension. If `01_schema.sql` prints a notice that it is not available, enable it under **Database -> Extensions** and run `01_schema.sql` again.
-   - **Live project already set up before the Create-form tasks (T1–T8):** run the files in `supabase/updates/` in order (`01_T1_parent_status.sql` … `08_T8_relatives.sql`). Each is safe to re-run and is a no-op on a clean project that already used the current `01_schema.sql`. After the SQL, open **Admin → Templates** and re-paste `docs/templates/telugu-traditional.html` into the Telugu template so new placeholders (parent status, closing names, house names, birth order, reception venue, extra events, contacts, relatives) render.
+   - **Live project already set up before the Create-form tasks (T1–T8):** run the files in `supabase/updates/` in order (`01_T1_parent_status.sql` … `08_T8_relatives.sql`, then `09_enquiry_rate_limit.sql`). Each is safe to re-run and is a no-op on a clean project that already used the current `01_schema.sql`. After the SQL, open **Admin → Templates** and re-paste `docs/templates/telugu-traditional.html` into the Telugu template so new placeholders (parent status, closing names, house names, birth order, reception venue, extra events, contacts, relatives) render.
 3. **Authentication and roles**
    - **Public sign-ups are allowed.** Anyone can create an account (email + password or Google). New accounts are ordinary **clients**: they never receive admin rights.
    - Admin access is controlled **only** by a row in the `admins` table (task C-1). Nobody can add or remove admin rows through the API; only the SQL Editor can. The UI role check (`RoleGate` / `is_admin()`) is for screen selection only — real permissions come from row-level security.
@@ -87,6 +87,8 @@ The link-preview picture of an invitation (the "Preview image" field) is uploade
 - The bucket accepts **JPEG only, at most 300 KB** per file. The app shrinks every picture to fit before uploading.
 - `details.seoImage` must be empty or a file of that bucket on your own project (`https://<project>.supabase.co/storage/v1/object/public/invitation-previews/<user>/<file>.jpg`, optional `?v=<digits>`). Links to other sites are refused by the form, by the database (`details_problem()`), and ignored by `api/invite.js` (it falls back to the site image). Before running `006` on a live project, run the query at the top of that file to list invitations that hold another kind of link; they stay readable, but cannot be edited until their preview image is removed or uploaded again. This rule needs an `https` Supabase URL, so it does not apply to a local `http://localhost` Supabase.
 - Deleting an invitation for good (the trash is emptied after 30 days) also deletes its picture, unless another invitation still uses the same file (*Duplicate* copies the link to the original's picture).
+  - When the Dashboard empties expired trash it calls `deleteInvitation`, which removes the invitation row **and** its preview file.
+  - The daily database job `purge_expired_trash()` only removes the rows (Postgres cannot touch Storage). Any leftover files are cleaned by the orphan job below.
 
 ### Trash
 
@@ -94,7 +96,11 @@ Moving an invitation to the trash sets `deleted_at` to the **database's** clock 
 - **Orphan cleanup** (`api/cleanup-previews.js`, rules in `api/_orphans.js`). A picture is removed only when its name is `<user>/<invitation id>.jpg`, **no invitation row has that id** (invitations in the trash still count), **no invitation's `seoImage` points at it** (a *Duplicate* shares the original's file) and it was last written **more than 24 hours ago**. It deletes at most 200 files per call, refuses to delete anything when it could not read the full invitation list (or read none while files exist), and does nothing for names of any other shape.
   - Set three **server-side** variables on Vercel (none may start with `VITE_`): `CRON_SECRET` (a long random string), `SUPABASE_SERVICE_ROLE_KEY` (Supabase → Project Settings → API; **never** put it in a `VITE_` variable or in the repo) and the existing `VITE_SUPABASE_URL`. With any missing, the route answers 503 and does nothing.
   - Try it by hand first, it is a **dry run** unless you add `?delete=1`: `curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-DOMAIN/api/cleanup-previews` lists what would be deleted; read the list, then add `?delete=1`.
-  - No schedule is set in `vercel.json` on purpose. To run it daily, add `"crons": [{ "path": "/api/cleanup-previews?delete=1", "schedule": "23 3 * * *" }]` to `vercel.json` (Vercel Cron sends the `CRON_SECRET` header by itself; check your plan's cron limits).
+  - A daily schedule is set in `vercel.json` (`23 3 * * *`). Vercel Cron sends the `CRON_SECRET` header automatically when the secret is configured (check your plan’s cron limits).
+
+### Public enquiries (rate limit)
+
+Anyone can submit an enquiry (status is forced to `new`). The database trigger `enquiries_check_insert` validates the fields and limits submissions to **3 per phone or email per hour**. Extra attempts get a clear error. Run `supabase/updates/09_enquiry_rate_limit.sql` on existing projects to apply the tighter limit.
 
 ### Telugu typing
 
