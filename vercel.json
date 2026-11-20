@@ -27,6 +27,12 @@
       "destination": "/index.html"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/cleanup-previews?delete=1",
+      "schedule": "23 3 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
